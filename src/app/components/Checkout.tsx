@@ -494,7 +494,16 @@ export function Checkout() {
               <Stepper activeStep={activeStep} alternativeLabel sx={{ mb: 4 }}>
                 {steps.map((label) => (
                   <Step key={label}>
-                    <StepLabel>{label}</StepLabel>
+                    <StepLabel
+                      sx={{
+                        "& .MuiStepLabel-label": {
+                          whiteSpace: "pre-line",
+                          lineHeight: 1.2,
+                        },
+                      }}
+                    >
+                      {label.replace(" ", "\n")}
+                    </StepLabel>
                   </Step>
                 ))}
               </Stepper>
