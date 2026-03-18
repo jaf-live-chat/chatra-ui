@@ -307,7 +307,7 @@ export function QueueView({ queue, onStartChat, isAgent = false, currentAgentId 
   );
 
   return (
-    <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: 1400, mx: "auto", display: "flex", flexDirection: "column", gap: 3.5 }}>
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 3.5 }}>
 
       {/* ── Agent notice banner ── */}
       {isAgent && (

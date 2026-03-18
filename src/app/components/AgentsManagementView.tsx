@@ -226,7 +226,7 @@ export function AgentsManagementView() {
   );
 
   return (
-    <Box sx={{ p: { xs: 3, md: 4 }, maxWidth: 1200, mx: "auto", display: "flex", flexDirection: "column", gap: 4 }}>
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 4 }}>
       {/* ── Page header ── */}
       <Stack direction={{ xs: "column", md: "row" }} alignItems={{ xs: "flex-start", md: "flex-end" }} justifyContent="space-between" spacing={2}>
         <Box>

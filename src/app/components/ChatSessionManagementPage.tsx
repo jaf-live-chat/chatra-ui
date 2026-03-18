@@ -527,14 +527,12 @@ export function ChatSessionManagementPage() {
 
     setActiveChats((prev) => prev.filter((c) => c.id !== selectedChatId));
     
-    // Update agent status to Online in localStorage when the last chat ends
-    if (activeChats.length === 1) {
-      try {
-        localStorage.setItem("jaf_agent_status", "Online");
-        window.dispatchEvent(new CustomEvent("jaf_agent_status_changed", { detail: { status: "Online" } }));
-      } catch (e) {
-        // silently fail
-      }
+    // Always reset admin status to Online when any chat ends
+    try {
+      localStorage.setItem("jaf_agent_status", "Online");
+      window.dispatchEvent(new CustomEvent("jaf_agent_status_changed", { detail: { status: "Online" } }));
+    } catch (e) {
+      // silently fail
     }
     
     setSelectedChatId(activeChats.length > 1 ? activeChats.find((c) => c.id !== selectedChatId)?.id || null : null);

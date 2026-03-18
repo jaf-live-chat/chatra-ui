@@ -89,7 +89,7 @@ export function QueueAssignmentSettingsPage() {
   }, []);
 
   return (
-    <Box sx={{ p: 4, maxWidth: 1400, mx: "auto" }}>
+    <Box sx={{ display: "flex", flexDirection: "column" }}>
       {/* Page Header */}
       <Box sx={{ mb: 4 }}>
         <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 1.5 }}>

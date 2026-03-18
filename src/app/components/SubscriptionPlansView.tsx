@@ -73,6 +73,21 @@ interface SubscriptionPlan {
 
 const defaultPlans: SubscriptionPlan[] = [
   {
+    id: "free-trial",
+    name: "Free Trial",
+    description: "Try JAF Chatra free for 14 days, no credit card required.",
+    price: "0",
+    period: "/14 days",
+    features: [
+      { id: "feat-1", text: "1 Agent Seat" },
+      { id: "feat-4", text: "14-day chat history" },
+      { id: "feat-6", text: "Basic widget customization" },
+      { id: "feat-9", text: "Community support" },
+    ],
+    popular: false,
+    active: true,
+  },
+  {
     id: "starter",
     name: "Starter",
     description: "Perfect for small projects and personal sites.",
@@ -276,7 +291,7 @@ export function SubscriptionPlansView() {
     text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500`;
 
   return (
-    <div className={`p-8 max-w-6xl mx-auto${isDark ? " dark" : ""}`}>
+    <div className={`flex flex-col gap-6${isDark ? " dark" : ""}`}>
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
@@ -506,38 +521,6 @@ export function SubscriptionPlansView() {
 
       {/* Plans Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 items-stretch">
-        {/* Free Trial Card (static, non-editable) */}
-        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-sm overflow-hidden flex flex-col hover:shadow-md dark:hover:shadow-slate-900/50 transition-shadow">
-          <div className="p-6 pb-4">
-            <div className="flex items-center justify-between mb-3">
-              <span className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                <Clock className="w-3 h-3" />
-                Free Trial
-              </span>
-              <span className="text-xs text-gray-400 dark:text-slate-500 italic">Non-editable</span>
-            </div>
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">Free Trial</h3>
-            <p className="text-sm text-gray-500 dark:text-slate-400 mb-4">Try JAF Chatra free for 14 days, no credit card required.</p>
-            <div className="flex items-baseline gap-1 mb-5">
-              <span className="text-3xl font-extrabold text-gray-900 dark:text-white">$0</span>
-              <span className="text-sm text-gray-400 dark:text-slate-500">/14 days</span>
-            </div>
-            <div className="space-y-2.5">
-              {["1 Agent Seat", "14-day chat history", "Basic widget customization", "Community support"].map((feat) => (
-                <div key={feat} className="flex items-center gap-2 text-sm text-gray-600 dark:text-slate-300">
-                  <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />
-                  {feat}
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="px-6 pb-6 pt-2 mt-auto">
-            <div className="w-full py-2.5 rounded-xl bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-slate-400 text-sm font-semibold text-center cursor-default">
-              Always Available
-            </div>
-          </div>
-        </div>
-
         {plans.map((plan) => {
           const isEditing = editingPlan === plan.id;
           return (
@@ -669,6 +652,7 @@ export function SubscriptionPlansView() {
                             >
                               <option value="/mo">/mo</option>
                               <option value="/yr">/yr</option>
+                              <option value="/14 days">/14 days</option>
                               <option value="">(one-time)</option>
                             </select>
                           </div>

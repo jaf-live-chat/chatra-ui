@@ -19,7 +19,6 @@ export function Home() {
         <HeroSection />
         <TrustedBySection />
         <ProductsSection />
-        <FeaturesSection />
         <HowItWorksSection />
         <DashboardPreviewSection />
         <IntegrationSection />

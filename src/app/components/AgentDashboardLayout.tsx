@@ -11,7 +11,6 @@ import {
   Menu,
   Zap,
   History,
-  Bot,
 } from "lucide-react";
 import { Link, Outlet, useNavigate, useLocation, useSearchParams } from "react-router";
 import jafChatraLogo from "figma:asset/bfc6c96e2889ab05988e23557e5e8d5f485d15bd.png";
@@ -188,20 +187,6 @@ function AgentDashboardLayoutInner() {
             <Zap className={`w-5 h-5 shrink-0 ${isSidebarOpen ? "mr-3" : ""}`} />
             {isSidebarOpen && <span>Quick Replies</span>}
           </button>
-
-          {/* Queue Assignment */}
-          <Link
-            to="/agent/queue-assignment"
-            className={`flex items-center ${
-              isSidebarOpen ? "justify-start px-3" : "justify-center px-0"
-            } py-2.5 rounded-lg text-sm font-medium transition-colors ${
-              location.pathname === "/agent/queue-assignment" ? activeNavCls : inactiveNavCls
-            }`}
-            title="Queue Assignment"
-          >
-            <Bot className={`w-5 h-5 shrink-0 ${isSidebarOpen ? "mr-3" : ""}`} />
-            {isSidebarOpen && <span>Queue Assignment</span>}
-          </Link>
 
           {/* Account Settings */}
           <Link

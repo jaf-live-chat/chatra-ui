@@ -21,7 +21,6 @@ import { ApiDocsPage } from "./components/ApiDocsPage";
 import { ChangelogPage } from "./components/ChangelogPage";
 import { BlogPage } from "./components/BlogPage";
 import { SystemStatusPage } from "./components/SystemStatusPage";
-import { QueueAssignmentSettingsPage } from "./components/QueueAssignmentSettingsPage";
 
 export const router = createBrowserRouter([
   {
@@ -74,7 +73,6 @@ export const router = createBrowserRouter([
           { index: true, element: <AgentDashboard /> },
           { path: "chat-sessions", element: <ChatSessionManagementPage /> },
           { path: "settings", element: <AgentSettingsPage /> },
-          { path: "queue-assignment", element: <QueueAssignmentSettingsPage /> },
         ],
       },
       { path: "conversations", element: <Navigate to="/dashboard" replace /> },

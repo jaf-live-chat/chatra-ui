@@ -394,7 +394,7 @@ export function AnalyticsView() {
   const strokeColor      = isDark ? "#1e293b" : "#ffffff";
 
   return (
-    <div className={`p-8 max-w-7xl mx-auto space-y-8${isDark ? " dark" : ""}`}>
+    <div className={`space-y-8${isDark ? " dark" : ""}`}>
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">Analytics</h1>

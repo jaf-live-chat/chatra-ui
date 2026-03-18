@@ -16,10 +16,10 @@ export function ToolsView() {
   const [activeTab, setActiveTab] = useState<TabId>("quick-replies");
 
   return (
-    <div>
-      {/* Sticky tab bar */}
-      <div className="bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 px-8 pt-6">
-        <div className="max-w-6xl mx-auto">
+    <div className="flex flex-col gap-6">
+      {/* Tab bar */}
+      <div className="border-b border-gray-200 dark:border-slate-700">
+        <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100 mb-1">
             Tools
           </h1>
