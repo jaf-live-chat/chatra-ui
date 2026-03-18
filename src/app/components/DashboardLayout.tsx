@@ -18,8 +18,9 @@ import {
   Bot,
 } from "lucide-react";
 import { Link, Outlet, useNavigate, useLocation, useSearchParams } from "react-router";
-import jafChatraLogo from "figma:asset/bfc6c96e2889ab05988e23557e5e8d5f485d15bd.png";
 import { DarkModeProvider, useDarkMode } from "./DarkModeContext";
+
+const jafChatraLogo = "https://res.cloudinary.com/dvrhry6ru/image/upload/v1773735919/logo3_a0x3s4.png";
 
 // ── Inner layout (consumes dark-mode context) ──────────────────────────────────
 
@@ -66,9 +67,8 @@ function DashboardLayoutInner() {
     <div className={`min-h-screen flex font-sans bg-gray-50 dark:bg-slate-900 transition-colors duration-300${isDark ? " dark" : ""}`}>
       {/* ── Sidebar ─────────────────────────────────────────────────────────── */}
       <aside
-        className={`${
-          isSidebarOpen ? "w-64" : "w-20"
-        } bg-white dark:bg-slate-800 border-r border-gray-200 dark:border-slate-700 flex flex-col fixed h-full z-10 transition-all duration-300`}
+        className={`${isSidebarOpen ? "w-64" : "w-20"
+          } bg-white dark:bg-slate-800 border-r border-gray-200 dark:border-slate-700 flex flex-col fixed h-full z-10 transition-all duration-300`}
       >
         {/* Logo row */}
         <div className="h-16 flex items-center justify-between px-4 border-b border-gray-100 dark:border-slate-700">
@@ -108,11 +108,9 @@ function DashboardLayoutInner() {
           {/* Dashboard */}
           <button
             onClick={() => navTo("dashboard")}
-            className={`flex items-center ${
-              isSidebarOpen ? "justify-start px-3" : "justify-center px-0"
-            } py-2.5 rounded-lg text-sm font-medium transition-colors ${
-              isActive("dashboard") ? activeNavCls : inactiveNavCls
-            }`}
+            className={`flex items-center ${isSidebarOpen ? "justify-start px-3" : "justify-center px-0"
+              } py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive("dashboard") ? activeNavCls : inactiveNavCls
+              }`}
             title="Dashboard"
           >
             <LayoutDashboard className={`w-5 h-5 ${isSidebarOpen ? "mr-3" : ""} shrink-0`} />
@@ -122,11 +120,9 @@ function DashboardLayoutInner() {
           {/* Analytics */}
           <button
             onClick={() => navTo("analytics")}
-            className={`flex items-center ${
-              isSidebarOpen ? "justify-start px-3" : "justify-center px-0"
-            } py-2.5 rounded-lg text-sm font-medium transition-colors ${
-              isActive("analytics") ? activeNavCls : inactiveNavCls
-            }`}
+            className={`flex items-center ${isSidebarOpen ? "justify-start px-3" : "justify-center px-0"
+              } py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive("analytics") ? activeNavCls : inactiveNavCls
+              }`}
             title="Analytics"
           >
             <BarChart2 className={`w-5 h-5 ${isSidebarOpen ? "mr-3" : ""} shrink-0`} />
@@ -136,11 +132,9 @@ function DashboardLayoutInner() {
           {/* Agents */}
           <button
             onClick={() => navTo("agents")}
-            className={`flex items-center ${
-              isSidebarOpen ? "justify-start px-3" : "justify-center px-0"
-            } py-2.5 rounded-lg text-sm font-medium transition-colors ${
-              isActive("agents") ? activeNavCls : inactiveNavCls
-            }`}
+            className={`flex items-center ${isSidebarOpen ? "justify-start px-3" : "justify-center px-0"
+              } py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive("agents") ? activeNavCls : inactiveNavCls
+              }`}
             title="Agents"
           >
             <Headset className={`w-5 h-5 ${isSidebarOpen ? "mr-3" : ""} shrink-0`} />
@@ -159,11 +153,9 @@ function DashboardLayoutInner() {
           {/* Queue */}
           <button
             onClick={() => navTo("queue")}
-            className={`flex items-center ${
-              isSidebarOpen ? "justify-start px-3" : "justify-center px-0"
-            } py-2.5 rounded-lg text-sm font-medium transition-colors ${
-              isActive("queue") ? activeNavCls : inactiveNavCls
-            }`}
+            className={`flex items-center ${isSidebarOpen ? "justify-start px-3" : "justify-center px-0"
+              } py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive("queue") ? activeNavCls : inactiveNavCls
+              }`}
             title="Queue"
           >
             <ListOrdered className={`w-5 h-5 ${isSidebarOpen ? "mr-3" : ""} shrink-0`} />
@@ -173,11 +165,9 @@ function DashboardLayoutInner() {
           {/* Chat Sessions */}
           <Link
             to="/dashboard/chat-sessions"
-            className={`flex items-center ${
-              isSidebarOpen ? "justify-start px-3" : "justify-center px-0"
-            } py-2.5 rounded-lg text-sm font-medium transition-colors ${
-              isChatSessions ? activeNavCls : inactiveNavCls
-            }`}
+            className={`flex items-center ${isSidebarOpen ? "justify-start px-3" : "justify-center px-0"
+              } py-2.5 rounded-lg text-sm font-medium transition-colors ${isChatSessions ? activeNavCls : inactiveNavCls
+              }`}
             title="Chat Sessions"
           >
             <MessagesSquare className={`w-5 h-5 shrink-0 ${isSidebarOpen ? "mr-3" : ""}`} />
@@ -196,11 +186,9 @@ function DashboardLayoutInner() {
           {/* Widget Settings */}
           <button
             onClick={() => navTo("widget-settings")}
-            className={`flex items-center ${
-              isSidebarOpen ? "justify-start px-3" : "justify-center px-0"
-            } py-2.5 rounded-lg text-sm font-medium transition-colors ${
-              isActive("widget-settings") ? activeNavCls : inactiveNavCls
-            }`}
+            className={`flex items-center ${isSidebarOpen ? "justify-start px-3" : "justify-center px-0"
+              } py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive("widget-settings") ? activeNavCls : inactiveNavCls
+              }`}
             title="Widget Settings"
           >
             <Settings2 className={`w-5 h-5 ${isSidebarOpen ? "mr-3" : ""} shrink-0`} />
@@ -210,11 +198,9 @@ function DashboardLayoutInner() {
           {/* Company Info */}
           <button
             onClick={() => navTo("company-info")}
-            className={`flex items-center ${
-              isSidebarOpen ? "justify-start px-3" : "justify-center px-0"
-            } py-2.5 rounded-lg text-sm font-medium transition-colors ${
-              isActive("company-info") ? activeNavCls : inactiveNavCls
-            }`}
+            className={`flex items-center ${isSidebarOpen ? "justify-start px-3" : "justify-center px-0"
+              } py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive("company-info") ? activeNavCls : inactiveNavCls
+              }`}
             title="Company Info"
           >
             <Building2 className={`w-5 h-5 ${isSidebarOpen ? "mr-3" : ""} shrink-0`} />
@@ -233,11 +219,9 @@ function DashboardLayoutInner() {
           {/* Tools */}
           <button
             onClick={() => navTo("tools")}
-            className={`flex items-center ${
-              isSidebarOpen ? "justify-start px-3" : "justify-center px-0"
-            } py-2.5 rounded-lg text-sm font-medium transition-colors ${
-              isActive("tools") ? activeNavCls : inactiveNavCls
-            }`}
+            className={`flex items-center ${isSidebarOpen ? "justify-start px-3" : "justify-center px-0"
+              } py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive("tools") ? activeNavCls : inactiveNavCls
+              }`}
             title="Tools"
           >
             <Zap className={`w-5 h-5 ${isSidebarOpen ? "mr-3" : ""} shrink-0`} />
@@ -265,15 +249,14 @@ function DashboardLayoutInner() {
                 className="flex items-center gap-2 bg-gray-50 dark:bg-slate-700/60 border border-gray-200 dark:border-slate-600 px-3 py-1.5 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
               >
                 <span
-                  className={`w-2 h-2 rounded-full ${
-                    agentStatus === "Online"
-                      ? "bg-green-500"
-                      : agentStatus === "Busy"
+                  className={`w-2 h-2 rounded-full ${agentStatus === "Online"
+                    ? "bg-green-500"
+                    : agentStatus === "Busy"
                       ? "bg-yellow-500"
                       : agentStatus === "Do not Disturb"
-                      ? "bg-red-500"
-                      : "bg-gray-400"
-                  }`}
+                        ? "bg-red-500"
+                        : "bg-gray-400"
+                    }`}
                 ></span>
                 <span className="text-sm font-medium text-gray-700 dark:text-slate-300">
                   {agentStatus}
