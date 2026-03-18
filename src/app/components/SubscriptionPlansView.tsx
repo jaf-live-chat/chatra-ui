@@ -319,191 +319,225 @@ export function SubscriptionPlansView() {
 
       {/* Feature Library Section */}
       {showFeatureLibrary && (
-        <div className="mb-8 bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 className="text-lg font-bold text-gray-900 dark:text-slate-100 flex items-center gap-2">
-                <Library className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
-                Feature Library
-              </h2>
-              <p className="text-sm text-gray-500 dark:text-slate-400 mt-0.5">
-                Create features here, then select them when editing plans.
-              </p>
-            </div>
-            <button
-              onClick={() => setShowFeatureLibrary(false)}
-              className="p-1.5 rounded-lg text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-
-          {/* Add New Feature */}
-          <div className="flex items-center gap-2 mb-4">
-            <input
-              type="text"
-              placeholder="Feature name..."
-              value={newFeatureName}
-              onChange={(e) => setNewFeatureName(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && addFeatureToLibrary()}
-              className="flex-1 px-3 py-2 border border-gray-200 dark:border-slate-600 rounded-lg text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-300"
-            />
-            <select
-              value={newFeatureCategory}
-              onChange={(e) => setNewFeatureCategory(e.target.value)}
-              className="px-3 py-2 border border-gray-200 dark:border-slate-600 rounded-lg text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-300 cursor-pointer"
-            >
-              {FEATURE_CATEGORIES.filter((c) => c !== "All").map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
-                </option>
-              ))}
-            </select>
-            <button
-              onClick={addFeatureToLibrary}
-              className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition-colors text-sm font-medium"
-            >
-              <Plus className="w-4 h-4" />
-            </button>
-          </div>
-
-          {/* Category Filter */}
-          <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-2">
-            {FEATURE_CATEGORIES.map((cat) => (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 p-6 shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-lg font-bold text-gray-900 dark:text-slate-100 flex items-center gap-2">
+                  <Library className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
+                  Feature Library
+                </h2>
+                <p className="text-sm text-gray-500 dark:text-slate-400 mt-0.5">
+                  Create features here, then select them when editing plans.
+                </p>
+              </div>
               <button
-                key={cat}
-                onClick={() => setFeatureCategoryFilter(cat)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${
-                  featureCategoryFilter === cat
-                    ? "bg-cyan-600 text-white"
-                    : "bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-600"
-                }`}
+                onClick={() => setShowFeatureLibrary(false)}
+                className="p-1.5 rounded-lg text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700"
               >
-                {cat}
+                <X className="w-5 h-5" />
               </button>
-            ))}
-          </div>
-
-          {/* Feature List */}
-          <div className="space-y-2 max-h-96 overflow-y-auto">
-            {filteredFeatures.map((feature) => {
-              const isEditing = editingFeature === feature.id;
-              return (
-                <div
-                  key={feature.id}
-                  className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-slate-700/50 rounded-lg border border-gray-200 dark:border-slate-600"
-                >
-                  {isEditing ? (
-                    <>
-                      <input
-                        type="text"
-                        value={editingFeatureName[feature.id] ?? feature.name}
-                        onChange={(e) =>
-                          setEditingFeatureName((prev) => ({ ...prev, [feature.id]: e.target.value }))
-                        }
-                        className="flex-1 px-2 py-1 border border-gray-200 dark:border-slate-600 rounded text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-700 focus:outline-none focus:ring-1 focus:ring-cyan-300"
-                      />
-                      <select
-                        value={editingFeatureCategory[feature.id] ?? feature.category}
-                        onChange={(e) =>
-                          setEditingFeatureCategory((prev) => ({ ...prev, [feature.id]: e.target.value }))
-                        }
-                        className="px-2 py-1 border border-gray-200 dark:border-slate-600 rounded text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-700 focus:outline-none focus:ring-1 focus:ring-cyan-300 cursor-pointer"
-                      >
-                        {FEATURE_CATEGORIES.filter((c) => c !== "All").map((cat) => (
-                          <option key={cat} value={cat}>
-                            {cat}
-                          </option>
-                        ))}
-                      </select>
-                      <button
-                        onClick={() => {
-                          updateFeatureInLibrary(
-                            feature.id,
-                            editingFeatureName[feature.id] ?? feature.name,
-                            editingFeatureCategory[feature.id] ?? feature.category
-                          );
-                          setEditingFeature(null);
-                          setEditingFeatureName((prev) => {
-                            const copy = { ...prev };
-                            delete copy[feature.id];
-                            return copy;
-                          });
-                          setEditingFeatureCategory((prev) => {
-                            const copy = { ...prev };
-                            delete copy[feature.id];
-                            return copy;
-                          });
-                        }}
-                        className="p-1.5 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/20 rounded transition-colors"
-                      >
-                        <Check className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => {
-                          setEditingFeature(null);
-                          setEditingFeatureName((prev) => {
-                            const copy = { ...prev };
-                            delete copy[feature.id];
-                            return copy;
-                          });
-                          setEditingFeatureCategory((prev) => {
-                            const copy = { ...prev };
-                            delete copy[feature.id];
-                            return copy;
-                          });
-                        }}
-                        className="p-1.5 text-gray-400 dark:text-slate-500 hover:bg-gray-200 dark:hover:bg-slate-600 rounded transition-colors"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <span className="flex-1 text-sm font-medium text-gray-900 dark:text-slate-100">
-                        {feature.name}
-                      </span>
-                      <CategoryBadge category={feature.category} />
-                      <button
-                        onClick={() => {
-                          setEditingFeature(feature.id);
-                          setEditingFeatureName((prev) => ({ ...prev, [feature.id]: feature.name }));
-                          setEditingFeatureCategory((prev) => ({ ...prev, [feature.id]: feature.category }));
-                        }}
-                        className="p-1.5 text-gray-400 dark:text-slate-500 hover:text-cyan-600 dark:hover:text-cyan-400 hover:bg-gray-200 dark:hover:bg-slate-600 rounded transition-colors"
-                      >
-                        <Pencil className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (window.confirm(`Delete "${feature.name}"?`)) {
-                            deleteFeatureFromLibrary(feature.id);
-                          }
-                        }}
-                        className="p-1.5 text-gray-400 dark:text-slate-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          {filteredFeatures.length === 0 && (
-            <div className="text-center py-8">
-              <Library className="w-10 h-10 text-gray-300 dark:text-slate-600 mx-auto mb-3" />
-              <p className="text-sm text-gray-500 dark:text-slate-400">
-                No features in this category yet.
-              </p>
             </div>
-          )}
+
+            {/* Add New Feature */}
+            <div className="flex items-center gap-2 mb-4">
+              <input
+                type="text"
+                placeholder="Feature name..."
+                value={newFeatureName}
+                onChange={(e) => setNewFeatureName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && addFeatureToLibrary()}
+                className="flex-1 px-3 py-2 border border-gray-200 dark:border-slate-600 rounded-lg text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-300"
+              />
+              <select
+                value={newFeatureCategory}
+                onChange={(e) => setNewFeatureCategory(e.target.value)}
+                className="px-3 py-2 border border-gray-200 dark:border-slate-600 rounded-lg text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-300 cursor-pointer"
+              >
+                {FEATURE_CATEGORIES.filter((c) => c !== "All").map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
+              </select>
+              <button
+                onClick={addFeatureToLibrary}
+                className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition-colors text-sm font-medium"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Category Filter */}
+            <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-2">
+              {FEATURE_CATEGORIES.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setFeatureCategoryFilter(cat)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${
+                    featureCategoryFilter === cat
+                      ? "bg-cyan-600 text-white"
+                      : "bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-600"
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+
+            {/* Feature List */}
+            <div className="space-y-2 max-h-96 overflow-y-auto flex-1 min-h-0">
+              {filteredFeatures.map((feature) => {
+                const isEditing = editingFeature === feature.id;
+                return (
+                  <div
+                    key={feature.id}
+                    className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-slate-700/50 rounded-lg border border-gray-200 dark:border-slate-600"
+                  >
+                    {isEditing ? (
+                      <>
+                        <input
+                          type="text"
+                          value={editingFeatureName[feature.id] ?? feature.name}
+                          onChange={(e) =>
+                            setEditingFeatureName((prev) => ({ ...prev, [feature.id]: e.target.value }))
+                          }
+                          className="flex-1 px-2 py-1 border border-gray-200 dark:border-slate-600 rounded text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-700 focus:outline-none focus:ring-1 focus:ring-cyan-300"
+                        />
+                        <select
+                          value={editingFeatureCategory[feature.id] ?? feature.category}
+                          onChange={(e) =>
+                            setEditingFeatureCategory((prev) => ({ ...prev, [feature.id]: e.target.value }))
+                          }
+                          className="px-2 py-1 border border-gray-200 dark:border-slate-600 rounded text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-700 focus:outline-none focus:ring-1 focus:ring-cyan-300 cursor-pointer"
+                        >
+                          {FEATURE_CATEGORIES.filter((c) => c !== "All").map((cat) => (
+                            <option key={cat} value={cat}>
+                              {cat}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          onClick={() => {
+                            updateFeatureInLibrary(
+                              feature.id,
+                              editingFeatureName[feature.id] ?? feature.name,
+                              editingFeatureCategory[feature.id] ?? feature.category
+                            );
+                            setEditingFeature(null);
+                            setEditingFeatureName((prev) => {
+                              const copy = { ...prev };
+                              delete copy[feature.id];
+                              return copy;
+                            });
+                            setEditingFeatureCategory((prev) => {
+                              const copy = { ...prev };
+                              delete copy[feature.id];
+                              return copy;
+                            });
+                          }}
+                          className="p-1.5 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/20 rounded transition-colors"
+                        >
+                          <Check className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            setEditingFeature(null);
+                            setEditingFeatureName((prev) => {
+                              const copy = { ...prev };
+                              delete copy[feature.id];
+                              return copy;
+                            });
+                            setEditingFeatureCategory((prev) => {
+                              const copy = { ...prev };
+                              delete copy[feature.id];
+                              return copy;
+                            });
+                          }}
+                          className="p-1.5 text-gray-400 dark:text-slate-500 hover:bg-gray-200 dark:hover:bg-slate-600 rounded transition-colors"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <span className="flex-1 text-sm font-medium text-gray-900 dark:text-slate-100">
+                          {feature.name}
+                        </span>
+                        <CategoryBadge category={feature.category} />
+                        <button
+                          onClick={() => {
+                            setEditingFeature(feature.id);
+                            setEditingFeatureName((prev) => ({ ...prev, [feature.id]: feature.name }));
+                            setEditingFeatureCategory((prev) => ({ ...prev, [feature.id]: feature.category }));
+                          }}
+                          className="p-1.5 text-gray-400 dark:text-slate-500 hover:text-cyan-600 dark:hover:text-cyan-400 hover:bg-gray-200 dark:hover:bg-slate-600 rounded transition-colors"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (window.confirm(`Delete "${feature.name}"?`)) {
+                              deleteFeatureFromLibrary(feature.id);
+                            }
+                          }}
+                          className="p-1.5 text-gray-400 dark:text-slate-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {filteredFeatures.length === 0 && (
+              <div className="text-center py-8">
+                <Library className="w-10 h-10 text-gray-300 dark:text-slate-600 mx-auto mb-3" />
+                <p className="text-sm text-gray-500 dark:text-slate-400">
+                  No features in this category yet.
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
       {/* Plans Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 items-stretch">
+        {/* Free Trial Card (static, non-editable) */}
+        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-sm overflow-hidden flex flex-col hover:shadow-md dark:hover:shadow-slate-900/50 transition-shadow">
+          <div className="p-6 pb-4">
+            <div className="flex items-center justify-between mb-3">
+              <span className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                <Clock className="w-3 h-3" />
+                Free Trial
+              </span>
+              <span className="text-xs text-gray-400 dark:text-slate-500 italic">Non-editable</span>
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">Free Trial</h3>
+            <p className="text-sm text-gray-500 dark:text-slate-400 mb-4">Try JAF Chatra free for 14 days, no credit card required.</p>
+            <div className="flex items-baseline gap-1 mb-5">
+              <span className="text-3xl font-extrabold text-gray-900 dark:text-white">$0</span>
+              <span className="text-sm text-gray-400 dark:text-slate-500">/14 days</span>
+            </div>
+            <div className="space-y-2.5">
+              {["1 Agent Seat", "14-day chat history", "Basic widget customization", "Community support"].map((feat) => (
+                <div key={feat} className="flex items-center gap-2 text-sm text-gray-600 dark:text-slate-300">
+                  <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                  {feat}
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="px-6 pb-6 pt-2 mt-auto">
+            <div className="w-full py-2.5 rounded-xl bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-slate-400 text-sm font-semibold text-center cursor-default">
+              Always Available
+            </div>
+          </div>
+        </div>
+
         {plans.map((plan) => {
           const isEditing = editingPlan === plan.id;
           return (
@@ -513,13 +547,13 @@ export function SubscriptionPlansView() {
                 plan.popular
                   ? "border-cyan-300 dark:border-cyan-700 ring-2 ring-cyan-100 dark:ring-cyan-900/40"
                   : "border-gray-200 dark:border-slate-700"
-              } shadow-sm ${isEditing ? "overflow-visible" : "overflow-hidden"} flex flex-col transition-all hover:shadow-md dark:hover:shadow-slate-900/50 ${
+              } shadow-sm ${isEditing ? "overflow-visible" : "overflow-hidden"} flex flex-col transition-all duration-500 hover:shadow-md dark:hover:shadow-slate-900/50 ${
                 !plan.active ? "opacity-60" : ""
               }`}
             >
               {/* Plan Header */}
               <div
-                className={`px-6 pt-6 pb-4 ${
+                className={`px-6 pt-6 pb-4 transition-colors duration-300 ${
                   plan.popular
                     ? "bg-gradient-to-br from-cyan-50 to-blue-50 dark:from-cyan-900/20 dark:to-blue-900/20"
                     : "bg-gray-50 dark:bg-slate-700/50"
@@ -545,15 +579,25 @@ export function SubscriptionPlansView() {
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => setEditingPlan(isEditing ? null : plan.id)}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors text-xs font-semibold ${
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all duration-300 ease-out active:scale-95 hover:-translate-y-[1px] text-xs font-semibold ${
                         isEditing
-                          ? "bg-cyan-100 dark:bg-cyan-800/50 text-cyan-700 dark:text-cyan-400 hover:bg-cyan-200 dark:hover:bg-cyan-800"
-                          : "bg-gray-100 dark:bg-slate-600 text-gray-600 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-500"
+                          ? "bg-cyan-100 dark:bg-cyan-800/50 text-cyan-700 dark:text-cyan-400 hover:bg-cyan-200 dark:hover:bg-cyan-800 shadow-sm"
+                          : "bg-gray-100 dark:bg-slate-600 text-gray-600 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-500 hover:shadow-sm"
                       }`}
                       title={isEditing ? "Close editor" : "Edit plan"}
                     >
-                      {isEditing ? <X className="w-3.5 h-3.5" /> : <Pencil className="w-3.5 h-3.5" />}
-                      {isEditing ? "Close" : "Edit"}
+                      <div className="relative w-3.5 h-3.5 flex-shrink-0">
+                        <Save className={`absolute inset-0 w-3.5 h-3.5 transition-all duration-300 transform ${isEditing ? "scale-100 opacity-100 rotate-0" : "scale-50 opacity-0 -rotate-90"}`} />
+                        <Pencil className={`absolute inset-0 w-3.5 h-3.5 transition-all duration-300 transform ${!isEditing ? "scale-100 opacity-100 rotate-0" : "scale-50 opacity-0 rotate-90"}`} />
+                      </div>
+                      <div className="relative grid items-center">
+                        <span className={`col-start-1 row-start-1 transition-all duration-300 transform ${isEditing ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"}`}>
+                          Save
+                        </span>
+                        <span className={`col-start-1 row-start-1 transition-all duration-300 transform ${!isEditing ? "translate-y-0 opacity-100" : "-translate-y-4 opacity-0"}`}>
+                          Edit
+                        </span>
+                      </div>
                     </button>
                     <button
                       onClick={() => {
@@ -569,101 +613,108 @@ export function SubscriptionPlansView() {
                   </div>
                 </div>
 
-                {isEditing ? (
-                  <div className="space-y-3">
-                    <div>
-                      <label className="text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Plan Name</label>
-                      <input
-                        type="text"
-                        value={plan.name}
-                        onChange={(e) => updatePlan(plan.id, { name: e.target.value })}
-                        className={`${inputCls} font-semibold`}
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Description</label>
-                      <input
-                        type="text"
-                        value={plan.description}
-                        onChange={(e) => updatePlan(plan.id, { description: e.target.value })}
-                        className={inputCls}
-                      />
-                    </div>
-                    <div className="flex gap-3">
-                      <div className="flex-1">
-                        <label className="text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Price ($)</label>
-                        <input
-                          type="text"
-                          value={plan.price}
-                          onChange={(e) => updatePlan(plan.id, { price: e.target.value })}
-                          className={inputCls}
-                        />
+                <div className="relative">
+                  {/* View Mode */}
+                  <div className={`grid transition-all duration-300 ease-in-out ${!isEditing ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
+                    <div className="overflow-hidden">
+                      <div className="pb-1">
+                        <h3 className="text-lg font-bold text-gray-900 dark:text-slate-100">{plan.name}</h3>
+                        <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">{plan.description}</p>
+                        <div className="mt-3 flex items-baseline gap-1">
+                          <span className="text-3xl font-bold text-gray-900 dark:text-slate-100">${plan.price}</span>
+                          <span className="text-gray-500 dark:text-slate-400 text-sm">{plan.period}</span>
+                        </div>
                       </div>
-                      <div className="w-24">
-                        <label className="text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Period</label>
-                        <select
-                          value={plan.period}
-                          onChange={(e) => updatePlan(plan.id, { period: e.target.value })}
-                          className={`${inputCls} cursor-pointer`}
-                        >
-                          <option value="/mo">/mo</option>
-                          <option value="/yr">/yr</option>
-                          <option value="">(one-time)</option>
-                        </select>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4 pt-1">
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={plan.popular}
-                          onChange={(e) => updatePlan(plan.id, { popular: e.target.checked })}
-                          className="w-4 h-4 text-cyan-600 border-gray-300 dark:border-slate-600 rounded focus:ring-cyan-500"
-                        />
-                        <span className="text-sm text-gray-600 dark:text-slate-400">Popular badge</span>
-                      </label>
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={plan.active}
-                          onChange={(e) => updatePlan(plan.id, { active: e.target.checked })}
-                          className="w-4 h-4 text-cyan-600 border-gray-300 dark:border-slate-600 rounded focus:ring-cyan-500"
-                        />
-                        <span className="text-sm text-gray-600 dark:text-slate-400">Active</span>
-                      </label>
                     </div>
                   </div>
-                ) : (
-                  <>
-                    <h3 className="text-lg font-bold text-gray-900 dark:text-slate-100">{plan.name}</h3>
-                    <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">{plan.description}</p>
-                    <div className="mt-3 flex items-baseline gap-1">
-                      <span className="text-3xl font-bold text-gray-900 dark:text-slate-100">${plan.price}</span>
-                      <span className="text-gray-500 dark:text-slate-400 text-sm">{plan.period}</span>
+
+                  {/* Edit Mode */}
+                  <div className={`grid transition-all duration-300 ease-in-out ${isEditing ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
+                    <div className="overflow-hidden">
+                      <div className="space-y-3 pt-2 pb-1">
+                        <div>
+                          <label className="text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Plan Name</label>
+                          <input
+                            type="text"
+                            value={plan.name}
+                            onChange={(e) => updatePlan(plan.id, { name: e.target.value })}
+                            className={`${inputCls} font-semibold`}
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Description</label>
+                          <input
+                            type="text"
+                            value={plan.description}
+                            onChange={(e) => updatePlan(plan.id, { description: e.target.value })}
+                            className={inputCls}
+                          />
+                        </div>
+                        <div className="flex gap-3">
+                          <div className="flex-1">
+                            <label className="text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Price ($)</label>
+                            <input
+                              type="text"
+                              value={plan.price}
+                              onChange={(e) => updatePlan(plan.id, { price: e.target.value })}
+                              className={inputCls}
+                            />
+                          </div>
+                          <div className="w-24">
+                            <label className="text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Period</label>
+                            <select
+                              value={plan.period}
+                              onChange={(e) => updatePlan(plan.id, { period: e.target.value })}
+                              className={`${inputCls} cursor-pointer`}
+                            >
+                              <option value="/mo">/mo</option>
+                              <option value="/yr">/yr</option>
+                              <option value="">(one-time)</option>
+                            </select>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4 pt-1">
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={plan.popular}
+                              onChange={(e) => updatePlan(plan.id, { popular: e.target.checked })}
+                              className="w-4 h-4 text-cyan-600 border-gray-300 dark:border-slate-600 rounded focus:ring-cyan-500 transition-colors"
+                            />
+                            <span className="text-sm text-gray-600 dark:text-slate-400">Popular badge</span>
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={plan.active}
+                              onChange={(e) => updatePlan(plan.id, { active: e.target.checked })}
+                              className="w-4 h-4 text-cyan-600 border-gray-300 dark:border-slate-600 rounded focus:ring-cyan-500 transition-colors"
+                            />
+                            <span className="text-sm text-gray-600 dark:text-slate-400">Active</span>
+                          </label>
+                        </div>
+                      </div>
                     </div>
-                  </>
-                )}
+                  </div>
+                </div>
               </div>
 
               {/* Features */}
-              <div className="px-6 py-4 flex-1 bg-white dark:bg-slate-800">
+              <div className="px-6 py-4 flex-1 bg-white dark:bg-slate-800 transition-colors duration-300">
                 <div className="flex items-center justify-between mb-3">
-                  <p className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider">
+                  <p className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider transition-colors duration-300">
                     Features ({plan.features.length})
                   </p>
-                  {!isEditing && (
-                    null
-                  )}
                 </div>
-                <ul className="space-y-2">
+                <ul className="space-y-2 relative">
                   {plan.features.map((feature) => (
-                    <li key={feature.id} className="flex items-start gap-2 group">
+                    <li key={feature.id} className="flex items-start gap-2 group relative">
                       <Check className="w-4 h-4 text-green-500 dark:text-green-400 mt-0.5 shrink-0" />
-                      {isEditing ? (
-                        <div className="flex-1 flex items-center gap-1">
-                          <span className="flex-1 text-sm text-gray-700 dark:text-slate-300">
-                            {feature.text}
-                          </span>
+                      <div className="flex-1 flex items-start justify-between gap-1">
+                        <span className={`text-sm transition-colors duration-300 ${isEditing ? "text-gray-700 dark:text-slate-300" : "text-gray-600 dark:text-slate-400"}`}>
+                          {feature.text}
+                        </span>
+                        <div className={`overflow-hidden transition-all duration-300 ease-in-out flex items-center justify-end ${isEditing ? "w-6 opacity-100 scale-100" : "w-0 opacity-0 scale-50"}`}>
                           <button
                             onClick={() => removeFeature(plan.id, feature.id)}
                             className="p-1 text-gray-300 dark:text-slate-600 hover:text-red-500 transition-colors shrink-0"
@@ -671,35 +722,35 @@ export function SubscriptionPlansView() {
                             <X className="w-3.5 h-3.5" />
                           </button>
                         </div>
-                      ) : (
-                        <span className="text-sm text-gray-600 dark:text-slate-400">{feature.text}</span>
-                      )}
+                      </div>
                     </li>
                   ))}
                 </ul>
                 
-                {/* Add Feature Dropdown - Only visible when editing */}
-                {isEditing && (
-                  <div className="mt-4">
-                    <button
-                      onClick={() => {
-                        setFeatureCategoryFilter("All");
-                        setFeatureModalPlanId(plan.id);
-                      }}
-                      className="w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 border bg-white dark:bg-slate-700/60 border-gray-200 dark:border-slate-600 text-gray-600 dark:text-slate-300 hover:border-cyan-400 dark:hover:border-cyan-500 hover:text-cyan-600 dark:hover:text-cyan-400 hover:bg-cyan-50 dark:hover:bg-cyan-900/10"
-                    >
-                      <span className="flex items-center gap-2">
-                        <Plus className="w-4 h-4" />
-                        Add Feature
-                      </span>
-                      <Library className="w-4 h-4 opacity-50" />
-                    </button>
+                {/* Add Feature Dropdown */}
+                <div className={`grid transition-all duration-300 ease-in-out ${isEditing ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
+                  <div className="overflow-hidden">
+                    <div className="mt-4 pb-1">
+                      <button
+                        onClick={() => {
+                          setFeatureCategoryFilter("All");
+                          setFeatureModalPlanId(plan.id);
+                        }}
+                        className="w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 border bg-white dark:bg-slate-700/60 border-gray-200 dark:border-slate-600 text-gray-600 dark:text-slate-300 hover:border-cyan-400 dark:hover:border-cyan-500 hover:text-cyan-600 dark:hover:text-cyan-400 hover:bg-cyan-50 dark:hover:bg-cyan-900/10"
+                      >
+                        <span className="flex items-center gap-2">
+                          <Plus className="w-4 h-4" />
+                          Add Feature
+                        </span>
+                        <Library className="w-4 h-4 opacity-50" />
+                      </button>
+                    </div>
                   </div>
-                )}
+                </div>
               </div>
 
               {/* Footer */}
-              <div className="px-6 pb-6 bg-white dark:bg-slate-800">
+              <div className="px-6 pb-6 bg-white dark:bg-slate-800 transition-colors duration-300">
                 <div className="flex items-center gap-2 text-xs text-gray-400 dark:text-slate-500">
                   <Clock className="w-3.5 h-3.5" />
                   <span>{plan.active ? "Currently live on pricing page" : "Hidden from pricing page"}</span>

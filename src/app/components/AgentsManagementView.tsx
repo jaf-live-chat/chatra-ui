@@ -6,6 +6,9 @@ import {
   Circle,
   ChevronLeft,
   ChevronRight,
+  Link2,
+  Trash2,
+  Plus,
 } from "lucide-react";
 import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
@@ -68,8 +71,9 @@ export function AgentsManagementView() {
   const [editForm, setEditForm]     = useState({ name: "", email: "", role: "Support Agent" as "Admin" | "Support Agent", autoAssign: false });
   const [page, setPage]             = useState(1);
   const [addOpen, setAddOpen]       = useState(false);
-  const [addForm, setAddForm]       = useState({ name: "", email: "", status: "Online" as "Online" | "Offline" });
-  const [addErrors, setAddErrors]   = useState({ name: "", email: "" });
+  const [inviteRows, setInviteRows] = useState<Array<{ email: string; role: "Admin" | "Support Agent" }>>([{ email: "", role: "Support Agent" }]);
+  const [inviteErrors, setInviteErrors] = useState<Array<{ email: string }>>([{ email: "" }]);
+  const [inviteCopied, setInviteCopied] = useState(false);
 
   const filteredAgents = useMemo(
     () =>
@@ -97,18 +101,48 @@ export function AgentsManagementView() {
   };
   const handleEditClose = () => setEditAgent(null);
 
-  const handleAddOpen  = () => { setAddForm({ name: "", email: "", status: "Online" }); setAddErrors({ name: "", email: "" }); setAddOpen(true); };
+  const handleAddOpen  = () => {
+    setInviteRows([{ email: "", role: "Support Agent" }]);
+    setInviteErrors([{ email: "" }]);
+    setInviteCopied(false);
+    setAddOpen(true);
+  };
   const handleAddClose = () => setAddOpen(false);
   const handleAddSave  = () => {
-    const errors = { name: "", email: "" };
-    if (!addForm.name.trim()) errors.name = "Name is required.";
-    if (!addForm.email.trim()) errors.email = "Email is required.";
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(addForm.email)) errors.email = "Enter a valid email address.";
-    else if (agents.some((a) => a.email.toLowerCase() === addForm.email.toLowerCase())) errors.email = "An agent with this email already exists.";
-    if (errors.name || errors.email) { setAddErrors(errors); return; }
-    const newId = `A-${101 + agents.length + Math.floor(Math.random() * 100)}`;
-    setAgents((prev) => [...prev, { id: newId, name: addForm.name.trim(), email: addForm.email.trim(), status: addForm.status, chatsHandled: 0 }]);
+    const errors = inviteRows.map((row) => {
+      const err = { email: "" };
+      if (!row.email.trim()) err.email = "Email is required.";
+      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(row.email)) err.email = "Enter a valid email.";
+      else if (agents.some((a) => a.email.toLowerCase() === row.email.toLowerCase())) err.email = "Already exists.";
+      return err;
+    });
+    if (errors.some((e) => e.email)) { setInviteErrors(errors); return; }
+    const newAgents = inviteRows.map((row) => {
+      const newId = `A-${101 + agents.length + Math.floor(Math.random() * 900)}`;
+      const namePart = row.email.split("@")[0].replace(/[^a-zA-Z]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+      return { id: newId, name: namePart, email: row.email.trim(), status: "Online" as const, role: row.role, autoAssign: false, chatsHandled: 0 };
+    });
+    setAgents((prev) => [...prev, ...newAgents]);
     setAddOpen(false);
+  };
+  const handleAddRow = () => {
+    setInviteRows((prev) => [...prev, { email: "", role: "Support Agent" }]);
+    setInviteErrors((prev) => [...prev, { email: "" }]);
+  };
+  const handleRemoveRow = (index: number) => {
+    if (inviteRows.length <= 1) return;
+    setInviteRows((prev) => prev.filter((_, i) => i !== index));
+    setInviteErrors((prev) => prev.filter((_, i) => i !== index));
+  };
+  const handleUpdateRow = (index: number, field: "email" | "role", value: string) => {
+    setInviteRows((prev) => prev.map((row, i) => i === index ? { ...row, [field]: value } : row));
+    if (field === "email") setInviteErrors((prev) => prev.map((err, i) => i === index ? { email: "" } : err));
+  };
+  const handleCopyInviteLink = () => {
+    navigator.clipboard.writeText("https://jafchatra.com/invite/join-team").then(() => {
+      setInviteCopied(true);
+      setTimeout(() => setInviteCopied(false), 2000);
+    });
   };
 
   // ── Pagination bar ──────────────────────────────────────────────────────────
@@ -503,35 +537,55 @@ export function AgentsManagementView() {
       <Dialog open={addOpen} onClose={handleAddClose} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
         <DialogTitle sx={{ fontWeight: 700, color: "grey.900" }}>Add New Agent</DialogTitle>
         <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: "16px !important" }}>
-          <TextField
-            label="Full Name"
-            value={addForm.name}
-            onChange={(e) => { setAddForm({ ...addForm, name: e.target.value }); setAddErrors({ ...addErrors, name: "" }); }}
-            error={!!addErrors.name}
-            helperText={addErrors.name}
-            fullWidth size="small"
-            placeholder="e.g. Jane Smith"
-          />
-          <TextField
-            label="Email"
-            value={addForm.email}
-            onChange={(e) => { setAddForm({ ...addForm, email: e.target.value }); setAddErrors({ ...addErrors, email: "" }); }}
-            error={!!addErrors.email}
-            helperText={addErrors.email}
-            fullWidth size="small"
-            placeholder="e.g. jane.s@jafdigital.com"
-          />
-          <FormControl fullWidth size="small">
-            <InputLabel>Status</InputLabel>
-            <Select
-              value={addForm.status}
-              label="Status"
-              onChange={(e) => setAddForm({ ...addForm, status: e.target.value as "Online" | "Offline" })}
-            >
-              <MenuItem value="Online">Online</MenuItem>
-              <MenuItem value="Offline">Offline</MenuItem>
-            </Select>
-          </FormControl>
+          {inviteRows.map((row, index) => (
+            <Stack key={index} direction="row" alignItems="center" spacing={1.5}>
+              <TextField
+                label="Email"
+                value={row.email}
+                onChange={(e) => handleUpdateRow(index, "email", e.target.value)}
+                error={!!inviteErrors[index].email}
+                helperText={inviteErrors[index].email}
+                fullWidth size="small"
+                placeholder="e.g. jane.s@jafdigital.com"
+              />
+              <FormControl size="small" sx={{ minWidth: 160 }}>
+                <InputLabel>Role</InputLabel>
+                <Select
+                  value={row.role}
+                  label="Role"
+                  onChange={(e) => handleUpdateRow(index, "role", e.target.value as "Admin" | "Support Agent")}
+                >
+                  <MenuItem key="role-admin"         value="Admin">Admin</MenuItem>
+                  <MenuItem key="role-support-agent" value="Support Agent">Support Agent</MenuItem>
+                </Select>
+              </FormControl>
+              <IconButton
+                onClick={() => handleRemoveRow(index)}
+                disabled={inviteRows.length <= 1}
+                size="small"
+                sx={{ color: "grey.500", "&:hover": { color: "grey.700" } }}
+              >
+                <Trash2 size={16} />
+              </IconButton>
+            </Stack>
+          ))}
+          <Button
+            onClick={handleAddRow}
+            variant="outlined"
+            size="small"
+            sx={{ mt: 1, color: "grey.700", borderColor: "grey.300", bgcolor: "grey.50", "&:hover": { bgcolor: "grey.100", borderColor: "grey.400" } }}
+          >
+            Add Another Agent
+          </Button>
+          <Box sx={{ mt: 2 }}>
+            <Typography variant="body2" sx={{ color: "text.secondary" }}>Or invite agents via link:</Typography>
+            <Stack direction="row" alignItems="center" spacing={1}>
+              <Link2 size={16} color="#0891b2" />
+              <Typography variant="body2" sx={{ color: "primary.main", cursor: "pointer" }} onClick={handleCopyInviteLink}>
+                {inviteCopied ? "Copied!" : "https://jafchatra.com/invite/join-team"}
+              </Typography>
+            </Stack>
+          </Box>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2.5 }}>
           <Button onClick={handleAddClose} sx={{ color: "grey.600" }}>Cancel</Button>

@@ -894,7 +894,15 @@ export function QueueView({ queue, onStartChat, isAgent = false, currentAgentId 
         <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
           <Button onClick={() => setChatToConfirm(null)} color="inherit" sx={{ fontWeight: 600 }}>Cancel</Button>
           <Button
-            onClick={() => { if (onStartChat && chatToConfirm) onStartChat(chatToConfirm); setChatToConfirm(null); }}
+            onClick={() => {
+              if (onStartChat && chatToConfirm) onStartChat(chatToConfirm);
+              setChatToConfirm(null);
+              // Set agent status to Busy when a chat is started
+              try {
+                localStorage.setItem("jaf_agent_status", "Busy");
+                window.dispatchEvent(new CustomEvent("jaf_agent_status_changed", { detail: { status: "Busy" } }));
+              } catch (e) { /* silently fail */ }
+            }}
             variant="contained" startIcon={<MessageSquare size={16} />}
             sx={{ bgcolor: "#0891b2", "&:hover": { bgcolor: "#0e7490" }, fontWeight: 700, boxShadow: "0 2px 8px #0891b240" }}>
             Start Chat
