@@ -188,19 +188,7 @@ function AgentDashboardLayoutInner() {
             {isSidebarOpen && <span>Quick Replies</span>}
           </button>
 
-          {/* Account Settings */}
-          <Link
-            to="/agent/settings"
-            className={`flex items-center ${
-              isSidebarOpen ? "justify-start px-3" : "justify-center px-0"
-            } py-2.5 rounded-lg text-sm font-medium transition-colors ${
-              location.pathname === "/agent/settings" ? activeNavCls : inactiveNavCls
-            }`}
-            title="Account Settings"
-          >
-            <Settings2 className={`w-5 h-5 shrink-0 ${isSidebarOpen ? "mr-3" : ""}`} />
-            {isSidebarOpen && <span>Account Settings</span>}
-          </Link>
+          {/* Account Settings — removed from sidebar */}
         </div>
       </aside>
 

@@ -54,15 +54,31 @@ const initialMockHistory = [
   { id: "CH-1005", visitor: "Sarah Brown", length: "35m 00s", date: "Oct 21, 2026, 13:10", transcript: [{ sender: "Sarah", time: "13:10", text: "Where can I find the API key?" }, { sender: "Agent", time: "13:15", text: "Hi Sarah! You can generate an API key under Settings > API." }, { sender: "Sarah", time: "13:40", text: "Got it, setting it up now." }, { sender: "Agent", time: "13:45", text: "Awesome. Reach out if you hit any roadblocks." }] }
 ];
 
+const QUEUE_STORAGE_KEY = "jaf_mock_queue_state";
+
 export function Dashboard() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get("tab") || "overview";
   const [activeChatVisitor, setActiveChatVisitor] = useState<any>(null);
   const [agentStatus, setAgentStatus] = useState("Online");
-  const [queueItems, setQueueItems] = useState(initialMockQueue);
+  const [queueItems, setQueueItems] = useState<typeof initialMockQueue>(() => {
+    // Rehydrate from localStorage so state survives navigation away from this route
+    try {
+      const stored = localStorage.getItem(QUEUE_STORAGE_KEY);
+      if (stored) return JSON.parse(stored);
+    } catch (e) { /* silently fail */ }
+    return initialMockQueue;
+  });
   const [historyItems, setHistoryItems] = useState(initialMockHistory);
   const [liveQueueItems, setLiveQueueItems] = useState<any[]>([]);
+
+  // Persist queueItems to localStorage whenever they change
+  useEffect(() => {
+    try {
+      localStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(queueItems));
+    } catch (e) { /* silently fail */ }
+  }, [queueItems]);
 
   const setActiveTab = (tab: string) => {
     if (tab === "overview" || tab === "dashboard") {
