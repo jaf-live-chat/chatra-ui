@@ -204,9 +204,6 @@ function ReplyModal({ editingReply, onSave, onClose }: ReplyModalProps) {
   const validate = () => {
     const e: typeof errors = {};
     if (!form.title.trim()) e.title = "Title is required.";
-    if (!form.shortcut.trim()) e.shortcut = "Shortcut is required.";
-    else if (!form.shortcut.startsWith("/")) e.shortcut = "Shortcut must start with /.";
-    else if (/\s/.test(form.shortcut)) e.shortcut = "Shortcut cannot contain spaces.";
     if (!form.message.trim()) e.message = "Message is required.";
     return e;
   };
@@ -214,7 +211,9 @@ function ReplyModal({ editingReply, onSave, onClose }: ReplyModalProps) {
   const handleSubmit = () => {
     const e = validate();
     if (Object.keys(e).length > 0) { setErrors(e); return; }
-    onSave(form);
+    // Auto-generate shortcut from title
+    const autoShortcut = "/" + form.title.trim().toLowerCase().replace(/\s+/g, "").slice(0, 20);
+    onSave({ ...form, shortcut: form.shortcut || autoShortcut });
   };
 
   const field = (key: keyof typeof form, value: string) =>
@@ -261,19 +260,6 @@ function ReplyModal({ editingReply, onSave, onClose }: ReplyModalProps) {
 
           {/* Shortcut + Category row */}
           <div className="flex gap-3">
-            <div className="flex-1">
-              <label className="block text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wide mb-1.5">
-                Shortcut
-              </label>
-              <input
-                value={form.shortcut}
-                onChange={(e) => field("shortcut", e.target.value)}
-                placeholder="/greeting"
-                className={`w-full px-3 py-2.5 rounded-lg border font-mono ${errors.shortcut ? "border-red-400 dark:border-red-500" : "border-gray-200 dark:border-slate-600"} bg-white dark:bg-slate-700/60 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 text-sm outline-none focus:ring-2 focus:ring-cyan-300 dark:focus:ring-cyan-700 transition`}
-              />
-              {errors.shortcut && <p className="text-xs text-red-500 mt-1">{errors.shortcut}</p>}
-            </div>
-
             <div className="w-40">
               <label className="block text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wide mb-1.5">
                 Category
@@ -442,7 +428,6 @@ export function QuickRepliesView() {
               <thead>
                 <tr className="border-b border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/80">
                   <th className="text-left px-4 py-3 font-semibold text-gray-500 dark:text-slate-400 text-xs uppercase tracking-wide">Title</th>
-                  <th className="text-left px-4 py-3 font-semibold text-gray-500 dark:text-slate-400 text-xs uppercase tracking-wide">Shortcut</th>
                   <th className="text-left px-4 py-3 font-semibold text-gray-500 dark:text-slate-400 text-xs uppercase tracking-wide">Category</th>
                   <th className="text-left px-4 py-3 font-semibold text-gray-500 dark:text-slate-400 text-xs uppercase tracking-wide">Message</th>
                   <th className="text-right px-4 py-3 font-semibold text-gray-500 dark:text-slate-400 text-xs uppercase tracking-wide">Actions</th>
@@ -452,9 +437,6 @@ export function QuickRepliesView() {
                 {replies.map((reply) => (
                   <tr key={reply.id} className="hover:bg-gray-50 dark:hover:bg-slate-700/40 transition-colors">
                     <td className="px-4 py-3 font-medium text-gray-900 dark:text-slate-100 whitespace-nowrap">{reply.title}</td>
-                    <td className="px-4 py-3">
-                      <ShortcutBadge shortcut={reply.shortcut} />
-                    </td>
                     <td className="px-4 py-3">
                       <CategoryBadge category={reply.category} />
                     </td>

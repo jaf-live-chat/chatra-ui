@@ -1,8 +1,5 @@
 import { Twitter, Github, Linkedin } from "lucide-react";
-
-
-const jafChatraLogo = "https://res.cloudinary.com/dvrhry6ru/image/upload/v1773735919/logo3_a0x3s4.png";
-
+import jafChatraLogo from "figma:asset/bfc6c96e2889ab05988e23557e5e8d5f485d15bd.png";
 
 const footerColumns = [
   {

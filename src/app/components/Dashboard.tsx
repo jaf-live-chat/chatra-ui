@@ -206,7 +206,7 @@ export function Dashboard() {
         <QuickRepliesView />
       ) : (
         /* ── Simple clean overview ── */
-        <div className="p-8 max-w-5xl mx-auto">
+        <div className="">
           <div className="mb-8">
             <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">Welcome back, Admin</h1>
             <p className="text-gray-500 dark:text-slate-400 mt-1">Here's a quick look at your workspace right now.</p>

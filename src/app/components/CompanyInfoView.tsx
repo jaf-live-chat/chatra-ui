@@ -167,7 +167,7 @@ export function CompanyInfoView() {
 
   return (
     <div
-      className={`p-8 max-w-4xl mx-auto min-h-full ${isDark ? "bg-slate-900" : ""}`}
+      className={`min-h-full ${isDark ? "bg-slate-900" : ""}`}
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-8">

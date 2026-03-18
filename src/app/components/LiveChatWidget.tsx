@@ -32,6 +32,20 @@ export function LiveChatWidget() {
   const [closing, setClosing] = useState(false);
   const [minimized, setMinimized] = useState(false);
 
+  // Read widget settings from localStorage
+  const [widgetTitle, setWidgetTitle] = useState(() => localStorage.getItem("jaf_widget_title") || "JAF Support");
+  const [welcomeMsg, setWelcomeMsg] = useState(() => localStorage.getItem("jaf_welcome_message") || WELCOME_MESSAGE);
+
+  useEffect(() => {
+    const sync = () => {
+      setWidgetTitle(localStorage.getItem("jaf_widget_title") || "JAF Support");
+      setWelcomeMsg(localStorage.getItem("jaf_welcome_message") || WELCOME_MESSAGE);
+    };
+    window.addEventListener("storage", sync);
+    const iv = setInterval(sync, 500);
+    return () => { window.removeEventListener("storage", sync); clearInterval(iv); };
+  }, []);
+
   // Listen for external "open-live-chat" event
   useEffect(() => {
     const handleOpenChat = () => {
@@ -568,7 +582,7 @@ export function LiveChatWidget() {
               </div>
               <div>
                 <p className="text-white font-semibold text-sm leading-tight">
-                  JAF Support
+                  {widgetTitle}
                 </p>
                 <p className="text-white/80 text-xs">
                   Online
@@ -723,7 +737,7 @@ export function LiveChatWidget() {
                 J
               </div>
               <p className={`text-[17px] font-semibold mb-2 ${darkMode ? 'text-gray-100' : 'text-gray-900'}`}>
-                Welcome to JAF Support 👋
+                Welcome to {widgetTitle} 👋
               </p>
               <p className={`text-[13px] mb-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                 We're here to help! Ask us anything or share your feedback.
@@ -738,13 +752,13 @@ export function LiveChatWidget() {
                   setAgentTyping(true);
                   setTimeout(() => {
                     setAgentTyping(false);
-                    const welcomeMsg: Message = {
+                    const wMsg: Message = {
                       id: Date.now(),
                       from: "agent",
-                      text: WELCOME_MESSAGE,
+                      text: welcomeMsg,
                       time: getTime(),
                     };
-                    setMessages([welcomeMsg]);
+                    setMessages([wMsg]);
                     setTimeout(() => inputRef.current?.focus(), 100);
                   }, 1800);
                 }}

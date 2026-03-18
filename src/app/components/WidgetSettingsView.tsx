@@ -63,9 +63,15 @@ export function WidgetSettingsView() {
     return localStorage.getItem("jaf_theme") || "red";
   });
   const [widgetPosition, setWidgetPosition] = useState("bottom-right");
-  const [widgetTitle, setWidgetTitle] = useState("JAF Support");
-  const [welcomeMessage, setWelcomeMessage] = useState("👋 Hi there! Welcome to JAF Live Chat. How can I help you today?");
-  const [offlineMessage, setOfflineMessage] = useState("We're currently offline. Leave us a message and we'll get back to you!");
+  const [widgetTitle, setWidgetTitle] = useState(() => {
+    return localStorage.getItem("jaf_widget_title") || "JAF Support";
+  });
+  const [welcomeMessage, setWelcomeMessage] = useState(() => {
+    return localStorage.getItem("jaf_welcome_message") || "👋 Hi there! Welcome to JAF Live Chat. How can I help you today?";
+  });
+  const [offlineMessage, setOfflineMessage] = useState(() => {
+    return localStorage.getItem("jaf_offline_message") || "We're currently offline. Leave us a message and we'll get back to you!";
+  });
 
   // Behavior
   const [autoOpen, setAutoOpen] = useState(false);
@@ -110,6 +116,9 @@ export function WidgetSettingsView() {
     setWidgetTitle("JAF Support");
     setWelcomeMessage("👋 Hi there! Welcome to JAF Live Chat. How can I help you today?");
     setOfflineMessage("We're currently offline. Leave us a message and we'll get back to you!");
+    localStorage.setItem("jaf_widget_title", "JAF Support");
+    localStorage.setItem("jaf_welcome_message", "👋 Hi there! Welcome to JAF Live Chat. How can I help you today?");
+    localStorage.setItem("jaf_offline_message", "We're currently offline. Leave us a message and we'll get back to you!");
     setAutoOpen(false);
     setAutoOpenDelay("5");
     setSoundEnabled(true);
@@ -153,7 +162,7 @@ export function WidgetSettingsView() {
   );
 
   return (
-    <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: 1000, mx: "auto", display: "flex", flexDirection: "column", gap: 3 }}>
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
       {/* Header */}
       <Stack direction={{ xs: "column", md: "row" }} alignItems={{ xs: "flex-start", md: "center" }} justifyContent="space-between" spacing={2}>
         <Box>
@@ -163,14 +172,6 @@ export function WidgetSettingsView() {
           </Typography>
         </Box>
         <Stack direction="row" spacing={1.5}>
-          <Button
-            onClick={handleReset}
-            variant="outlined"
-            startIcon={<RotateCcw size={16} />}
-            sx={{ fontWeight: 600, borderColor: "grey.300", color: "grey.700", "&:hover": { borderColor: "grey.400", bgcolor: "grey.50" } }}
-          >
-            Reset
-          </Button>
           <Button
             onClick={handleSave}
             variant="contained"
@@ -184,278 +185,150 @@ export function WidgetSettingsView() {
       </Stack>
 
       {/* Two column layout */}
-      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 3 }}>
+      <Box>
+        <Paper elevation={0} sx={{ border: "1px solid", borderTopColor: "grey.200", borderRightColor: "grey.200", borderBottomColor: "grey.200", borderLeftColor: "grey.200", borderRadius: 3, p: 3 }}>
+          <Stack spacing={4}>
+            {/* Appearance */}
+            <Box>
+              <SectionHeader icon={<Palette size={18} color="#0891b2" />} title="Appearance" subtitle="Colors, text, and visual style" />
 
-        {/* ═══ LEFT COLUMN ═══ */}
-        <Stack spacing={3}>
-          {/* Appearance */}
-          <Paper elevation={0} sx={{ border: "1px solid", borderColor: "grey.200", borderRadius: 3, p: 3 }}>
-            <SectionHeader icon={<Palette size={18} color="#0891b2" />} title="Appearance" subtitle="Colors, text, and visual style" />
-
-            {/* Theme Color */}
-            <Typography variant="caption" sx={{ fontWeight: 600, color: "grey.500", textTransform: "uppercase", letterSpacing: "0.05em", mb: 1.5, display: "block" }}>
-              Theme Color
-            </Typography>
-            <Stack direction="row" spacing={1.5} sx={{ mb: 3 }}>
-              {themeOptions.map((opt) => (
-                <Tooltip key={opt.key} title={opt.label}>
-                  <Box
-                    onClick={() => {
-                      setWidgetTheme(opt.key);
-                      localStorage.setItem("jaf_theme", opt.key);
-                      window.dispatchEvent(new Event("jaf_theme_changed"));
-                    }}
-                    sx={{
-                      width: 40, height: 40, borderRadius: 2, bgcolor: opt.color, cursor: "pointer",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      transition: "all 0.15s",
-                      outline: widgetTheme === opt.key ? "2px solid" : "none",
-                      outlineColor: "grey.400",
-                      outlineOffset: 2,
-                      transform: widgetTheme === opt.key ? "scale(1.1)" : "scale(1)",
-                      "&:hover": { transform: "scale(1.05)" },
-                    }}
-                  >
-                    {widgetTheme === opt.key && <Check size={18} color="#fff" />}
-                  </Box>
-                </Tooltip>
-              ))}
-            </Stack>
-
-            {/* Text Size */}
-            <Typography variant="caption" sx={{ fontWeight: 600, color: "grey.500", textTransform: "uppercase", letterSpacing: "0.05em", mb: 1.5, display: "block" }}>
-              Text Size
-            </Typography>
-            <Stack direction="row" spacing={0} sx={{
-              border: "1px solid", borderColor: "grey.200", borderRadius: 2, p: 0.5, mb: 3, bgcolor: "grey.50"
-            }}>
-              {["Small", "Default", "Large"].map((size) => (
-                <Box
-                  key={size}
-                  onClick={() => setTextSize(size)}
-                  sx={{
-                    flex: 1, py: 1, textAlign: "center", borderRadius: 1.5, cursor: "pointer",
-                    fontWeight: 600, fontSize: "0.8rem", transition: "all 0.15s",
-                    bgcolor: textSize === size ? "grey.900" : "transparent",
-                    color: textSize === size ? "#fff" : "grey.500",
-                    "&:hover": { bgcolor: textSize === size ? "grey.900" : "grey.100" },
-                  }}
-                >
-                  {size}
-                </Box>
-              ))}
-            </Stack>
-
-            {/* Widget Position */}
-            <FormControl fullWidth size="small" sx={{ mb: 2 }}>
-              <InputLabel>Widget Position</InputLabel>
-              <Select
-                value={widgetPosition}
-                label="Widget Position"
-                onChange={(e) => setWidgetPosition(e.target.value)}
-              >
-                <MenuItem value="bottom-right">Bottom Right</MenuItem>
-                <MenuItem value="bottom-left">Bottom Left</MenuItem>
-              </Select>
-            </FormControl>
-
-            <SettingRow
-              icon={<Moon size={16} />}
-              label="Dark Mode by Default"
-              description="Widget opens in dark mode"
-              control={
-                <Switch checked={darkModeDefault} onChange={() => setDarkModeDefault(!darkModeDefault)} color="primary" />
-              }
-            />
-
-            <SettingRow
-              icon={<Eye size={16} />}
-              label="Show Agent Photo"
-              description="Display agent avatar in chat"
-              control={
-                <Switch checked={showAgentPhoto} onChange={() => setShowAgentPhoto(!showAgentPhoto)} color="primary" />
-              }
-            />
-          </Paper>
-
-          {/* Messages */}
-          <Paper elevation={0} sx={{ border: "1px solid", borderColor: "grey.200", borderRadius: 3, p: 3 }}>
-            <SectionHeader icon={<MessageSquare size={18} color="#0891b2" />} title="Messages" subtitle="Welcome text and default messages" />
-
-            <TextField
-              label="Widget Title"
-              value={widgetTitle}
-              onChange={(e) => setWidgetTitle(e.target.value)}
-              fullWidth
-              size="small"
-              sx={{ mb: 2.5 }}
-            />
-
-            <TextField
-              label="Welcome Message"
-              value={welcomeMessage}
-              onChange={(e) => setWelcomeMessage(e.target.value)}
-              fullWidth
-              size="small"
-              multiline
-              rows={2}
-              sx={{ mb: 2.5 }}
-            />
-
-            <TextField
-              label="Offline Message"
-              value={offlineMessage}
-              onChange={(e) => setOfflineMessage(e.target.value)}
-              fullWidth
-              size="small"
-              multiline
-              rows={2}
-            />
-          </Paper>
-        </Stack>
-
-        {/* ═══ RIGHT COLUMN ═══ */}
-        <Stack spacing={3}>
-          {/* Behavior */}
-          <Paper elevation={0} sx={{ border: "1px solid", borderColor: "grey.200", borderRadius: 3, p: 3 }}>
-            <SectionHeader icon={<Zap size={18} color="#0891b2" />} title="Behavior" subtitle="Auto-open, sounds, and interactions" />
-
-            <SettingRow
-              icon={<Globe size={16} />}
-              label="Auto-Open Widget"
-              description="Automatically open for new visitors"
-              control={
-                <Switch checked={autoOpen} onChange={() => setAutoOpen(!autoOpen)} color="primary" />
-              }
-            />
-
-            {autoOpen && (
-              <Box sx={{ pl: 4.5, mb: 1 }}>
-                <TextField
-                  label="Delay (seconds)"
-                  value={autoOpenDelay}
-                  onChange={(e) => setAutoOpenDelay(e.target.value)}
-                  size="small"
-                  type="number"
-                  sx={{ width: 120 }}
-                  inputProps={{ min: 1, max: 60 }}
-                />
-              </Box>
-            )}
-
-            <Divider sx={{ my: 1 }} />
-
-            <SettingRow
-              icon={<Volume2 size={16} />}
-              label="Message Sounds"
-              description="Play sound on new messages"
-              control={
-                <Switch checked={soundEnabled} onChange={() => setSoundEnabled(!soundEnabled)} color="primary" />
-              }
-            />
-
-            <SettingRow
-              icon={<Bell size={16} />}
-              label="Browser Push Notifications"
-              description="Send desktop notifications"
-              control={
-                <Switch checked={pushEnabled} onChange={() => setPushEnabled(!pushEnabled)} color="primary" />
-              }
-            />
-
-            <Divider sx={{ my: 1 }} />
-
-            <SettingRow
-              icon={<Zap size={16} />}
-              label="Quick Messages"
-              description="Show quick reply suggestions"
-              control={
-                <Switch checked={quickMessagesEnabled} onChange={() => setQuickMessagesEnabled(!quickMessagesEnabled)} color="primary" />
-              }
-            />
-
-            <SettingRow
-              icon={<Type size={16} />}
-              label="Typing Indicator"
-              description="Show when agent is typing"
-              control={
-                <Switch checked={typingIndicator} onChange={() => setTypingIndicator(!typingIndicator)} color="primary" />
-              }
-            />
-
-            <SettingRow
-              icon={<Shield size={16} />}
-              label="File Uploads"
-              description="Allow visitors to attach files"
-              control={
-                <Switch checked={fileUploads} onChange={() => setFileUploads(!fileUploads)} color="primary" />
-              }
-            />
-          </Paper>
-
-          {/* Availability */}
-          <Paper elevation={0} sx={{ border: "1px solid", borderColor: "grey.200", borderRadius: 3, p: 3 }}>
-            <SectionHeader icon={<Clock size={18} color="#0891b2" />} title="Availability" subtitle="Visibility and operating hours" />
-
-            <SettingRow
-              icon={widgetVisible ? <Eye size={16} /> : <EyeOff size={16} />}
-              label="Widget Visible"
-              description="Show widget on your website"
-              control={
-                <Switch checked={widgetVisible} onChange={() => setWidgetVisible(!widgetVisible)} color="primary" />
-              }
-            />
-
-            {!widgetVisible && (
-              <Alert severity="warning" sx={{ mb: 2, borderRadius: 2 }}>
-                The chat widget is currently hidden from visitors.
-              </Alert>
-            )}
-
-            <SettingRow
-              icon={<Moon size={16} />}
-              label="Offline Mode"
-              description="Show offline message when no agents available"
-              control={
-                <Switch checked={offlineMode} onChange={() => setOfflineMode(!offlineMode)} color="primary" />
-              }
-            />
-
-            <Divider sx={{ my: 1 }} />
-
-            <SettingRow
-              icon={<Clock size={16} />}
-              label="Operating Hours"
-              description="Set business hours for the widget"
-              control={
-                <Switch checked={operatingHoursEnabled} onChange={() => setOperatingHoursEnabled(!operatingHoursEnabled)} color="primary" />
-              }
-            />
-
-            {operatingHoursEnabled && (
-              <Stack direction="row" spacing={2} sx={{ pl: 4.5, mt: 1 }}>
-                <TextField
-                  label="Start"
-                  type="time"
-                  value={operatingStart}
-                  onChange={(e) => setOperatingStart(e.target.value)}
-                  size="small"
-                  sx={{ width: 140 }}
-                  InputLabelProps={{ shrink: true }}
-                />
-                <TextField
-                  label="End"
-                  type="time"
-                  value={operatingEnd}
-                  onChange={(e) => setOperatingEnd(e.target.value)}
-                  size="small"
-                  sx={{ width: 140 }}
-                  InputLabelProps={{ shrink: true }}
-                />
+              {/* Theme Color */}
+              <Typography variant="caption" sx={{ fontWeight: 600, color: "grey.500", textTransform: "uppercase", letterSpacing: "0.05em", mb: 1.5, display: "block" }}>
+                Theme Color
+              </Typography>
+              <Stack direction="row" spacing={1.5} sx={{ mb: 3 }}>
+                {themeOptions.map((opt) => (
+                  <Tooltip key={opt.key} title={opt.label}>
+                    <Box
+                      onClick={() => {
+                        setWidgetTheme(opt.key);
+                        localStorage.setItem("jaf_theme", opt.key);
+                        window.dispatchEvent(new Event("jaf_theme_changed"));
+                      }}
+                      sx={{
+                        width: 40, height: 40, borderRadius: 2, bgcolor: opt.color, cursor: "pointer",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        transition: "all 0.15s",
+                        outline: widgetTheme === opt.key ? "2px solid" : "none",
+                        outlineColor: "grey.400",
+                        outlineOffset: 2,
+                        transform: widgetTheme === opt.key ? "scale(1.1)" : "scale(1)",
+                        "&:hover": { transform: "scale(1.05)" },
+                      }}
+                    >
+                      {widgetTheme === opt.key && <Check size={18} color="#fff" />}
+                    </Box>
+                  </Tooltip>
+                ))}
               </Stack>
-            )}
-          </Paper>
-        </Stack>
+
+              <SettingRow
+                icon={<Moon size={16} />}
+                label="Dark Mode by Default"
+                description="Widget opens in dark mode"
+                control={
+                  <Switch checked={darkModeDefault} onChange={() => setDarkModeDefault(!darkModeDefault)} color="primary" />
+                }
+              />
+            </Box>
+
+            <Divider />
+
+            {/* Messages */}
+            <Box>
+              <SectionHeader icon={<MessageSquare size={18} color="#0891b2" />} title="Messages" subtitle="Welcome text and default messages" />
+
+              <TextField
+                label="Widget Title"
+                value={widgetTitle}
+                onChange={(e) => {
+                  setWidgetTitle(e.target.value);
+                  localStorage.setItem("jaf_widget_title", e.target.value);
+                }}
+                fullWidth
+                size="small"
+                sx={{ mb: 2.5 }}
+              />
+
+              <TextField
+                label="Welcome Message"
+                value={welcomeMessage}
+                onChange={(e) => {
+                  setWelcomeMessage(e.target.value);
+                  localStorage.setItem("jaf_welcome_message", e.target.value);
+                }}
+                fullWidth
+                size="small"
+                multiline
+                rows={2}
+                sx={{ mb: 2.5, "& .MuiInputBase-input": { cursor: "text" }, position: "relative", zIndex: 1 }}
+              />
+
+              <TextField
+                label="Offline Message"
+                value={offlineMessage}
+                onChange={(e) => {
+                  setOfflineMessage(e.target.value);
+                  localStorage.setItem("jaf_offline_message", e.target.value);
+                }}
+                fullWidth
+                size="small"
+                multiline
+                rows={2}
+              />
+            </Box>
+
+            <Divider />
+
+            {/* Behavior */}
+            <Box>
+              <SectionHeader icon={<Zap size={18} color="#0891b2" />} title="Behavior" subtitle="Auto-open, sounds, and interactions" />
+
+              <SettingRow
+                icon={<Globe size={16} />}
+                label="Auto-Open Widget"
+                description="Automatically open for new visitors"
+                control={
+                  <Switch checked={autoOpen} onChange={() => setAutoOpen(!autoOpen)} color="primary" />
+                }
+              />
+
+              {autoOpen && (
+                <Box sx={{ pl: 4.5, mb: 1 }}>
+                  <TextField
+                    label="Delay (seconds)"
+                    value={autoOpenDelay}
+                    onChange={(e) => setAutoOpenDelay(e.target.value)}
+                    size="small"
+                    type="number"
+                    sx={{ width: 120 }}
+                    inputProps={{ min: 1, max: 60 }}
+                  />
+                </Box>
+              )}
+
+              <Divider sx={{ my: 1 }} />
+
+              <SettingRow
+                icon={<Volume2 size={16} />}
+                label="Message Sounds"
+                description="Play sound on new messages"
+                control={
+                  <Switch checked={soundEnabled} onChange={() => setSoundEnabled(!soundEnabled)} color="primary" />
+                }
+              />
+
+              <SettingRow
+                icon={<Bell size={16} />}
+                label="Browser Push Notifications"
+                description="Send desktop notifications"
+                control={
+                  <Switch checked={pushEnabled} onChange={() => setPushEnabled(!pushEnabled)} color="primary" />
+                }
+              />
+            </Box>
+          </Stack>
+        </Paper>
       </Box>
 
       {/* Embed Code — Full Width */}

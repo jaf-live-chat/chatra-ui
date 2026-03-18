@@ -4,7 +4,7 @@ import { Link } from "react-router";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 
-const plans = [
+const fallbackPlans = [
   {
     name: "Free Trial",
     description: "Try JAF Chatra free for 14 days, no credit card required.",
@@ -56,6 +56,42 @@ const plans = [
   },
 ];
 
+function loadPlansFromStorage() {
+  try {
+    const stored = localStorage.getItem("jaf_subscription_plans");
+    if (stored) {
+      const adminPlans = JSON.parse(stored) as Array<{
+        id: string;
+        name: string;
+        description: string;
+        price: string;
+        period: string;
+        features: Array<{ id: string; text: string }>;
+        popular: boolean;
+        active: boolean;
+      }>;
+      const activePlans = adminPlans.filter((p) => p.active);
+      if (activePlans.length > 0) {
+        // Always prepend the Free Trial card
+        const freeTrial = fallbackPlans[0];
+        const mapped = activePlans.map((p) => ({
+          name: p.name,
+          description: p.description,
+          price: `$${p.price}`,
+          period: p.period,
+          features: p.features.map((f) => f.text),
+          buttonText: "Get Started",
+          buttonVariant: p.popular ? "primary" : "light",
+          popular: p.popular,
+          link: `/checkout/${p.id}`,
+        }));
+        return [freeTrial, ...mapped];
+      }
+    }
+  } catch { /* fall through */ }
+  return fallbackPlans;
+}
+
 const teamAvatars = [
   "https://images.unsplash.com/photo-1655249493799-9cee4fe983bb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwcm9mZXNzaW9uYWwlMjB3b21hbiUyMGhlYWRzaG90JTIwcG9ydHJhaXR8ZW58MXx8fHwxNzczNzU1MzAwfDA&ixlib=rb-4.1.0&q=80&w=1080",
   "https://images.unsplash.com/photo-1672685667592-0392f458f46f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwcm9mZXNzaW9uYWwlMjBtYW4lMjBoZWFkc2hvdCUyMHBvcnRyYWl0fGVufDF8fHx8MTc3MzY4NjY2MHww&ixlib=rb-4.1.0&q=80&w=1080",
@@ -78,6 +114,15 @@ export function PricingSection() {
   const [contactSent, setContactSent] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const timeout2Ref = useRef<NodeJS.Timeout | null>(null);
+
+  const [plans, setPlans] = useState(loadPlansFromStorage);
+
+  // Re-read plans from localStorage when the component mounts or storage changes
+  useEffect(() => {
+    const handleStorage = () => setPlans(loadPlansFromStorage());
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, []);
 
   // Cleanup timeouts on unmount
   useEffect(() => {

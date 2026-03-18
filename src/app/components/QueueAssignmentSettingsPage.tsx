@@ -17,6 +17,10 @@ import Slider from "@mui/material/Slider";
 import Alert from "@mui/material/Alert";
 import LinearProgress from "@mui/material/LinearProgress";
 import Divider from "@mui/material/Divider";
+import FormControl from "@mui/material/FormControl";
+import RadioGroup from "@mui/material/RadioGroup";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import Radio from "@mui/material/Radio";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -312,19 +316,8 @@ export function QueueAssignmentSettingsPage() {
                 </Box>
               ))}
             </Stack>
-
-            {assignMode === "manual" && (
-              <Alert
-                icon={<Info size={18} />}
-                severity="info"
-                sx={{ mt: 3, bgcolor: "#0891b208", borderColor: "#0891b240", borderTopColor: "#0891b240", borderBottomColor: "#0891b240", borderLeftColor: "#0891b240", borderRightColor: "#0891b240" }}
-              >
-                In Manual mode, you'll need to assign each visitor to an agent from the Queue page.
-              </Alert>
-            )}
           </Box>
         </Paper>
-
       </Stack>
     </Box>
   );

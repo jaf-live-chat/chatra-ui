@@ -172,7 +172,7 @@ export function SubscriptionPlansView() {
 
   const updatePlan = (planId: string, updates: Partial<SubscriptionPlan>) => {
     const updated = plans.map((p) => (p.id === planId ? { ...p, ...updates } : p));
-    setPlans(updated);
+    savePlans(updated);
   };
 
   const saveAll = () => {
@@ -214,7 +214,6 @@ export function SubscriptionPlansView() {
   const addFeatureFromLibrary = (planId: string, libraryFeature: FeatureLibraryItem) => {
     const updated = plans.map((p) => {
       if (p.id === planId) {
-        // Check if feature already exists
         const exists = p.features.some((f) => f.id === libraryFeature.id);
         if (exists) return p;
         return {
@@ -224,7 +223,7 @@ export function SubscriptionPlansView() {
       }
       return p;
     });
-    setPlans(updated);
+    savePlans(updated);
   };
 
   const filteredFeatures =
@@ -241,7 +240,7 @@ export function SubscriptionPlansView() {
       }
       return p;
     });
-    setPlans(updated);
+    savePlans(updated);
   };
 
   const addNewPlan = () => {
@@ -255,7 +254,7 @@ export function SubscriptionPlansView() {
       popular: false,
       active: true,
     };
-    setPlans([...plans, newPlan]);
+    savePlans([...plans, newPlan]);
     setEditingPlan(newPlan.id);
   };
 

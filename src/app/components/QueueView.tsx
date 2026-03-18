@@ -820,14 +820,13 @@ export function QueueView({ queue, onStartChat, isAgent = false, currentAgentId 
                         </Stack>
                       </TableCell>
                       <TableCell align="center">
-                        <Button onClick={() => setVisitorDetail(item)} size="small" variant="contained"
+                        <IconButton onClick={() => setVisitorDetail(item)} size="small"
                           sx={{
                             bgcolor: "primary.main", color: "#fff", "&:hover": { bgcolor: "primary.dark" },
-                            textTransform: "none", fontSize: "0.68rem", px: 1.25, py: 0.25,
-                            minWidth: "auto", borderRadius: 1.5, lineHeight: 1.4,
+                            borderRadius: 1.5,
                           }}>
-                          View Full Details
-                        </Button>
+                          <Eye size={16} />
+                        </IconButton>
                       </TableCell>
                     </TableRow>
                   );
