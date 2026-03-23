@@ -1,3 +1,5 @@
+import { useNavigate, useSearchParams } from "react-router";
+import { motion, AnimatePresence } from "motion/react";
 import React, { useState, useEffect, useMemo } from "react";
 import {
   MessageSquare,
@@ -14,7 +16,6 @@ import {
   CreditCard,
   Zap,
 } from "lucide-react";
-import { useNavigate, useSearchParams } from "react-router";
 import { ConversationsView } from "./ConversationsView";
 import { AgentsManagementView } from "./AgentsManagementView";
 import { QueueView } from "./QueueView";
@@ -167,6 +168,14 @@ export function Dashboard() {
 
   return (
     <>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={activeTab}
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.18, ease: "easeOut" }}
+        >
       {activeTab === "active-chat" && activeChatVisitor ? (
         <ActiveChatView 
           visitor={activeChatVisitor} 
@@ -299,6 +308,8 @@ export function Dashboard() {
           </div>
         </div>
       )}
+        </motion.div>
+      </AnimatePresence>
     </>
   );
 }

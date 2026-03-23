@@ -1,13 +1,15 @@
 import { useState } from "react";
-import { Zap, Bot, CreditCard } from "lucide-react";
+import { Zap, Bot, CreditCard, HelpCircle } from "lucide-react";
 import { QuickRepliesView } from "./QuickRepliesView";
 import { QueueAssignmentSettingsPage } from "./QueueAssignmentSettingsPage";
 import { SubscriptionPlansView } from "./SubscriptionPlansView";
+import { FaqEditorView } from "./FaqEditorView";
 
 const tabs = [
-  { id: "quick-replies", label: "Quick Replies", icon: Zap },
-  { id: "queue-assignment", label: "Queue Assignment", icon: Bot },
+  { id: "quick-replies",      label: "Quick Replies",      icon: Zap        },
+  { id: "queue-assignment",   label: "Queue Assignment",   icon: Bot        },
   { id: "subscription-plans", label: "Subscription Plans", icon: CreditCard },
+  { id: "faq-editor",         label: "Homepage FAQs",      icon: HelpCircle },
 ] as const;
 
 type TabId = (typeof tabs)[number]["id"];
@@ -24,9 +26,9 @@ export function ToolsView() {
             Tools
           </h1>
           <p className="text-gray-500 dark:text-slate-400 text-sm mb-5">
-            Manage quick replies, queue assignment, and subscription plans.
+            Manage quick replies, queue assignment, subscription plans, and homepage FAQs.
           </p>
-          <div className="flex gap-1">
+          <div className="flex gap-1 flex-wrap">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -54,6 +56,8 @@ export function ToolsView() {
         <QuickRepliesView />
       ) : activeTab === "queue-assignment" ? (
         <QueueAssignmentSettingsPage />
+      ) : activeTab === "faq-editor" ? (
+        <FaqEditorView />
       ) : (
         <SubscriptionPlansView />
       )}

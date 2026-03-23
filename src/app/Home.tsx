@@ -9,6 +9,7 @@ import { IntegrationSection } from "./components/IntegrationSection";
 import { CTASection } from "./components/CTASection";
 import { Footer } from "./components/Footer";
 import { LiveChatWidget } from "./components/LiveChatWidget";
+import { HomepageFaqSection } from "./components/HomepageFaqSection";
 
 export function Home() {
   return (
@@ -21,6 +22,7 @@ export function Home() {
         <HowItWorksSection />
         <DashboardPreviewSection />
         <IntegrationSection />
+        <HomepageFaqSection />
         <CTASection />
       </main>
       <Footer />

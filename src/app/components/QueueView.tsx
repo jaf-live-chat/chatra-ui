@@ -365,6 +365,113 @@ export function QueueView({ queue, onStartChat, isAgent = false, currentAgentId 
         </Stack>
       </Stack>
 
+      {/* ════════════════════ TABLE 2 — ASSIGNED TO YOU (agent: shown first) ════════════════════ */}
+      {isAgent && (
+      <Paper elevation={0} sx={{ border: "1px solid", borderColor: "grey.200", borderRadius: 3, overflow: "hidden" }}>
+        <Box sx={{
+          px: 3, py: 2, display: "flex", alignItems: "center", justifyContent: "space-between",
+          borderBottom: "1px solid", borderColor: "grey.200",
+          background: "linear-gradient(135deg, #dc262614 0%, #dc262605 100%)",
+        }}>
+          <Stack direction="row" alignItems="center" spacing={1.5}>
+            <Box sx={{ width: 34, height: 34, borderRadius: 2, bgcolor: "#dc26261a", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Zap size={17} color="#0891b2" />
+            </Box>
+            <Box>
+              <Typography variant="subtitle1" sx={{ fontWeight: 700, color: "grey.900", lineHeight: 1.2 }}>Assigned to You</Typography>
+              <Typography variant="caption" sx={{ color: "text.secondary" }}>Chats assigned by admin — accept to start</Typography>
+            </Box>
+          </Stack>
+          <Chip label={`${myAgentAssignments.filter(a => a.status === "pending").length} active`} size="small"
+            sx={{ bgcolor: "#dc26261a", color: "primary.dark", fontWeight: 700, height: 26 }} />
+        </Box>
+        <TableContainer sx={{ overflow: "visible" }}>
+          <Table>
+            <TableHead sx={{ bgcolor: "grey.50" }}>
+              <TableRow>
+                <TableCell width="8%"  align="center">#</TableCell>
+                <TableCell width="22%">Visitor</TableCell>
+                <TableCell width="35%">Message</TableCell>
+                <TableCell width="15%" align="center">Session Time</TableCell>
+                <TableCell width="10%" align="center">Status</TableCell>
+                <TableCell width="10%" align="center">Action</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {myAgentAssignments.filter(a => a.status === "pending").length > 0 ? (
+                myAgentAssignments.filter(a => a.status === "pending").map((assignment, index) => {
+                  const pos = index + 1;
+                  return (
+                    <TableRow key={assignment.visitorId} hover sx={{ "&:last-child td, &:last-child th": { border: 0 } }}>
+                      <TableCell align="center">
+                        <Box sx={{ width: 28, height: 28, borderRadius: 1.5, mx: "auto", bgcolor: "#dc262614", color: "primary.main", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: "0.8rem" }}>
+                          {pos}
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        <Stack direction="row" alignItems="center" spacing={1.5}>
+                          <Box sx={{ position: "relative" }}>
+                            <Avatar sx={{ width: 34, height: 34, bgcolor: getAvatarColor(assignment.visitorId), fontSize: "0.85rem", fontWeight: 700 }}>
+                              {assignment.visitorName.charAt(0).toUpperCase()}
+                            </Avatar>
+                            <Box sx={{ position: "absolute", bottom: -1, right: -1, width: 10, height: 10, borderRadius: "50%", bgcolor: "#eab308", border: "2px solid #fff" }} />
+                          </Box>
+                          <Box>
+                            <Typography variant="body2" sx={{ fontWeight: 600, color: "grey.900", lineHeight: 1.2 }}>{assignment.visitorName}</Typography>
+                            <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.7rem" }}>
+                              Assigned to{" "}
+                              <Typography component="span" variant="caption" sx={{ fontWeight: 700, color: "#0e7490", fontSize: "0.7rem" }}>
+                                {assignment.agentName || "You"}
+                              </Typography>
+                            </Typography>
+                          </Box>
+                        </Stack>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" sx={{ color: "text.secondary", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 320 }} title={assignment.message}>
+                          {assignment.message}
+                        </Typography>
+                      </TableCell>
+                      <TableCell align="center">
+                        <Chip icon={<Clock size={12} />} label={assignment.timeInQueue || "0m"} size="small"
+                          sx={{ bgcolor: "#eab3081a", color: "#7a5d00", fontWeight: 600, height: 24, "& .MuiChip-icon": { color: "#b48600" } }} />
+                      </TableCell>
+                      <TableCell align="center">
+                        <Chip
+                          icon={<Box sx={{ width: 6, height: 6, borderRadius: "50%", bgcolor: "warning.main", ml: 1 }} />}
+                          label="Pending" size="small"
+                          sx={{ bgcolor: "#eab30820", color: "#7a5d00", fontWeight: 600, height: 24, "& .MuiChip-icon": { ml: 1 } }}
+                        />
+                      </TableCell>
+                      <TableCell align="center">
+                        <Button
+                          onClick={() => setAcceptToConfirm(assignment)}
+                          variant="contained"
+                          size="small"
+                          startIcon={<CheckIcon size={14} />}
+                          sx={{
+                            bgcolor: "#16a34a", color: "#fff",
+                            "&:hover": { bgcolor: "#15803d" },
+                            textTransform: "none", fontSize: "0.75rem", fontWeight: 700,
+                            px: 2, py: 0.5, borderRadius: 2,
+                            boxShadow: "0 2px 8px #16a34a40",
+                          }}
+                        >
+                          Accept
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              ) : (
+                <EmptyState icon={<Zap size={22} color="#a3a3a3" />} title="No active sessions" subtitle="No chats have been assigned to you yet." />
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Paper>
+      )}
+
       {/* ════════════════════ TABLE 1 — WAITING QUEUE ════════════════════ */}
       <Paper elevation={0} sx={{ border: "1px solid", borderColor: "grey.200", borderRadius: 3, overflow: "hidden" }}>
         <Box sx={{
@@ -595,8 +702,8 @@ export function QueueView({ queue, onStartChat, isAgent = false, currentAgentId 
         <PaginationBar current={queuePage} total={totalPages(waitingQueue)} onChange={setQueuePage} count={waitingQueue.length} label="waiting" />
       </Paper>
 
-      {/* ════════════════════ TABLE 2 — CURRENTLY BEING SERVED ════════════════════ */}
-      <Paper elevation={0} sx={{ border: "1px solid", borderColor: "grey.200", borderRadius: 3, overflow: "hidden" }}>
+      {/* ════════════════════ TABLE 2 — CURRENTLY BEING SERVED (admin only) ════════════════════ */}
+      {!isAgent && <Paper elevation={0} sx={{ border: "1px solid", borderColor: "grey.200", borderRadius: 3, overflow: "hidden" }}>
         <Box sx={{
           px: 3, py: 2, display: "flex", alignItems: "center", justifyContent: "space-between",
           borderBottom: "1px solid", borderColor: "grey.200",
@@ -607,11 +714,11 @@ export function QueueView({ queue, onStartChat, isAgent = false, currentAgentId 
               <Zap size={17} color="#0891b2" />
             </Box>
             <Box>
-              <Typography variant="subtitle1" sx={{ fontWeight: 700, color: "grey.900", lineHeight: 1.2 }}>{isAgent ? "Assigned to You" : "Currently Being Served"}</Typography>
-              <Typography variant="caption" sx={{ color: "text.secondary" }}>{isAgent ? "Chats assigned by admin — accept to start" : "Active sessions assigned to agents"}</Typography>
+              <Typography variant="subtitle1" sx={{ fontWeight: 700, color: "grey.900", lineHeight: 1.2 }}>Currently Being Served</Typography>
+              <Typography variant="caption" sx={{ color: "text.secondary" }}>Active sessions assigned to agents</Typography>
             </Box>
           </Stack>
-          <Chip label={`${isAgent ? myAgentAssignments.filter(a => a.status === "pending").length : currentQueue.length} active`} size="small"
+          <Chip label={`${currentQueue.length} active`} size="small"
             sx={{ bgcolor: "#dc26261a", color: "primary.dark", fontWeight: 700, height: 26 }} />
         </Box>
 
@@ -628,77 +735,7 @@ export function QueueView({ queue, onStartChat, isAgent = false, currentAgentId 
               </TableRow>
             </TableHead>
             <TableBody>
-              {isAgent && myAgentAssignments.filter(a => a.status === "pending").length > 0 ? (
-                myAgentAssignments.filter(a => a.status === "pending").map((assignment, index) => {
-                  const pos = index + 1;
-                  return (
-                    <TableRow key={assignment.visitorId} hover sx={{ "&:last-child td, &:last-child th": { border: 0 } }}>
-                      <TableCell align="center">
-                        <Box sx={{
-                          width: 28, height: 28, borderRadius: 1.5, mx: "auto",
-                          bgcolor: "#dc262614", color: "primary.main",
-                          display: "flex", alignItems: "center", justifyContent: "center",
-                          fontWeight: 700, fontSize: "0.8rem",
-                        }}>
-                          {pos}
-                        </Box>
-                      </TableCell>
-                      <TableCell>
-                        <Stack direction="row" alignItems="center" spacing={1.5}>
-                          <Box sx={{ position: "relative" }}>
-                            <Avatar sx={{ width: 34, height: 34, bgcolor: getAvatarColor(assignment.visitorId), fontSize: "0.85rem", fontWeight: 700 }}>
-                              {assignment.visitorName.charAt(0).toUpperCase()}
-                            </Avatar>
-                            <Box sx={{ position: "absolute", bottom: -1, right: -1, width: 10, height: 10, borderRadius: "50%", bgcolor: "#eab308", border: "2px solid #fff" }} />
-                          </Box>
-                          <Box>
-                            <Typography variant="body2" sx={{ fontWeight: 600, color: "grey.900", lineHeight: 1.2 }}>{assignment.visitorName}</Typography>
-                            <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.7rem" }}>
-                              Assigned to{" "}
-                              <Typography component="span" variant="caption" sx={{ fontWeight: 700, color: "#0e7490", fontSize: "0.7rem" }}>
-                                {assignment.agentName || "You"}
-                              </Typography>
-                            </Typography>
-                          </Box>
-                        </Stack>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2" sx={{ color: "text.secondary", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 320 }} title={assignment.message}>
-                          {assignment.message}
-                        </Typography>
-                      </TableCell>
-                      <TableCell align="center">
-                        <Chip icon={<Clock size={12} />} label={assignment.timeInQueue || "0m"} size="small"
-                          sx={{ bgcolor: "#eab3081a", color: "#7a5d00", fontWeight: 600, height: 24, "& .MuiChip-icon": { color: "#b48600" } }} />
-                      </TableCell>
-                      <TableCell align="center">
-                        <Chip
-                          icon={<Box sx={{ width: 6, height: 6, borderRadius: "50%", bgcolor: "warning.main", ml: 1 }} />}
-                          label="Pending" size="small"
-                          sx={{ bgcolor: "#eab30820", color: "#7a5d00", fontWeight: 600, height: 24, "& .MuiChip-icon": { ml: 1 } }}
-                        />
-                      </TableCell>
-                      <TableCell align="center">
-                        <Button
-                          onClick={() => setAcceptToConfirm(assignment)}
-                          variant="contained"
-                          size="small"
-                          startIcon={<CheckIcon size={14} />}
-                          sx={{
-                            bgcolor: "#16a34a", color: "#fff",
-                            "&:hover": { bgcolor: "#15803d" },
-                            textTransform: "none", fontSize: "0.75rem", fontWeight: 700,
-                            px: 2, py: 0.5, borderRadius: 2,
-                            boxShadow: "0 2px 8px #16a34a40",
-                          }}
-                        >
-                          Accept
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              ) : !isAgent && paginate(currentQueue, currentPage).length > 0 ? (
+              {paginate(currentQueue, currentPage).length > 0 ? (
                 paginate(currentQueue, currentPage).map((item, index) => {
                   const pos = (currentPage - 1) * itemsPerPage + index + 1;
                   return (
@@ -755,13 +792,13 @@ export function QueueView({ queue, onStartChat, isAgent = false, currentAgentId 
                   );
                 })
               ) : (
-                <EmptyState icon={<Zap size={22} color="#a3a3a3" />} title="No active sessions" subtitle={isAgent ? "No chats have been assigned to you yet." : "No visitors are being served right now."} />
+                <EmptyState icon={<Zap size={22} color="#a3a3a3" />} title="No active sessions" subtitle="No visitors are being served right now." />
               )}
             </TableBody>
           </Table>
         </TableContainer>
         <PaginationBar current={currentPage} total={totalPages(currentQueue)} onChange={setCurrentPage} count={currentQueue.length} label="active" />
-      </Paper>
+      </Paper>}
 
       {/* ════════════════════ TABLE 3 — VISITOR DETAILS ════════════════════ */}
       {!isAgent && <Paper elevation={0} sx={{ border: "1px solid", borderColor: "grey.200", borderRadius: 3, overflow: "hidden" }}>

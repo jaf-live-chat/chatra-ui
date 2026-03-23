@@ -7,6 +7,8 @@ import {
   TrendingDown,
 } from "lucide-react";
 import { useDarkMode } from "./DarkModeContext";
+import { motion } from "motion/react";
+import { useState, useEffect } from "react";
 
 // ── Data ─────────────────────────────────────────────────────────────────────
 
@@ -46,6 +48,23 @@ const topAgents = [
   { name: "Chris P.",  resolved: 68, avg: "1m 30s", sat: "92%" },
   { name: "Dana K.",   resolved: 55, avg: "2m 10s", sat: "89%" },
 ];
+
+// ── Animation variants ────────────────────────────────────────────────────────
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 22 },
+  show:   { opacity: 1, y: 0  },
+};
+
+const staggerContainer = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.08 } },
+};
+
+const rowVariant = {
+  hidden: { opacity: 0, x: -14 },
+  show:   { opacity: 1, x: 0,  transition: { duration: 0.3, ease: "easeOut" } },
+};
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -92,6 +111,15 @@ function SvgLineChart({
   const xOf = (i: number) => ML + (i / (data.length - 1)) * cW;
   const yOf = (v: number) => MT + cH - (v / domainMax) * cH;
 
+  // Animate clip rect from 0 → full width
+  const [clipW, setClipW] = useState(0);
+  useEffect(() => {
+    const t = setTimeout(() => setClipW(cW + MR + 10), 80);
+    return () => clearTimeout(t);
+  }, [cW, MR]);
+
+  const clipId = `line-clip-${Math.random().toString(36).slice(2, 7)}`;
+
   return (
     <svg
       viewBox={`0 0 ${VW} ${height}`}
@@ -100,6 +128,20 @@ function SvgLineChart({
       style={{ overflow: "visible" }}
       aria-hidden="true"
     >
+      <defs>
+        <clipPath id={clipId}>
+          <rect
+            x={ML}
+            y={0}
+            width={clipW}
+            height={height}
+            style={{
+              transition: "width 1.1s cubic-bezier(0.4, 0, 0.2, 1)",
+            }}
+          />
+        </clipPath>
+      </defs>
+
       {/* Grid + Y labels */}
       {ticks.map((t) => (
         <g key={`y-${t}`}>
@@ -128,35 +170,37 @@ function SvgLineChart({
         </text>
       ))}
 
-      {/* Lines + dots */}
-      {lines.map((ln) => {
-        const pathD = data
-          .map((d, i) => `${i === 0 ? "M" : "L"}${xOf(i).toFixed(1)},${yOf(Number(d[ln.key])).toFixed(1)}`)
-          .join(" ");
-        return (
-          <g key={`line-${ln.key}`}>
-            <path
-              d={pathD}
-              fill="none"
-              stroke={ln.color}
-              strokeWidth={2.5}
-              strokeLinejoin="round"
-              strokeLinecap="round"
-            />
-            {data.map((d, i) => (
-              <circle
-                key={`dot-${ln.key}-${i}`}
-                cx={xOf(i)}
-                cy={yOf(Number(d[ln.key]))}
-                r={3.5}
-                fill={dotFill}
+      {/* Lines + dots — clipped for draw-in effect */}
+      <g clipPath={`url(#${clipId})`}>
+        {lines.map((ln) => {
+          const pathD = data
+            .map((d, i) => `${i === 0 ? "M" : "L"}${xOf(i).toFixed(1)},${yOf(Number(d[ln.key])).toFixed(1)}`)
+            .join(" ");
+          return (
+            <g key={`line-${ln.key}`}>
+              <path
+                d={pathD}
+                fill="none"
                 stroke={ln.color}
-                strokeWidth={2}
+                strokeWidth={2.5}
+                strokeLinejoin="round"
+                strokeLinecap="round"
               />
-            ))}
-          </g>
-        );
-      })}
+              {data.map((d, i) => (
+                <circle
+                  key={`dot-${ln.key}-${i}`}
+                  cx={xOf(i)}
+                  cy={yOf(Number(d[ln.key]))}
+                  r={3.5}
+                  fill={dotFill}
+                  stroke={ln.color}
+                  strokeWidth={2}
+                />
+              ))}
+            </g>
+          );
+        })}
+      </g>
     </svg>
   );
 }
@@ -195,6 +239,13 @@ function SvgBarChart({
   const xOf = (i: number) => ML + i * slotW + slotW / 2;
   const yOf = (v: number) => MT + cH - (v / domainMax) * cH;
 
+  // Animate bars growing from bottom
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setReady(true), 80);
+    return () => clearTimeout(t);
+  }, []);
+
   return (
     <svg
       viewBox={`0 0 ${VW} ${height}`}
@@ -226,30 +277,44 @@ function SvgBarChart({
         const barH = (val / domainMax) * cH;
         const cx = xOf(i);
         const r = 3;
+        const bottomY = MT + cH;
+
         return (
-          <g key={`bar-${i}`}>
+          <g
+            key={`bar-${i}`}
+            style={{
+              transform: ready ? "scaleY(1)" : "scaleY(0)",
+              transformOrigin: `${cx}px ${bottomY}px`,
+              transition: `transform 0.55s cubic-bezier(0.34, 1.3, 0.64, 1) ${0.05 + i * 0.065}s`,
+            }}
+          >
             <path
               d={`
-                M${(cx - barW / 2).toFixed(1)},${(MT + cH).toFixed(1)}
+                M${(cx - barW / 2).toFixed(1)},${bottomY.toFixed(1)}
                 L${(cx - barW / 2).toFixed(1)},${(yOf(val) + r).toFixed(1)}
                 Q${(cx - barW / 2).toFixed(1)},${yOf(val).toFixed(1)} ${(cx - barW / 2 + r).toFixed(1)},${yOf(val).toFixed(1)}
                 L${(cx + barW / 2 - r).toFixed(1)},${yOf(val).toFixed(1)}
                 Q${(cx + barW / 2).toFixed(1)},${yOf(val).toFixed(1)} ${(cx + barW / 2).toFixed(1)},${(yOf(val) + r).toFixed(1)}
-                L${(cx + barW / 2).toFixed(1)},${(MT + cH).toFixed(1)}
+                L${(cx + barW / 2).toFixed(1)},${bottomY.toFixed(1)}
                 Z
               `}
               fill={barH < 1 ? "none" : color}
               opacity={0.85}
             />
-            <text
-              x={cx} y={MT + cH + 16}
-              textAnchor="middle" fontSize={10} fill={labelColor}
-            >
-              {String(d[xKey])}
-            </text>
           </g>
         );
       })}
+
+      {/* X labels (outside clip so always visible) */}
+      {data.map((d, i) => (
+        <text
+          key={`xlabel-${i}`}
+          x={xOf(i)} y={MT + cH + 16}
+          textAnchor="middle" fontSize={10} fill={labelColor}
+        >
+          {String(d[xKey])}
+        </text>
+      ))}
     </svg>
   );
 }
@@ -309,13 +374,17 @@ function SvgDonutChart({
   return (
     <div className="flex flex-col items-center gap-4 w-full">
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true">
-        {arcs.map((arc) => (
-          <path
+        {arcs.map((arc, i) => (
+          <motion.path
             key={`arc-${arc.name}`}
             d={arc.path}
             fill={arc.color}
             stroke={strokeColor}
             strokeWidth={2}
+            initial={{ opacity: 0, scale: 0.7 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.45, delay: 0.2 + i * 0.1, ease: "easeOut" }}
+            style={{ transformOrigin: `${cx}px ${cy}px` }}
           />
         ))}
         <text x={cx} y={cy - 6} textAnchor="middle" fontSize={13} fontWeight="600" fill={centerTextColor}>
@@ -328,8 +397,14 @@ function SvgDonutChart({
 
       {/* Legend */}
       <div className="flex flex-col gap-2 w-full">
-        {data.map((d) => (
-          <div key={`leg-${d.name}`} className="flex items-center justify-between text-sm">
+        {data.map((d, i) => (
+          <motion.div
+            key={`leg-${d.name}`}
+            className="flex items-center justify-between text-sm"
+            initial={{ opacity: 0, x: 10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.3, delay: 0.35 + i * 0.08 }}
+          >
             <div className="flex items-center gap-2">
               <span
                 className="w-2.5 h-2.5 rounded-full shrink-0"
@@ -338,7 +413,7 @@ function SvgDonutChart({
               <span style={{ color: legendTextColor }}>{d.name}</span>
             </div>
             <span style={{ color: legendValueColor, fontWeight: 600 }}>{d.value}%</span>
-          </div>
+          </motion.div>
         ))}
       </div>
     </div>
@@ -384,7 +459,6 @@ function StatCard({ icon, label, value, change, up }: StatCardProps) {
 export function AnalyticsView() {
   const { isDark } = useDarkMode();
 
-  // Dynamic colors for SVG elements (can't use Tailwind inside SVG)
   const gridColor  = isDark ? "#334155" : "#E5E7EB";
   const labelColor = isDark ? "#64748b" : "#9CA3AF";
   const dotFill    = isDark ? "#1e293b" : "#ffffff";
@@ -395,53 +469,50 @@ export function AnalyticsView() {
 
   return (
     <div className={`space-y-8${isDark ? " dark" : ""}`}>
-      {/* Header */}
-      <div>
+
+      {/* ── Header ── */}
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, ease: "easeOut" }}
+      >
         <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">Analytics</h1>
         <p className="text-gray-500 dark:text-slate-400 mt-1">Performance overview for the last 7 days.</p>
-      </div>
+      </motion.div>
 
-      {/* Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard
-          icon={<MessageSquare className="w-5 h-5" />}
-          label="Total Conversations"
-          value="1,290"
-          change="+8.4%"
-          up={true}
-        />
-        <StatCard
-          icon={<CheckCircle2 className="w-5 h-5" />}
-          label="Resolution Rate"
-          value="91.5%"
-          change="+2.1%"
-          up={true}
-        />
-        <StatCard
-          icon={<Clock className="w-5 h-5" />}
-          label="Avg. Response Time"
-          value="1m 12s"
-          change="-15s"
-          up={true}
-        />
-        <StatCard
-          icon={<ThumbsUp className="w-5 h-5" />}
-          label="Satisfaction Score"
-          value="94%"
-          change="-0.5%"
-          up={false}
-        />
-      </div>
+      {/* ── Stat Cards — staggered ── */}
+      <motion.div
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
+        variants={staggerContainer}
+        initial="hidden"
+        animate="show"
+      >
+        {[
+          { icon: <MessageSquare className="w-5 h-5" />, label: "Total Conversations", value: "1,290", change: "+8.4%", up: true  },
+          { icon: <CheckCircle2  className="w-5 h-5" />, label: "Resolution Rate",      value: "91.5%", change: "+2.1%", up: true  },
+          { icon: <Clock         className="w-5 h-5" />, label: "Avg. Response Time",   value: "1m 12s",change: "-15s",  up: true  },
+          { icon: <ThumbsUp      className="w-5 h-5" />, label: "Satisfaction Score",   value: "94%",   change: "-0.5%",up: false },
+        ].map((card) => (
+          <motion.div key={card.label} variants={fadeUp} transition={{ duration: 0.38, ease: "easeOut" }}>
+            <StatCard {...card} />
+          </motion.div>
+        ))}
+      </motion.div>
 
-      {/* Charts row */}
+      {/* ── Charts row ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
         {/* Conversation Volume */}
-        <div className="lg:col-span-2 bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm p-6">
+        <motion.div
+          className="lg:col-span-2 bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm p-6"
+          initial={{ opacity: 0, y: 28 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, delay: 0.18, ease: "easeOut" }}
+        >
           <div className="mb-4">
             <h3 className="font-bold text-gray-900 dark:text-slate-100">Conversation Volume</h3>
             <p className="text-sm text-gray-500 dark:text-slate-400">Total vs. resolved conversations this week</p>
           </div>
-          {/* Legend */}
           <div className="flex items-center gap-6 mb-3">
             <div className="flex items-center gap-1.5">
               <span className="w-3 h-0.5 bg-cyan-600 inline-block rounded" />
@@ -464,10 +535,15 @@ export function AnalyticsView() {
             labelColor={labelColor}
             dotFill={dotFill}
           />
-        </div>
+        </motion.div>
 
         {/* Channel breakdown */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm p-6">
+        <motion.div
+          className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm p-6"
+          initial={{ opacity: 0, y: 28 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, delay: 0.26, ease: "easeOut" }}
+        >
           <div className="mb-4">
             <h3 className="font-bold text-gray-900 dark:text-slate-100">Conversations by Channel</h3>
             <p className="text-sm text-gray-500 dark:text-slate-400">Share of traffic this week</p>
@@ -482,11 +558,16 @@ export function AnalyticsView() {
               strokeColor={strokeColor}
             />
           </div>
-        </div>
+        </motion.div>
       </div>
 
-      {/* Peak Hours */}
-      <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm p-6">
+      {/* ── Peak Hours ── */}
+      <motion.div
+        className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm p-6"
+        initial={{ opacity: 0, y: 28 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45, delay: 0.32, ease: "easeOut" }}
+      >
         <div className="mb-4">
           <h3 className="font-bold text-gray-900 dark:text-slate-100">Peak Chat Hours</h3>
           <p className="text-sm text-gray-500 dark:text-slate-400">Average concurrent chats by hour (today)</p>
@@ -500,10 +581,15 @@ export function AnalyticsView() {
           gridColor={gridColor}
           labelColor={labelColor}
         />
-      </div>
+      </motion.div>
 
-      {/* Top Agents table */}
-      <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm overflow-hidden">
+      {/* ── Top Agents ── */}
+      <motion.div
+        className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm overflow-hidden"
+        initial={{ opacity: 0, y: 28 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45, delay: 0.38, ease: "easeOut" }}
+      >
         <div className="px-6 py-5 border-b border-gray-200 dark:border-slate-700">
           <h3 className="font-bold text-gray-900 dark:text-slate-100">Top Agents</h3>
           <p className="text-sm text-gray-500 dark:text-slate-400 mt-0.5">Ranked by conversations resolved this week</p>
@@ -517,9 +603,19 @@ export function AnalyticsView() {
               <th className="text-center px-6 py-3 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Satisfaction</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
+          <motion.tbody
+            className="divide-y divide-gray-100 dark:divide-slate-700"
+            variants={staggerContainer}
+            initial="hidden"
+            animate="show"
+          >
             {topAgents.map((agent, i) => (
-              <tr key={`agent-${agent.name}`} className="hover:bg-gray-50/60 dark:hover:bg-slate-700/40 transition-colors">
+              <motion.tr
+                key={`agent-${agent.name}`}
+                className="hover:bg-gray-50/60 dark:hover:bg-slate-700/40 transition-colors"
+                variants={rowVariant}
+                transition={{ duration: 0.3, delay: 0.42 + i * 0.07, ease: "easeOut" }}
+              >
                 <td className="px-6 py-4 flex items-center gap-3">
                   <div className="w-8 h-8 rounded-full bg-cyan-100 dark:bg-cyan-900/40 text-cyan-600 dark:text-cyan-400 flex items-center justify-center font-bold text-xs shrink-0">
                     {agent.name.charAt(0)}
@@ -538,11 +634,11 @@ export function AnalyticsView() {
                     {agent.sat}
                   </span>
                 </td>
-              </tr>
+              </motion.tr>
             ))}
-          </tbody>
+          </motion.tbody>
         </table>
-      </div>
+      </motion.div>
     </div>
   );
 }
