@@ -75,7 +75,7 @@ const AgentDashboardLayoutInner = () => {
     }
   };
 
-  const isChatSessions = location.pathname === "/agent/chat-sessions";
+  const isChatSessions = location.pathname === "/portal/agent/chat-sessions";
   const currentTab = searchParams.get("tab") || "queue";
 
   const isActive = (tab: string) => {
@@ -84,12 +84,12 @@ const AgentDashboardLayoutInner = () => {
   };
 
   const navTo = (tab: string) => {
-    navigate(tab === "queue" ? "/agent" : `/agent?tab=${tab}`);
+    navigate(tab === "queue" ? "/portal/agent" : `/portal/agent?tab=${tab}`);
   };
 
   const handleSettingsClick = () => {
     setIsProfileOpen(false);
-    navigate("/agent/settings");
+    navigate("/portal/agent/settings");
   };
 
   const handleLogout = () => {
@@ -161,7 +161,7 @@ const AgentDashboardLayoutInner = () => {
 
           {/* Chat Sessions */}
           <Link
-            to="/agent/chat-sessions"
+            to="/portal/agent/chat-sessions"
             className={`flex items-center ${isSidebarOpen ? "justify-start px-3" : "justify-center px-0"
               } py-2.5 rounded-lg text-sm font-medium transition-colors ${isChatSessions ? activeNavCls : inactiveNavCls
               }`}
@@ -295,7 +295,7 @@ const AgentDashboardLayoutInner = () => {
                     </div>
                     <div className="h-px bg-gray-100 dark:bg-slate-700 my-1"></div>
                     <Link
-                      to="/agent/settings"
+                      to="/portal/agent/settings"
                       className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700/60 transition-colors flex items-center gap-2"
                       onClick={handleSettingsClick}
                     >

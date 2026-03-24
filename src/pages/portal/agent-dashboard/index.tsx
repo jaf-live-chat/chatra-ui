@@ -152,7 +152,7 @@ const AgentDashboard = () => {
     setHistoryItems((prev) => [newHistoryItem, ...prev]);
     setActiveTab("queue");
     setAgentStatus("Online");
-    
+
     // Update agent status to Online in localStorage
     try {
       localStorage.setItem("jaf_agent_status", "Online");
@@ -160,7 +160,7 @@ const AgentDashboard = () => {
     } catch (e) {
       // silently fail
     }
-    
+
     setActiveChatVisitor(null);
   };
 
@@ -216,7 +216,7 @@ const AgentDashboard = () => {
             }
             localStorage.setItem("jaf_active_chat_visitor", JSON.stringify(visitor));
             window.dispatchEvent(new Event("jaf_chat_session_start"));
-            navigate("/agent/chat-sessions");
+            navigate("/portal/agent/chat-sessions");
           }}
         />
       ) : (
@@ -281,7 +281,7 @@ const AgentDashboard = () => {
                 key={item.tab}
                 onClick={() => {
                   if (item.tab === "chat-sessions-link") {
-                    navigate("/agent/chat-sessions");
+                    navigate("/portal/agent/chat-sessions");
                   } else {
                     setActiveTab(item.tab);
                   }

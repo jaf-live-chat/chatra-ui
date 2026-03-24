@@ -47,7 +47,7 @@ function DashboardLayoutInner() {
   const { isDark, toggleDark } = useDarkMode();
   const { user, logout } = useAuth();
 
-  const isChatSessions = location.pathname === "/dashboard/chat-sessions";
+  const isChatSessions = location.pathname === "/portal/chat-sessions";
   const currentTab = searchParams.get("tab") || "overview";
 
   const isActive = (tab: string) => {
@@ -57,7 +57,7 @@ function DashboardLayoutInner() {
   };
 
   const navTo = (tab: string) => {
-    navigate(tab === "dashboard" ? "/dashboard" : `/dashboard?tab=${tab}`);
+    navigate(tab === "dashboard" ? "/portal/dashboard" : `/portal/dashboard?tab=${tab}`);
   };
 
   const handleLogout = () => {
@@ -174,7 +174,7 @@ function DashboardLayoutInner() {
 
           {/* Chat Sessions */}
           <Link
-            to="/dashboard/chat-sessions"
+            to="/portal/chat-sessions"
             className={`flex items-center ${isSidebarOpen ? "justify-start px-3" : "justify-center px-0"
               } py-2.5 rounded-lg text-sm font-medium transition-colors ${isChatSessions ? activeNavCls : inactiveNavCls
               }`}

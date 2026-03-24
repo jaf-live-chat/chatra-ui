@@ -133,7 +133,7 @@ const Dashboard = () => {
 
   const handleEndChat = (visitor: any, messages: any[], length: string) => {
     setQueueItems(prev => prev.filter(q => q.id !== visitor.id));
-    
+
     if (visitor.sessionId) {
       try {
         const stored = localStorage.getItem("jaf_live_queue");
@@ -147,7 +147,7 @@ const Dashboard = () => {
         // silently fail
       }
     }
-    
+
     const newHistoryItem = {
       id: `CH-${Date.now()}`,
       visitor: visitor.name,
@@ -159,7 +159,7 @@ const Dashboard = () => {
         text: m.text
       }))
     };
-    
+
     setHistoryItems(prev => [newHistoryItem, ...prev]);
     setActiveTab("queue");
     setAgentStatus("Online");
@@ -176,138 +176,138 @@ const Dashboard = () => {
           exit={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.18, ease: "easeOut" }}
         >
-      {activeTab === "active-chat" && activeChatVisitor ? (
-        <ActiveChatView 
-          visitor={activeChatVisitor} 
-          onEndChat={(messages, length) => handleEndChat(activeChatVisitor, messages, length)} 
-        />
-      ) : activeTab === "conversations" ? (
-        <ConversationsView />
-      ) : activeTab === "agents" ? (
-        <AgentsManagementView />
-      ) : activeTab === "queue" ? (
-        <QueueView queue={mergedQueue} onStartChat={(visitor) => {
-          // ── Move visitor from Waiting → Assigned (Currently Being Served) ──
-          // For mock queue items
-          setQueueItems(prev =>
-            prev.map(q => q.id === visitor.id ? { ...q, status: "Assigned" } : q)
-          );
-          // For live widget visitors stored in localStorage
-          if (visitor.sessionId) {
-            try {
-              const stored = localStorage.getItem("jaf_live_queue");
-              if (stored) {
-                const liveQueue = JSON.parse(stored);
-                const updated = liveQueue.map((q: any) =>
-                  q.id === visitor.id ? { ...q, status: "Assigned" } : q
-                );
-                localStorage.setItem("jaf_live_queue", JSON.stringify(updated));
-                window.dispatchEvent(new Event("jaf_queue_updated"));
-              }
-            } catch (e) { /* silently fail */ }
-          }
-          // Navigate to the chat session
-          localStorage.setItem("jaf_active_chat_visitor", JSON.stringify(visitor));
-          window.dispatchEvent(new Event("jaf_chat_session_start"));
-          navigate("/dashboard/chat-sessions");
-        }} />
-      ) : activeTab === "history" ? (
-        <ChatHistoryView history={historyItems} />
-      ) : activeTab === "billing" ? (
-        <BillingView />
-      ) : activeTab === "analytics" ? (
-        <AnalyticsView />
-      ) : activeTab === "assignment" ? (
-        <ChatAssignmentView />
-      ) : activeTab === "account-settings" ? (
-        <AccountSettingsView />
-      ) : activeTab === "widget-settings" ? (
-        <WidgetSettingsView />
-      ) : activeTab === "company-info" ? (
-        <CompanyInfoView />
-      ) : activeTab === "tools" ? (
-        <ToolsView />
-      ) : activeTab === "quick-replies" ? (
-        <QuickRepliesView />
-      ) : (
-        /* ── Simple clean overview ── */
-        <div className="">
-          <div className="mb-8">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">Welcome back, Admin</h1>
-            <p className="text-gray-500 dark:text-slate-400 mt-1">Here's a quick look at your workspace right now.</p>
-          </div>
-
-          {/* Live status cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
-            <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm p-6 flex items-center gap-4">
-              <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center shrink-0">
-                <MessageSquare className="w-5 h-5 text-green-600 dark:text-green-400" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-500 dark:text-slate-400">Active Chats</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-slate-100">24</p>
-              </div>
-            </div>
-            <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm p-6 flex items-center gap-4">
-              <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center shrink-0">
-                <Users className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-500 dark:text-slate-400">Visitors Online</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-slate-100">148</p>
-              </div>
-            </div>
-            <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm p-6 flex items-center gap-4">
-              <div className="w-10 h-10 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center shrink-0">
-                <Clock className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-500 dark:text-slate-400">In Queue</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-slate-100">7</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Quick actions */}
-          <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm divide-y divide-gray-100 dark:divide-slate-700">
-            {[
-              { label: "View live queue", sub: "See and pick up waiting visitors", tab: "queue", icon: <ListOrdered className="w-5 h-5 text-gray-400 dark:text-slate-500" /> },
-              { label: "Analytics", sub: "Charts, trends and agent performance", tab: "analytics", icon: <BarChart2 className="w-5 h-5 text-gray-400 dark:text-slate-500" /> },
-              { label: "Chat history", sub: "Review past conversations and transcripts", tab: "history", icon: <History className="w-5 h-5 text-gray-400 dark:text-slate-500" /> },
-              { label: "Agents", sub: "Manage agents, roles and availability", tab: "agents", icon: <Users className="w-5 h-5 text-gray-400 dark:text-slate-500" /> },
-              { label: "Chat Sessions", sub: "View active and ongoing conversations", tab: "chat-sessions-nav", icon: <MessagesSquare className="w-5 h-5 text-gray-400 dark:text-slate-500" /> },
-              { label: "Widget Settings", sub: "Customize your live chat widget", tab: "widget-settings", icon: <Settings2 className="w-5 h-5 text-gray-400 dark:text-slate-500" /> },
-              { label: "Company Info", sub: "Update your company profile and details", tab: "company-info", icon: <Building2 className="w-5 h-5 text-gray-400 dark:text-slate-500" /> },
-              { label: "Tools", sub: "Quick replies, queue assignment, and subscription plans", tab: "tools", icon: <Zap className="w-5 h-5 text-gray-400 dark:text-slate-500" /> },
-            ].map((item) => (
-              <button
-                key={item.tab}
-                onClick={() => {
-                  if (item.tab === "history") {
-                    navigate("/dashboard/chat-sessions?tab=chat-history");
-                  } else if (item.tab === "chat-sessions-nav") {
-                    navigate("/dashboard/chat-sessions");
-                  } else {
-                    setActiveTab(item.tab);
+          {activeTab === "active-chat" && activeChatVisitor ? (
+            <ActiveChatView
+              visitor={activeChatVisitor}
+              onEndChat={(messages, length) => handleEndChat(activeChatVisitor, messages, length)}
+            />
+          ) : activeTab === "conversations" ? (
+            <ConversationsView />
+          ) : activeTab === "agents" ? (
+            <AgentsManagementView />
+          ) : activeTab === "queue" ? (
+            <QueueView queue={mergedQueue} onStartChat={(visitor) => {
+              // ── Move visitor from Waiting → Assigned (Currently Being Served) ──
+              // For mock queue items
+              setQueueItems(prev =>
+                prev.map(q => q.id === visitor.id ? { ...q, status: "Assigned" } : q)
+              );
+              // For live widget visitors stored in localStorage
+              if (visitor.sessionId) {
+                try {
+                  const stored = localStorage.getItem("jaf_live_queue");
+                  if (stored) {
+                    const liveQueue = JSON.parse(stored);
+                    const updated = liveQueue.map((q: any) =>
+                      q.id === visitor.id ? { ...q, status: "Assigned" } : q
+                    );
+                    localStorage.setItem("jaf_live_queue", JSON.stringify(updated));
+                    window.dispatchEvent(new Event("jaf_queue_updated"));
                   }
-                }}
-                className="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors group text-left"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="w-9 h-9 rounded-lg bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 flex items-center justify-center group-hover:bg-cyan-50 dark:group-hover:bg-cyan-900/30 group-hover:border-cyan-100 dark:group-hover:border-cyan-800 transition-colors">
-                    {item.icon}
+                } catch (e) { /* silently fail */ }
+              }
+              // Navigate to the chat session
+              localStorage.setItem("jaf_active_chat_visitor", JSON.stringify(visitor));
+              window.dispatchEvent(new Event("jaf_chat_session_start"));
+              navigate("/portal/chat-sessions");
+            }} />
+          ) : activeTab === "history" ? (
+            <ChatHistoryView history={historyItems} />
+          ) : activeTab === "billing" ? (
+            <BillingView />
+          ) : activeTab === "analytics" ? (
+            <AnalyticsView />
+          ) : activeTab === "assignment" ? (
+            <ChatAssignmentView />
+          ) : activeTab === "account-settings" ? (
+            <AccountSettingsView />
+          ) : activeTab === "widget-settings" ? (
+            <WidgetSettingsView />
+          ) : activeTab === "company-info" ? (
+            <CompanyInfoView />
+          ) : activeTab === "tools" ? (
+            <ToolsView />
+          ) : activeTab === "quick-replies" ? (
+            <QuickRepliesView />
+          ) : (
+            /* ── Simple clean overview ── */
+            <div className="">
+              <div className="mb-8">
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">Welcome back, Admin</h1>
+                <p className="text-gray-500 dark:text-slate-400 mt-1">Here's a quick look at your workspace right now.</p>
+              </div>
+
+              {/* Live status cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
+                <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm p-6 flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center shrink-0">
+                    <MessageSquare className="w-5 h-5 text-green-600 dark:text-green-400" />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-gray-900 dark:text-slate-100">{item.label}</p>
-                    <p className="text-xs text-gray-500 dark:text-slate-400">{item.sub}</p>
+                    <p className="text-sm text-gray-500 dark:text-slate-400">Active Chats</p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-slate-100">24</p>
                   </div>
                 </div>
-                <ArrowRight className="w-4 h-4 text-gray-300 dark:text-slate-600 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors" />
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+                <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm p-6 flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center shrink-0">
+                    <Users className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-slate-400">Visitors Online</p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-slate-100">148</p>
+                  </div>
+                </div>
+                <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm p-6 flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center shrink-0">
+                    <Clock className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-slate-400">In Queue</p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-slate-100">7</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Quick actions */}
+              <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm divide-y divide-gray-100 dark:divide-slate-700">
+                {[
+                  { label: "View live queue", sub: "See and pick up waiting visitors", tab: "queue", icon: <ListOrdered className="w-5 h-5 text-gray-400 dark:text-slate-500" /> },
+                  { label: "Analytics", sub: "Charts, trends and agent performance", tab: "analytics", icon: <BarChart2 className="w-5 h-5 text-gray-400 dark:text-slate-500" /> },
+                  { label: "Chat history", sub: "Review past conversations and transcripts", tab: "history", icon: <History className="w-5 h-5 text-gray-400 dark:text-slate-500" /> },
+                  { label: "Agents", sub: "Manage agents, roles and availability", tab: "agents", icon: <Users className="w-5 h-5 text-gray-400 dark:text-slate-500" /> },
+                  { label: "Chat Sessions", sub: "View active and ongoing conversations", tab: "chat-sessions-nav", icon: <MessagesSquare className="w-5 h-5 text-gray-400 dark:text-slate-500" /> },
+                  { label: "Widget Settings", sub: "Customize your live chat widget", tab: "widget-settings", icon: <Settings2 className="w-5 h-5 text-gray-400 dark:text-slate-500" /> },
+                  { label: "Company Info", sub: "Update your company profile and details", tab: "company-info", icon: <Building2 className="w-5 h-5 text-gray-400 dark:text-slate-500" /> },
+                  { label: "Tools", sub: "Quick replies, queue assignment, and subscription plans", tab: "tools", icon: <Zap className="w-5 h-5 text-gray-400 dark:text-slate-500" /> },
+                ].map((item) => (
+                  <button
+                    key={item.tab}
+                    onClick={() => {
+                      if (item.tab === "history") {
+                        navigate("/portal/chat-sessions?tab=chat-history");
+                      } else if (item.tab === "chat-sessions-nav") {
+                        navigate("/portal/chat-sessions");
+                      } else {
+                        setActiveTab(item.tab);
+                      }
+                    }}
+                    className="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors group text-left"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-9 h-9 rounded-lg bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 flex items-center justify-center group-hover:bg-cyan-50 dark:group-hover:bg-cyan-900/30 group-hover:border-cyan-100 dark:group-hover:border-cyan-800 transition-colors">
+                        {item.icon}
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-gray-900 dark:text-slate-100">{item.label}</p>
+                        <p className="text-xs text-gray-500 dark:text-slate-400">{item.sub}</p>
+                      </div>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-gray-300 dark:text-slate-600 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </motion.div>
       </AnimatePresence>
     </>

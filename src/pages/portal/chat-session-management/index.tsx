@@ -269,23 +269,23 @@ const ChatSessionManagementPage = () => {
         if (!existingChat) {
           const initialMessages: ChatMessage[] = visitor.messages
             ? visitor.messages.map((m: any, i: number) => {
-                if (m.id) seenQueueMsgIdsRef.current.add(String(m.id));
-                return {
-                  id: m.id ? String(m.id) : `${i}-${Date.now()}`,
-                  sender: m.sender === "visitor" ? ("visitor" as const) : ("agent" as const),
-                  text: m.text,
-                  timestamp: m.timestamp || getTime(),
-                  ...(m.files ? { files: m.files } : {}),
-                };
-              })
+              if (m.id) seenQueueMsgIdsRef.current.add(String(m.id));
+              return {
+                id: m.id ? String(m.id) : `${i}-${Date.now()}`,
+                sender: m.sender === "visitor" ? ("visitor" as const) : ("agent" as const),
+                text: m.text,
+                timestamp: m.timestamp || getTime(),
+                ...(m.files ? { files: m.files } : {}),
+              };
+            })
             : [
-                {
-                  id: "1",
-                  sender: "visitor" as const,
-                  text: visitor.message,
-                  timestamp: getTime(),
-                },
-              ];
+              {
+                id: "1",
+                sender: "visitor" as const,
+                text: visitor.message,
+                timestamp: getTime(),
+              },
+            ];
 
           const newChat: ActiveChat = {
             id: visitor.id,
@@ -526,7 +526,7 @@ const ChatSessionManagementPage = () => {
     }
 
     setActiveChats((prev) => prev.filter((c) => c.id !== selectedChatId));
-    
+
     // Always reset admin status to Online when any chat ends
     try {
       localStorage.setItem("jaf_agent_status", "Online");
@@ -534,7 +534,7 @@ const ChatSessionManagementPage = () => {
     } catch (e) {
       // silently fail
     }
-    
+
     setSelectedChatId(activeChats.length > 1 ? activeChats.find((c) => c.id !== selectedChatId)?.id || null : null);
     setShowEndConfirm(false);
   };
@@ -556,11 +556,10 @@ const ChatSessionManagementPage = () => {
                   setActiveSubTab(tab.key);
                   setSearchQuery("");
                 }}
-                className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors cursor-pointer ${
-                  activeSubTab === tab.key
+                className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors cursor-pointer ${activeSubTab === tab.key
                     ? "bg-cyan-50 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-400"
                     : "text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-700"
-                }`}
+                  }`}
               >
                 {tab.icon}
                 <span className="hidden sm:inline">{tab.label}</span>
@@ -601,7 +600,7 @@ const ChatSessionManagementPage = () => {
                     <p className="text-sm text-gray-500 dark:text-slate-400 font-medium">No active chats</p>
                     <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">
                       Pick up a visitor from the{" "}
-                      <Link to="/dashboard?tab=queue" className="text-cyan-600 dark:text-cyan-400 hover:underline">
+                      <Link to="/portal/dashboard?tab=queue" className="text-cyan-600 dark:text-cyan-400 hover:underline">
                         Queue
                       </Link>{" "}
                       to start chatting.
@@ -617,11 +616,10 @@ const ChatSessionManagementPage = () => {
                         <button
                           key={chat.id}
                           onClick={() => setSelectedChatId(chat.id)}
-                          className={`w-full text-left px-4 py-3.5 border-b border-gray-50 dark:border-slate-700/50 transition-colors cursor-pointer ${
-                            isSelected
+                          className={`w-full text-left px-4 py-3.5 border-b border-gray-50 dark:border-slate-700/50 transition-colors cursor-pointer ${isSelected
                               ? "bg-cyan-50 dark:bg-cyan-900/20 border-l-2 border-l-cyan-600"
                               : "hover:bg-gray-50 dark:hover:bg-slate-700/40 border-l-2 border-l-transparent"
-                          }`}
+                            }`}
                         >
                           <div className="flex items-start gap-3">
                             <div
@@ -685,11 +683,10 @@ const ChatSessionManagementPage = () => {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => setShowInfo(!showInfo)}
-                      className={`p-2 rounded-lg transition-colors ${
-                        showInfo
+                      className={`p-2 rounded-lg transition-colors ${showInfo
                           ? "bg-cyan-50 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400"
                           : "text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700"
-                      }`}
+                        }`}
                     >
                       <Info className="w-4 h-4" />
                     </button>
@@ -771,11 +768,10 @@ const ChatSessionManagementPage = () => {
                                 {/* Text bubble */}
                                 {msg.text && !(msg.files?.length && msg.text.startsWith("📎")) && (
                                   <div
-                                    className={`px-3.5 py-2 text-sm shadow-sm ${
-                                      msg.sender === "visitor"
+                                    className={`px-3.5 py-2 text-sm shadow-sm ${msg.sender === "visitor"
                                         ? "bg-[#e5e7eb] dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-2xl rounded-bl-[4px]"
                                         : "bg-cyan-600 text-white rounded-2xl rounded-br-[4px]"
-                                    }`}
+                                      }`}
                                   >
                                     {msg.text}
                                   </div>
@@ -890,11 +886,10 @@ const ChatSessionManagementPage = () => {
                                   <button
                                     key={cat}
                                     onClick={() => setQrActiveCategory(cat)}
-                                    className={`text-[11px] px-2 py-0.5 rounded-full whitespace-nowrap transition-colors cursor-pointer ${
-                                      qrActiveCategory === cat
+                                    className={`text-[11px] px-2 py-0.5 rounded-full whitespace-nowrap transition-colors cursor-pointer ${qrActiveCategory === cat
                                         ? "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300"
                                         : "bg-gray-100 text-gray-500 dark:bg-slate-700 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-600"
-                                    }`}
+                                      }`}
                                   >
                                     {cat}
                                   </button>
@@ -953,11 +948,10 @@ const ChatSessionManagementPage = () => {
                             </button>
                             <button
                               onClick={() => setShowQuickReplies((v) => !v)}
-                              className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-                                showQuickReplies
+                              className={`p-1.5 rounded-lg transition-colors cursor-pointer ${showQuickReplies
                                   ? "text-cyan-600 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-900/30"
                                   : "text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-600"
-                              }`}
+                                }`}
                               title="Quick Replies"
                             >
                               <Zap className="w-4 h-4" />
@@ -982,11 +976,10 @@ const ChatSessionManagementPage = () => {
                           <button
                             onClick={handleSendMessage}
                             disabled={!chatMessage.trim() && attachedFiles.length === 0}
-                            className={`p-2 rounded-lg mb-0.5 mr-0.5 transition-colors cursor-pointer ${
-                              chatMessage.trim() || attachedFiles.length > 0
+                            className={`p-2 rounded-lg mb-0.5 mr-0.5 transition-colors cursor-pointer ${chatMessage.trim() || attachedFiles.length > 0
                                 ? "bg-cyan-600 text-white hover:bg-cyan-700"
                                 : "bg-gray-300 dark:bg-slate-600 text-white"
-                            }`}
+                              }`}
                           >
                             <Send className="w-4 h-4" style={{ marginLeft: 1 }} />
                           </button>
@@ -1144,7 +1137,7 @@ const ChatSessionManagementPage = () => {
                 </p>
                 {activeChats.length === 0 && (
                   <Link
-                    to="/dashboard?tab=queue"
+                    to="/portal/dashboard?tab=queue"
                     className="mt-4 px-5 py-2 bg-cyan-600 text-white text-sm font-medium rounded-lg hover:bg-cyan-700 transition-colors"
                   >
                     Go to Queue
@@ -1378,11 +1371,10 @@ function ChatHistorySection({
                           {msg.sender === "visitor" ? transcriptChat.visitor : transcriptChat.agent} &middot; {msg.time}
                         </span>
                         <div
-                          className={`px-3 py-2 text-sm shadow-sm ${
-                            msg.sender === "visitor"
+                          className={`px-3 py-2 text-sm shadow-sm ${msg.sender === "visitor"
                               ? "bg-[#e5e7eb] dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-2xl rounded-bl-[4px]"
                               : "bg-cyan-600 text-white rounded-2xl rounded-br-[4px]"
-                          }`}
+                            }`}
                         >
                           {msg.text}
                         </div>
