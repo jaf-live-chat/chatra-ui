@@ -35,11 +35,10 @@ function FaqAccordionItem({
       transition={{ duration: 0.4, delay: index * 0.06, ease: "easeOut" }}
     >
       <div
-        className={`bg-white rounded-xl border transition-all duration-200 ${
-          open
+        className={`bg-white rounded-xl border transition-all duration-200 ${open
             ? "border-cyan-200 shadow-md"
             : "border-gray-100 shadow-sm hover:shadow-md hover:border-gray-200"
-        }`}
+          }`}
       >
         {/* Question row */}
         <button
@@ -47,20 +46,18 @@ function FaqAccordionItem({
           className="w-full flex items-center justify-between px-6 py-5 text-left gap-4 group"
         >
           <span
-            className={`text-[0.95rem] transition-colors ${
-              open ? "text-cyan-700" : "text-gray-900 group-hover:text-cyan-700"
-            }`}
+            className={`text-[0.95rem] transition-colors ${open ? "text-cyan-700" : "text-gray-900 group-hover:text-cyan-700"
+              }`}
             style={{ fontFamily: "Inter, sans-serif", fontWeight: 700 }}
           >
             {faq.q}
           </span>
 
           <span
-            className={`shrink-0 w-7 h-7 rounded-full flex items-center justify-center transition-all duration-200 ${
-              open
+            className={`shrink-0 w-7 h-7 rounded-full flex items-center justify-center transition-all duration-200 ${open
                 ? "bg-cyan-600 text-white rotate-180"
                 : "bg-gray-100 text-gray-400 group-hover:bg-cyan-50 group-hover:text-cyan-600"
-            }`}
+              }`}
           >
             <ChevronDown className="w-4 h-4" />
           </span>

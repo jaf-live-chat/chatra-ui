@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { 
-  ArrowLeft, 
-  Send, 
-  Paperclip, 
-  Image as ImageIcon, 
+import {
+  ArrowLeft,
+  Send,
+  Paperclip,
+  Image as ImageIcon,
   Smile,
   Plus,
   Globe,
@@ -38,8 +38,8 @@ const QR_STORAGE_KEY = "jaf_quick_replies";
 
 const CATEGORY_COLORS: Record<string, string> = {
   Greetings: "#a855f7",
-  General:   "#3b82f6",
-  Billing:   "#f59e0b",
+  General: "#3b82f6",
+  Billing: "#f59e0b",
   Technical: "#0891b2",
 };
 
@@ -138,14 +138,14 @@ const ActiveChatView = ({ visitor, onEndChat }: ActiveChatViewProps) => {
 
   const handleSendMessage = () => {
     if (!chatMessage.trim()) return;
-    
+
     const newMessage: Message = {
       id: Date.now().toString(),
       sender: 'agent',
       text: chatMessage.trim(),
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
-    
+
     setMessages(prev => [...prev, newMessage]);
     setChatMessage("");
 
@@ -166,7 +166,7 @@ const ActiveChatView = ({ visitor, onEndChat }: ActiveChatViewProps) => {
       }
     }
   };
-  
+
   const charCode = visitor.id.charCodeAt(visitor.id.length - 1) || 0;
   const bgColor = avatarColors[charCode % avatarColors.length];
 
@@ -193,144 +193,144 @@ const ActiveChatView = ({ visitor, onEndChat }: ActiveChatViewProps) => {
   return (
     <Box sx={{ height: "calc(100vh - 64px)", display: "flex", flexDirection: "column", bgcolor: "grey.50", p: { xs: 2, lg: 3 } }}>
       <Paper elevation={0} sx={{ flex: 1, width: "100%", mx: "auto", display: "flex", flexDirection: "row", overflow: "hidden", border: "1px solid", borderColor: "grey.200", borderRadius: 3 }}>
-        
+
         {/* Main Chat Area */}
         <Box sx={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
-        
-        {/* Chat Header */}
-        <Box sx={{ height: 64, borderBottom: "1px solid", borderColor: "grey.200", bgcolor: "background.paper", display: "flex", alignItems: "center", justifyContent: "space-between", px: 3, flexShrink: 0 }}>
-          <Stack direction="row" alignItems="center" spacing={2}>
-            <IconButton onClick={() => onEndChat(messages, "5m 20s")} sx={{ ml: -1 }} size="small">
-              <ArrowLeft size={20} />
-            </IconButton>
-            <Stack direction="row" alignItems="center" spacing={1.5}>
-              <Avatar sx={{ bgcolor: bgColor, width: 40, height: 40, fontWeight: 600 }}>
-                {visitor.name.charAt(0).toUpperCase()}
-              </Avatar>
-              <Box>
-                <Typography variant="subtitle2" sx={{ fontWeight: 700, lineHeight: 1 }}>{visitor.name}</Typography>
-                <Stack direction="row" alignItems="center" spacing={0.5} sx={{ mt: 0.5 }}>
-                  <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: "#10b981" }} />
-                  <Typography variant="caption" color="text.secondary" fontWeight={500}>
-                    Active
-                  </Typography>
-                </Stack>
-              </Box>
-            </Stack>
-          </Stack>
-          
-          <Stack direction="row" alignItems="center" spacing={1.5}>
-            <Button 
-              variant="contained" 
-              color="error" 
-              size="small"
-              sx={{ bgcolor: "#dc2626", color: "#fff", fontSize: "0.75rem", px: 1.5, py: 0.5, "&:hover": { bgcolor: "#b91c1c" } }}
-              onClick={() => setShowEndConfirm(true)}
-            >
-              End Chat
-            </Button>
-          </Stack>
-        </Box>
 
-        {/* Chat Messages Area */}
-        <Box sx={{ flex: 1, overflowY: "auto", p: 3, bgcolor: "grey.50", display: "flex", flexDirection: "column", gap: 2.5 }}>
-          <Box sx={{ textAlign: "center" }}>
-            <Chip label="Chat started from Queue" size="small" sx={{ bgcolor: "background.paper", border: "1px solid", borderColor: "grey.200", fontWeight: 500, color: "text.secondary" }} />
-          </Box>
-          
-          {messages.map((msg) => (
-            <Box key={msg.id} sx={{ display: "flex", justifyContent: msg.sender === 'visitor' ? 'flex-start' : 'flex-end' }}>
-              <Stack direction={msg.sender === 'visitor' ? 'row' : 'row-reverse'} spacing={1.5} sx={{ maxWidth: "65%", alignItems: "flex-end" }}>
-                {msg.sender === 'visitor' ? (
-                  <Avatar sx={{ width: 32, height: 32, bgcolor: bgColor, fontSize: "0.75rem", fontWeight: 600, mb: 0, flexShrink: 0 }}>
-                    {visitor.name.charAt(0).toUpperCase()}
-                  </Avatar>
-                ) : (
-                  <Avatar sx={{ width: 32, height: 32, bgcolor: "grey.800", fontSize: "0.75rem", fontWeight: 600, mb: 0, flexShrink: 0 }}>
-                    You
-                  </Avatar>
-                )}
-                <Stack spacing={0.5} alignItems={msg.sender === 'agent' ? 'flex-end' : 'flex-start'}>
-                  <Typography variant="caption" color="text.secondary" fontWeight={500} sx={{ ml: msg.sender === 'visitor' ? 0.5 : 0, mr: msg.sender === 'visitor' ? 0 : 0.5 }}>
-                    {msg.sender === 'visitor' ? visitor.name : 'You'} • {msg.timestamp}
-                  </Typography>
-                  <Paper 
-                    elevation={0}
-                    sx={{ 
-                      px: 2, py: 1, 
-                      bgcolor: msg.sender === 'visitor' ? '#e5e7eb' : 'secondary.main', 
-                      color: msg.sender === 'visitor' ? 'text.primary' : 'secondary.contrastText',
-                      border: "none",
-                      borderRadius: "18px",
-                      borderBottomLeftRadius: msg.sender === 'visitor' ? "4px" : "18px",
-                      borderBottomRightRadius: msg.sender === 'agent' ? "4px" : "18px",
-                    }}
-                  >
-                    <Typography variant="body2">{msg.text}</Typography>
-                  </Paper>
-                </Stack>
-              </Stack>
-            </Box>
-          ))}
-          <div ref={bottomRef}></div>
-        </Box>
-
-        {/* Input Area */}
-        <Box sx={{ p: 2.5, bgcolor: "background.paper", borderTop: "1px solid", borderColor: "grey.200", flexShrink: 0 }}>
-          <Paper elevation={0} sx={{ display: "flex", alignItems: "flex-end", gap: 0, bgcolor: "grey.50", border: "1px solid", borderColor: "grey.200", borderRadius: 2, p: 0.5 }}>
-            <Stack direction="row" alignItems="center" spacing={0.5} sx={{ mb: 0.5, px: 0.5 }}>
-              <IconButton 
-                size="small"
-                onClick={() => setShowAttachments(!showAttachments)}
-                sx={{ 
-                  transition: "all 0.2s",
-                  bgcolor: showAttachments ? "secondary.main" : "transparent",
-                  color: showAttachments ? "white" : "text.secondary",
-                  transform: showAttachments ? "rotate(45deg)" : "none",
-                  "&:hover": { bgcolor: showAttachments ? "secondary.dark" : "grey.200" }
-                }}
-              >
-                <Plus size={18} />
+          {/* Chat Header */}
+          <Box sx={{ height: 64, borderBottom: "1px solid", borderColor: "grey.200", bgcolor: "background.paper", display: "flex", alignItems: "center", justifyContent: "space-between", px: 3, flexShrink: 0 }}>
+            <Stack direction="row" alignItems="center" spacing={2}>
+              <IconButton onClick={() => onEndChat(messages, "5m 20s")} sx={{ ml: -1 }} size="small">
+                <ArrowLeft size={20} />
               </IconButton>
-              
-              <Box sx={{ 
-                display: "flex", alignItems: "center", overflow: "hidden", 
-                transition: "all 0.3s ease-in-out", 
-                width: showAttachments ? 100 : 0, 
-                opacity: showAttachments ? 1 : 0,
-                gap: showAttachments ? 0.5 : 0
-              }}>
-                <IconButton size="small"><Paperclip size={18} /></IconButton>
-                <IconButton size="small"><ImageIcon size={18} /></IconButton>
-                <IconButton size="small"><Smile size={18} /></IconButton>
-              </Box>
+              <Stack direction="row" alignItems="center" spacing={1.5}>
+                <Avatar sx={{ bgcolor: bgColor, width: 40, height: 40, fontWeight: 600 }}>
+                  {visitor.name.charAt(0).toUpperCase()}
+                </Avatar>
+                <Box>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700, lineHeight: 1 }}>{visitor.name}</Typography>
+                  <Stack direction="row" alignItems="center" spacing={0.5} sx={{ mt: 0.5 }}>
+                    <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: "#10b981" }} />
+                    <Typography variant="caption" color="text.secondary" fontWeight={500}>
+                      Active
+                    </Typography>
+                  </Stack>
+                </Box>
+              </Stack>
             </Stack>
-            
-            <InputBase
-              placeholder="Type your reply..."
-              value={chatMessage}
-              onChange={(e) => setChatMessage(e.target.value)}
-              multiline
-              maxRows={3}
-              sx={{ flex: 1, py: 0.75, px: 1.5, fontSize: "0.875rem", minHeight: 36, ml: 0 }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSendMessage();
-                }
-              }}
-            />
-            
-            <IconButton 
-              color="secondary"
-              onClick={handleSendMessage}
-              disabled={!chatMessage.trim()}
-              sx={{ mb: 0.5, bgcolor: "secondary.main", color: "white", borderRadius: 1.5, "&:hover": { bgcolor: "secondary.dark" }, "&.Mui-disabled": { bgcolor: "grey.300", color: "white" } }}
-            >
-              <Send size={16} style={{ marginLeft: 2 }} />
-            </IconButton>
-          </Paper>
-        </Box>
+
+            <Stack direction="row" alignItems="center" spacing={1.5}>
+              <Button
+                variant="contained"
+                color="error"
+                size="small"
+                sx={{ bgcolor: "#dc2626", color: "#fff", fontSize: "0.75rem", px: 1.5, py: 0.5, "&:hover": { bgcolor: "#b91c1c" } }}
+                onClick={() => setShowEndConfirm(true)}
+              >
+                End Chat
+              </Button>
+            </Stack>
+          </Box>
+
+          {/* Chat Messages Area */}
+          <Box sx={{ flex: 1, overflowY: "auto", p: 3, bgcolor: "grey.50", display: "flex", flexDirection: "column", gap: 2.5 }}>
+            <Box sx={{ textAlign: "center" }}>
+              <Chip label="Chat started from Queue" size="small" sx={{ bgcolor: "background.paper", border: "1px solid", borderColor: "grey.200", fontWeight: 500, color: "text.secondary" }} />
+            </Box>
+
+            {messages.map((msg) => (
+              <Box key={msg.id} sx={{ display: "flex", justifyContent: msg.sender === 'visitor' ? 'flex-start' : 'flex-end' }}>
+                <Stack direction={msg.sender === 'visitor' ? 'row' : 'row-reverse'} spacing={1.5} sx={{ maxWidth: "65%", alignItems: "flex-end" }}>
+                  {msg.sender === 'visitor' ? (
+                    <Avatar sx={{ width: 32, height: 32, bgcolor: bgColor, fontSize: "0.75rem", fontWeight: 600, mb: 0, flexShrink: 0 }}>
+                      {visitor.name.charAt(0).toUpperCase()}
+                    </Avatar>
+                  ) : (
+                    <Avatar sx={{ width: 32, height: 32, bgcolor: "grey.800", fontSize: "0.75rem", fontWeight: 600, mb: 0, flexShrink: 0 }}>
+                      You
+                    </Avatar>
+                  )}
+                  <Stack spacing={0.5} alignItems={msg.sender === 'agent' ? 'flex-end' : 'flex-start'}>
+                    <Typography variant="caption" color="text.secondary" fontWeight={500} sx={{ ml: msg.sender === 'visitor' ? 0.5 : 0, mr: msg.sender === 'visitor' ? 0 : 0.5 }}>
+                      {msg.sender === 'visitor' ? visitor.name : 'You'} • {msg.timestamp}
+                    </Typography>
+                    <Paper
+                      elevation={0}
+                      sx={{
+                        px: 2, py: 1,
+                        bgcolor: msg.sender === 'visitor' ? '#e5e7eb' : 'secondary.main',
+                        color: msg.sender === 'visitor' ? 'text.primary' : 'secondary.contrastText',
+                        border: "none",
+                        borderRadius: "18px",
+                        borderBottomLeftRadius: msg.sender === 'visitor' ? "4px" : "18px",
+                        borderBottomRightRadius: msg.sender === 'agent' ? "4px" : "18px",
+                      }}
+                    >
+                      <Typography variant="body2">{msg.text}</Typography>
+                    </Paper>
+                  </Stack>
+                </Stack>
+              </Box>
+            ))}
+            <div ref={bottomRef}></div>
+          </Box>
+
+          {/* Input Area */}
+          <Box sx={{ p: 2.5, bgcolor: "background.paper", borderTop: "1px solid", borderColor: "grey.200", flexShrink: 0 }}>
+            <Paper elevation={0} sx={{ display: "flex", alignItems: "flex-end", gap: 0, bgcolor: "grey.50", border: "1px solid", borderColor: "grey.200", borderRadius: 2, p: 0.5 }}>
+              <Stack direction="row" alignItems="center" spacing={0.5} sx={{ mb: 0.5, px: 0.5 }}>
+                <IconButton
+                  size="small"
+                  onClick={() => setShowAttachments(!showAttachments)}
+                  sx={{
+                    transition: "all 0.2s",
+                    bgcolor: showAttachments ? "secondary.main" : "transparent",
+                    color: showAttachments ? "white" : "text.secondary",
+                    transform: showAttachments ? "rotate(45deg)" : "none",
+                    "&:hover": { bgcolor: showAttachments ? "secondary.dark" : "grey.200" }
+                  }}
+                >
+                  <Plus size={18} />
+                </IconButton>
+
+                <Box sx={{
+                  display: "flex", alignItems: "center", overflow: "hidden",
+                  transition: "all 0.3s ease-in-out",
+                  width: showAttachments ? 100 : 0,
+                  opacity: showAttachments ? 1 : 0,
+                  gap: showAttachments ? 0.5 : 0
+                }}>
+                  <IconButton size="small"><Paperclip size={18} /></IconButton>
+                  <IconButton size="small"><ImageIcon size={18} /></IconButton>
+                  <IconButton size="small"><Smile size={18} /></IconButton>
+                </Box>
+              </Stack>
+
+              <InputBase
+                placeholder="Type your reply..."
+                value={chatMessage}
+                onChange={(e) => setChatMessage(e.target.value)}
+                multiline
+                maxRows={3}
+                sx={{ flex: 1, py: 0.75, px: 1.5, fontSize: "0.875rem", minHeight: 36, ml: 0 }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSendMessage();
+                  }
+                }}
+              />
+
+              <IconButton
+                color="secondary"
+                onClick={handleSendMessage}
+                disabled={!chatMessage.trim()}
+                sx={{ mb: 0.5, bgcolor: "secondary.main", color: "white", borderRadius: 1.5, "&:hover": { bgcolor: "secondary.dark" }, "&.Mui-disabled": { bgcolor: "grey.300", color: "white" } }}
+              >
+                <Send size={16} style={{ marginLeft: 2 }} />
+              </IconButton>
+            </Paper>
+          </Box>
 
         </Box>
 
@@ -351,7 +351,7 @@ const ActiveChatView = ({ visitor, onEndChat }: ActiveChatViewProps) => {
           {/* Tab switcher */}
           <Box sx={{ display: "flex", borderBottom: "1px solid", borderColor: "grey.200", flexShrink: 0 }}>
             {([
-              { id: "details",       label: "Details", icon: <User size={13} /> },
+              { id: "details", label: "Details", icon: <User size={13} /> },
               { id: "quick-replies", label: "Quick Replies", icon: <Zap size={13} /> },
             ] as const).map((tab) => (
               <button
@@ -548,11 +548,11 @@ const ActiveChatView = ({ visitor, onEndChat }: ActiveChatViewProps) => {
         </DialogContent>
         <DialogActions sx={{ p: 2, bgcolor: "grey.50", borderTop: "1px solid", borderColor: "grey.200" }}>
           <Button onClick={() => setShowEndConfirm(false)} color="inherit" sx={{ fontWeight: 600 }}>Cancel</Button>
-          <Button 
+          <Button
             onClick={() => {
               setShowEndConfirm(false);
               onEndChat(messages, "5m 20s");
-            }} 
+            }}
             variant="contained"
             color="error"
             sx={{ fontWeight: 600 }}

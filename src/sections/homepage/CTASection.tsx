@@ -109,7 +109,7 @@ const CTASection = () => {
               className="bg-white/10 border border-white/20 rounded-xl p-5 backdrop-blur-md relative hover:bg-white/15 transition-colors group flex flex-col"
             >
               <Quote className="absolute top-4 right-4 w-6 h-6 text-white/10 group-hover:text-white/20 transition-colors" />
-              
+
               <div className="flex gap-1 mb-4">
                 {[...Array(review.rating)].map((_, i) => (
                   <Star key={i} className="w-3.5 h-3.5 text-[#facc15] fill-[#facc15]" />

@@ -87,14 +87,12 @@ function FieldRow({
 }) {
   return (
     <div
-      className={`flex items-start gap-4 py-4 border-b last:border-0 ${
-        isDark ? "border-slate-700" : "border-gray-100"
-      }`}
+      className={`flex items-start gap-4 py-4 border-b last:border-0 ${isDark ? "border-slate-700" : "border-gray-100"
+        }`}
     >
       <div
-        className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
-          isDark ? "bg-cyan-900/40" : "bg-cyan-50"
-        }`}
+        className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${isDark ? "bg-cyan-900/40" : "bg-cyan-50"
+          }`}
       >
         {icon}
       </div>
@@ -106,11 +104,10 @@ function FieldRow({
             value={value}
             onChange={(e) => onChange(name, e.target.value)}
             placeholder={placeholder || label}
-            className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent ${
-              isDark
+            className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent ${isDark
                 ? "border-slate-600 bg-slate-700 text-slate-100 placeholder-slate-400"
                 : "border-gray-200 bg-white text-gray-900"
-            }`}
+              }`}
           />
         ) : (
           <p className={`text-sm truncate ${isDark ? "text-slate-200" : "text-gray-900"}`}>
@@ -173,9 +170,8 @@ const CompanyInfoView = () => {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1
-            className={`text-2xl font-bold flex items-center gap-2 ${
-              isDark ? "text-slate-100" : "text-gray-900"
-            }`}
+            className={`text-2xl font-bold flex items-center gap-2 ${isDark ? "text-slate-100" : "text-gray-900"
+              }`}
           >
             <Building2 className="w-6 h-6 text-cyan-500" />
             Company Information
@@ -189,11 +185,10 @@ const CompanyInfoView = () => {
             <>
               <button
                 onClick={handleCancel}
-                className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  isDark
+                className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${isDark
                     ? "text-slate-300 bg-slate-700 hover:bg-slate-600"
                     : "text-gray-600 bg-gray-100 hover:bg-gray-200"
-                }`}
+                  }`}
               >
                 <X className="w-4 h-4" />
                 Cancel
@@ -221,11 +216,10 @@ const CompanyInfoView = () => {
       {/* Saved toast */}
       {saved && (
         <div
-          className={`mb-6 flex items-center gap-2 rounded-lg px-4 py-3 text-sm font-medium ${
-            isDark
+          className={`mb-6 flex items-center gap-2 rounded-lg px-4 py-3 text-sm font-medium ${isDark
               ? "bg-green-900/40 border border-green-700 text-green-400"
               : "bg-green-50 border border-green-200 text-green-700"
-          }`}
+            }`}
         >
           <Check className="w-4 h-4" />
           Company information saved successfully.
@@ -250,11 +244,10 @@ const CompanyInfoView = () => {
             </p>
             {editing && (
               <button
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
-                  isDark
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${isDark
                     ? "text-cyan-400 bg-cyan-900/30 border-cyan-700 hover:bg-cyan-900/50"
                     : "text-cyan-700 bg-cyan-50 border-cyan-200 hover:bg-cyan-100"
-                }`}
+                  }`}
               >
                 <Upload className="w-3.5 h-3.5" />
                 Upload Logo
@@ -392,14 +385,12 @@ const CompanyInfoView = () => {
           isDark={isDark}
         />
         <div
-          className={`flex items-start gap-4 py-4 ${
-            isDark ? "border-t border-slate-700" : "border-t border-gray-100"
-          }`}
+          className={`flex items-start gap-4 py-4 ${isDark ? "border-t border-slate-700" : "border-t border-gray-100"
+            }`}
         >
           <div
-            className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
-              isDark ? "bg-cyan-900/40" : "bg-cyan-50"
-            }`}
+            className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${isDark ? "bg-cyan-900/40" : "bg-cyan-50"
+              }`}
           >
             <Building2 className={`w-4 h-4 ${isDark ? "text-cyan-400" : "text-cyan-600"}`} />
           </div>
@@ -412,11 +403,10 @@ const CompanyInfoView = () => {
                 value={current.description}
                 onChange={(e) => handleChange("description", e.target.value)}
                 rows={3}
-                className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent resize-none ${
-                  isDark
+                className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent resize-none ${isDark
                     ? "border-slate-600 bg-slate-700 text-slate-100 placeholder-slate-400"
                     : "border-gray-200 bg-white text-gray-900"
-                }`}
+                  }`}
               />
             ) : (
               <p className={`text-sm ${isDark ? "text-slate-200" : "text-gray-900"}`}>

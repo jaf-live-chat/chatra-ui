@@ -389,11 +389,10 @@ const SubscriptionPlansView = () => {
                 <button
                   key={cat}
                   onClick={() => setFeatureCategoryFilter(cat)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${
-                    featureCategoryFilter === cat
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${featureCategoryFilter === cat
                       ? "bg-cyan-600 text-white"
                       : "bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-600"
-                  }`}
+                    }`}
                 >
                   {cat}
                 </button>
@@ -526,30 +525,26 @@ const SubscriptionPlansView = () => {
           return (
             <div
               key={plan.id}
-              className={`bg-white dark:bg-slate-800 rounded-2xl border ${
-                plan.popular
+              className={`bg-white dark:bg-slate-800 rounded-2xl border ${plan.popular
                   ? "border-cyan-300 dark:border-cyan-700 ring-2 ring-cyan-100 dark:ring-cyan-900/40"
                   : "border-gray-200 dark:border-slate-700"
-              } shadow-sm ${isEditing ? "overflow-visible" : "overflow-hidden"} flex flex-col transition-all duration-500 hover:shadow-md dark:hover:shadow-slate-900/50 ${
-                !plan.active ? "opacity-60" : ""
-              }`}
+                } shadow-sm ${isEditing ? "overflow-visible" : "overflow-hidden"} flex flex-col transition-all duration-500 hover:shadow-md dark:hover:shadow-slate-900/50 ${!plan.active ? "opacity-60" : ""
+                }`}
             >
               {/* Plan Header */}
               <div
-                className={`px-6 pt-6 pb-4 transition-colors duration-300 ${
-                  plan.popular
+                className={`px-6 pt-6 pb-4 transition-colors duration-300 ${plan.popular
                     ? "bg-gradient-to-br from-cyan-50 to-blue-50 dark:from-cyan-900/20 dark:to-blue-900/20"
                     : "bg-gray-50 dark:bg-slate-700/50"
-                }`}
+                  }`}
               >
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <div
-                      className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                        plan.popular
+                      className={`w-8 h-8 rounded-lg flex items-center justify-center ${plan.popular
                           ? "bg-cyan-100 dark:bg-cyan-800/50 text-cyan-600 dark:text-cyan-400"
                           : "bg-gray-200 dark:bg-slate-600 text-gray-600 dark:text-slate-400"
-                      }`}
+                        }`}
                     >
                       {getPlanIcon(plan.name)}
                     </div>
@@ -562,11 +557,10 @@ const SubscriptionPlansView = () => {
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => setEditingPlan(isEditing ? null : plan.id)}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all duration-300 ease-out active:scale-95 hover:-translate-y-[1px] text-xs font-semibold ${
-                        isEditing
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all duration-300 ease-out active:scale-95 hover:-translate-y-[1px] text-xs font-semibold ${isEditing
                           ? "bg-cyan-100 dark:bg-cyan-800/50 text-cyan-700 dark:text-cyan-400 hover:bg-cyan-200 dark:hover:bg-cyan-800 shadow-sm"
                           : "bg-gray-100 dark:bg-slate-600 text-gray-600 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-500 hover:shadow-sm"
-                      }`}
+                        }`}
                       title={isEditing ? "Close editor" : "Edit plan"}
                     >
                       <div className="relative w-3.5 h-3.5 flex-shrink-0">
@@ -710,7 +704,7 @@ const SubscriptionPlansView = () => {
                     </li>
                   ))}
                 </ul>
-                
+
                 {/* Add Feature Dropdown */}
                 <div className={`grid transition-all duration-300 ease-in-out ${isEditing ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
                   <div className="overflow-hidden">
@@ -768,7 +762,7 @@ const SubscriptionPlansView = () => {
           style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
         >
           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg flex flex-col overflow-hidden border border-gray-100 dark:border-slate-700"
-               style={{ maxHeight: "80vh" }}>
+            style={{ maxHeight: "80vh" }}>
 
             {/* Modal Header */}
             <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 dark:border-slate-700">
@@ -796,11 +790,10 @@ const SubscriptionPlansView = () => {
                   <button
                     key={cat}
                     onClick={() => setFeatureCategoryFilter(cat)}
-                    className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-150 ${
-                      featureCategoryFilter === cat
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-150 ${featureCategoryFilter === cat
                         ? "bg-cyan-600 text-white shadow-sm shadow-cyan-200 dark:shadow-cyan-900/40"
                         : "bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-600"
-                    }`}
+                      }`}
                   >
                     {cat}
                   </button>
@@ -823,18 +816,16 @@ const SubscriptionPlansView = () => {
                             }
                           }}
                           disabled={alreadyAdded}
-                          className={`w-full text-left px-5 py-3.5 flex items-center gap-4 transition-colors ${
-                            alreadyAdded
+                          className={`w-full text-left px-5 py-3.5 flex items-center gap-4 transition-colors ${alreadyAdded
                               ? "opacity-50 cursor-not-allowed"
                               : "hover:bg-cyan-50 dark:hover:bg-cyan-900/10 cursor-pointer"
-                          }`}
+                            }`}
                         >
                           {/* Icon dot */}
-                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                            alreadyAdded
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${alreadyAdded
                               ? "bg-green-100 dark:bg-green-900/30"
                               : "bg-gray-100 dark:bg-slate-700"
-                          }`}>
+                            }`}>
                             {alreadyAdded
                               ? <Check className="w-4 h-4 text-green-500 dark:text-green-400" />
                               : <Plus className="w-4 h-4 text-gray-400 dark:text-slate-500" />
@@ -843,11 +834,10 @@ const SubscriptionPlansView = () => {
 
                           {/* Name + badge */}
                           <div className="flex-1 min-w-0">
-                            <p className={`text-sm font-medium truncate ${
-                              alreadyAdded
+                            <p className={`text-sm font-medium truncate ${alreadyAdded
                                 ? "text-gray-400 dark:text-slate-500"
                                 : "text-gray-800 dark:text-slate-100"
-                            }`}>
+                              }`}>
                               {libFeature.name}
                             </p>
                             <div className="mt-1">
