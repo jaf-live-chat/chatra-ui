@@ -9,7 +9,7 @@ import {
   CheckCircle2,
   Circle,
 } from "lucide-react";
-import jafChatraLogo from "figma:asset/bfc6c96e2889ab05988e23557e5e8d5f485d15bd.png";
+import { APP_LOGO } from "../../constants";
 
 const navItems = [
   { icon: <LayoutDashboard className="w-4 h-4" />, label: "Dashboard", active: true },
@@ -94,7 +94,7 @@ export function DashboardPreviewSection() {
             <div className="w-48 bg-gray-950 flex flex-col py-4">
               {/* Logo */}
               <div className="flex items-center gap-2 px-4 mb-6">
-                <img src={jafChatraLogo} alt="JAF Chatra" className="h-8 w-auto" style={{ filter: "brightness(0) invert(1)" }} />
+                <img src={APP_LOGO.logoDark} alt="JAF Chatra" className="h-8 w-auto" style={{ filter: "brightness(0) invert(1)" }} />
               </div>
 
               {/* Nav Items */}
@@ -102,11 +102,10 @@ export function DashboardPreviewSection() {
                 {navItems.map((item) => (
                   <div
                     key={item.label}
-                    className={`flex items-center justify-between px-3 py-2 rounded-lg ${
-                      item.active
-                        ? "bg-blue-600 text-white"
-                        : "text-gray-400"
-                    }`}
+                    className={`flex items-center justify-between px-3 py-2 rounded-lg ${item.active
+                      ? "bg-blue-600 text-white"
+                      : "text-gray-400"
+                      }`}
                   >
                     <div className="flex items-center gap-2.5">
                       {item.icon}
@@ -230,13 +229,12 @@ export function DashboardPreviewSection() {
                         </td>
                         <td className="px-4 py-2.5">
                           <span
-                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full capitalize ${
-                              chat.status === "active"
-                                ? "bg-green-100 text-green-700"
-                                : chat.status === "pending"
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full capitalize ${chat.status === "active"
+                              ? "bg-green-100 text-green-700"
+                              : chat.status === "pending"
                                 ? "bg-yellow-400 text-yellow-900 border border-yellow-500"
                                 : "bg-blue-100 text-blue-700"
-                            }`}
+                              }`}
                             style={{ fontFamily: "Inter, sans-serif", fontSize: "0.6rem", fontWeight: 600 }}
                           >
                             {chat.status === "active" ? (

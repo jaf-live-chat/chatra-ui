@@ -44,7 +44,7 @@ import {
   Info,
 } from "lucide-react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
-import jafChatraLogo from "figma:asset/bfc6c96e2889ab05988e23557e5e8d5f485d15bd.png";
+import { APP_LOGO } from "../../constants";
 
 // ─── Mock Data ────────────────────────────────────────────────────────────────
 
@@ -851,7 +851,7 @@ function SupportView() {
         {[
           { icon: <Send className="w-6 h-6" />, label: "Contact Support", desc: "Chat with our support team live", color: "text-sky-600 bg-sky-50", action: () => setTicketOpen(true) },
           { icon: <Ticket className="w-6 h-6" />, label: "Submit a Ticket", desc: "Open a support request", color: "text-violet-600 bg-violet-50", action: () => setTicketOpen(true) },
-          { icon: <BookOpen className="w-6 h-6" />, label: "Help Center", desc: "Browse FAQs & documentation", color: "text-emerald-600 bg-emerald-50", action: () => {} },
+          { icon: <BookOpen className="w-6 h-6" />, label: "Help Center", desc: "Browse FAQs & documentation", color: "text-emerald-600 bg-emerald-50", action: () => { } },
         ].map((item) => (
           <button
             key={item.label}
@@ -1015,7 +1015,7 @@ export function CustomerDashboard() {
         {/* Logo */}
         <div className="h-16 flex items-center justify-between px-3 border-b border-slate-100 overflow-hidden">
           {sidebarOpen ? (
-            <img src={jafChatraLogo} alt="JAF Live Chat" style={{ height: "90px", width: "auto" }} className="ml-3 shrink-0" />
+            <img src={APP_LOGO.logoDark} alt="JAF Live Chat" style={{ height: "90px", width: "auto" }} className="ml-3 shrink-0" />
           ) : (
             <div className="w-8 h-8 rounded-lg bg-sky-600 flex items-center justify-center shrink-0 mx-auto">
               <MessageSquare className="w-4 h-4 text-white" />
@@ -1037,11 +1037,10 @@ export function CustomerDashboard() {
               key={item.id}
               onClick={() => setActiveTab(item.id)}
               title={item.label}
-              className={`flex items-center ${sidebarOpen ? "px-3 gap-3" : "justify-center px-0"} py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer ${
-                activeTab === item.id
-                  ? "bg-sky-50 text-sky-700 shadow-sm"
-                  : "text-slate-500 hover:bg-slate-100 hover:text-slate-800"
-              }`}
+              className={`flex items-center ${sidebarOpen ? "px-3 gap-3" : "justify-center px-0"} py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer ${activeTab === item.id
+                ? "bg-sky-50 text-sky-700 shadow-sm"
+                : "text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+                }`}
             >
               <span className={activeTab === item.id ? "text-sky-600" : ""}>{item.icon}</span>
               {sidebarOpen && <span>{item.label}</span>}

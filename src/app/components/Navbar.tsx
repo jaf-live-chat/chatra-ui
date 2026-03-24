@@ -20,7 +20,7 @@ import {
   InputAdornment,
   CircularProgress,
 } from "@mui/material";
-import jafChatraLogo from "figma:asset/bfc6c96e2889ab05988e23557e5e8d5f485d15bd.png";
+import { APP_LOGO } from "../../constants";
 
 const NAV_LINKS = [
   { label: "Features", to: "/features" },
@@ -144,7 +144,7 @@ export function Navbar() {
             {/* Logo */}
             <Box component={Link} to="/" sx={{ display: "flex", alignItems: "center", textDecoration: "none" }}>
               <img
-                src={jafChatraLogo}
+                src={APP_LOGO.logoDark}
                 alt="JAF Chatra Logo"
                 style={{ height: "120px", width: "auto" }}
               />
@@ -189,7 +189,7 @@ export function Navbar() {
                       }}
                     >
                       {link.label}
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
                     </Box>
 
                     <Box
@@ -224,58 +224,58 @@ export function Navbar() {
                         }
                       }}
                     >
-                       <Box component={Link} to="/resources/help-center" sx={{ display: "flex", alignItems: "flex-start", height: "76px", gap: 2, p: 1.5, borderRadius: "12px", textDecoration: "none", transition: "background-color 0.2s", "&:hover": { bgcolor: "#F8FAFCFF" } }}>
-                          <Box sx={{ width: 40, height: 40, borderRadius: "10px", bgcolor: "#EFF6FFFF", color: "#3B82F6FF", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
-                          </Box>
-                          <Box>
-                            <Typography sx={{ fontSize: "0.95rem", fontWeight: 700, color: "#0F172AFF", fontFamily: "Inter, sans-serif", mb: 0.25 }}>Help Center</Typography>
-                            <Typography sx={{ fontSize: "0.85rem", color: "#64748BFF", fontFamily: "Inter, sans-serif", lineHeight: 1.3 }}>Guides, setup, and FAQs.</Typography>
-                          </Box>
-                       </Box>
+                      <Box component={Link} to="/resources/help-center" sx={{ display: "flex", alignItems: "flex-start", height: "76px", gap: 2, p: 1.5, borderRadius: "12px", textDecoration: "none", transition: "background-color 0.2s", "&:hover": { bgcolor: "#F8FAFCFF" } }}>
+                        <Box sx={{ width: 40, height: 40, borderRadius: "10px", bgcolor: "#EFF6FFFF", color: "#3B82F6FF", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" /></svg>
+                        </Box>
+                        <Box>
+                          <Typography sx={{ fontSize: "0.95rem", fontWeight: 700, color: "#0F172AFF", fontFamily: "Inter, sans-serif", mb: 0.25 }}>Help Center</Typography>
+                          <Typography sx={{ fontSize: "0.85rem", color: "#64748BFF", fontFamily: "Inter, sans-serif", lineHeight: 1.3 }}>Guides, setup, and FAQs.</Typography>
+                        </Box>
+                      </Box>
 
-                       <Box component={Link} to="/resources/api-developers" sx={{ display: "flex", alignItems: "flex-start", height: "76px", gap: 2, p: 1.5, borderRadius: "12px", textDecoration: "none", transition: "background-color 0.2s", "&:hover": { bgcolor: "#F8FAFCFF" } }}>
-                          <Box sx={{ width: 40, height: 40, borderRadius: "10px", bgcolor: "#ECFDF5FF", color: "#10B981FF", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/></svg>
-                          </Box>
-                          <Box>
-                            <Typography sx={{ fontSize: "0.95rem", fontWeight: 700, color: "#0F172AFF", fontFamily: "Inter, sans-serif", mb: 0.25 }}>API & Developers</Typography>
-                            <Typography sx={{ fontSize: "0.85rem", color: "#64748BFF", fontFamily: "Inter, sans-serif", lineHeight: 1.3 }}>Endpoints and webhooks.</Typography>
-                          </Box>
-                       </Box>
+                      <Box component={Link} to="/resources/api-developers" sx={{ display: "flex", alignItems: "flex-start", height: "76px", gap: 2, p: 1.5, borderRadius: "12px", textDecoration: "none", transition: "background-color 0.2s", "&:hover": { bgcolor: "#F8FAFCFF" } }}>
+                        <Box sx={{ width: 40, height: 40, borderRadius: "10px", bgcolor: "#ECFDF5FF", color: "#10B981FF", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m16 18 6-6-6-6" /><path d="m8 6-6 6 6 6" /></svg>
+                        </Box>
+                        <Box>
+                          <Typography sx={{ fontSize: "0.95rem", fontWeight: 700, color: "#0F172AFF", fontFamily: "Inter, sans-serif", mb: 0.25 }}>API & Developers</Typography>
+                          <Typography sx={{ fontSize: "0.85rem", color: "#64748BFF", fontFamily: "Inter, sans-serif", lineHeight: 1.3 }}>Endpoints and webhooks.</Typography>
+                        </Box>
+                      </Box>
 
-                       <Box component={Link} to="/resources/changelog" sx={{ display: "flex", alignItems: "flex-start", height: "76px", gap: 2, p: 1.5, borderRadius: "12px", textDecoration: "none", transition: "background-color 0.2s", "&:hover": { bgcolor: "#F8FAFCFF" } }}>
-                          <Box sx={{ width: 40, height: 40, borderRadius: "10px", bgcolor: "#FAF5FFFF", color: "#A855F7FF", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>
-                          </Box>
-                          <Box>
-                            <Typography sx={{ fontSize: "0.95rem", fontWeight: 700, color: "#0F172AFF", fontFamily: "Inter, sans-serif", mb: 0.25 }}>Changelog</Typography>
-                            <Typography sx={{ fontSize: "0.85rem", color: "#64748BFF", fontFamily: "Inter, sans-serif", lineHeight: 1.3 }}>See what's new in JAF Chatra.</Typography>
-                          </Box>
-                       </Box>
+                      <Box component={Link} to="/resources/changelog" sx={{ display: "flex", alignItems: "flex-start", height: "76px", gap: 2, p: 1.5, borderRadius: "12px", textDecoration: "none", transition: "background-color 0.2s", "&:hover": { bgcolor: "#F8FAFCFF" } }}>
+                        <Box sx={{ width: 40, height: 40, borderRadius: "10px", bgcolor: "#FAF5FFFF", color: "#A855F7FF", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" /><path d="M5 3v4" /><path d="M19 17v4" /><path d="M3 5h4" /><path d="M17 19h4" /></svg>
+                        </Box>
+                        <Box>
+                          <Typography sx={{ fontSize: "0.95rem", fontWeight: 700, color: "#0F172AFF", fontFamily: "Inter, sans-serif", mb: 0.25 }}>Changelog</Typography>
+                          <Typography sx={{ fontSize: "0.85rem", color: "#64748BFF", fontFamily: "Inter, sans-serif", lineHeight: 1.3 }}>See what's new in JAF Chatra.</Typography>
+                        </Box>
+                      </Box>
 
-                       <Box component={Link} to="/resources/blog-guides" sx={{ display: "flex", alignItems: "flex-start", height: "76px", gap: 2, p: 1.5, borderRadius: "12px", textDecoration: "none", transition: "background-color 0.2s", "&:hover": { bgcolor: "#F8FAFCFF" } }}>
-                          <Box sx={{ width: 40, height: 40, borderRadius: "10px", bgcolor: "#FFF7EDFF", color: "#F97316FF", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>
-                          </Box>
-                          <Box>
-                            <Typography sx={{ fontSize: "0.95rem", fontWeight: 700, color: "#0F172AFF", fontFamily: "Inter, sans-serif", mb: 0.25 }}>Blog & Guides</Typography>
-                            <Typography sx={{ fontSize: "0.85rem", color: "#64748BFF", fontFamily: "Inter, sans-serif", lineHeight: 1.3 }}>Tips for better customer support.</Typography>
-                          </Box>
-                       </Box>
+                      <Box component={Link} to="/resources/blog-guides" sx={{ display: "flex", alignItems: "flex-start", height: "76px", gap: 2, p: 1.5, borderRadius: "12px", textDecoration: "none", transition: "background-color 0.2s", "&:hover": { bgcolor: "#F8FAFCFF" } }}>
+                        <Box sx={{ width: 40, height: 40, borderRadius: "10px", bgcolor: "#FFF7EDFF", color: "#F97316FF", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" /><path d="M14 2v4a2 2 0 0 0 2 2h4" /><path d="M10 9H8" /><path d="M16 13H8" /><path d="M16 17H8" /></svg>
+                        </Box>
+                        <Box>
+                          <Typography sx={{ fontSize: "0.95rem", fontWeight: 700, color: "#0F172AFF", fontFamily: "Inter, sans-serif", mb: 0.25 }}>Blog & Guides</Typography>
+                          <Typography sx={{ fontSize: "0.85rem", color: "#64748BFF", fontFamily: "Inter, sans-serif", lineHeight: 1.3 }}>Tips for better customer support.</Typography>
+                        </Box>
+                      </Box>
 
-                       <Box component={Link} to="/resources/system-status" sx={{ mt: 1, display: "flex", alignItems: "center", justifyContent: "space-between", p: 2, borderRadius: "12px", bgcolor: "#F8FAFCFF", textDecoration: "none", border: "1px solid #F1F5F9FF", transition: "border-color 0.2s", "&:hover": { borderColor: "#E2E8F0FF" } }}>
-                          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-                            <Box sx={{ color: "#64748BFF", display: "flex" }}>
-                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-                            </Box>
-                            <Typography sx={{ fontSize: "0.95rem", fontWeight: 700, color: "#0F172AFF", fontFamily: "Inter, sans-serif", lineHeight: 1.2 }}>System<br/>Status</Typography>
+                      <Box component={Link} to="/resources/system-status" sx={{ mt: 1, display: "flex", alignItems: "center", justifyContent: "space-between", p: 2, borderRadius: "12px", bgcolor: "#F8FAFCFF", textDecoration: "none", border: "1px solid #F1F5F9FF", transition: "border-color 0.2s", "&:hover": { borderColor: "#E2E8F0FF" } }}>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                          <Box sx={{ color: "#64748BFF", display: "flex" }}>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg>
                           </Box>
-                          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                            <Typography sx={{ fontSize: "0.85rem", fontWeight: 600, color: "#10B981FF", fontFamily: "Inter, sans-serif", textAlign: "right", lineHeight: 1.2 }}>All systems<br/>operational</Typography>
-                            <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: "#10B981FF", boxShadow: "0 0 0 3px #ECFDF5FF" }} />
-                          </Box>
-                       </Box>
+                          <Typography sx={{ fontSize: "0.95rem", fontWeight: 700, color: "#0F172AFF", fontFamily: "Inter, sans-serif", lineHeight: 1.2 }}>System<br />Status</Typography>
+                        </Box>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                          <Typography sx={{ fontSize: "0.85rem", fontWeight: 600, color: "#10B981FF", fontFamily: "Inter, sans-serif", textAlign: "right", lineHeight: 1.2 }}>All systems<br />operational</Typography>
+                          <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: "#10B981FF", boxShadow: "0 0 0 3px #ECFDF5FF" }} />
+                        </Box>
+                      </Box>
                     </Box>
                   </Box>
                 ) : (
@@ -658,12 +658,12 @@ export function Navbar() {
                     error={
                       !!accountErrors.confirmPassword ||
                       (accountInfo.confirmPassword.length > 0 &&
-                      accountInfo.password !== accountInfo.confirmPassword)
+                        accountInfo.password !== accountInfo.confirmPassword)
                     }
                     helperText={
                       accountErrors.confirmPassword ||
                       (accountInfo.confirmPassword.length > 0 &&
-                      accountInfo.password !== accountInfo.confirmPassword
+                        accountInfo.password !== accountInfo.confirmPassword
                         ? "Passwords do not match"
                         : "")
                     }
