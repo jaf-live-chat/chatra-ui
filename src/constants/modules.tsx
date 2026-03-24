@@ -61,21 +61,21 @@ const MODULE_GROUPS: ModuleGroup[] = [
   {
     id: "group-live-chat",
     label: "Live Chat",
-    allowedRoles: [USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value],
+    allowedRoles: [USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value, USER_ROLES.SUPPORT_AGENT.value],
     modules: [
       {
         id: "queue",
         label: "Queue",
         path: "/portal/queue",
         icon: <ListOrdered className="w-5 h-5" />,
-        allowedRoles: [USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value],
+        allowedRoles: [USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value, USER_ROLES.SUPPORT_AGENT.value],
       },
       {
         id: "chat-sessions",
         label: "Chat Sessions",
         path: "/portal/chat-sessions",
         icon: <MessagesSquare className="w-5 h-5" />,
-        allowedRoles: [USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value],
+        allowedRoles: [USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value, USER_ROLES.SUPPORT_AGENT.value],
       },
     ],
   },
@@ -96,7 +96,7 @@ const MODULE_GROUPS: ModuleGroup[] = [
         label: "Company Info",
         path: "/portal/company-info",
         icon: <Building2 className="w-5 h-5" />,
-        allowedRoles: [USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value],
+        allowedRoles: [USER_ROLES.MASTER_ADMIN.value],
       },
     ],
   },
