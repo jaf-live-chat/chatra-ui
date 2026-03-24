@@ -2,7 +2,10 @@ import { Navigate, type RouteObject } from "react-router";
 import DashboardLayout from "../layouts/DashboardLayout";
 import AgentDashboardLayout from "../layouts/AgentDashboardLayout";
 import RouteGuard from "../layouts/RouteGuard";
+import AuthGuard from "../components/guards/AuthGuard";
+import { USER_ROLES } from "../constants/constants";
 import Dashboard from "../pages/portal/dashboard";
+import AgentsPage from "../pages/portal/agents";
 import CustomerDashboard from "../pages/portal/customer-dashboard";
 import ChatSessionManagementPage from "../pages/portal/chat-session-management";
 import AgentDashboard from "../pages/portal/agent-dashboard";
@@ -17,31 +20,188 @@ const PortalRoutes: RouteObject[] = [
         children: [
           { index: true, element: <Navigate to="dashboard" replace /> },
           {
-            element: <DashboardLayout />,
+            element: (
+              <AuthGuard
+                allowedRoles={[USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value, USER_ROLES.SUPPORT_AGENT.value]}
+              >
+                <DashboardLayout />
+              </AuthGuard>
+            ),
             children: [
-              { path: "dashboard", element: <Dashboard /> },
-              { path: "analytics", element: <Dashboard /> },
-              { path: "agents", element: <Dashboard /> },
-              { path: "queue", element: <Dashboard /> },
-              { path: "history", element: <Dashboard /> },
-              { path: "conversations", element: <Dashboard /> },
-              { path: "billing", element: <Dashboard /> },
-              { path: "assignment", element: <Dashboard /> },
-              { path: "account-settings", element: <Dashboard /> },
-              { path: "widget-settings", element: <Dashboard /> },
-              { path: "company-info", element: <Dashboard /> },
-              { path: "tools", element: <Dashboard /> },
-              { path: "quick-replies", element: <Dashboard /> },
-              { path: "chat-sessions", element: <ChatSessionManagementPage /> },
+              {
+                path: "dashboard",
+                element: (
+                  <AuthGuard
+                    allowedRoles={[USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value, USER_ROLES.SUPPORT_AGENT.value]}
+                  >
+                    <Dashboard />
+                  </AuthGuard>
+                ),
+              },
+              {
+                path: "analytics",
+                element: (
+                  <AuthGuard
+                    allowedRoles={[USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value]}
+                  >
+                    <Dashboard />
+                  </AuthGuard>
+                ),
+              },
+              {
+                path: "agents",
+                element: (
+                  <AuthGuard
+                    allowedRoles={[USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value]}
+                  >
+                    <AgentsPage />
+                  </AuthGuard>
+                ),
+              },
+              {
+                path: "queue",
+                element: (
+                  <AuthGuard
+                    allowedRoles={[USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value]}
+                  >
+                    <Dashboard />
+                  </AuthGuard>
+                ),
+              },
+              {
+                path: "history",
+                element: (
+                  <AuthGuard
+                    allowedRoles={[USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value]}
+                  >
+                    <Dashboard />
+                  </AuthGuard>
+                ),
+              },
+              {
+                path: "conversations",
+                element: (
+                  <AuthGuard
+                    allowedRoles={[USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value]}
+                  >
+                    <Dashboard />
+                  </AuthGuard>
+                ),
+              },
+              {
+                path: "billing",
+                element: (
+                  <AuthGuard
+                    allowedRoles={[USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value]}
+                  >
+                    <Dashboard />
+                  </AuthGuard>
+                ),
+              },
+              {
+                path: "assignment",
+                element: (
+                  <AuthGuard
+                    allowedRoles={[USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value]}
+                  >
+                    <Dashboard />
+                  </AuthGuard>
+                ),
+              },
+              {
+                path: "account-settings",
+                element: (
+                  <AuthGuard
+                    allowedRoles={[USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value]}
+                  >
+                    <Dashboard />
+                  </AuthGuard>
+                ),
+              },
+              {
+                path: "widget-settings",
+                element: (
+                  <AuthGuard
+                    allowedRoles={[USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value]}
+                  >
+                    <Dashboard />
+                  </AuthGuard>
+                ),
+              },
+              {
+                path: "company-info",
+                element: (
+                  <AuthGuard
+                    allowedRoles={[USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value]}
+                  >
+                    <Dashboard />
+                  </AuthGuard>
+                ),
+              },
+              {
+                path: "tools",
+                element: (
+                  <AuthGuard
+                    allowedRoles={[USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value]}
+                  >
+                    <Dashboard />
+                  </AuthGuard>
+                ),
+              },
+              {
+                path: "quick-replies",
+                element: (
+                  <AuthGuard
+                    allowedRoles={[USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value]}
+                  >
+                    <Dashboard />
+                  </AuthGuard>
+                ),
+              },
+              {
+                path: "chat-sessions",
+                element: (
+                  <AuthGuard
+                    allowedRoles={[USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value]}
+                  >
+                    <ChatSessionManagementPage />
+                  </AuthGuard>
+                ),
+              },
             ],
           },
           {
             path: "agent",
-            element: <AgentDashboardLayout />,
+            element: (
+              <AuthGuard allowedRoles={[USER_ROLES.SUPPORT_AGENT.value]}>
+                <AgentDashboardLayout />
+              </AuthGuard>
+            ),
             children: [
-              { index: true, element: <AgentDashboard /> },
-              { path: "chat-sessions", element: <ChatSessionManagementPage /> },
-              { path: "settings", element: <AgentSettingsPage /> },
+              {
+                index: true,
+                element: (
+                  <AuthGuard allowedRoles={[USER_ROLES.SUPPORT_AGENT.value]}>
+                    <AgentDashboard />
+                  </AuthGuard>
+                ),
+              },
+              {
+                path: "chat-sessions",
+                element: (
+                  <AuthGuard allowedRoles={[USER_ROLES.SUPPORT_AGENT.value]}>
+                    <ChatSessionManagementPage />
+                  </AuthGuard>
+                ),
+              },
+              {
+                path: "settings",
+                element: (
+                  <AuthGuard allowedRoles={[USER_ROLES.SUPPORT_AGENT.value]}>
+                    <AgentSettingsPage />
+                  </AuthGuard>
+                ),
+              },
             ],
           },
           { path: "account", element: <CustomerDashboard /> },

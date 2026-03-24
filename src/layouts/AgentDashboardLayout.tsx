@@ -2,27 +2,24 @@ import { useState, useEffect } from "react";
 import {
   ChevronDown,
   LogOut,
-  ListOrdered,
-  MessagesSquare,
   Bell,
   Settings2,
   Moon,
   Sun,
   Menu,
-  Zap,
-  History,
 } from "lucide-react";
-import { Link, Outlet, useNavigate, useLocation, useSearchParams } from "react-router";
+import { Link, Outlet, useNavigate, useLocation } from "react-router";
 import { DarkModeProvider, useDarkMode } from "../providers/DarkModeContext";
 import { APP_LOGO } from "../constants/constants";
 import useAuth from "../hooks/useAuth";
+import { MODULE_GROUPS } from "../constants/modules";
+import filterModulesByRole from "../utils/filterModules";
 
 // ── Inner layout (consumes dark-mode context) ──────────────────────────────────
 
 const AgentDashboardLayoutInner = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [searchParams] = useSearchParams();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [agentStatus, setAgentStatus] = useState(() => {
@@ -38,6 +35,15 @@ const AgentDashboardLayoutInner = () => {
 
   const { isDark, toggleDark } = useDarkMode();
   const { user, logout } = useAuth();
+  const roleFilteredGroups = filterModulesByRole(MODULE_GROUPS, user?.role);
+  const sidebarGroups = roleFilteredGroups
+    .map((group) => ({
+      ...group,
+      modules: filterModulesByRole(group.modules, user?.role).filter((module) =>
+        module.path.startsWith("/portal/agent")
+      ),
+    }))
+    .filter((group) => group.modules.length > 0);
 
   // Listen for status changes from other components
   useEffect(() => {
@@ -75,16 +81,27 @@ const AgentDashboardLayoutInner = () => {
     }
   };
 
-  const isChatSessions = location.pathname === "/portal/agent/chat-sessions";
-  const currentTab = searchParams.get("tab") || "queue";
+  const isActivePath = (path: string) => {
+    const [targetPath, targetQuery] = path.split("?");
 
-  const isActive = (tab: string) => {
-    if (isChatSessions) return false;
-    return currentTab === tab;
-  };
+    if (location.pathname !== targetPath) {
+      return false;
+    }
 
-  const navTo = (tab: string) => {
-    navigate(tab === "queue" ? "/portal/agent" : `/portal/agent?tab=${tab}`);
+    if (!targetQuery) {
+      return true;
+    }
+
+    const currentSearch = new URLSearchParams(location.search);
+    const expectedSearch = new URLSearchParams(targetQuery);
+
+    for (const [key, value] of expectedSearch.entries()) {
+      if (currentSearch.get(key) !== value) {
+        return false;
+      }
+    }
+
+    return true;
   };
 
   const handleSettingsClick = () => {
@@ -106,11 +123,11 @@ const AgentDashboardLayoutInner = () => {
     "text-gray-600 hover:bg-gray-100 dark:text-slate-400 dark:hover:bg-slate-700/60";
 
   return (
-    <div className={`min-h-screen flex font-sans bg-gray-50 dark:bg-slate-900 transition-colors duration-300${isDark ? " dark" : ""}`}>
+    <div className={`min-h-screen w-full overflow-x-hidden flex font-sans bg-gray-50 dark:bg-slate-900 transition-colors duration-300${isDark ? " dark" : ""}`}>
       {/* ── Sidebar ─────────────────────────────────────────────────────────── */}
       <aside
-        className={`${isSidebarOpen ? "w-64" : "w-20"
-          } bg-white dark:bg-slate-800 border-r border-gray-200 dark:border-slate-700 flex flex-col fixed h-full z-10 transition-all duration-300`}
+        className={`${isSidebarOpen ? "w-full md:w-56" : "w-20"
+          } bg-white dark:bg-slate-800 border-r border-gray-200 dark:border-slate-700 flex flex-col fixed top-0 left-0 h-screen shrink-0 z-10 transition-all duration-300`}
       >
         {/* Logo row */}
         <div className="h-16 flex items-center justify-between px-4 border-b border-gray-100 dark:border-slate-700">
@@ -141,63 +158,43 @@ const AgentDashboardLayoutInner = () => {
 
         {/* Nav items */}
         <div className="flex-1 overflow-y-auto py-6 flex flex-col gap-1 px-3">
-          {isSidebarOpen && (
-            <p className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-2 px-3">
-              Live Chat
-            </p>
-          )}
+          {sidebarGroups.map((group, groupIndex) => (
+            <div key={group.id} className={groupIndex > 0 ? "mt-5" : ""}>
+              {isSidebarOpen ? (
+                <p className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-2 px-3">
+                  {group.label}
+                </p>
+              ) : (
+                groupIndex > 0 && <div className="h-px bg-gray-200 dark:bg-slate-700 w-8 mx-auto my-4"></div>
+              )}
 
-          {/* Queue */}
-          <button
-            onClick={() => navTo("queue")}
-            className={`flex items-center ${isSidebarOpen ? "justify-start px-3" : "justify-center px-0"
-              } py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive("queue") ? activeNavCls : inactiveNavCls
-              }`}
-            title="Queue"
-          >
-            <ListOrdered className={`w-5 h-5 ${isSidebarOpen ? "mr-3" : ""} shrink-0`} />
-            {isSidebarOpen && <span>Queue</span>}
-          </button>
-
-          {/* Chat Sessions */}
-          <Link
-            to="/portal/agent/chat-sessions"
-            className={`flex items-center ${isSidebarOpen ? "justify-start px-3" : "justify-center px-0"
-              } py-2.5 rounded-lg text-sm font-medium transition-colors ${isChatSessions ? activeNavCls : inactiveNavCls
-              }`}
-            title="Chat Sessions"
-          >
-            <MessagesSquare className={`w-5 h-5 shrink-0 ${isSidebarOpen ? "mr-3" : ""}`} />
-            {isSidebarOpen && <span>Chat Sessions</span>}
-          </Link>
-
-          {/* Chat History */}
-
-
-          {isSidebarOpen && (
-            <p className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-2 px-3 mt-5">
-              Tools
-            </p>
-          )}
-
-          {/* Quick Replies */}
-          <button
-            onClick={() => navTo("quick-replies")}
-            className={`flex items-center ${isSidebarOpen ? "justify-start px-3" : "justify-center px-0"
-              } py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive("quick-replies") ? activeNavCls : inactiveNavCls
-              }`}
-            title="Quick Replies"
-          >
-            <Zap className={`w-5 h-5 shrink-0 ${isSidebarOpen ? "mr-3" : ""}`} />
-            {isSidebarOpen && <span>Quick Replies</span>}
-          </button>
-
-          {/* Account Settings — removed from sidebar */}
+              {group.modules.map((module) => {
+                return (
+                  <button
+                    key={module.id}
+                    onClick={() => navigate(module.path)}
+                    className={`w-full flex items-center ${isSidebarOpen ? "justify-start px-3" : "justify-center px-0"} py-2.5 rounded-lg text-sm font-medium transition-colors ${isActivePath(module.path) ? activeNavCls : inactiveNavCls}`}
+                    title={module.label}
+                  >
+                    <span className={`${isSidebarOpen ? "mr-3" : ""} shrink-0`}>
+                      {module.icon}
+                    </span>
+                    {isSidebarOpen && <span>{module.label}</span>}
+                  </button>
+                );
+              })}
+            </div>
+          ))}
         </div>
       </aside>
 
       {/* ── Main content ────────────────────────────────────────────────────── */}
-      <main className={`flex-1 transition-all duration-300 ${isSidebarOpen ? "ml-64" : "ml-20"}`}>
+      <main
+        className={`flex-1 min-w-0 transition-all duration-300 ${isSidebarOpen
+          ? "ml-0 w-full md:ml-56 md:w-[calc(100%-14rem)]"
+          : "ml-0 w-full md:ml-20 md:w-[calc(100%-5rem)]"
+          }`}
+      >
         {/* Top header */}
         <header className="h-16 bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between px-8 sticky top-0 z-10 transition-colors duration-300">
           <div className="flex items-center gap-6">

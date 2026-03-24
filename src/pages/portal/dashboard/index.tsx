@@ -17,7 +17,6 @@ import {
   Zap,
 } from "lucide-react";
 import ConversationsView from "../../../sections/chat/ConversationsView";
-import AgentsManagementView from "../../../sections/agent/AgentsManagementView";
 import QueueView from "../../../sections/chat/QueueView";
 import ActiveChatView from "../../../sections/chat/ActiveChatView";
 import ChatHistoryView from "../../../sections/chat/ChatHistoryView";
@@ -61,7 +60,6 @@ const QUEUE_STORAGE_KEY = "jaf_mock_queue_state";
 const tabByPathname: Record<string, string> = {
   "/portal/dashboard": "overview",
   "/portal/analytics": "analytics",
-  "/portal/agents": "agents",
   "/portal/queue": "queue",
   "/portal/history": "history",
   "/portal/conversations": "conversations",
@@ -78,7 +76,6 @@ const pathByTab: Record<string, string> = {
   overview: "/portal/dashboard",
   dashboard: "/portal/dashboard",
   analytics: "/portal/analytics",
-  agents: "/portal/agents",
   queue: "/portal/queue",
   history: "/portal/history",
   conversations: "/portal/conversations",
@@ -230,8 +227,6 @@ const Dashboard = () => {
             />
           ) : activeTab === "conversations" ? (
             <ConversationsView />
-          ) : activeTab === "agents" ? (
-            <AgentsManagementView />
           ) : activeTab === "queue" ? (
             <QueueView queue={mergedQueue} onStartChat={(visitor) => {
               // ── Move visitor from Waiting → Assigned (Currently Being Served) ──
@@ -332,6 +327,8 @@ const Dashboard = () => {
                     onClick={() => {
                       if (item.tab === "history") {
                         navigate("/portal/history");
+                      } else if (item.tab === "agents") {
+                        navigate("/portal/agents");
                       } else if (item.tab === "chat-sessions-nav") {
                         navigate("/portal/chat-sessions");
                       } else {
