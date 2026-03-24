@@ -30,6 +30,7 @@ import CompanyInfoView from "../../../sections/settings/CompanyInfoView";
 import SubscriptionPlansView from "../../../sections/settings/SubscriptionPlansView";
 import QuickRepliesView from "../../../sections/settings/QuickRepliesView";
 import ToolsView from "../../../sections/dashboard/ToolsView";
+import useAuth from "../../../hooks/useAuth";
 
 const initialMockQueue = [
   { id: "Q-1001", name: "Alice Johnson", message: "I need help with upgrading my plan.", status: "Waiting", timeInQueue: "5m 20s" },
@@ -106,6 +107,8 @@ const Dashboard = () => {
   });
   const [historyItems, setHistoryItems] = useState(initialMockHistory);
   const [liveQueueItems, setLiveQueueItems] = useState<any[]>([]);
+
+  const { user } = useAuth();
 
   // Persist queueItems to localStorage whenever they change
   useEffect(() => {
@@ -277,7 +280,7 @@ const Dashboard = () => {
             /* ── Simple clean overview ── */
             <div className="">
               <div className="mb-8">
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">Welcome back, Admin</h1>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">Welcome back, {user?.fullName}</h1>
                 <p className="text-gray-500 dark:text-slate-400 mt-1">Here's a quick look at your workspace right now.</p>
               </div>
 
