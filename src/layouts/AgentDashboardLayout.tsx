@@ -235,7 +235,7 @@ const AgentDashboardLayoutInner = () => {
                     {[
                       { label: "Online", color: "bg-green-500", value: "Online" },
                       { label: "Busy", color: "bg-yellow-500", value: "Busy" },
-                      { label: "Offline", color: "bg-gray-400", value: "Offline" },
+                      { label: "Away", color: "bg-gray-400", value: "Away" },
                     ].map(({ label, color, value }) => (
                       <button
                         key={value}

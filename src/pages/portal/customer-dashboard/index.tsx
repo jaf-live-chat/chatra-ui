@@ -263,7 +263,7 @@ function OverviewView({ setActiveTab }: { setActiveTab: (t: string) => void }) {
                       </div>
                     </div>
                     <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${a.available ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-400"}`}>
-                      {a.available ? `${a.chats} active chat${a.chats !== 1 ? "s" : ""}` : "Offline"}
+                      {a.available ? `${a.chats} active chat${a.chats !== 1 ? "s" : ""}` : "Away"}
                     </span>
                   </div>
                 ))}
@@ -279,7 +279,7 @@ function OverviewView({ setActiveTab }: { setActiveTab: (t: string) => void }) {
               <div className={`w-16 h-16 rounded-2xl mx-auto flex items-center justify-center mb-4 ${ACCOUNT.widgetLive ? "bg-emerald-50" : "bg-red-50"}`}>
                 {ACCOUNT.widgetLive ? <Wifi className="w-8 h-8 text-emerald-600" /> : <WifiOff className="w-8 h-8 text-red-500" />}
               </div>
-              <p className="text-sm font-bold text-slate-900 mb-1">{ACCOUNT.widgetLive ? "Widget is Live" : "Widget Offline"}</p>
+              <p className="text-sm font-bold text-slate-900 mb-1">{ACCOUNT.widgetLive ? "Widget is Live" : "Widget Away"}</p>
               <p className="text-xs text-slate-500 mb-4">Installed on <span className="font-medium text-sky-600">acmecorp.com</span></p>
               <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-left mb-4">
                 <p className="text-xs font-semibold text-slate-500 mb-2">Workspace ID</p>
@@ -809,7 +809,7 @@ function SettingsView() {
             <input defaultValue="Hi! How can we help you today?" className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500" />
           </div>
           <div>
-            <label className="text-xs font-semibold text-slate-500 block mb-1.5">Offline Message</label>
+            <label className="text-xs font-semibold text-slate-500 block mb-1.5">Away Message</label>
             <input defaultValue="We're offline, leave us a message!" className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500" />
           </div>
         </div>

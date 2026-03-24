@@ -46,7 +46,7 @@ interface QueueChat {
 interface Agent {
   id: string;
   name: string;
-  status: "Online" | "Busy" | "Offline";
+  status: "Online" | "Busy" | "Away";
   activeChats: number;
   maxChats: number;
 }
@@ -54,7 +54,7 @@ interface Agent {
 const mockAgents: Agent[] = [
   { id: "A-101", name: "Sarah Jenkins", status: "Online", activeChats: 2, maxChats: 5 },
   { id: "A-102", name: "Mark Thompson", status: "Online", activeChats: 3, maxChats: 5 },
-  { id: "A-103", name: "Lisa Miller", status: "Offline", activeChats: 0, maxChats: 5 },
+  { id: "A-103", name: "Lisa Miller", status: "Away", activeChats: 0, maxChats: 5 },
   { id: "A-104", name: "David Chen", status: "Online", activeChats: 1, maxChats: 5 },
   { id: "A-105", name: "Emily Davis", status: "Busy", activeChats: 5, maxChats: 5 },
 ];
@@ -414,7 +414,7 @@ const ChatAssignmentView = () => {
                 <MenuItem
                   key={`assign-agent-${agent.id}`}
                   value={agent.id}
-                  disabled={agent.status === "Offline" || agent.activeChats >= agent.maxChats}
+                  disabled={agent.status === "Away" || agent.activeChats >= agent.maxChats}
                 >
                   <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ width: "100%" }}>
                     <Stack direction="row" alignItems="center" spacing={1.5}>
@@ -473,10 +473,10 @@ const ChatAssignmentView = () => {
                 }}
                 sx={{ borderRadius: 2 }}
               >
-                {agents.filter(a => a.status !== "Offline").map((agent) => (
+                {agents.filter(a => a.status !== "Away").map((agent) => (
                   <MenuItem key={agent.id} value={agent.id} disabled={agent.activeChats >= agent.maxChats}>
                     <Stack direction="row" spacing={1.5} alignItems="center" sx={{ width: "100%" }}>
-                      
+
                       <Box sx={{ flex: 1 }}>
                         <Typography variant="body2" sx={{ fontWeight: 600, color: "grey.900" }}>{agent.name}</Typography>
                         <Typography variant="caption" sx={{ color: "text.secondary" }}>

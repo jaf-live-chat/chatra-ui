@@ -42,7 +42,7 @@ interface Agent {
   id: string;
   name: string;
   email: string;
-  status: "Online" | "Offline";
+  status: "Online" | "Away";
   role: "Admin" | "Support Agent";
   autoAssign: boolean;
   chatsHandled: number;
@@ -51,9 +51,9 @@ interface Agent {
 const mockAgents: Agent[] = [
   { id: "A-101", name: "Sarah Jenkins", email: "sarah.j@jafdigital.com", status: "Online", role: "Admin", autoAssign: true, chatsHandled: 42 },
   { id: "A-102", name: "Mark Thompson", email: "mark.t@jafdigital.com", status: "Online", role: "Support Agent", autoAssign: true, chatsHandled: 28 },
-  { id: "A-103", name: "Lisa Miller", email: "lisa.m@jafdigital.com", status: "Offline", role: "Support Agent", autoAssign: false, chatsHandled: 15 },
+  { id: "A-103", name: "Lisa Miller", email: "lisa.m@jafdigital.com", status: "Away", role: "Support Agent", autoAssign: false, chatsHandled: 15 },
   { id: "A-104", name: "David Chen", email: "david.c@jafdigital.com", status: "Online", role: "Support Agent", autoAssign: false, chatsHandled: 34 },
-  { id: "A-105", name: "Emily Davis", email: "emily.d@jafdigital.com", status: "Offline", role: "Support Agent", autoAssign: false, chatsHandled: 0 },
+  { id: "A-105", name: "Emily Davis", email: "emily.d@jafdigital.com", status: "Away", role: "Support Agent", autoAssign: false, chatsHandled: 0 },
 ];
 
 const avatarColors = ["#FF5A1F", "#1F75FE", "#A855F7", "#B48600", "#0891b2"];
