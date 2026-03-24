@@ -20,8 +20,19 @@ const PortalRoutes: RouteObject[] = [
             element: <DashboardLayout />,
             children: [
               { path: "dashboard", element: <Dashboard /> },
+              { path: "analytics", element: <Dashboard /> },
+              { path: "agents", element: <Dashboard /> },
+              { path: "queue", element: <Dashboard /> },
+              { path: "history", element: <Dashboard /> },
+              { path: "conversations", element: <Dashboard /> },
+              { path: "billing", element: <Dashboard /> },
+              { path: "assignment", element: <Dashboard /> },
+              { path: "account-settings", element: <Dashboard /> },
+              { path: "widget-settings", element: <Dashboard /> },
+              { path: "company-info", element: <Dashboard /> },
+              { path: "tools", element: <Dashboard /> },
+              { path: "quick-replies", element: <Dashboard /> },
               { path: "chat-sessions", element: <ChatSessionManagementPage /> },
-              { path: "queue-assignment", element: <Navigate to="/portal/dashboard?tab=tools" replace /> },
             ],
           },
           {
@@ -33,13 +44,11 @@ const PortalRoutes: RouteObject[] = [
               { path: "settings", element: <AgentSettingsPage /> },
             ],
           },
-          { path: "conversations", element: <Navigate to="/portal/dashboard" replace /> },
           { path: "account", element: <CustomerDashboard /> },
         ],
       },
     ],
   },
-  { path: "conversations", element: <Navigate to="/portal/dashboard" replace /> },
 ];
 
 export default PortalRoutes;

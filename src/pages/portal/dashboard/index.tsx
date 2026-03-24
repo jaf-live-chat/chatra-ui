@@ -1,4 +1,4 @@
-import { useNavigate, useSearchParams } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import { motion, AnimatePresence } from "motion/react";
 import React, { useState, useEffect, useMemo } from "react";
 import {
@@ -57,10 +57,43 @@ const initialMockHistory = [
 
 const QUEUE_STORAGE_KEY = "jaf_mock_queue_state";
 
+const tabByPathname: Record<string, string> = {
+  "/portal/dashboard": "overview",
+  "/portal/analytics": "analytics",
+  "/portal/agents": "agents",
+  "/portal/queue": "queue",
+  "/portal/history": "history",
+  "/portal/conversations": "conversations",
+  "/portal/billing": "billing",
+  "/portal/assignment": "assignment",
+  "/portal/account-settings": "account-settings",
+  "/portal/widget-settings": "widget-settings",
+  "/portal/company-info": "company-info",
+  "/portal/tools": "tools",
+  "/portal/quick-replies": "quick-replies",
+};
+
+const pathByTab: Record<string, string> = {
+  overview: "/portal/dashboard",
+  dashboard: "/portal/dashboard",
+  analytics: "/portal/analytics",
+  agents: "/portal/agents",
+  queue: "/portal/queue",
+  history: "/portal/history",
+  conversations: "/portal/conversations",
+  billing: "/portal/billing",
+  assignment: "/portal/assignment",
+  "account-settings": "/portal/account-settings",
+  "widget-settings": "/portal/widget-settings",
+  "company-info": "/portal/company-info",
+  tools: "/portal/tools",
+  "quick-replies": "/portal/quick-replies",
+};
+
 const Dashboard = () => {
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const activeTab = searchParams.get("tab") || "overview";
+  const location = useLocation();
+  const activeTab = tabByPathname[location.pathname] || "overview";
   const [activeChatVisitor, setActiveChatVisitor] = useState<any>(null);
   const [agentStatus, setAgentStatus] = useState("Online");
   const [queueItems, setQueueItems] = useState<typeof initialMockQueue>(() => {
@@ -82,12 +115,23 @@ const Dashboard = () => {
   }, [queueItems]);
 
   const setActiveTab = (tab: string) => {
-    if (tab === "overview" || tab === "dashboard") {
-      setSearchParams({});
-    } else {
-      setSearchParams({ tab });
-    }
+    navigate(pathByTab[tab] || "/portal/dashboard");
   };
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const legacyTab = params.get("tab");
+
+    if (!legacyTab) {
+      return;
+    }
+
+    const nextPath = pathByTab[legacyTab] || "/portal/dashboard";
+
+    if (location.pathname !== nextPath) {
+      navigate(nextPath, { replace: true });
+    }
+  }, [location.search, location.pathname, navigate]);
 
   // Load live visitor chats from shared localStorage queue
   useEffect(() => {
@@ -284,7 +328,7 @@ const Dashboard = () => {
                     key={item.tab}
                     onClick={() => {
                       if (item.tab === "history") {
-                        navigate("/portal/chat-sessions?tab=chat-history");
+                        navigate("/portal/history");
                       } else if (item.tab === "chat-sessions-nav") {
                         navigate("/portal/chat-sessions");
                       } else {

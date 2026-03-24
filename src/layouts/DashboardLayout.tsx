@@ -17,7 +17,7 @@ import {
   Zap,
   Bot,
 } from "lucide-react";
-import { Link, Outlet, useNavigate, useLocation, useSearchParams } from "react-router";
+import { Link, Outlet, useNavigate, useLocation } from "react-router";
 import { DarkModeProvider, useDarkMode } from "../providers/DarkModeContext";
 import { APP_LOGO } from "../constants";
 import useAuth from "../hooks/useAuth";
@@ -27,7 +27,6 @@ import useAuth from "../hooks/useAuth";
 function DashboardLayoutInner() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [searchParams] = useSearchParams();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [agentStatus, setAgentStatus] = useState(() => {
@@ -47,17 +46,34 @@ function DashboardLayoutInner() {
   const { isDark, toggleDark } = useDarkMode();
   const { user, logout } = useAuth();
 
+  const tabPathMap: Record<string, string> = {
+    dashboard: "/portal/dashboard",
+    analytics: "/portal/analytics",
+    agents: "/portal/agents",
+    queue: "/portal/queue",
+    history: "/portal/history",
+    conversations: "/portal/conversations",
+    billing: "/portal/billing",
+    assignment: "/portal/assignment",
+    "account-settings": "/portal/account-settings",
+    "widget-settings": "/portal/widget-settings",
+    "company-info": "/portal/company-info",
+    tools: "/portal/tools",
+    "quick-replies": "/portal/quick-replies",
+  };
+
   const isChatSessions = location.pathname === "/portal/chat-sessions";
-  const currentTab = searchParams.get("tab") || "overview";
+  const currentTab =
+    Object.entries(tabPathMap).find(([, path]) => path === location.pathname)?.[0] ?? "dashboard";
 
   const isActive = (tab: string) => {
     if (isChatSessions) return false;
-    if (tab === "dashboard") return currentTab === "overview" || currentTab === "dashboard";
+    if (tab === "dashboard") return currentTab === "dashboard";
     return currentTab === tab;
   };
 
   const navTo = (tab: string) => {
-    navigate(tab === "dashboard" ? "/portal/dashboard" : `/portal/dashboard?tab=${tab}`);
+    navigate(tabPathMap[tab] ?? "/portal/dashboard");
   };
 
   const handleLogout = () => {
