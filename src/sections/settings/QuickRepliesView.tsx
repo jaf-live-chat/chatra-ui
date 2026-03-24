@@ -29,7 +29,7 @@ export const SEED_REPLIES: QuickReply[] = [
   {
     id: "qr-1",
     shortcut: "/greeting",
-    title: "Welcome Greeting",
+    title: "Welcome Greeting1",
     message: "Hello! Thank you for reaching out to JAF Chatra support. My name is Sarah and I'll be happy to help you today. Could you please describe the issue you're experiencing?",
     category: "Greetings",
     createdAt: "2026-03-01",
@@ -112,9 +112,9 @@ const CATEGORIES = ["All", "Greetings", "General", "Billing", "Technical"];
 
 const CATEGORY_COLORS: Record<string, { bg: string; text: string; border: string }> = {
   Greetings: { bg: "bg-purple-50 dark:bg-purple-900/20", text: "text-purple-700 dark:text-purple-300", border: "border-purple-200 dark:border-purple-800" },
-  General:   { bg: "bg-blue-50 dark:bg-blue-900/20",   text: "text-blue-700 dark:text-blue-300",   border: "border-blue-200 dark:border-blue-800"   },
-  Billing:   { bg: "bg-amber-50 dark:bg-amber-900/20", text: "text-amber-700 dark:text-amber-300", border: "border-amber-200 dark:border-amber-800"  },
-  Technical: { bg: "bg-cyan-50 dark:bg-cyan-900/20",   text: "text-cyan-700 dark:text-cyan-300",   border: "border-cyan-200 dark:border-cyan-800"    },
+  General: { bg: "bg-blue-50 dark:bg-blue-900/20", text: "text-blue-700 dark:text-blue-300", border: "border-blue-200 dark:border-blue-800" },
+  Billing: { bg: "bg-amber-50 dark:bg-amber-900/20", text: "text-amber-700 dark:text-amber-300", border: "border-amber-200 dark:border-amber-800" },
+  Technical: { bg: "bg-cyan-50 dark:bg-cyan-900/20", text: "text-cyan-700 dark:text-cyan-300", border: "border-cyan-200 dark:border-cyan-800" },
 };
 
 // ─── Blank form ───────────────────────────────────────────────────────────────
@@ -446,11 +446,10 @@ const QuickRepliesView = () => {
                         <button
                           onClick={() => handleCopy(reply)}
                           title="Copy message"
-                          className={`p-1.5 rounded-lg transition-colors ${
-                            copiedId === reply.id
+                          className={`p-1.5 rounded-lg transition-colors ${copiedId === reply.id
                               ? "bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400"
                               : "text-gray-400 dark:text-slate-500 hover:bg-gray-100 dark:hover:bg-slate-700 hover:text-gray-600 dark:hover:text-slate-300"
-                          }`}
+                            }`}
                         >
                           {copiedId === reply.id ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                         </button>
