@@ -1,5 +1,5 @@
 import { Twitter, Github, Linkedin } from "lucide-react";
-import { APP_LOGO } from "../../constants";
+import { APP_LOGO } from "../../constants/constants";
 
 const footerColumns = [
   {

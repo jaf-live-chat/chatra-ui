@@ -20,7 +20,7 @@ import {
   InputAdornment,
   CircularProgress,
 } from "@mui/material";
-import { APP_LOGO } from "../../constants";
+import { APP_LOGO } from "../../constants/constants";
 
 const NAV_LINKS = [
   { label: "Features", to: "/features" },

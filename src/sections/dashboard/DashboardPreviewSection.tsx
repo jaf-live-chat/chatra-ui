@@ -9,7 +9,7 @@ import {
   CheckCircle2,
   Circle,
 } from "lucide-react";
-import { APP_LOGO } from "../../constants";
+import { APP_LOGO } from "../../constants/constants";
 
 const navItems = [
   { icon: <LayoutDashboard className="w-4 h-4" />, label: "Dashboard", active: true },

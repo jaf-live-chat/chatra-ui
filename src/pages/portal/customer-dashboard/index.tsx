@@ -44,7 +44,7 @@ import {
   Info,
 } from "lucide-react";
 import ImageWithFallback from "../../../components/ImageWithFallback";
-import { APP_LOGO } from "../../../constants";
+import { APP_LOGO } from "../../../constants/constants";
 
 // ─── Mock Data ────────────────────────────────────────────────────────────────
 

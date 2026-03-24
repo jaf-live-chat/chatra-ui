@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { Link, Outlet, useNavigate, useLocation, useSearchParams } from "react-router";
 import { DarkModeProvider, useDarkMode } from "../providers/DarkModeContext";
-import { APP_LOGO } from "../constants";
+import { APP_LOGO } from "../constants/constants";
 import useAuth from "../hooks/useAuth";
 
 // ── Inner layout (consumes dark-mode context) ──────────────────────────────────
