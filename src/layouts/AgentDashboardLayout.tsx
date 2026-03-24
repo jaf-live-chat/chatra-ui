@@ -15,6 +15,7 @@ import {
 import { Link, Outlet, useNavigate, useLocation, useSearchParams } from "react-router";
 import { DarkModeProvider, useDarkMode } from "../providers/DarkModeContext";
 import { APP_LOGO } from "../constants";
+import useAuth from "../hooks/useAuth";
 
 // ── Inner layout (consumes dark-mode context) ──────────────────────────────────
 
@@ -36,6 +37,7 @@ const AgentDashboardLayoutInner = () => {
   const [isStatusOpen, setIsStatusOpen] = useState(false);
 
   const { isDark, toggleDark } = useDarkMode();
+  const { user, logout } = useAuth();
 
   // Listen for status changes from other components
   useEffect(() => {
@@ -89,6 +91,15 @@ const AgentDashboardLayoutInner = () => {
     setIsProfileOpen(false);
     navigate("/agent/settings");
   };
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login", { replace: true });
+  };
+
+  const userInitial = user?.fullName?.charAt(0)?.toUpperCase() || "U";
+  const userName = user?.fullName || "User";
+  const userEmail = user?.emailAddress || "";
 
   const activeNavCls = "bg-cyan-50 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400";
   const inactiveNavCls =
@@ -263,11 +274,11 @@ const AgentDashboardLayoutInner = () => {
                 onClick={() => setIsProfileOpen(!isProfileOpen)}
               >
                 <div className="w-8 h-8 bg-cyan-700 rounded-full flex items-center justify-center text-white font-medium text-sm">
-                  S
+                  {userInitial}
                 </div>
                 <div className="hidden lg:block text-left">
                   <p className="text-sm font-semibold text-gray-900 dark:text-slate-100 leading-none">
-                    Sarah Chen
+                    {userName}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">My Profile</p>
                 </div>
@@ -279,8 +290,8 @@ const AgentDashboardLayoutInner = () => {
                   <div className="fixed inset-0 z-40" onClick={() => setIsProfileOpen(false)}></div>
                   <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl shadow-lg dark:shadow-slate-900/50 z-50 py-2">
                     <div className="px-4 py-2 border-b border-gray-100 dark:border-slate-700 mb-1">
-                      <p className="text-sm font-semibold text-gray-900 dark:text-slate-100">Support Agent</p>
-                      <p className="text-xs text-gray-500 dark:text-slate-400">agent@jaflivechat.com</p>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-slate-100">{userName}</p>
+                      <p className="text-xs text-gray-500 dark:text-slate-400">{userEmail}</p>
                     </div>
                     <div className="h-px bg-gray-100 dark:bg-slate-700 my-1"></div>
                     <Link
@@ -293,6 +304,7 @@ const AgentDashboardLayoutInner = () => {
                     <div className="h-px bg-gray-100 dark:bg-slate-700 my-1"></div>
                     <Link
                       to="/login"
+                      onClick={handleLogout}
                       className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center gap-2"
                     >
                       <LogOut className="w-4 h-4" /> Log out

@@ -1,5 +1,6 @@
 import { RouterProvider } from "react-router";
 import { router } from "./routes";
+import { AuthProvider } from "./providers/AuthContext";
 
 // Suppress Figma Make inspector false-positive warnings.
 // Figma's FGCmp wraps every React component (including MUI internals like
@@ -52,5 +53,9 @@ console.warn = (...args: unknown[]) => {
 };
 
 export default function App() {
-  return <RouterProvider router={router} />;
+  return (
+    <AuthProvider>
+      <RouterProvider router={router} />
+    </AuthProvider>
+  );
 }
