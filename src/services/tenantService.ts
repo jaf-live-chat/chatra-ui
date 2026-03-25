@@ -1,4 +1,8 @@
+import { useMemo } from "react";
+import useSWR from "swr";
 import axiosServices from "../utils/axios";
+import { API_BASE_URL, SWR_OPTIONS } from "../constants/constants";
+import { fetcher } from "../utils/axios";
 import type { Tenant, TenantStatus } from "../models/TenantModel";
 
 interface TenantApiSubscription {
@@ -25,6 +29,10 @@ interface TenantUpdateResponse {
   message: string;
   tenant: TenantApiItem;
 }
+
+const endpoints = {
+  key: `${API_BASE_URL}/tenants`,
+};
 
 const STATUS_PRIORITY: Record<TenantStatus, number> = {
   ACTIVE: 1,
@@ -65,11 +73,8 @@ const normalizeTenant = (tenant: TenantApiItem): Tenant => {
   };
 };
 
-const getTenants = async (): Promise<Tenant[]> => {
-  const response = await axiosServices.get<TenantListResponse>("/tenants");
-  const tenants = Array.isArray(response.data?.tenants) ? response.data.tenants : [];
-
-  return tenants
+const mapAndSortTenants = (tenants: TenantApiItem[]): Tenant[] =>
+  tenants
     .map(normalizeTenant)
     .sort((a, b) => {
       if (STATUS_PRIORITY[a.subscription.status] !== STATUS_PRIORITY[b.subscription.status]) {
@@ -78,6 +83,37 @@ const getTenants = async (): Promise<Tenant[]> => {
 
       return a.name.localeCompare(b.name);
     });
+
+const getTenants = async (): Promise<Tenant[]> => {
+  const response = await axiosServices.get<TenantListResponse>("/tenants");
+  const tenants = Array.isArray(response.data?.tenants) ? response.data.tenants : [];
+
+  return mapAndSortTenants(tenants);
+};
+
+const useGetTenants = () => {
+  const getTenantList = (url: string) =>
+    fetcher<TenantListResponse>(url, true) as Promise<TenantListResponse>;
+
+  const { data, isLoading, error, mutate } = useSWR<TenantListResponse>(
+    endpoints.key,
+    getTenantList,
+    SWR_OPTIONS,
+  );
+
+  const memoizedValue = useMemo(
+    () => ({
+      data,
+      tenants: mapAndSortTenants(Array.isArray(data?.tenants) ? data.tenants : []),
+      count: Array.isArray(data?.tenants) ? data.tenants.length : 0,
+      isLoading,
+      mutate,
+      error,
+    }),
+    [data, isLoading, mutate, error],
+  );
+
+  return memoizedValue;
 };
 
 const updateTenantStatus = async (id: string, status: TenantStatus): Promise<Tenant> => {
@@ -94,9 +130,10 @@ const deleteTenant = async (id: string): Promise<void> => {
 
 const tenantService = {
   getTenants,
+  useGetTenants,
   updateTenantStatus,
   deleteTenant,
 };
 
-export { getTenants, updateTenantStatus, deleteTenant };
+export { getTenants, useGetTenants, updateTenantStatus, deleteTenant };
 export default tenantService;

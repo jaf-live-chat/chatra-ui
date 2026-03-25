@@ -1,4 +1,4 @@
-import { useEffect, useState, type MouseEvent } from "react";
+import { useMemo, useState, type MouseEvent } from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -19,15 +19,10 @@ import Typography from "@mui/material/Typography";
 import { Eye, MoreVertical, ReceiptText, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router";
 
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "../../components/Table";
-import tenantService from "../../services/tenantService";
+import ReusableTable, {
+  type ReusableTableColumn,
+} from "../../components/ReusableTable";
+import tenantService, { useGetTenants } from "../../services/tenantService";
 import type { Tenant, TenantStatus } from "../../models/TenantModel";
 
 const EMPTY_LABEL = "-";
@@ -107,8 +102,7 @@ const formatDate = (rawDate: string) => {
 
 const TenantsTable = () => {
   const navigate = useNavigate();
-  const [tenants, setTenants] = useState<Tenant[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const { tenants, isLoading, mutate: mutateTenants } = useGetTenants();
   const [processingTenantId, setProcessingTenantId] = useState<string>("");
   const [actionAnchorEl, setActionAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
@@ -135,38 +129,8 @@ const TenantsTable = () => {
   };
 
   const refreshTenants = async () => {
-    const response = await tenantService.getTenants();
-    setTenants(response);
+    await mutateTenants();
   };
-
-  useEffect(() => {
-    let isMounted = true;
-
-    const fetchTenants = async () => {
-      setIsLoading(true);
-      try {
-        const response = await tenantService.getTenants();
-        if (isMounted) {
-          setTenants(response);
-        }
-      } catch (error) {
-        console.error("Error fetching tenants:", error);
-        if (isMounted) {
-          setTenants([]);
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    fetchTenants();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
 
   const handleOpenActionMenu = (event: MouseEvent<HTMLButtonElement>, tenant: Tenant) => {
     setActionAnchorEl(event.currentTarget);
@@ -266,6 +230,67 @@ const TenantsTable = () => {
     navigate(`/portal/subscription-plans?tenantId=${selectedTenant.id}`);
   };
 
+  const tenantColumns = useMemo<ReusableTableColumn<Tenant>[]>(
+    () => [
+      {
+        id: "name",
+        label: "Tenant Name",
+        width: "24%",
+        renderCell: (tenant) => tenant.name || EMPTY_LABEL,
+      },
+      {
+        id: "plan",
+        label: "Plan",
+        width: "20%",
+        renderCell: (tenant) => tenant.subscription.planName || EMPTY_LABEL,
+      },
+      {
+        id: "startDate",
+        label: "Start Date",
+        width: "16%",
+        renderCell: (tenant) => formatDate(tenant.subscription.startDate),
+      },
+      {
+        id: "endDate",
+        label: "End Date",
+        width: "16%",
+        renderCell: (tenant) => formatDate(tenant.subscription.endDate),
+      },
+      {
+        id: "status",
+        label: "Status",
+        width: "12%",
+        renderCell: (tenant) => {
+          const statusDisplay = getStatusChipStyles(tenant.subscription.status);
+          return <Chip label={statusDisplay.label} size="small" sx={statusDisplay.sx} />;
+        },
+      },
+      {
+        id: "actions",
+        label: "Actions",
+        width: "12%",
+        align: "right",
+        headerAlign: "right",
+        renderCell: (tenant) => (
+          <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+            <Tooltip title="Tenant actions">
+              <span>
+                <IconButton
+                  size="small"
+                  onClick={(event) => handleOpenActionMenu(event, tenant)}
+                  disabled={isActionProcessing(tenant.id)}
+                >
+                  <MoreVertical size={16} />
+                </IconButton>
+              </span>
+            </Tooltip>
+          </Box>
+        ),
+      },
+    ],
+    [processingTenantId],
+  );
+
   return (
     <div className="space-y-5">
       <div>
@@ -277,75 +302,23 @@ const TenantsTable = () => {
         </Typography>
       </div>
 
-      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Tenant Name</TableHead>
-              <TableHead>Plan</TableHead>
-              <TableHead>Start Date</TableHead>
-              <TableHead>End Date</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-
-          <TableBody>
-            {isLoading && (
-              <TableRow>
-                <TableCell colSpan={6} className="py-10 text-center">
-                  <div className="flex items-center justify-center gap-2 text-gray-500">
-                    <CircularProgress size={18} />
-                    <span>Loading tenants...</span>
-                  </div>
-                </TableCell>
-              </TableRow>
-            )}
-
-            {!isLoading && tenants.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={6} className="py-10 text-center text-gray-500">
-                  No tenants found.
-                </TableCell>
-              </TableRow>
-            )}
-
-            {!isLoading &&
-              tenants.map((tenant) => {
-                const statusDisplay = getStatusChipStyles(tenant.subscription.status);
-
-                return (
-                  <TableRow key={tenant.id}>
-                    <TableCell>{tenant.name || EMPTY_LABEL}</TableCell>
-                    <TableCell>{tenant.subscription.planName || EMPTY_LABEL}</TableCell>
-                    <TableCell>{formatDate(tenant.subscription.startDate)}</TableCell>
-                    <TableCell>{formatDate(tenant.subscription.endDate)}</TableCell>
-                    <TableCell>
-                      <Chip
-                        label={statusDisplay.label}
-                        size="small"
-                        sx={statusDisplay.sx}
-                      />
-                    </TableCell>
-                    <TableCell align="right">
-                      <Tooltip title="Tenant actions">
-                        <span>
-                          <IconButton
-                            size="small"
-                            onClick={(event) => handleOpenActionMenu(event, tenant)}
-                            disabled={isActionProcessing(tenant.id)}
-                          >
-                            <MoreVertical size={16} />
-                          </IconButton>
-                        </span>
-                      </Tooltip>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-          </TableBody>
-        </Table>
-      </div>
+      <ReusableTable
+        title="Tenants"
+        subtitle="View tenant subscriptions and status overview."
+        rows={tenants}
+        columns={tenantColumns}
+        getRowKey={(tenant) => tenant.id}
+        loading={isLoading}
+        loadingLabel="Loading tenants..."
+        emptyStateTitle="No tenants found"
+        emptyStateDescription="Try adjusting your search or add a new tenant."
+        searchPlaceholder="Search tenants, plans, or status"
+        searchBy={(tenant) =>
+          `${tenant.name} ${tenant.subscription.planName} ${tenant.subscription.status}`
+        }
+        rowsPerPage={5}
+        totalLabel="tenants"
+      />
 
       <Menu
         anchorEl={actionAnchorEl}
