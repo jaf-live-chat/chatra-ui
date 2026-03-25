@@ -3,6 +3,7 @@ import Home from "../pages/public/home";
 import RootLayout from "../layouts/RootLayout";
 import PublicRoutes from "./PublicRoutes";
 import PortalRoutes from "./PortalRoutes";
+import NotFound from "../pages/NotFound";
 
 export const router = createBrowserRouter([
   {
@@ -11,7 +12,7 @@ export const router = createBrowserRouter([
     children: [
       ...PublicRoutes,
       ...PortalRoutes,
-      { path: "*", element: <Home /> },
+      { path: "*", element: <NotFound /> },
     ],
   },
 ]);
