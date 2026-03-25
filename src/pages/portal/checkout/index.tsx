@@ -114,14 +114,14 @@ const Checkout = () => {
   const plans = useMemo<CheckoutPlan[]>(() => {
 
     return fetchedPlans.map((plan) => ({
-      id: plan._id,
-      slug: slugifyPlanName(plan.name) || plan._id,
-      name: plan.name,
-      description: plan.description || "Subscription plan",
-      price: Number(plan.price || 0),
-      billingCycle: plan.billingCycle,
-      interval: plan.interval || 1,
-      features: plan.features?.length ? plan.features : ["Standard support"],
+      id: plan?._id,
+      slug: slugifyPlanName(plan?.name) || plan?._id,
+      name: plan?.name,
+      description: plan?.description || "Subscription plan",
+      price: Number(plan?.price || 0),
+      billingCycle: plan?.billingCycle,
+      interval: plan?.interval || 1,
+      features: plan?.features?.length ? plan?.features : ["Standard support"],
     }));
   }, [fetchedPlans]);
 
@@ -129,15 +129,20 @@ const Checkout = () => {
     return plans.find((p) => p.id === planId || p.slug === planId) || plans[0];
   }, [plans, planId]);
 
-  const selectedPlanPrice = pesoFormatter.format(selectedPlan.price);
-  const selectedPlanPeriod = formatBillingPeriod(selectedPlan.billingCycle, selectedPlan.interval);
+  const isFreePlanSelected =
+    Number(selectedPlan?.price || 0) === 0 ||
+    selectedPlan?.slug?.includes("free") ||
+    selectedPlan?.slug?.includes("trial");
+
+  const selectedPlanPrice = pesoFormatter.format(selectedPlan?.price);
+  const selectedPlanPeriod = formatBillingPeriod(selectedPlan?.billingCycle, selectedPlan?.interval);
 
   const checkoutPayload = useMemo(
     () => ({
       subscriptionData: {
         companyName: accountInfo.companyCode,
         companyCode: accountInfo.companyCode,
-        subscriptionPlanId: selectedPlan.id,
+        subscriptionPlanId: selectedPlan?.id,
         subscriptionStart: new Date().toISOString(),
       },
       agentData: {
@@ -146,7 +151,7 @@ const Checkout = () => {
         password: accountInfo.password,
       },
     }),
-    [accountInfo.companyCode, accountInfo.email, accountInfo.fullName, accountInfo.password, selectedPlan.id]
+    [accountInfo.companyCode, accountInfo.email, accountInfo.fullName, accountInfo.password, selectedPlan?.id]
   );
 
   const handleAccountNext = (e: React.FormEvent) => {
@@ -202,7 +207,16 @@ const Checkout = () => {
 
       if (response.isHitpayBypassed) {
         const query = new URLSearchParams();
-        if (response.paymentReference) {
+        if (response.tenant) {
+          query.set("tenantId", response.tenant);
+        }
+        if (response.subscription) {
+          query.set("subscriptionId", response.subscription);
+        }
+        if (response.tenantEmail) {
+          query.set("tenantEmail", response.tenantEmail);
+        }
+        if (!response.tenant && !response.subscription && response.paymentReference) {
           query.set("reference", response.paymentReference);
         }
         navigate(`/setup?${query.toString()}`);
@@ -389,7 +403,7 @@ const Checkout = () => {
                           Selected Plan
                         </Typography>
                         <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                          {selectedPlan.name} Plan
+                          {selectedPlan?.name} Plan
                         </Typography>
                       </Box>
                       <Typography variant="h5" sx={{ fontWeight: 800 }}>
@@ -401,7 +415,7 @@ const Checkout = () => {
                     </Stack>
 
                     <Typography variant="body2" sx={{ color: "grey.400", mb: 1 }}>
-                      {selectedPlan.description}
+                      {selectedPlan?.description}
                     </Typography>
 
                     <Box
@@ -414,7 +428,7 @@ const Checkout = () => {
                       }}
                     >
                       {plans.map((planOption) => {
-                        const isActive = planOption.id === selectedPlan.id;
+                        const isActive = planOption.id === selectedPlan?.id;
                         return (
                           <Box
                             key={planOption.id}
@@ -441,7 +455,7 @@ const Checkout = () => {
                                 {planOption.name}
                               </Typography>
                               <Typography variant="body2" sx={{ color: isActive ? "#D1FAFF" : "#9CA3AF" }}>
-                                {pesoFormatter.format(planOption.price)}{formatBillingPeriod(planOption.billingCycle, planOption.interval)}
+                                {pesoFormatter.format(planOption?.price)}{formatBillingPeriod(planOption.billingCycle, planOption.interval)}
                               </Typography>
                             </Stack>
                           </Box>
@@ -674,7 +688,7 @@ const Checkout = () => {
                             Selected Plan
                           </Typography>
                           <Typography variant="h6" sx={{ fontWeight: 800, lineHeight: 1.2 }}>
-                            {selectedPlan.name}
+                            {selectedPlan?.name}
                           </Typography>
                         </Box>
                       </Stack>
@@ -689,7 +703,7 @@ const Checkout = () => {
                       </Stack>
 
                       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 0.75 }}>
-                        {selectedPlan.features.slice(0, 4).map((feature) => (
+                        {selectedPlan?.features.slice(0, 4).map((feature) => (
                           <Stack key={`summary-feature-${feature}`} direction="row" spacing={1} alignItems="center">
                             <Box sx={{ width: 6, height: 6, borderRadius: "50%", bgcolor: "#0891B2", flexShrink: 0 }} />
                             <Typography variant="body2" sx={{ color: "text.secondary", lineHeight: 1.4 }}>
@@ -722,10 +736,10 @@ const Checkout = () => {
                           {isProcessing ? (
                             <Stack direction="row" spacing={1} alignItems="center">
                               <Loader2 size={20} className="animate-spin" />
-                              <span>Redirecting to HitPay...</span>
+                              <span>{isFreePlanSelected ? "Setting up your workspace..." : "Redirecting to HitPay..."}</span>
                             </Stack>
                           ) : (
-                            `Subscribe ${selectedPlanPrice}`
+                            isFreePlanSelected ? "Activate Free Plan" : `Subscribe ${selectedPlanPrice}`
                           )}
                         </AppButton>
                       </Grid>

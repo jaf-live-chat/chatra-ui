@@ -22,6 +22,8 @@ const DashboardSetup = () => {
   const [copied, setCopied] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [attempts, setAttempts] = useState(0);
+  const [tenantEmail, setTenantEmail] = useState("");
+  const [companyName, setCompanyName] = useState("");
 
   const reference = useMemo(
     () =>
@@ -41,8 +43,23 @@ const DashboardSetup = () => {
     [searchParams]
   );
 
+  const tenantId = useMemo(
+    () => searchParams.get("tenantId") || searchParams.get("tenant_id") || "",
+    [searchParams]
+  );
+
+  const subscriptionId = useMemo(
+    () => searchParams.get("subscriptionId") || searchParams.get("subscription_id") || "",
+    [searchParams]
+  );
+
+  const tenantEmailFromQuery = useMemo(
+    () => searchParams.get("tenantEmail") || searchParams.get("email") || "",
+    [searchParams]
+  );
+
   useEffect(() => {
-    if (!reference && !paymentRequestId) {
+    if (!reference && !paymentRequestId && !(tenantId && subscriptionId)) {
       setErrorMessage("No active provisioning session found. Please start checkout first.");
       return;
     }
@@ -54,6 +71,8 @@ const DashboardSetup = () => {
         const status = await Payments.getCheckoutStatus({
           reference: reference || undefined,
           paymentRequestId: paymentRequestId || undefined,
+          tenantId: tenantId || undefined,
+          subscriptionId: subscriptionId || undefined,
         });
 
         if (isCancelled) {
@@ -67,6 +86,8 @@ const DashboardSetup = () => {
         if (status.isProvisioned) {
           setCurrentStep(2);
           setApiKey(status.apiKey || "");
+          setTenantEmail(status.tenantEmail || tenantEmailFromQuery || "");
+          setCompanyName(status.companyName || "");
           setTimeout(() => {
             if (!isCancelled) {
               setIsComplete(true);
@@ -93,7 +114,13 @@ const DashboardSetup = () => {
       isCancelled = true;
       window.clearInterval(timer);
     };
-  }, [paymentRequestId, reference]);
+  }, [paymentRequestId, reference, subscriptionId, tenantEmailFromQuery, tenantId]);
+
+  useEffect(() => {
+    if (tenantEmailFromQuery) {
+      setTenantEmail(tenantEmailFromQuery);
+    }
+  }, [tenantEmailFromQuery]);
 
   useEffect(() => {
     if (attempts >= MAX_POLL_ATTEMPTS && !isComplete) {
@@ -217,8 +244,11 @@ const DashboardSetup = () => {
               </div>
 
               <h2 className="text-3xl font-semibold text-gray-900 mb-3 tracking-tight">Workspace Ready</h2>
-              <p className="text-gray-500 mb-10 text-[15px] max-w-sm">
-                Your integration details have been generated. You can now connect your application.
+              <p className="text-gray-500 mb-3 text-[15px] max-w-md leading-relaxed">
+                Welcome{companyName ? ` to ${companyName}` : ""}! Your workspace has been provisioned and your integration details are ready.
+              </p>
+              <p className="text-gray-500 mb-10 text-[14px] max-w-md leading-relaxed">
+                An email has been sent{tenantEmail ? ` to ${tenantEmail}` : " to your newly registered tenant email"}.
               </p>
 
               <div className="w-full bg-[#0A0A0A] rounded-2xl p-1.5 pl-5 mb-10 flex items-center justify-between shadow-xl shadow-gray-200/50 border border-gray-800/60 transition-transform hover:scale-[1.01] duration-300">

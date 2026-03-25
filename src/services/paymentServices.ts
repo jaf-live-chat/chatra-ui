@@ -10,6 +10,8 @@ type CheckoutStatusResponse = {
   tenantId?: string;
   subscriptionId?: string;
   apiKey?: string;
+  tenantEmail?: string;
+  companyName?: string;
 };
 
 const Payments = {
@@ -23,7 +25,12 @@ const Payments = {
     }
   },
 
-  getCheckoutStatus: async (params: { reference?: string; paymentRequestId?: string }): Promise<CheckoutStatusResponse> => {
+  getCheckoutStatus: async (params: {
+    reference?: string;
+    paymentRequestId?: string;
+    tenantId?: string;
+    subscriptionId?: string;
+  }): Promise<CheckoutStatusResponse> => {
     const response = await axiosServices.get("/payments/status", { params });
     return response.data;
   },

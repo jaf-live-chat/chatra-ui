@@ -22,4 +22,8 @@ export type CreatePaymentCheckoutResponse = {
   amount?: number;
   planName?: string;
   isHitpayBypassed?: boolean;
+  tenant?: string;
+  subscription?: string;
+  tenantEmail?: string;
+  companyName?: string;
 };
