@@ -5,8 +5,7 @@ import HowItWorksPage from "../pages/public/how-it-works";
 import IntegrationsPage from "../pages/public/integrations";
 import PricingPage from "../pages/public/pricing";
 import LoginPage from "../pages/public/login";
-import FreeTrialPage from "../pages/public/free-trial";
-import Checkout from "../pages/portal/checkout";
+import Checkout from "../pages/portal/checkout/index";
 import DashboardSetup from "../layouts/DashboardSetup";
 import HelpCenterPage from "../pages/public/help-center";
 import ApiDocsPage from "../pages/public/api-docs";
@@ -21,8 +20,6 @@ const PublicRoutes: RouteObject[] = [
   { path: "integrations", element: <IntegrationsPage /> },
   { path: "pricing", element: <PricingPage /> },
   { path: "login", element: <LoginPage /> },
-  { path: "free-trial", element: <FreeTrialPage /> },
-  { path: "checkout", element: <Checkout /> },
   { path: "checkout/:planId", element: <Checkout /> },
   { path: "setup", element: <DashboardSetup /> },
   {

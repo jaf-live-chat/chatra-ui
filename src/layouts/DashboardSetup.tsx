@@ -1,7 +1,9 @@
-import { useState, useEffect } from "react";
-import { CheckCircle2, Loader2, KeyRound, Server, UserPlus, Check, Copy } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { CheckCircle2, Loader2, KeyRound, Server, UserPlus, Check, Copy, AlertCircle } from "lucide-react";
 import { Link } from "react-router";
-import { motion, AnimatePresence } from "motion/react";
+import { useSearchParams } from "react-router";
+import { motion } from "motion/react";
+import Payments from "../services/paymentServices";
 
 const steps = [
   { id: "account", label: "Creating your account...", icon: UserPlus },
@@ -9,30 +11,101 @@ const steps = [
   { id: "apikey", label: "Generating secure API keys...", icon: KeyRound },
 ];
 
+const MAX_POLL_ATTEMPTS = 50;
+const POLL_INTERVAL_MS = 2500;
+
 const DashboardSetup = () => {
+  const [searchParams] = useSearchParams();
   const [currentStep, setCurrentStep] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
   const [apiKey, setApiKey] = useState("");
   const [copied, setCopied] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [attempts, setAttempts] = useState(0);
+
+  const reference = useMemo(
+    () =>
+      searchParams.get("reference") ||
+      searchParams.get("reference_number") ||
+      searchParams.get("referenceNumber") ||
+      "",
+    [searchParams]
+  );
+
+  const paymentRequestId = useMemo(
+    () =>
+      searchParams.get("paymentRequestId") ||
+      searchParams.get("payment_request_id") ||
+      searchParams.get("payment_id") ||
+      "",
+    [searchParams]
+  );
 
   useEffect(() => {
-    // Generate a mock API key
-    const mockKey = "jaf_" + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-    setApiKey(mockKey);
+    if (!reference && !paymentRequestId) {
+      setErrorMessage("No active provisioning session found. Please start checkout first.");
+      return;
+    }
 
-    // Simulate setup steps
-    const timer1 = setTimeout(() => setCurrentStep(1), 2000);
-    const timer2 = setTimeout(() => setCurrentStep(2), 4500);
-    const timer3 = setTimeout(() => setIsComplete(true), 7000);
+    let isCancelled = false;
+
+    const pollStatus = async () => {
+      try {
+        const status = await Payments.getCheckoutStatus({
+          reference: reference || undefined,
+          paymentRequestId: paymentRequestId || undefined,
+        });
+
+        if (isCancelled) {
+          return;
+        }
+
+        if (status.status === "PENDING") {
+          setCurrentStep(1);
+        }
+
+        if (status.isProvisioned) {
+          setCurrentStep(2);
+          setApiKey(status.apiKey || "");
+          setTimeout(() => {
+            if (!isCancelled) {
+              setIsComplete(true);
+            }
+          }, 700);
+          return;
+        }
+
+        setAttempts((prev) => prev + 1);
+      } catch (_error) {
+        if (!isCancelled) {
+          setAttempts((prev) => prev + 1);
+        }
+      }
+    };
+
+    const timer = window.setInterval(() => {
+      void pollStatus();
+    }, POLL_INTERVAL_MS);
+
+    void pollStatus();
 
     return () => {
-      clearTimeout(timer1);
-      clearTimeout(timer2);
-      clearTimeout(timer3);
+      isCancelled = true;
+      window.clearInterval(timer);
     };
-  }, []);
+  }, [paymentRequestId, reference]);
+
+  useEffect(() => {
+    if (attempts >= MAX_POLL_ATTEMPTS && !isComplete) {
+      setErrorMessage("Provisioning is taking longer than expected. You can retry checkout.");
+    }
+  }, [attempts, isComplete]);
 
   const copyToClipboard = async () => {
+    if (!apiKey) {
+      return;
+    }
+
     try {
       if (navigator.clipboard && window.isSecureContext) {
         await navigator.clipboard.writeText(apiKey);
@@ -91,6 +164,13 @@ const DashboardSetup = () => {
                 />
               </div>
 
+              {errorMessage && (
+                <div className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+                  <AlertCircle size={16} />
+                  <span>{errorMessage}</span>
+                </div>
+              )}
+
               {/* Clean Steps List */}
               <div className="space-y-6 mt-2">
                 {steps.map((step, index) => {
@@ -147,15 +227,18 @@ const DashboardSetup = () => {
                   <input
                     type="text"
                     readOnly
-                    value={apiKey}
+                    value={apiKey || "API key unavailable"}
                     className="bg-transparent text-gray-300 font-mono text-[13px] outline-none w-full min-w-0 tracking-wide"
                   />
                 </div>
                 <button
                   onClick={copyToClipboard}
+                  disabled={!apiKey}
                   className={`flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all shrink-0 ml-4 shadow-sm cursor-pointer ${copied
                     ? "bg-emerald-500 text-white"
-                    : "bg-white text-gray-900 hover:bg-gray-100"
+                    : !apiKey
+                      ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                      : "bg-white text-gray-900 hover:bg-gray-100"
                     }`}
                 >
                   {copied ? (
