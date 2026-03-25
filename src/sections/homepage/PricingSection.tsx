@@ -15,10 +15,16 @@ const formatPhp = (value: number) =>
 const getPeriodLabel = (billingCycle: string, interval: number) => {
   if (billingCycle === "monthly" && interval === 1) return "/mo";
   if (billingCycle === "yearly" && interval === 1) return "/yr";
-  if (billingCycle === "daily") {
-    return `/${interval} ${interval === 1 ? "day" : "days"}`;
-  }
-  return `/${interval} ${billingCycle}`;
+
+  const unitByCycle: Record<string, string> = {
+    daily: "day",
+    weekly: "week",
+    monthly: "month",
+    yearly: "year",
+  };
+
+  const unit = unitByCycle[billingCycle] || "day";
+  return `/${interval} ${interval === 1 ? unit : `${unit}s`}`;
 };
 
 const centerMostPopularPlan = <T extends { popular: boolean }>(items: T[]) => {

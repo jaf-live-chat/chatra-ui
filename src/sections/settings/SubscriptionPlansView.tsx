@@ -40,10 +40,16 @@ interface ToastState {
 const toPeriod = (billingCycle: BillingCycle, interval: number) => {
   if (billingCycle === "monthly" && interval === 1) return "/mo";
   if (billingCycle === "yearly" && interval === 1) return "/yr";
-  if (billingCycle === "daily") {
-    return `/${interval} ${interval === 1 ? "day" : "days"}`;
-  }
-  return `/${interval} ${billingCycle}`;
+
+  const unitByCycle: Record<BillingCycle, string> = {
+    daily: "day",
+    weekly: "week",
+    monthly: "month",
+    yearly: "year",
+  };
+
+  const unit = unitByCycle[billingCycle] || "day";
+  return `/${interval} ${interval === 1 ? unit : `${unit}s`}`;
 };
 
 const parsePeriod = (period: string): { billingCycle: BillingCycle; interval: number } => {

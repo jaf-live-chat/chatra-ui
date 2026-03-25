@@ -59,13 +59,19 @@ const slugifyPlanName = (name: string) =>
     .replace(/^-+|-+$/g, "");
 
 const formatBillingPeriod = (billingCycle: CheckoutPlan["billingCycle"], interval: number) => {
+  const unitByCycle = {
+    daily: "day",
+    weekly: "week",
+    monthly: "month",
+    yearly: "year",
+  } as const;
+
+  const unit = unitByCycle[billingCycle] || "day";
   if (interval > 1) {
-    return `/${interval} ${billingCycle}`;
+    return `/${interval} ${unit}s`;
   }
-  if (billingCycle === "daily") return "/day";
-  if (billingCycle === "weekly") return "/week";
-  if (billingCycle === "monthly") return "/month";
-  return "/year";
+
+  return `/${unit}`;
 };
 
 const getPlanIcon = (slug: string) => {
