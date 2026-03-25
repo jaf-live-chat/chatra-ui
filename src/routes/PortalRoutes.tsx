@@ -1,14 +1,20 @@
 import { Navigate, type RouteObject } from "react-router";
+import { USER_ROLES } from "../constants/constants";
+
 import DashboardLayout from "../layouts/DashboardLayout";
 import AgentDashboardLayout from "../layouts/AgentDashboardLayout";
 import RouteGuard from "../layouts/RouteGuard";
 import AuthGuard from "../components/guards/AuthGuard";
-import { USER_ROLES } from "../constants/constants";
 import Dashboard from "../pages/portal/dashboard";
 import AgentsPage from "../pages/portal/agents";
 import CustomerDashboard from "../pages/portal/customer-dashboard";
 import ChatSessionManagementPage from "../pages/portal/chat-session-management";
 import AgentDashboard from "../pages/portal/agent-dashboard";
+import CompanyInfoPage from "../pages/portal/company-info";
+import SubscriptionPlansPage from "../pages/portal/subscription-plans";
+import HomepageFaqsPage from "../pages/portal/homepage-faqs";
+import QuickRepliesPage from "../pages/portal/quick-replies";
+import QueueAssignmentPage from "../pages/portal/queue-assignment";
 import AgentSettingsPage from "../sections/settings/AgentSettingsPage";
 
 const PortalRoutes: RouteObject[] = [
@@ -132,9 +138,9 @@ const PortalRoutes: RouteObject[] = [
                 path: "company-info",
                 element: (
                   <AuthGuard
-                    allowedRoles={[USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value]}
+                    allowedRoles={[USER_ROLES.MASTER_ADMIN.value]}
                   >
-                    <Dashboard />
+                    <CompanyInfoPage />
                   </AuthGuard>
                 ),
               },
@@ -142,9 +148,9 @@ const PortalRoutes: RouteObject[] = [
                 path: "subscription-plans",
                 element: (
                   <AuthGuard
-                    allowedRoles={[USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value]}
+                    allowedRoles={[USER_ROLES.MASTER_ADMIN.value]}
                   >
-                    <Dashboard />
+                    <SubscriptionPlansPage />
                   </AuthGuard>
                 ),
               },
@@ -154,7 +160,7 @@ const PortalRoutes: RouteObject[] = [
                   <AuthGuard
                     allowedRoles={[USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value]}
                   >
-                    <Dashboard />
+                    <HomepageFaqsPage />
                   </AuthGuard>
                 ),
               },
@@ -174,7 +180,7 @@ const PortalRoutes: RouteObject[] = [
                   <AuthGuard
                     allowedRoles={[USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value]}
                   >
-                    <Dashboard />
+                    <QuickRepliesPage />
                   </AuthGuard>
                 ),
               },
@@ -184,7 +190,7 @@ const PortalRoutes: RouteObject[] = [
                   <AuthGuard
                     allowedRoles={[USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value]}
                   >
-                    <Dashboard />
+                    <QueueAssignmentPage />
                   </AuthGuard>
                 ),
               },

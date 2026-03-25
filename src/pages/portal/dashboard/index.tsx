@@ -10,12 +10,7 @@ import {
   BarChart2,
   History,
   MessagesSquare,
-  Bot,
   Settings2,
-  Building2,
-  CreditCard,
-  HelpCircle,
-  Zap,
 } from "lucide-react";
 import ConversationsView from "../../../sections/chat/ConversationsView";
 import QueueView from "../../../sections/chat/QueueView";
@@ -26,11 +21,6 @@ import AnalyticsView from "../../../sections/dashboard/AnalyticsView";
 import ChatAssignmentView from "../../../sections/chat/ChatAssignmentView";
 import AccountSettingsView from "../../../sections/settings/AccountSettingsView";
 import WidgetSettingsView from "../../../sections/settings/WidgetSettingsView";
-import CompanyInfoView from "../../../sections/settings/CompanyInfoView";
-import SubscriptionPlansView from "../../../sections/settings/SubscriptionPlansView";
-import QuickRepliesView from "../../../sections/settings/QuickRepliesView";
-import FaqEditorView from "../../../sections/settings/FaqEditorView";
-import QueueAssignmentSettingsPage from "../../../sections/chat/QueueAssignmentSettingsPage";
 import useAuth from "../../../hooks/useAuth";
 
 const initialMockQueue = [
@@ -69,12 +59,7 @@ const tabByPathname: Record<string, string> = {
   "/portal/assignment": "assignment",
   "/portal/account-settings": "account-settings",
   "/portal/widget-settings": "widget-settings",
-  "/portal/company-info": "company-info",
-  "/portal/subscription-plans": "subscription-plans",
-  "/portal/homepage-faqs": "homepage-faqs",
-  "/portal/quick-replies": "quick-replies",
-  "/portal/queue-assignment": "queue-assignment",
-  "/portal/tools": "quick-replies",
+  "/portal/tools": "overview",
 };
 
 const pathByTab: Record<string, string> = {
@@ -273,16 +258,6 @@ const Dashboard = () => {
             <AccountSettingsView />
           ) : activeTab === "widget-settings" ? (
             <WidgetSettingsView />
-          ) : activeTab === "company-info" ? (
-            <CompanyInfoView />
-          ) : activeTab === "subscription-plans" ? (
-            <SubscriptionPlansView />
-          ) : activeTab === "homepage-faqs" ? (
-            <FaqEditorView />
-          ) : activeTab === "quick-replies" ? (
-            <QuickRepliesView />
-          ) : activeTab === "queue-assignment" ? (
-            <QueueAssignmentSettingsPage />
           ) : (
             /* ── Simple clean overview ── */
             <div className="">
@@ -331,11 +306,6 @@ const Dashboard = () => {
                   { label: "Agents", sub: "Manage agents, roles and availability", tab: "agents", icon: <Users className="w-5 h-5 text-gray-400 dark:text-slate-500" /> },
                   { label: "Chat Sessions", sub: "View active and ongoing conversations", tab: "chat-sessions-nav", icon: <MessagesSquare className="w-5 h-5 text-gray-400 dark:text-slate-500" /> },
                   { label: "Widget Settings", sub: "Customize your live chat widget", tab: "widget-settings", icon: <Settings2 className="w-5 h-5 text-gray-400 dark:text-slate-500" /> },
-                  { label: "Company Info", sub: "Update your company profile and details", tab: "company-info", icon: <Building2 className="w-5 h-5 text-gray-400 dark:text-slate-500" /> },
-                  { label: "Queue Assignment", sub: "Configure queue assignment behavior", tab: "queue-assignment", icon: <Bot className="w-5 h-5 text-gray-400 dark:text-slate-500" /> },
-                  { label: "Subscription Plans", sub: "Manage pricing, limits, and features", tab: "subscription-plans", icon: <CreditCard className="w-5 h-5 text-gray-400 dark:text-slate-500" /> },
-                  { label: "Homepage FAQs", sub: "Edit public FAQ content", tab: "homepage-faqs", icon: <HelpCircle className="w-5 h-5 text-gray-400 dark:text-slate-500" /> },
-                  { label: "Quick Replies", sub: "Create canned responses for agents", tab: "quick-replies", icon: <Zap className="w-5 h-5 text-gray-400 dark:text-slate-500" /> },
                 ].map((item) => (
                   <button
                     key={item.tab}
