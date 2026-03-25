@@ -28,7 +28,7 @@ const PortalRoutes: RouteObject[] = [
           {
             element: (
               <AuthGuard
-                allowedRoles={[USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value, USER_ROLES.SUPPORT_AGENT.value]}
+                allowedRoles={[USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value]}
               >
                 <DashboardLayout />
               </AuthGuard>
@@ -38,7 +38,7 @@ const PortalRoutes: RouteObject[] = [
                 path: "dashboard",
                 element: (
                   <AuthGuard
-                    allowedRoles={[USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value, USER_ROLES.SUPPORT_AGENT.value]}
+                    allowedRoles={[USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value]}
                   >
                     <Dashboard />
                   </AuthGuard>
@@ -68,7 +68,7 @@ const PortalRoutes: RouteObject[] = [
                 path: "queue",
                 element: (
                   <AuthGuard
-                    allowedRoles={[USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value]}
+                    allowedRoles={[USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value, USER_ROLES.SUPPORT_AGENT.value]}
                   >
                     <Dashboard />
                   </AuthGuard>
@@ -178,7 +178,7 @@ const PortalRoutes: RouteObject[] = [
                 path: "quick-replies",
                 element: (
                   <AuthGuard
-                    allowedRoles={[USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value]}
+                    allowedRoles={[USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value, USER_ROLES.SUPPORT_AGENT.value]}
                   >
                     <QuickRepliesPage />
                   </AuthGuard>
@@ -198,7 +198,7 @@ const PortalRoutes: RouteObject[] = [
                 path: "chat-sessions",
                 element: (
                   <AuthGuard
-                    allowedRoles={[USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value]}
+                    allowedRoles={[USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value, USER_ROLES.SUPPORT_AGENT.value]}
                   >
                     <ChatSessionManagementPage />
                   </AuthGuard>
