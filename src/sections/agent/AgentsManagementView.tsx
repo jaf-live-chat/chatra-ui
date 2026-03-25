@@ -1,15 +1,27 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import axios from "axios";
 import {
   UserPlus,
-  Search,
-  Headset,
   Circle,
   ChevronLeft,
   ChevronRight,
+  Eye,
   Link2,
-  Trash2,
+  Mail,
+  MessageSquare,
+  Pencil,
   Plus,
+  Search,
+  Trash2,
+  User,
+  UserCheck,
+  Users,
+  X,
 } from "lucide-react";
+import { useNavigate } from "react-router";
+import Agents from "../../services/agentServices";
+import useAuth from "../../hooks/useAuth";
+import type { AuthAgent, CreateAgentInput } from "../../models/AgentModel";
 import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
@@ -20,6 +32,7 @@ import InputBase from "@mui/material/InputBase";
 import Stack from "@mui/material/Stack";
 import Chip from "@mui/material/Chip";
 import Grid from "@mui/material/Grid";
+import Divider from "@mui/material/Divider";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
 import TableCell from "@mui/material/TableCell";
@@ -30,50 +43,131 @@ import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
+import Snackbar from "@mui/material/Snackbar";
+import Alert from "@mui/material/Alert";
 import TextField from "@mui/material/TextField";
 import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
 import FormControl from "@mui/material/FormControl";
-import InputLabel from "@mui/material/InputLabel";
-import Switch from "@mui/material/Switch";
-import FormControlLabel from "@mui/material/FormControlLabel";
+import Tooltip from '@mui/material/Tooltip'
+import AgentEditDialog, { type AgentEditDialogFormValues } from "./components/AgentEditDialog";
 
-interface Agent {
+interface Agent extends AuthAgent {
   id: string;
   name: string;
   email: string;
-  status: "Online" | "Away";
-  role: "Admin" | "Support Agent";
+  status: string;
   autoAssign: boolean;
   chatsHandled: number;
 }
 
-const mockAgents: Agent[] = [
-  { id: "A-101", name: "Sarah Jenkins", email: "sarah.j@jafdigital.com", status: "Online", role: "Admin", autoAssign: true, chatsHandled: 42 },
-  { id: "A-102", name: "Mark Thompson", email: "mark.t@jafdigital.com", status: "Online", role: "Support Agent", autoAssign: true, chatsHandled: 28 },
-  { id: "A-103", name: "Lisa Miller", email: "lisa.m@jafdigital.com", status: "Away", role: "Support Agent", autoAssign: false, chatsHandled: 15 },
-  { id: "A-104", name: "David Chen", email: "david.c@jafdigital.com", status: "Online", role: "Support Agent", autoAssign: false, chatsHandled: 34 },
-  { id: "A-105", name: "Emily Davis", email: "emily.d@jafdigital.com", status: "Away", role: "Support Agent", autoAssign: false, chatsHandled: 0 },
-];
+const avatarColor = "#0891b2";
+function getAvatarColor(_id: string) {
+  return avatarColor;
+}
 
-const avatarColors = ["#FF5A1F", "#1F75FE", "#A855F7", "#B48600", "#0891b2"];
-function getAvatarColor(id: string) {
-  const charCode = id.charCodeAt(id.length - 1) || 0;
-  return avatarColors[charCode % avatarColors.length];
+function mapAgentForView(agent: AuthAgent): Agent {
+  return {
+    ...agent,
+    id: agent._id,
+    name: agent.fullName,
+    email: agent.emailAddress,
+    status: agent.status === "OFFLINE" ? "Away" : "Online",
+    autoAssign: false,
+    chatsHandled: 0,
+  };
+}
+
+function getApiErrorMessage(error: unknown, fallbackMessage: string): string {
+  if (axios.isAxiosError(error)) {
+    const data = error.response?.data as { message?: string } | undefined;
+    if (data?.message) {
+      return data.message;
+    }
+  }
+
+  return fallbackMessage;
+}
+
+function formatRole(role: string): string {
+  if (!role) return "";
+  return role
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ");
 }
 
 const ITEMS_PER_PAGE = 5;
 
+const lightChipSx = {
+  fontWeight: 600,
+  borderRadius: 1,
+  border: "none",
+  boxShadow: "none",
+};
+
 const AgentsManagementView = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
-  const [agents, setAgents] = useState<Agent[]>(mockAgents);
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [editAgent, setEditAgent] = useState<Agent | null>(null);
-  const [editForm, setEditForm] = useState({ name: "", email: "", role: "Support Agent" as "Admin" | "Support Agent", autoAssign: false });
+  const [agentToDelete, setAgentToDelete] = useState<Agent | null>(null);
+  const [isDeletingAgent, setIsDeletingAgent] = useState(false);
+  const [editForm, setEditForm] = useState<AgentEditDialogFormValues>({
+    fullName: "",
+    emailAddress: "",
+    phoneNumber: "",
+    role: "SUPPORT_AGENT",
+  });
   const [page, setPage] = useState(1);
   const [addOpen, setAddOpen] = useState(false);
-  const [inviteRows, setInviteRows] = useState<Array<{ email: string; role: "Admin" | "Support Agent" }>>([{ email: "", role: "Support Agent" }]);
-  const [inviteErrors, setInviteErrors] = useState<Array<{ email: string }>>([{ email: "" }]);
+  const [isAddingAgents, setIsAddingAgents] = useState(false);
+  const [draftName, setDraftName] = useState("");
+  const [draftEmail, setDraftEmail] = useState("");
+  const [inviteRows, setInviteRows] = useState<Array<{ email: string; name: string; role: string }>>([
+    { email: "", name: "", role: "SUPPORT_AGENT" },
+  ]);
+  const [draftErrors, setDraftErrors] = useState<{ name: string; email: string }>({
+    name: "",
+    email: "",
+  });
   const [inviteCopied, setInviteCopied] = useState(false);
+  const [snackbar, setSnackbar] = useState<{
+    open: boolean;
+    message: string;
+    tone: "add" | "edit" | "delete" | "error";
+  }>({
+    open: false,
+    message: "",
+    tone: "add",
+  });
+
+  const showSnackbar = (
+    message: string,
+    tone: "add" | "edit" | "delete" | "error"
+  ) => {
+    setSnackbar({ open: true, message, tone });
+  };
+
+  // Load agents on mount
+  useEffect(() => {
+    const loadAgents = async () => {
+      try {
+        setIsLoading(true);
+        const response = await Agents.getAgents();
+        const agentsList = response.agents.map(mapAgentForView);
+        setAgents(agentsList);
+      } catch (err) {
+        showSnackbar(getApiErrorMessage(err, "Failed to load agents"), "error");
+        console.error(err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadAgents();
+  }, []);
 
   const filteredAgents = useMemo(
     () =>
@@ -85,58 +179,154 @@ const AgentsManagementView = () => {
     [agents, searchTerm]
   );
 
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm]);
+
   const totalPages = Math.ceil(filteredAgents.length / ITEMS_PER_PAGE);
   const pagedAgents = filteredAgents.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
 
-  const handleRemoveAgent = (id: string) => {
-    setAgents((prev) => prev.filter((a) => a.id !== id));
-    setPage(1);
+  const handleRemoveAgent = async (agentId: string) => {
+    if (user?._id && user._id === agentId) {
+      showSnackbar("Admin cannot remove her own account.", "error");
+      return;
+    }
+
+    try {
+      setIsDeletingAgent(true);
+      await Agents.deleteAgent(agentId);
+      setAgents((prev) => prev.filter((a) => a.id !== agentId));
+      setPage(1);
+      showSnackbar("Agent deleted successfully", "delete");
+      setAgentToDelete(null);
+    } catch (err) {
+      showSnackbar(getApiErrorMessage(err, "Failed to delete agent"), "error");
+      console.error(err);
+    } finally {
+      setIsDeletingAgent(false);
+    }
   };
 
-  const handleEditOpen = (agent: Agent) => { setEditAgent(agent); setEditForm({ name: agent.name, email: agent.email, role: agent.role, autoAssign: agent.autoAssign }); };
-  const handleEditSave = () => {
-    if (!editAgent) return;
-    setAgents((prev) => prev.map((a) => a.id === editAgent.id ? { ...a, ...editForm } : a));
-    setEditAgent(null);
+  const handleViewAgent = (agentId: string) => {
+    navigate(`/portal/agents/${agentId}`);
   };
+
+  const isOwnAccount = (agentId: string) => Boolean(user?._id && user._id === agentId);
+
+  const handleEditOpen = (agent: Agent) => {
+    setEditAgent(agent);
+    setEditForm({
+      fullName: agent.name || agent.fullName || "",
+      emailAddress: agent.email || agent.emailAddress || "",
+      phoneNumber: agent.phoneNumber || "",
+      role: agent.role || "SUPPORT_AGENT",
+    });
+  };
+
+  const handleEditSave = async () => {
+    if (!editAgent) return;
+    try {
+      const agentId = editAgent.id || editAgent._id;
+      if (!agentId) return;
+      const response = await Agents.updateAgent(agentId, {
+        fullName: editForm.fullName,
+        emailAddress: editForm.emailAddress,
+        phoneNumber: editForm.phoneNumber.trim() || null,
+        role: editForm.role,
+      });
+      setAgents((prev) =>
+        prev.map((a) =>
+          a.id === agentId
+            ? {
+              ...a,
+              ...response.agent,
+              id: response.agent._id,
+              name: response.agent.fullName,
+              email: response.agent.emailAddress,
+            }
+            : a
+        )
+      );
+      setEditAgent(null);
+      showSnackbar("Agent updated successfully", "edit");
+    } catch (err) {
+      showSnackbar(getApiErrorMessage(err, "Failed to update agent"), "error");
+      console.error(err);
+    }
+  };
+
   const handleEditClose = () => setEditAgent(null);
 
   const handleAddOpen = () => {
-    setInviteRows([{ email: "", role: "Support Agent" }]);
-    setInviteErrors([{ email: "" }]);
+    setInviteRows([]);
+    setDraftName("");
+    setDraftEmail("");
+    setDraftErrors({ name: "", email: "" });
     setInviteCopied(false);
     setAddOpen(true);
   };
   const handleAddClose = () => setAddOpen(false);
-  const handleAddSave = () => {
-    const errors = inviteRows.map((row) => {
-      const err = { email: "" };
-      if (!row.email.trim()) err.email = "Email is required.";
-      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(row.email)) err.email = "Enter a valid email.";
-      else if (agents.some((a) => a.email.toLowerCase() === row.email.toLowerCase())) err.email = "Already exists.";
-      return err;
-    });
-    if (errors.some((e) => e.email)) { setInviteErrors(errors); return; }
-    const newAgents = inviteRows.map((row) => {
-      const newId = `A-${101 + agents.length + Math.floor(Math.random() * 900)}`;
-      const namePart = row.email.split("@")[0].replace(/[^a-zA-Z]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-      return { id: newId, name: namePart, email: row.email.trim(), status: "Online" as const, role: row.role, autoAssign: false, chatsHandled: 0 };
-    });
-    setAgents((prev) => [...prev, ...newAgents]);
-    setAddOpen(false);
+
+  const handleStageAgent = () => {
+    const nextErrors = { name: "", email: "" };
+
+    if (!draftName.trim()) nextErrors.name = "Full name is required.";
+    if (!draftEmail.trim()) nextErrors.email = "Email is required.";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(draftEmail)) {
+      nextErrors.email = "Enter a valid email.";
+    } else if (agents.some((a) => a.email?.toLowerCase() === draftEmail.toLowerCase())) {
+      nextErrors.email = "Already exists.";
+    } else if (inviteRows.some((a) => a.email.toLowerCase() === draftEmail.toLowerCase())) {
+      nextErrors.email = "Already staged.";
+    }
+
+    setDraftErrors(nextErrors);
+    if (nextErrors.name || nextErrors.email) return;
+
+    setInviteRows((prev) => [
+      ...prev,
+      { name: draftName.trim(), email: draftEmail.trim(), role: "SUPPORT_AGENT" },
+    ]);
+    setDraftName("");
+    setDraftEmail("");
+    setDraftErrors({ name: "", email: "" });
   };
-  const handleAddRow = () => {
-    setInviteRows((prev) => [...prev, { email: "", role: "Support Agent" }]);
-    setInviteErrors((prev) => [...prev, { email: "" }]);
+
+  const handleAddSave = async () => {
+    if (inviteRows.length === 0) {
+      showSnackbar("Stage at least one agent before submitting.", "error");
+      return;
+    }
+
+    try {
+      setIsAddingAgents(true);
+      const newAgents: CreateAgentInput[] = inviteRows.map((row) => ({
+        fullName: row.name,
+        emailAddress: row.email.trim(),
+        password: Math.random().toString(36).slice(-12),
+        role: row.role,
+      }));
+
+      const response = await Agents.createAgents({ agents: newAgents });
+      const newAgentsList = response.agents.map(mapAgentForView);
+
+      setAgents((prev) => [...prev, ...newAgentsList]);
+      setAddOpen(false);
+      showSnackbar(`${newAgentsList.length} agent(s) added successfully`, "add");
+    } catch (err) {
+      showSnackbar(getApiErrorMessage(err, "Failed to create agents"), "error");
+      console.error(err);
+    } finally {
+      setIsAddingAgents(false);
+    }
   };
   const handleRemoveRow = (index: number) => {
-    if (inviteRows.length <= 1) return;
     setInviteRows((prev) => prev.filter((_, i) => i !== index));
-    setInviteErrors((prev) => prev.filter((_, i) => i !== index));
   };
-  const handleUpdateRow = (index: number, field: "email" | "role", value: string) => {
-    setInviteRows((prev) => prev.map((row, i) => i === index ? { ...row, [field]: value } : row));
-    if (field === "email") setInviteErrors((prev) => prev.map((err, i) => i === index ? { email: "" } : err));
+  const handleUpdateRow = (index: number, field: "role", value: string) => {
+    setInviteRows((prev) =>
+      prev.map((row, i) => (i === index ? { ...row, [field]: value } : row))
+    );
   };
   const handleCopyInviteLink = () => {
     navigator.clipboard.writeText("https://jafchatra.com/invite/join-team").then(() => {
@@ -151,7 +341,6 @@ const AgentsManagementView = () => {
       <Box
         sx={{
           px: 3, py: 1.5,
-          borderTop: "1px solid", borderColor: "grey.200",
           bgcolor: "grey.50",
           display: "flex", alignItems: "center", justifyContent: "space-between",
         }}
@@ -176,7 +365,7 @@ const AgentsManagementView = () => {
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page === 1}
             size="small"
-            sx={{ border: "1px solid", borderColor: "grey.200", bgcolor: "background.paper", borderRadius: 1.5 }}
+            sx={{ border: "1px solid", borderColor: "grey.200", bgcolor: "background.paper", borderRadius: 1 }}
           >
             <ChevronLeft size={16} />
           </IconButton>
@@ -185,7 +374,7 @@ const AgentsManagementView = () => {
               key={i}
               onClick={() => setPage(i + 1)}
               sx={{
-                minWidth: 30, p: 0, height: 30, borderRadius: 1.5,
+                minWidth: 30, p: 0, height: 30, borderRadius: 1,
                 bgcolor: page === i + 1 ? "primary.main" : "transparent",
                 color: page === i + 1 ? "#ffffff" : "text.secondary",
                 fontWeight: page === i + 1 ? 700 : 500,
@@ -200,7 +389,7 @@ const AgentsManagementView = () => {
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page === totalPages}
             size="small"
-            sx={{ border: "1px solid", borderColor: "grey.200", bgcolor: "background.paper", borderRadius: 1.5 }}
+            sx={{ border: "1px solid", borderColor: "grey.200", bgcolor: "background.paper", borderRadius: 1 }}
           >
             <ChevronRight size={16} />
           </IconButton>
@@ -213,8 +402,8 @@ const AgentsManagementView = () => {
     <TableRow>
       <TableCell colSpan={6} align="center" sx={{ py: 6 }}>
         <Stack alignItems="center" spacing={1.5} sx={{ color: "text.secondary" }}>
-          <Box sx={{ width: 44, height: 44, borderRadius: "50%", bgcolor: "grey.100", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <Headset size={22} color="#9ca3af" />
+          <Box sx={{ width: 44, height: 44, borderRadius: "50%", bgcolor: "#0891b2", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Users size={22} color="#ffffff" />
           </Box>
           <Box>
             <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "grey.900" }}>No agents found</Typography>
@@ -224,6 +413,18 @@ const AgentsManagementView = () => {
       </TableCell>
     </TableRow>
   );
+
+  const snackbarToneStyles: Record<
+    "add" | "edit" | "delete" | "error",
+    { bgcolor: string; color: string; borderColor: string; severity: "success" | "error" }
+  > = {
+    add: { bgcolor: "#dcfce7", color: "#166534", borderColor: "#86efac", severity: "success" },
+    edit: { bgcolor: "#dcfce7", color: "#166534", borderColor: "#86efac", severity: "success" },
+    delete: { bgcolor: "#fee2e2", color: "#991b1b", borderColor: "#fca5a5", severity: "error" },
+    error: { bgcolor: "#fee2e2", color: "#991b1b", borderColor: "#fca5a5", severity: "error" },
+  };
+
+  const activeSnackbarTone = snackbarToneStyles[snackbar.tone];
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 4 }}>
@@ -240,7 +441,8 @@ const AgentsManagementView = () => {
             color="primary"
             startIcon={<UserPlus size={18} />}
             onClick={handleAddOpen}
-            sx={{ fontWeight: 600, px: 3, flexShrink: 0, borderRadius: 2 }}
+            disabled={isLoading}
+            sx={{ fontWeight: 600, px: 3, flexShrink: 0, borderRadius: 1 }}
           >
             Add Agent
           </Button>
@@ -250,92 +452,179 @@ const AgentsManagementView = () => {
       {/* ── Stat cards ── */}
       <Grid container spacing={3}>
         <Grid size={{ xs: 12, md: 4 }}>
-          <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: "1px solid", borderColor: "grey.200", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <Paper
+            elevation={0}
+            sx={{
+              p: 3,
+              borderRadius: 1,
+              border: "1px solid",
+              borderColor: "grey.200",
+              boxShadow: "0 1px 2px #00000012",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
             <Box>
               <Typography variant="body2" sx={{ fontWeight: 600, color: "text.secondary", mb: 0.5 }}>Total Agents</Typography>
               <Typography variant="h4" sx={{ fontWeight: 800, color: "grey.900" }}>{agents.length}</Typography>
             </Box>
-            <Avatar sx={{ bgcolor: "grey.100", color: "grey.600", width: 48, height: 48 }}>
-              <Headset size={24} />
+            <Avatar sx={{ bgcolor: "#c9d7ce", color: "#484e4a", width: 48, height: 48 }}>
+              <Users size={24} />
             </Avatar>
           </Paper>
         </Grid>
         <Grid size={{ xs: 12, md: 4 }}>
-          <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: "1px solid", borderColor: "grey.200", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <Paper
+            elevation={0}
+            sx={{
+              p: 3,
+              borderRadius: 1,
+              border: "1px solid",
+              borderColor: "grey.200",
+              boxShadow: "0 1px 2px #00000012",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
             <Box>
               <Typography variant="body2" sx={{ fontWeight: 600, color: "text.secondary", mb: 0.5 }}>Online Agents</Typography>
               <Typography variant="h4" sx={{ fontWeight: 800, color: "grey.900" }}>{agents.filter((a) => a.status === "Online").length}</Typography>
             </Box>
-            <Avatar sx={{ bgcolor: "success.light", color: "success.dark", width: 48, height: 48 }}>
-              <Circle size={24} className="fill-current" />
+            <Avatar sx={{ bgcolor: "#dcfce7", color: "#91a097", width: 48, height: 48 }}>
+              <UserCheck size={24} />
             </Avatar>
           </Paper>
         </Grid>
         <Grid size={{ xs: 12, md: 4 }}>
-          <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: "1px solid", borderColor: "grey.200", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <Paper
+            elevation={0}
+            sx={{
+              p: 3,
+              borderRadius: 1,
+              border: "1px solid",
+              borderColor: "grey.200",
+              boxShadow: "0 1px 2px #00000012",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
             <Box>
               <Typography variant="body2" sx={{ fontWeight: 600, color: "text.secondary", mb: 0.5 }}>Chats Handled Today</Typography>
               <Typography variant="h4" sx={{ fontWeight: 800, color: "grey.900" }}>{agents.reduce((sum, a) => sum + a.chatsHandled, 0)}</Typography>
             </Box>
-            <Avatar sx={{ bgcolor: "info.light", color: "info.dark", width: 48, height: 48 }}>
-              <Headset size={24} />
+            <Avatar sx={{ bgcolor: "#dbeafe", color: "#2563eb", width: 48, height: 48 }}>
+              <MessageSquare size={24} />
             </Avatar>
           </Paper>
         </Grid>
       </Grid>
 
       {/* ── Agents table — styled like the Waiting Queue table ── */}
-      <Paper elevation={0} sx={{ border: "1px solid", borderColor: "grey.200", borderRadius: 3, overflow: "hidden", flexShrink: 0 }}>
+      <Paper elevation={0} sx={{ borderRadius: 1, overflow: "hidden", flexShrink: 0, border: "1px solid", borderColor: "grey.200" }}>
 
         {/* Section header */}
         <Box sx={{
           px: 3, py: 2,
           display: "flex", alignItems: "center", justifyContent: "space-between",
-          borderBottom: "1px solid", borderColor: "grey.200",
           background: "linear-gradient(135deg, #0891b210 0%, #0891b204 100%)",
+          borderBottom: "1px solid",
+          borderColor: "grey.200",
         }}>
           <Stack direction="row" alignItems="center" spacing={1.5}>
-            <Box sx={{ width: 34, height: 34, borderRadius: 2, bgcolor: "#0891b220", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Headset size={17} color="#0891b2" />
+            <Box sx={{ width: 34, height: 34, borderRadius: 1, bgcolor: "#0891b220", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Users size={17} color="#0891b2" />
             </Box>
             <Box>
-              <Typography variant="subtitle1" sx={{ fontWeight: 700, color: "grey.900", lineHeight: 1.2 }}>Support Agents</Typography>
-              <Typography variant="caption" sx={{ color: "text.secondary" }}>All registered agents and their current status</Typography>
+              <Typography variant="subtitle1" sx={{ fontWeight: 700, color: "grey.900", lineHeight: 1.2 }}>All Agents</Typography>
+              <Typography variant="caption" sx={{ color: "text.secondary" }}>Support agents and administrators</Typography>
             </Box>
+
+            <Divider orientation="vertical" flexItem sx={{ borderColor: "grey.300" }} />
+
+            <Stack direction="row" alignItems="center" spacing={1.2}>
+              <Chip
+                icon={<Box sx={{ width: 7, height: 7, borderRadius: "50%", bgcolor: "success.main", ml: 0.5 }} />}
+                label={`${agents.filter((a) => a.status === "Online").length} online`}
+                size="small"
+                sx={{ ...lightChipSx, bgcolor: "#dcfce7", color: "#15803d", height: 30, px: 0.6, "& .MuiChip-label": { px: 0.9 }, "& .MuiChip-icon": { ml: 0.5 } }}
+              />
+              <Chip
+                label={`${filteredAgents.length} agents`}
+                size="small"
+                sx={{ ...lightChipSx, bgcolor: "#e0f2fe", color: "#0e7490", height: 30, px: 0.6, "& .MuiChip-label": { px: 0.9 } }}
+              />
+            </Stack>
           </Stack>
-          <Stack direction="row" alignItems="center" spacing={1}>
-            <Chip
-              icon={<Box sx={{ width: 7, height: 7, borderRadius: "50%", bgcolor: "success.main", ml: 0.5 }} />}
-              label={`${agents.filter((a) => a.status === "Online").length} online`}
-              size="small"
-              sx={{ bgcolor: "#16a34a1a", color: "#15803d", fontWeight: 700, height: 26, "& .MuiChip-icon": { ml: 0.5 } }}
+
+          <Paper
+            elevation={0}
+            sx={{
+              px: 1.2,
+              py: 0.7,
+              border: "1px solid",
+              borderColor: "grey.200",
+              borderRadius: 1,
+              bgcolor: "#ffffff",
+              display: "flex",
+              alignItems: "center",
+              gap: 0.8,
+              minWidth: { xs: 180, sm: 230 },
+              
+            }}
+          >
+            <Search size={14} color="#94a3b8" />
+            <InputBase
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder="Search agents..."
+              sx={{ fontSize: "0.85rem", width: "100%", color: "#475569" }}
+              inputProps={{ "aria-label": "search agents" }}
             />
-            <Chip
-              label={`${filteredAgents.length} agents`}
-              size="small"
-              sx={{ bgcolor: "#0891b21a", color: "#0e7490", fontWeight: 700, height: 26 }}
-            />
-          </Stack>
+          </Paper>
         </Box>
 
         {/* Table */}
-        <TableContainer sx={{ overflow: "visible" }}>
-          <Table sx={{ minWidth: 650 }}>
+        <TableContainer sx={{ overflow: "visible",  }}>
+          <Table >
             <TableHead sx={{ bgcolor: "grey.50" }}>
               <TableRow>
-                <TableCell width="6%" align="center">#</TableCell>
-                <TableCell width="27%">Agent</TableCell>
-                <TableCell width="25%">Email</TableCell>
-                <TableCell width="14%" align="center">Status</TableCell>
-                <TableCell width="12%" align="center">Chats</TableCell>
-                <TableCell width="16%" align="center">Actions</TableCell>
+                <TableCell width="6%" align="center" sx={{
+                  borderBottom: "1px solid",
+                  borderColor: "grey.200"
+                }}>#</TableCell>
+                <TableCell width="22%" sx={{
+                  borderBottom: "1px solid",
+                  borderColor: "grey.200"
+                }}>Agent</TableCell>
+                <TableCell width="22%" sx={{
+                  borderBottom: "1px solid",
+                  borderColor: "grey.200"
+                }}>Email</TableCell>
+                <TableCell width="12%" align="center" sx={{
+                  borderBottom: "1px solid",
+                  borderColor: "grey.200"
+                }}>Role</TableCell>
+                <TableCell width="12%" align="center" sx={{
+                  borderBottom: "1px solid",
+                  borderColor: "grey.200"
+                }}>Status</TableCell>
+                <TableCell width="10%" align="center" sx={{
+                  borderBottom: "1px solid",
+                  borderColor: "grey.200"
+                }}>Chats</TableCell>
+                <TableCell width="16%" align="center" sx={{
+                  borderBottom: "1px solid",
+                  borderColor: "grey.200"
+                }}>Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {pagedAgents.length > 0 ? (
                 pagedAgents.map((agent, index) => {
                   const pos = (page - 1) * ITEMS_PER_PAGE + index + 1;
-                  const isFirst = pos === 1;
 
                   return (
                     <TableRow
@@ -344,24 +633,15 @@ const AgentsManagementView = () => {
                       sx={{
                         "&:last-child td, &:last-child th": { border: 0 },
                         transition: "background 0.15s",
-                        ...(isFirst && {
-                          bgcolor: "#0891b20f",
-                          borderLeft: "3px solid",
-                          borderLeftColor: "primary.main",
-                          "& td:first-of-type": { pl: 1.5 },
-                          "& td": { py: 2.5 },
-                        }),
+                        "& td": { py: 2.1 },
                       }}
                     >
                       {/* # */}
                       <TableCell align="center">
                         <Box sx={{
-                          width: isFirst ? 38 : 28, height: isFirst ? 38 : 28, borderRadius: 1.5, mx: "auto",
-                          bgcolor: isFirst ? "primary.main" : "grey.100",
-                          color: isFirst ? "#fff" : "grey.700",
+                          color: "grey.700",
                           display: "flex", alignItems: "center", justifyContent: "center",
-                          fontWeight: 700, fontSize: isFirst ? "1rem" : "0.8rem",
-                          ...(isFirst && { boxShadow: "0 2px 8px #0891b259" }),
+                          fontWeight: 700, fontSize: "0.8rem",
                         }}>
                           {pos}
                         </Box>
@@ -369,29 +649,21 @@ const AgentsManagementView = () => {
 
                       {/* Agent */}
                       <TableCell>
-                        <Stack direction="row" alignItems="center" spacing={isFirst ? 2 : 1.5}>
+                        <Stack direction="row" alignItems="center" spacing={1.5}>
                           <Avatar sx={{
-                            width: isFirst ? 46 : 36, height: isFirst ? 46 : 36,
+                            width: 36, height: 36,
                             bgcolor: getAvatarColor(agent.id),
-                            fontSize: isFirst ? "1.1rem" : "0.875rem", fontWeight: 700,
-                            ...(isFirst && { boxShadow: "0 0 0 2px #0891b2" }),
+                            fontSize: "0.875rem", fontWeight: 700,
                           }}>
                             {agent.name.charAt(0)}
                           </Avatar>
                           <Box>
                             <Stack direction="row" alignItems="center" spacing={1}>
-                              <Typography variant={isFirst ? "body1" : "body2"} sx={{ fontWeight: isFirst ? 700 : 600, color: "grey.900", lineHeight: 1.2 }}>
+                              <Typography variant="body2" sx={{ fontWeight: 600, color: "grey.900", lineHeight: 1.2 }}>
                                 {agent.name}
                               </Typography>
-                              {isFirst && (
-                                <Chip label="Top Agent" size="small" sx={{
-                                  height: 20, fontSize: "0.65rem", fontWeight: 800,
-                                  bgcolor: "primary.main", color: "#fff", letterSpacing: "0.03em",
-                                  "& .MuiChip-label": { px: 0.75, py: 0 },
-                                }} />
-                              )}
                             </Stack>
-                            <Typography variant="caption" sx={{ color: "text.secondary", fontSize: isFirst ? "0.75rem" : "0.7rem" }}>{agent.id}</Typography>
+                            <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.7rem" }}>{agent.id}</Typography>
                           </Box>
                         </Stack>
                       </TableCell>
@@ -403,6 +675,20 @@ const AgentsManagementView = () => {
                         </Typography>
                       </TableCell>
 
+                      {/* Role */}
+                      <TableCell align="center">
+                        <Chip
+                          label={formatRole(agent.role)}
+                          size="small"
+                          sx={{
+                            ...lightChipSx,
+                            bgcolor: agent.role === "SUPPORT_AGENT" ? "#e0f2fe" : "#ffedd5",
+                            color: agent.role === "SUPPORT_AGENT" ? "#0e7490" : "#d97706",
+                            height: 24,
+                          }}
+                        />
+                      </TableCell>
+
                       {/* Status */}
                       <TableCell align="center">
                         <Chip
@@ -410,10 +696,10 @@ const AgentsManagementView = () => {
                           label={agent.status}
                           size="small"
                           sx={{
-                            bgcolor: agent.status === "Online" ? "#16A34A1F" : "#0000000F",
-                            color: agent.status === "Online" ? "success.dark" : "grey.700",
-                            fontWeight: 600,
-                            height: isFirst ? 28 : 24,
+                            ...lightChipSx,
+                            bgcolor: agent.status === "Online" ? "#dcfce7" : "#f1f5f9",
+                            color: agent.status === "Online" ? "success.dark" : "grey.500",
+                            height: 24,
                             "& .MuiChip-icon": { ml: 1, color: "inherit" },
                           }}
                         />
@@ -421,7 +707,7 @@ const AgentsManagementView = () => {
 
                       {/* Chats */}
                       <TableCell align="center">
-                        <Typography variant="body2" sx={{ fontWeight: 700, color: isFirst ? "primary.dark" : "text.secondary" }}>
+                        <Typography variant="body2" sx={{ fontWeight: 700, color: "text.secondary" }}>
                           {agent.chatsHandled}
                         </Typography>
                       </TableCell>
@@ -429,23 +715,65 @@ const AgentsManagementView = () => {
                       {/* Actions */}
                       <TableCell align="center">
                         <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
-                          <Button
-                            onClick={() => handleEditOpen(agent)}
-                            variant="outlined"
-                            size="small"
-                            sx={{ minWidth: 0, px: 2, py: 0.5, color: "grey.700", borderColor: "grey.300", bgcolor: "grey.50", "&:hover": { bgcolor: "grey.100", borderColor: "grey.400" } }}
+                          <Tooltip title="View agent details" placement="bottom">
+                            <IconButton
+                              onClick={() => handleViewAgent(agent.id)}
+                              size="small"
+                              sx={{
+                                color: "#94a3b8",
+                                bgcolor: "transparent",
+                                border: "none",
+                                "&:hover": { bgcolor: "transparent", color: "#64748b" },
+                              }}
+                            >
+                              <Eye size={16} />
+                            </IconButton>
+                          </Tooltip>
+
+                          <Tooltip title="Edit agent" placement="bottom">
+                            <IconButton
+                              onClick={() => handleEditOpen(agent)}
+                              size="small"
+                              sx={{
+                                color: "#94a3b8",
+                                bgcolor: "transparent",
+                                border: "none",
+                                "&:hover": { bgcolor: "transparent", color: "#64748b" },
+                              }}
+                            >
+                              <Pencil size={16} />
+                            </IconButton>
+                          </Tooltip>
+
+                          <Tooltip
+                            title={
+                              isOwnAccount(agent.id)
+                                ? "Owner cannot delete her own account."
+                                : "Remove agent"
+                            }
+                            placement="bottom"
                           >
-                            Edit
-                          </Button>
-                          <Button
-                            onClick={() => handleRemoveAgent(agent.id)}
-                            variant="outlined"
-                            color="error"
-                            size="small"
-                            sx={{ minWidth: 0, px: 2, py: 0.5, borderColor: "error.light", bgcolor: "error.lighter", "&:hover": { bgcolor: "error.light", color: "white" } }}
-                          >
-                            Remove
-                          </Button>
+                            <span>
+                              <IconButton
+                                onClick={() => {
+                                  if (isOwnAccount(agent.id)) {
+                                    return;
+                                  }
+                                  setAgentToDelete(agent);
+                                }}
+                                size="small"
+                                disabled={isOwnAccount(agent.id)}
+                                sx={{
+                                  color: "#ef4444",
+                                  bgcolor: "transparent",
+                                  border: "none",
+                                  "&:hover": { bgcolor: "transparent", color: "#dc2626" },
+                                }}
+                              >
+                                <Trash2 size={16} />
+                              </IconButton>
+                            </span>
+                          </Tooltip>
                         </Stack>
                       </TableCell>
                     </TableRow>
@@ -461,137 +789,246 @@ const AgentsManagementView = () => {
         <PaginationBar />
       </Paper>
 
-      {/* ── Edit Agent Dialog ── */}
-      <Dialog open={!!editAgent} onClose={handleEditClose} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
-        <DialogTitle sx={{ fontWeight: 700, color: "grey.900" }}>Edit Agent</DialogTitle>
-        <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: "16px !important" }}>
-          <TextField
-            label="Name"
-            value={editForm.name}
-            onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-            fullWidth size="small"
-          />
-          <TextField
-            label="Email"
-            value={editForm.email}
-            onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-            fullWidth size="small"
-          />
-          <FormControl fullWidth size="small">
-            <InputLabel>Role</InputLabel>
-            <Select
-              value={editForm.role}
-              label="Role"
-              onChange={(e) => setEditForm({ ...editForm, role: e.target.value as "Admin" | "Support Agent" })}
-            >
-              <MenuItem key="role-admin" value="Admin">Admin</MenuItem>
-              <MenuItem key="role-support-agent" value="Support Agent">Support Agent</MenuItem>
-            </Select>
-          </FormControl>
-          <Box
-            sx={{
-              display: "flex", alignItems: "center", justifyContent: "space-between",
-              px: 1.5, py: 1, borderRadius: 2,
-              border: "1px solid", borderColor: editForm.autoAssign ? "#0891b240" : "grey.200",
-              bgcolor: editForm.autoAssign ? "#0891b20a" : "grey.50",
-              transition: "all 0.2s",
-            }}
-          >
-            <Box>
-              <Typography variant="body2" sx={{ fontWeight: 600, color: "grey.800" }}>
-                Auto Assign
-              </Typography>
-              <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                Automatically assign incoming chats to this agent
-              </Typography>
-            </Box>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={editForm.autoAssign}
-                  onChange={(e) => setEditForm({ ...editForm, autoAssign: e.target.checked })}
-                  size="small"
-                  sx={{
-                    "& .MuiSwitch-switchBase.Mui-checked": { color: "#0891b2" },
-                    "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track": { bgcolor: "#0891b2" },
-                  }}
-                />
-              }
-              label={
-                <Typography variant="caption" sx={{ fontWeight: 700, color: editForm.autoAssign ? "#0891b2" : "grey.500" }}>
-                  {editForm.autoAssign ? "ON" : "OFF"}
-                </Typography>
-              }
-              labelPlacement="start"
-              sx={{ m: 0, gap: 0.5 }}
-            />
-          </Box>
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2.5 }}>
-          <Button onClick={handleEditClose} sx={{ color: "grey.600" }}>Cancel</Button>
-          <Button onClick={handleEditSave} variant="contained" color="primary">Save</Button>
-        </DialogActions>
-      </Dialog>
+      <AgentEditDialog
+        open={!!editAgent}
+        onClose={handleEditClose}
+        onSave={handleEditSave}
+        formValues={editForm}
+        onChange={setEditForm}
+        maxWidth="xs"
+      />
 
       {/* ── Add Agent Dialog ── */}
-      <Dialog open={addOpen} onClose={handleAddClose} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
-        <DialogTitle sx={{ fontWeight: 700, color: "grey.900" }}>Add New Agent</DialogTitle>
-        <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: "16px !important" }}>
-          {inviteRows.map((row, index) => (
-            <Stack key={index} direction="row" alignItems="center" spacing={1.5}>
-              <TextField
-                label="Email"
-                value={row.email}
-                onChange={(e) => handleUpdateRow(index, "email", e.target.value)}
-                error={!!inviteErrors[index].email}
-                helperText={inviteErrors[index].email}
-                fullWidth size="small"
-                placeholder="e.g. jane.s@jafdigital.com"
-              />
-              <FormControl size="small" sx={{ minWidth: 160 }}>
-                <InputLabel>Role</InputLabel>
-                <Select
-                  value={row.role}
-                  label="Role"
-                  onChange={(e) => handleUpdateRow(index, "role", e.target.value as "Admin" | "Support Agent")}
-                >
-                  <MenuItem key="role-admin" value="Admin">Admin</MenuItem>
-                  <MenuItem key="role-support-agent" value="Support Agent">Support Agent</MenuItem>
-                </Select>
-              </FormControl>
-              <IconButton
-                onClick={() => handleRemoveRow(index)}
-                disabled={inviteRows.length <= 1}
-                size="small"
-                sx={{ color: "grey.500", "&:hover": { color: "grey.700" } }}
+      <Dialog open={addOpen} onClose={handleAddClose} maxWidth="md" fullWidth PaperProps={{ sx: { borderRadius: 1 } }}>
+        <DialogTitle sx={{ p: 0 }}>
+          <Stack direction="row" alignItems="flex-start" justifyContent="space-between" sx={{ px: 3, pt: 3, pb: 1 }}>
+            <Box>
+              <Typography variant="h5" sx={{ fontWeight: 800, color: "grey.900", lineHeight: 1.2 }}>
+                Add New Agents
+              </Typography>
+              <Typography variant="body2" sx={{ mt: 0.6, color: "text.secondary", fontWeight: 500 }}>
+                Fill in the details below to stage new team members.
+              </Typography>
+            </Box>
+            <IconButton onClick={handleAddClose} sx={{ color: "grey.400" }}>
+              <X size={22} />
+            </IconButton>
+          </Stack>
+        </DialogTitle>
+        <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: "8px !important", pb: "10px !important" }}>
+          <Stack direction={{ xs: "column", md: "row" }} spacing={1.5} alignItems={{ xs: "stretch", md: "flex-start" }}>
+            <TextField
+              value={draftName}
+              onChange={(e) => {
+                setDraftName(e.target.value);
+                if (draftErrors.name) setDraftErrors((prev) => ({ ...prev, name: "" }));
+              }}
+              error={Boolean(draftErrors.name)}
+              helperText={draftErrors.name}
+              fullWidth
+              placeholder="Full Name"
+              size="small"
+              InputProps={{
+                startAdornment: <User size={16} color="#94a3b8" style={{ marginRight: 8 }} />,
+                sx: {
+                  height: 54,
+                  borderRadius: 1,
+                },
+              }}
+            />
+            <TextField
+              value={draftEmail}
+              onChange={(e) => {
+                setDraftEmail(e.target.value);
+                if (draftErrors.email) setDraftErrors((prev) => ({ ...prev, email: "" }));
+              }}
+              error={Boolean(draftErrors.email)}
+              helperText={draftErrors.email}
+              fullWidth
+              placeholder="Email Address"
+              size="small"
+              InputProps={{
+                startAdornment: <Mail size={16} color="#94a3b8" style={{ marginRight: 8 }} />,
+                sx: {
+                  height: 54,
+                  borderRadius: 1,
+                },
+              }}
+            />
+            <Button
+              onClick={handleStageAgent}
+              variant="contained"
+              disableElevation
+              startIcon={<Plus size={16} />}
+              sx={{
+                minWidth: 112,
+                height: 54,
+                borderRadius: 1,
+                bgcolor: "#cbd5e1",
+                color: "#fff",
+                "&:hover": { bgcolor: "#94a3b8" },
+              }}
+            >
+              Add
+            </Button>
+          </Stack>
+
+          <Stack spacing={1.25}>
+            {inviteRows.map((row, index) => (
+              <Paper
+                key={index}
+                elevation={0}
+                sx={{
+                  p: 1.5,
+                  border: "1px solid",
+                  borderColor: "grey.200",
+                  borderRadius: 1,
+                }}
               >
-                <Trash2 size={16} />
-              </IconButton>
-            </Stack>
-          ))}
-          <Button
-            onClick={handleAddRow}
-            variant="outlined"
-            size="small"
-            sx={{ mt: 1, color: "grey.700", borderColor: "grey.300", bgcolor: "grey.50", "&:hover": { bgcolor: "grey.100", borderColor: "grey.400" } }}
-          >
-            Add Another Agent
-          </Button>
-          <Box sx={{ mt: 2 }}>
-            <Typography variant="body2" sx={{ color: "text.secondary" }}>Or invite agents via link:</Typography>
+                <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1.5}>
+                  <Stack direction="row" alignItems="center" spacing={1.5}>
+                    <Avatar sx={{ bgcolor: "#0891b2", color: "#ffffff", width: 52, height: 52, fontWeight: 800 }}>
+                      {(row.name?.trim().charAt(0) || row.email.charAt(0) || "A").toUpperCase()}
+                    </Avatar>
+                    <Box>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 800, color: "grey.900", lineHeight: 1.1 }}>
+                        {row.name}
+                      </Typography>
+                      <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.45 }}>
+                        {row.email}
+                      </Typography>
+                    </Box>
+                  </Stack>
+
+                  <Stack direction="row" alignItems="center" spacing={0.8}>
+                    <FormControl size="small" sx={{ minWidth: 170 }}>
+                      <Select
+                        value={row.role}
+                        onChange={(e) => handleUpdateRow(index, "role", e.target.value)}
+                        sx={{ borderRadius: 1, bgcolor: "grey.50", fontWeight: 700 }}
+                      >
+                        <MenuItem value="ADMIN">Admin</MenuItem>
+                        <MenuItem value="SUPPORT_AGENT">Support Agent</MenuItem>
+                      </Select>
+                    </FormControl>
+                    <IconButton
+                      onClick={() => handleRemoveRow(index)}
+                      size="small"
+                      sx={{ color: "grey.400", "&:hover": { color: "error.main", bgcolor: "#fee2e2" } }}
+                    >
+                      <Trash2 size={16} />
+                    </IconButton>
+                  </Stack>
+                </Stack>
+              </Paper>
+            ))}
+          </Stack>
+
+
+
+
+
+        </DialogContent>
+        <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ m: 2, px: 3, py: 1.5, borderTop: "1px solid", borderColor: "grey.200", bgcolor: "grey.50" }}>
+
+          <Box sx={{ mt: 1.5 }}>
             <Stack direction="row" alignItems="center" spacing={1}>
-              <Link2 size={16} color="#0891b2" />
-              <Typography variant="body2" sx={{ color: "primary.main", cursor: "pointer" }} onClick={handleCopyInviteLink}>
-                {inviteCopied ? "Copied!" : "https://jafchatra.com/invite/join-team"}
+              <Link2 size={16} color="#94a3b8" />
+              <Typography variant="body2" sx={{ color: "#94a3b8", fontWeight: 700 }}>
+                Or invite agents via link
+              </Typography>
+              <Typography variant="body2" sx={{ color: "primary.main", cursor: "pointer", fontWeight: 700 }} onClick={handleCopyInviteLink}>
+                {inviteCopied ? "Copied!" : "Copy"}
               </Typography>
             </Stack>
           </Box>
+
+          <DialogActions sx={{}}>
+
+            <Button onClick={handleAddClose} sx={{ color: "grey.600", fontWeight: 700 }}>Cancel</Button>
+            <Button
+              onClick={handleAddSave}
+              variant="contained"
+              color="primary"
+              disabled={isAddingAgents || inviteRows.length === 0}
+              startIcon={<UserPlus size={16} />}
+              sx={{ px: 3.2, borderRadius: 1, fontWeight: 800 }}
+            >
+              {isAddingAgents ? "Adding..." : `Add ${inviteRows.length} Agents`}
+            </Button>
+          </DialogActions>
+        </Box>
+      </Dialog>
+
+      {/* ── Delete Agent Confirmation Dialog ── */}
+      <Dialog
+        open={!!agentToDelete}
+        onClose={() => (!isDeletingAgent ? setAgentToDelete(null) : null)}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 1 } }}
+      >
+        <DialogTitle sx={{ fontWeight: 700, color: "grey.900" }}>Delete Agent</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" sx={{ color: "text.secondary" }}>
+            Are you sure you want to delete
+            {" "}
+            <Typography component="span" variant="body2" sx={{ fontWeight: 700, color: "grey.900" }}>
+              {agentToDelete?.name}
+            </Typography>
+            ? This action cannot be undone.
+          </Typography>
+          {agentToDelete && isOwnAccount(agentToDelete.id) && (
+            <Typography variant="caption" sx={{ color: "error.main", mt: 1.5, display: "block", fontWeight: 600 }}>
+              Admin cannot remove her own account.
+            </Typography>
+          )}
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2.5 }}>
-          <Button onClick={handleAddClose} sx={{ color: "grey.600" }}>Cancel</Button>
-          <Button onClick={handleAddSave} variant="contained" color="primary" startIcon={<UserPlus size={16} />}>Add Agent</Button>
+          <Button
+            onClick={() => setAgentToDelete(null)}
+            disabled={isDeletingAgent}
+            sx={{ color: "grey.600" }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={() => agentToDelete && handleRemoveAgent(agentToDelete.id)}
+            variant="contained"
+            color="error"
+            disabled={isDeletingAgent || (agentToDelete ? isOwnAccount(agentToDelete.id) : false)}
+          >
+            {isDeletingAgent ? "Deleting..." : "Delete"}
+          </Button>
         </DialogActions>
+
+
       </Dialog>
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000}
+        onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
+      >
+        <Alert
+          onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+          severity={activeSnackbarTone.severity}
+          variant="standard"
+          sx={{
+            width: "100%",
+            bgcolor: activeSnackbarTone.bgcolor,
+            color: activeSnackbarTone.color,
+            border: "1px solid",
+            borderColor: activeSnackbarTone.borderColor,
+            "& .MuiAlert-icon": { color: activeSnackbarTone.color },
+            "& .MuiAlert-action": { color: activeSnackbarTone.color },
+          }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+
     </Box>
   );
 }

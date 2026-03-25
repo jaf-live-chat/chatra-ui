@@ -65,6 +65,16 @@ const PortalRoutes: RouteObject[] = [
                 ),
               },
               {
+                path: "agents/:id",
+                element: (
+                  <AuthGuard
+                    allowedRoles={[USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value]}
+                  >
+                    <Dashboard />
+                  </AuthGuard>
+                ),
+              },
+              {
                 path: "queue",
                 element: (
                   <AuthGuard
