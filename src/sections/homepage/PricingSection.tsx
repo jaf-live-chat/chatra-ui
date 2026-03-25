@@ -1,14 +1,15 @@
 import { Box, Typography, Button, Container, Grid, Dialog, TextField, Stack, IconButton } from "@mui/material";
 import { Check, X, Info, CheckCircle2, Loader2 } from "lucide-react";
 import { Link } from "react-router";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import { useGetSubscriptionPlans } from "../../services/subscriptionPlanServices";
 
 const fallbackPlans = [
   {
     name: "Free Trial",
     description: "Try JAF Chatra free for 14 days, no credit card required.",
-    price: "$0",
+    price: "₱0",
     period: "/14 days",
     features: [
       "1 Agent Seat",
@@ -24,7 +25,7 @@ const fallbackPlans = [
   {
     name: "Starter",
     description: "Perfect for small projects and personal sites.",
-    price: "$12",
+    price: "₱12",
     period: "/mo",
     features: [
       "1 Agent Seat",
@@ -40,7 +41,7 @@ const fallbackPlans = [
   {
     name: "Pro",
     description: "For growing businesses that need AI power.",
-    price: "$29",
+    price: "₱29",
     period: "/mo",
     features: [
       "Up to 5 Agent Seats",
@@ -56,41 +57,35 @@ const fallbackPlans = [
   },
 ];
 
-function loadPlansFromStorage() {
-  try {
-    const stored = localStorage.getItem("jaf_subscription_plans");
-    if (stored) {
-      const adminPlans = JSON.parse(stored) as Array<{
-        id: string;
-        name: string;
-        description: string;
-        price: string;
-        period: string;
-        features: Array<{ id: string; text: string }>;
-        popular: boolean;
-        active: boolean;
-      }>;
-      const activePlans = adminPlans.filter((p) => p.active);
-      if (activePlans.length > 0) {
-        // Always prepend the Free Trial card
-        const freeTrial = fallbackPlans[0];
-        const mapped = activePlans.map((p) => ({
-          name: p.name,
-          description: p.description,
-          price: `$${p.price}`,
-          period: p.period,
-          features: p.features.map((f) => f.text),
-          buttonText: "Get Started",
-          buttonVariant: p.popular ? "primary" : "light",
-          popular: p.popular,
-          link: `/checkout/${p.id}`,
-        }));
-        return [freeTrial, ...mapped];
-      }
-    }
-  } catch { /* fall through */ }
-  return fallbackPlans;
-}
+const formatPhp = (value: number) =>
+  new Intl.NumberFormat("en-PH", {
+    style: "currency",
+    currency: "PHP",
+    maximumFractionDigits: 0,
+  }).format(value);
+
+const getPeriodLabel = (billingCycle: string, interval: number) => {
+  if (billingCycle === "monthly" && interval === 1) return "/mo";
+  if (billingCycle === "yearly" && interval === 1) return "/yr";
+  if (billingCycle === "daily") {
+    return `/${interval} ${interval === 1 ? "day" : "days"}`;
+  }
+  return `/${interval} ${billingCycle}`;
+};
+
+const centerMostPopularPlan = <T extends { popular: boolean }>(items: T[]) => {
+  const plans = [...items];
+  const popularIndex = plans.findIndex((plan) => plan.popular);
+
+  if (popularIndex === -1 || plans.length <= 1) {
+    return plans;
+  }
+
+  const middleIndex = Math.floor(plans.length / 2);
+  const [popularPlan] = plans.splice(popularIndex, 1);
+  plans.splice(middleIndex, 0, popularPlan);
+  return plans;
+};
 
 const teamAvatars = [
   "https://images.unsplash.com/photo-1655249493799-9cee4fe983bb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwcm9mZXNzaW9uYWwlMjB3b21hbiUyMGhlYWRzaG90JTIwcG9ydHJhaXR8ZW58MXx8fHwxNzczNzU1MzAwfDA&ixlib=rb-4.1.0&q=80&w=1080",
@@ -114,15 +109,29 @@ const PricingSection = () => {
   const [contactSent, setContactSent] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const timeout2Ref = useRef<NodeJS.Timeout | null>(null);
+  const { plans: fetchedPlans, isLoading } = useGetSubscriptionPlans();
 
-  const [plans, setPlans] = useState(loadPlansFromStorage);
+  const plans = useMemo(() => {
+    const postedPlans = fetchedPlans.filter((plan) => plan.isPosted);
 
-  // Re-read plans from localStorage when the component mounts or storage changes
-  useEffect(() => {
-    const handleStorage = () => setPlans(loadPlansFromStorage());
-    window.addEventListener("storage", handleStorage);
-    return () => window.removeEventListener("storage", handleStorage);
-  }, []);
+    if (postedPlans.length === 0) {
+      return centerMostPopularPlan(fallbackPlans);
+    }
+
+    const mappedPlans = postedPlans.map((plan) => ({
+      name: plan.name,
+      description: plan.description,
+      price: formatPhp(plan.price),
+      period: getPeriodLabel(plan.billingCycle, plan.interval),
+      features: plan.features,
+      buttonText: plan.price === 0 ? "Start Free Trial" : "Get Started",
+      buttonVariant: plan.isMostPopular ? "primary" : "light",
+      popular: plan.isMostPopular,
+      link: `/checkout/${plan._id}`,
+    }));
+
+    return centerMostPopularPlan(mappedPlans);
+  }, [fetchedPlans]);
 
   // Cleanup timeouts on unmount
   useEffect(() => {
@@ -187,6 +196,12 @@ const PricingSection = () => {
         </Box>
 
         {/* Pricing Cards */}
+        {isLoading && (
+          <Typography sx={{ color: "#64748BFF", textAlign: "center", mb: 3 }}>
+            Loading plans...
+          </Typography>
+        )}
+
         <Grid container spacing={4} sx={{ alignItems: "stretch" }}>
           {plans.map((plan) => {
             const isPro = plan.popular;
