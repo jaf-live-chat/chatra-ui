@@ -5,58 +5,6 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useGetSubscriptionPlans } from "../../services/subscriptionPlanServices";
 
-const fallbackPlans = [
-  {
-    name: "Free Trial",
-    description: "Try JAF Chatra free for 14 days, no credit card required.",
-    price: "₱0",
-    period: "/14 days",
-    features: [
-      "1 Agent Seat",
-      "14-day chat history",
-      "Basic widget customization",
-      "Community support"
-    ],
-    buttonText: "Start Free Trial",
-    buttonVariant: "light",
-    popular: false,
-    link: "/checkout/free-trial",
-  },
-  {
-    name: "Starter",
-    description: "Perfect for small projects and personal sites.",
-    price: "₱12",
-    period: "/mo",
-    features: [
-      "1 Agent Seat",
-      "14-day chat history",
-      "Basic widget customization",
-      "Community support"
-    ],
-    buttonText: "Get Started",
-    buttonVariant: "light",
-    popular: false,
-    link: "/checkout/starter",
-  },
-  {
-    name: "Pro",
-    description: "For growing businesses that need AI power.",
-    price: "₱29",
-    period: "/mo",
-    features: [
-      "Up to 5 Agent Seats",
-      "Unlimited chat history",
-      "AI-Powered Drafts",
-      "Advanced routing rules",
-      "Remove \"Powered by\" branding"
-    ],
-    buttonText: "Get Started",
-    buttonVariant: "primary",
-    popular: true,
-    link: "/checkout/pro",
-  },
-];
-
 const formatPhp = (value: number) =>
   new Intl.NumberFormat("en-PH", {
     style: "currency",
@@ -113,10 +61,6 @@ const PricingSection = () => {
 
   const plans = useMemo(() => {
     const postedPlans = fetchedPlans.filter((plan) => plan.isPosted);
-
-    if (postedPlans.length === 0) {
-      return centerMostPopularPlan(fallbackPlans);
-    }
 
     const mappedPlans = postedPlans.map((plan) => ({
       name: plan.name,

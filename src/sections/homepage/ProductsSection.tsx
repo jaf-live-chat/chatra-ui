@@ -83,7 +83,7 @@ const ProductsSection = () => {
 
                 <div className="flex flex-wrap gap-4 mt-auto">
                   <Link
-                    to="/checkout/free-trial"
+                    to="/checkout/free-plan"
                     className="text-white px-6 py-3 rounded-xl transition-all flex items-center gap-2 group cursor-pointer"
                     style={{ fontFamily: "Inter, sans-serif", fontWeight: 600, fontSize: "1rem", backgroundColor: "#0891b2", boxShadow: "0 10px 15px -3px #0891b233" }}
                     onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#0e7490")}

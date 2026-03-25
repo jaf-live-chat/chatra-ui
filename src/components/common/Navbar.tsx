@@ -333,7 +333,7 @@ const Navbar = () => {
               </Button>
               <Button
                 component={Link}
-                to="/checkout/free-trial"
+                to="/checkout/free-plan"
                 variant="contained"
                 sx={{
                   bgcolor: btnColor,

@@ -49,39 +49,6 @@ const pesoFormatter = new Intl.NumberFormat("en-PH", {
   minimumFractionDigits: 2,
 });
 
-const fallbackPlans: CheckoutPlan[] = [
-  {
-    id: "free-trial",
-    slug: "free-trial",
-    name: "Free Trial",
-    description: "Try JAF Chatra with core support tools.",
-    price: 0,
-    billingCycle: "monthly",
-    interval: 1,
-    features: ["1 agent", "1 website", "14-day access"],
-  },
-  {
-    id: "starter",
-    slug: "starter",
-    name: "Starter",
-    description: "For growing teams handling daily conversations.",
-    price: 12,
-    billingCycle: "monthly",
-    interval: 1,
-    features: ["3 agents", "3 websites", "Priority email support"],
-  },
-  {
-    id: "pro",
-    slug: "pro",
-    name: "Pro",
-    description: "Advanced automation and team collaboration features.",
-    price: 29,
-    billingCycle: "monthly",
-    interval: 1,
-    features: ["10 agents", "10 websites", "AI assistant drafts"],
-  },
-];
-
 const steps = ["Account Information", "Summary"];
 
 const slugifyPlanName = (name: string) =>
@@ -139,9 +106,6 @@ const Checkout = () => {
   });
 
   const plans = useMemo<CheckoutPlan[]>(() => {
-    if (!fetchedPlans?.length) {
-      return fallbackPlans;
-    }
 
     return fetchedPlans.map((plan) => ({
       id: plan._id,
@@ -156,9 +120,6 @@ const Checkout = () => {
   }, [fetchedPlans]);
 
   const selectedPlan = useMemo(() => {
-    if (!plans.length) {
-      return fallbackPlans[2];
-    }
     return plans.find((p) => p.id === planId || p.slug === planId) || plans[0];
   }, [plans, planId]);
 

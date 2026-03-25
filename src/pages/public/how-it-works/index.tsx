@@ -126,7 +126,7 @@ const HowItWorksPage = () => {
 
             <div className="text-center mt-12">
               <Link
-                to="/free-trial"
+                to="/checkout/free-plan"
                 className="inline-block bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl transition-colors"
                 style={{
                   fontFamily: "Inter, sans-serif",
