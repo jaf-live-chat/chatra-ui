@@ -139,6 +139,26 @@ const PortalRoutes: RouteObject[] = [
                 ),
               },
               {
+                path: "subscription-plans",
+                element: (
+                  <AuthGuard
+                    allowedRoles={[USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value]}
+                  >
+                    <Dashboard />
+                  </AuthGuard>
+                ),
+              },
+              {
+                path: "homepage-faqs",
+                element: (
+                  <AuthGuard
+                    allowedRoles={[USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value]}
+                  >
+                    <Dashboard />
+                  </AuthGuard>
+                ),
+              },
+              {
                 path: "tools",
                 element: (
                   <AuthGuard
@@ -150,6 +170,16 @@ const PortalRoutes: RouteObject[] = [
               },
               {
                 path: "quick-replies",
+                element: (
+                  <AuthGuard
+                    allowedRoles={[USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value]}
+                  >
+                    <Dashboard />
+                  </AuthGuard>
+                ),
+              },
+              {
+                path: "queue-assignment",
                 element: (
                   <AuthGuard
                     allowedRoles={[USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value]}

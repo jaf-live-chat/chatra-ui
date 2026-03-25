@@ -17,11 +17,10 @@ function ChatBubble({ text, isAgent, time }: { text: string; isAgent: boolean; t
         )}
       </div>
       <div
-        className={`max-w-[160px] px-3 py-2 rounded-2xl ${
-          isAgent
-            ? "bg-blue-600 text-white rounded-br-sm"
-            : "bg-white text-gray-700 border border-gray-100 rounded-bl-sm shadow-sm"
-        }`}
+        className={`max-w-[160px] px-3 py-2 rounded-2xl ${isAgent
+          ? "bg-blue-600 text-white rounded-br-sm"
+          : "bg-white text-gray-700 border border-gray-100 rounded-bl-sm shadow-sm"
+          }`}
         style={{ fontSize: "0.72rem", fontFamily: "Inter, sans-serif" }}
       >
         <p>{text}</p>
@@ -115,7 +114,7 @@ const HeroSection = () => {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4">
-              {["No credit card required", "Free 14-day trial", "Cancel anytime"].map((item) => (
+              {["Free 3-day trial", "Cancel anytime"].map((item) => (
                 <div key={item} className="flex items-center gap-2">
                   <CheckCircle className="w-4 h-4 text-blue-500" />
                   <span

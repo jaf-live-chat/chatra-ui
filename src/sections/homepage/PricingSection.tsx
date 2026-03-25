@@ -286,33 +286,33 @@ const PricingSection = () => {
                   </Box>
 
                   <Button
-                      component={Link}
-                      to={plan.link}
-                      fullWidth
-                      variant={plan.buttonVariant === "primary" ? "contained" : "outlined"}
-                      disableElevation
-                      sx={{
-                        py: 1.5,
-                        borderRadius: "9999px",
-                        textTransform: "none",
-                        fontSize: "1rem",
-                        fontWeight: 700,
-                        fontFamily: "inherit",
-                        ...(plan.buttonVariant === "primary"
-                          ? {
-                              bgcolor: cyanBtnColor,
-                              color: "#FFFFFFFF",
-                              "&:hover": { bgcolor: cyanBtnHover },
-                            }
-                          : {
-                              bgcolor: "#F8FAFCFF",
-                              color: navyColor,
-                              border: "1px solid #E2E8F0FF",
-                              "&:hover": { bgcolor: "#F1F5F9FF", border: "1px solid #E2E8F0FF" },
-                            }),
-                      }}
-                    >
-                      {plan.buttonText}
+                    component={Link}
+                    to={plan.link}
+                    fullWidth
+                    variant={plan.buttonVariant === "primary" ? "contained" : "outlined"}
+                    disableElevation
+                    sx={{
+                      py: 1.5,
+                      borderRadius: "9999px",
+                      textTransform: "none",
+                      fontSize: "1rem",
+                      fontWeight: 700,
+                      fontFamily: "inherit",
+                      ...(plan.buttonVariant === "primary"
+                        ? {
+                          bgcolor: cyanBtnColor,
+                          color: "#FFFFFFFF",
+                          "&:hover": { bgcolor: cyanBtnHover },
+                        }
+                        : {
+                          bgcolor: "#F8FAFCFF",
+                          color: navyColor,
+                          border: "1px solid #E2E8F0FF",
+                          "&:hover": { bgcolor: "#F1F5F9FF", border: "1px solid #E2E8F0FF" },
+                        }),
+                    }}
+                  >
+                    {plan.buttonText}
                   </Button>
                 </Box>
               </Grid>
