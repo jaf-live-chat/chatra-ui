@@ -16,6 +16,7 @@ import HomepageFaqsPage from "../pages/portal/homepage-faqs";
 import QuickRepliesPage from "../pages/portal/quick-replies";
 import QueueAssignmentPage from "../pages/portal/queue-assignment";
 import AgentSettingsPage from "../sections/settings/AgentSettingsPage";
+import Tenants from "../pages/portal/tenants";
 
 const PortalRoutes: RouteObject[] = [
   {
@@ -201,6 +202,16 @@ const PortalRoutes: RouteObject[] = [
                     allowedRoles={[USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value, USER_ROLES.SUPPORT_AGENT.value]}
                   >
                     <ChatSessionManagementPage />
+                  </AuthGuard>
+                ),
+              },
+              {
+                path: "tenants",
+                element: (
+                  <AuthGuard
+                    allowedRoles={[USER_ROLES.MASTER_ADMIN.value]}
+                  >
+                    <Tenants />
                   </AuthGuard>
                 ),
               },

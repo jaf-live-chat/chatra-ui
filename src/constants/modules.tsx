@@ -83,6 +83,20 @@ const MODULE_GROUPS: ModuleGroup[] = [
     ],
   },
   {
+    id: "tenant-group",
+    label: "Tenants",
+    allowedRoles: [USER_ROLES.MASTER_ADMIN.value],
+    modules: [
+      {
+        id: "widget-settings",
+        label: "Tenants",
+        path: "/portal/tenants",
+        icon: <Building2 className="w-5 h-5" />,
+        allowedRoles: [USER_ROLES.MASTER_ADMIN.value],
+      },
+    ],
+  },
+  {
     id: "group-settings",
     label: "Settings",
     allowedRoles: [USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value],
