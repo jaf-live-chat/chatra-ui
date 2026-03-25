@@ -106,7 +106,7 @@ const MODULE_GROUPS: ModuleGroup[] = [
   {
     id: "group-content-hub",
     label: "Content Hub",
-    allowedRoles: [USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value],
+    allowedRoles: [USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value, USER_ROLES.SUPPORT_AGENT.value],
     modules: [
       {
         id: "content-company-info",
@@ -120,7 +120,7 @@ const MODULE_GROUPS: ModuleGroup[] = [
         label: "Subscription Plans",
         path: "/portal/subscription-plans",
         icon: <CreditCard className="w-5 h-5" />,
-        allowedRoles: [USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value],
+        allowedRoles: [USER_ROLES.MASTER_ADMIN.value],
       },
       {
         id: "content-homepage-faqs",
@@ -134,7 +134,7 @@ const MODULE_GROUPS: ModuleGroup[] = [
         label: "Quick Replies",
         path: "/portal/quick-replies",
         icon: <Zap className="w-5 h-5" />,
-        allowedRoles: [USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value],
+        allowedRoles: [USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value, USER_ROLES.SUPPORT_AGENT.value],
       },
     ],
   },
