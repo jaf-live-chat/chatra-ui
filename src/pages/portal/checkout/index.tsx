@@ -11,6 +11,8 @@ import InputAdornment from "@mui/material/InputAdornment";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Grid from "@mui/material/Grid";
+import Chip from "@mui/material/Chip";
+import { alpha, useTheme } from "@mui/material/styles";
 import {
   ArrowLeft,
   ShieldCheck,
@@ -85,6 +87,7 @@ const getPlanIcon = (slug: string) => {
 };
 
 const Checkout = () => {
+  const theme = useTheme();
   const { planId } = useParams();
   const navigate = useNavigate();
   const { plans: fetchedPlans, isLoading: isPlansLoading } = useGetSubscriptionPlans();
@@ -96,6 +99,7 @@ const Checkout = () => {
   const [checkoutError, setCheckoutError] = useState("");
 
   const [accountInfo, setAccountInfo] = useState({
+    companyName: "",
     fullName: "",
     companyCode: "",
     email: "",
@@ -104,6 +108,7 @@ const Checkout = () => {
   });
 
   const [accountErrors, setAccountErrors] = useState({
+    companyName: "",
     fullName: "",
     companyCode: "",
     email: "",
@@ -140,7 +145,7 @@ const Checkout = () => {
   const checkoutPayload = useMemo(
     () => ({
       subscriptionData: {
-        companyName: accountInfo.companyCode,
+        companyName: accountInfo.companyName,
         companyCode: accountInfo.companyCode,
         subscriptionPlanId: selectedPlan?.id,
         subscriptionStart: new Date().toISOString(),
@@ -151,14 +156,18 @@ const Checkout = () => {
         password: accountInfo.password,
       },
     }),
-    [accountInfo.companyCode, accountInfo.email, accountInfo.fullName, accountInfo.password, selectedPlan?.id]
+    [accountInfo.companyCode, accountInfo.companyName, accountInfo.email, accountInfo.fullName, accountInfo.password, selectedPlan?.id]
   );
 
   const handleAccountNext = (e: React.FormEvent) => {
     e.preventDefault();
-    const errors = { fullName: "", companyCode: "", email: "", password: "", confirmPassword: "" };
+    const errors = { companyName: "", fullName: "", companyCode: "", email: "", password: "", confirmPassword: "" };
     let hasError = false;
 
+    if (accountInfo.companyName.trim().length < 2) {
+      errors.companyName = "Please enter your company name";
+      hasError = true;
+    }
     if (accountInfo.fullName.trim().length < 2) {
       errors.fullName = "Please enter your full name";
       hasError = true;
@@ -369,11 +378,13 @@ const Checkout = () => {
             <Box sx={{ maxWidth: 840, width: "100%", display: "flex", flexDirection: "column", gap: 3 }}>
               <Paper
                 elevation={0}
+                className="shadow-sm"
                 sx={{
                   p: { xs: 2.5, sm: 3.5 },
-                  borderRadius: 4,
+                  borderRadius: "18px",
                   border: "1px solid",
                   borderColor: "divider",
+                  boxShadow: `0 10px 30px ${alpha(theme.palette.primary.dark, 0.08)}`,
                 }}
               >
                 <Box
@@ -385,7 +396,7 @@ const Checkout = () => {
                     mt: { xs: -2.5, sm: -3.5 },
                     px: { xs: 2.5, sm: 3.5 },
                     pt: { xs: 2.5, sm: 3.5 },
-                    borderRadius: "16px 16px 0 0",
+                    borderRadius: "14px 14px 0 0",
                     bgcolor: "grey.900",
                     color: "white",
                     position: "relative",
@@ -435,7 +446,7 @@ const Checkout = () => {
                             onClick={() => navigate(`/checkout/${planOption.slug}`, { replace: true })}
                             sx={{
                               p: 2,
-                              borderRadius: 2,
+                              borderRadius: "14px",
                               border: "1px solid",
                               borderColor: isActive ? "#06B6D4" : "#FFFFFF2B",
                               bgcolor: isActive ? "#0B3B4A99" : "transparent",
@@ -490,9 +501,16 @@ const Checkout = () => {
                     <Step key={label}>
                       <StepLabel
                         sx={{
+                          "& .MuiStepIcon-root": {
+                            color: alpha(theme.palette.primary.main, 0.25),
+                          },
+                          "& .MuiStepIcon-root.Mui-active, & .MuiStepIcon-root.Mui-completed": {
+                            color: theme.palette.primary.main,
+                          },
                           "& .MuiStepLabel-label": {
                             whiteSpace: "pre-line",
                             lineHeight: 1.2,
+                            fontWeight: 700,
                           },
                         }}
                       >
@@ -508,138 +526,204 @@ const Checkout = () => {
                       Account Information
                     </Typography>
                     <Stack spacing={2.5}>
-                      <TextField
-                        fullWidth
-                        label="Full Name"
-                        required
-                        placeholder="John Doe"
-                        value={accountInfo.fullName}
-                        onChange={(e) => setAccountInfo({ ...accountInfo, fullName: e.target.value })}
-                        slotProps={{
-                          input: {
-                            startAdornment: (
-                              <InputAdornment position="start">
-                                <User size={18} color="#9ca3af" />
-                              </InputAdornment>
-                            ),
-                          },
+                      <Box
+                        className="rounded-xl transition-shadow hover:shadow-sm"
+                        sx={{
+                          border: "1px solid",
+                          borderColor: alpha(theme.palette.primary.main, 0.2),
+                          bgcolor: alpha(theme.palette.primary.main, 0.03),
+                          borderRadius: "14px",
+                          p: { xs: 2, sm: 2.5 },
                         }}
-                        error={!!accountErrors.fullName}
-                        helperText={accountErrors.fullName}
-                      />
+                      >
+                        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+                          <Stack direction="row" spacing={1} alignItems="center">
+                            <Building2 size={16} color={theme.palette.primary.dark} />
+                            <Typography variant="subtitle2" sx={{ fontWeight: 800, color: "text.primary", letterSpacing: 0.2 }}>
+                              Company Information
+                            </Typography>
+                          </Stack>
+                          <Chip size="small" label="Required" color="info" variant="outlined" />
+                        </Stack>
 
-                      <TextField
-                        fullWidth
-                        label="Company Code"
-                        required
-                        placeholder="ABC123"
-                        value={accountInfo.companyCode}
-                        onChange={(e) => setAccountInfo({ ...accountInfo, companyCode: e.target.value })}
-                        slotProps={{
-                          input: {
-                            startAdornment: (
-                              <InputAdornment position="start">
-                                <Building2 size={18} color="#9ca3af" />
-                              </InputAdornment>
-                            ),
-                          },
-                        }}
-                        error={!!accountErrors.companyCode}
-                        helperText={accountErrors.companyCode}
-                      />
+                        <Stack spacing={2}>
+                          <TextField
+                            fullWidth
+                            label="Company Name"
+                            required
+                            placeholder="Acme Inc."
+                            value={accountInfo.companyName}
+                            onChange={(e) => setAccountInfo({ ...accountInfo, companyName: e.target.value })}
+                            slotProps={{
+                              input: {
+                                startAdornment: (
+                                  <InputAdornment position="start">
+                                    <Building2 size={18} color="#9ca3af" />
+                                  </InputAdornment>
+                                ),
+                              },
+                            }}
+                            error={!!accountErrors.companyName}
+                            helperText={accountErrors.companyName}
+                          />
 
-                      <TextField
-                        fullWidth
-                        label="Email Address"
-                        type="email"
-                        required
-                        placeholder="you@company.com"
-                        value={accountInfo.email}
-                        onChange={(e) => setAccountInfo({ ...accountInfo, email: e.target.value })}
-                        slotProps={{
-                          input: {
-                            startAdornment: (
-                              <InputAdornment position="start">
-                                <Mail size={18} color="#9ca3af" />
-                              </InputAdornment>
-                            ),
-                          },
-                        }}
-                        error={!!accountErrors.email}
-                        helperText={accountErrors.email}
-                      />
+                          <TextField
+                            fullWidth
+                            label="Company Code"
+                            required
+                            placeholder="ABC123"
+                            value={accountInfo.companyCode}
+                            onChange={(e) => setAccountInfo({ ...accountInfo, companyCode: e.target.value })}
+                            slotProps={{
+                              input: {
+                                startAdornment: (
+                                  <InputAdornment position="start">
+                                    <Building2 size={18} color="#9ca3af" />
+                                  </InputAdornment>
+                                ),
+                              },
+                            }}
+                            error={!!accountErrors.companyCode}
+                            helperText={accountErrors.companyCode}
+                          />
+                        </Stack>
+                      </Box>
 
-                      <TextField
-                        fullWidth
-                        label="Password"
-                        type={showPassword ? "text" : "password"}
-                        required
-                        placeholder="Create a password"
-                        value={accountInfo.password}
-                        onChange={(e) => setAccountInfo({ ...accountInfo, password: e.target.value })}
-                        slotProps={{
-                          input: {
-                            startAdornment: (
-                              <InputAdornment position="start">
-                                <Lock size={18} color="#9ca3af" />
-                              </InputAdornment>
-                            ),
-                            endAdornment: (
-                              <InputAdornment position="end">
-                                <IconButton
-                                  size="small"
-                                  onClick={() => setShowPassword(!showPassword)}
-                                  edge="end"
-                                >
-                                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                                </IconButton>
-                              </InputAdornment>
-                            ),
-                          },
+                      <Box
+                        className="rounded-xl transition-shadow hover:shadow-sm"
+                        sx={{
+                          border: "1px solid",
+                          borderColor: alpha(theme.palette.primary.main, 0.15),
+                          bgcolor: "background.paper",
+                          borderRadius: "14px",
+                          p: { xs: 2, sm: 2.5 },
                         }}
-                        error={!!accountErrors.password}
-                        helperText={accountErrors.password}
-                      />
+                      >
+                        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+                          <Stack direction="row" spacing={1} alignItems="center">
+                            <User size={16} color={theme.palette.primary.dark} />
+                            <Typography variant="subtitle2" sx={{ fontWeight: 800, color: "text.primary", letterSpacing: 0.2 }}>
+                              User Information
+                            </Typography>
+                          </Stack>
+                          <Chip size="small" label="Owner Account" color="primary" variant="outlined" />
+                        </Stack>
 
-                      <TextField
-                        fullWidth
-                        label="Confirm Password"
-                        type={showConfirmPassword ? "text" : "password"}
-                        required
-                        placeholder="Confirm your password"
-                        value={accountInfo.confirmPassword}
-                        onChange={(e) => setAccountInfo({ ...accountInfo, confirmPassword: e.target.value })}
-                        error={
-                          !!accountErrors.confirmPassword ||
-                          (accountInfo.confirmPassword.length > 0 && accountInfo.password !== accountInfo.confirmPassword)
-                        }
-                        helperText={
-                          accountErrors.confirmPassword ||
-                          (accountInfo.confirmPassword.length > 0 && accountInfo.password !== accountInfo.confirmPassword
-                            ? "Passwords do not match"
-                            : "")
-                        }
-                        slotProps={{
-                          input: {
-                            startAdornment: (
-                              <InputAdornment position="start">
-                                <Lock size={18} color="#9ca3af" />
-                              </InputAdornment>
-                            ),
-                            endAdornment: (
-                              <InputAdornment position="end">
-                                <IconButton
-                                  size="small"
-                                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                  edge="end"
-                                >
-                                  {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                                </IconButton>
-                              </InputAdornment>
-                            ),
-                          },
-                        }}
-                      />
+                        <Stack spacing={2}>
+                          <TextField
+                            fullWidth
+                            label="Full Name"
+                            required
+                            placeholder="John Doe"
+                            value={accountInfo.fullName}
+                            onChange={(e) => setAccountInfo({ ...accountInfo, fullName: e.target.value })}
+                            slotProps={{
+                              input: {
+                                startAdornment: (
+                                  <InputAdornment position="start">
+                                    <User size={18} color="#9ca3af" />
+                                  </InputAdornment>
+                                ),
+                              },
+                            }}
+                            error={!!accountErrors.fullName}
+                            helperText={accountErrors.fullName}
+                          />
+
+                          <TextField
+                            fullWidth
+                            label="Email Address"
+                            type="email"
+                            required
+                            placeholder="you@company.com"
+                            value={accountInfo.email}
+                            onChange={(e) => setAccountInfo({ ...accountInfo, email: e.target.value })}
+                            slotProps={{
+                              input: {
+                                startAdornment: (
+                                  <InputAdornment position="start">
+                                    <Mail size={18} color="#9ca3af" />
+                                  </InputAdornment>
+                                ),
+                              },
+                            }}
+                            error={!!accountErrors.email}
+                            helperText={accountErrors.email}
+                          />
+
+                          <TextField
+                            fullWidth
+                            label="Password"
+                            type={showPassword ? "text" : "password"}
+                            required
+                            placeholder="Create a password"
+                            value={accountInfo.password}
+                            onChange={(e) => setAccountInfo({ ...accountInfo, password: e.target.value })}
+                            slotProps={{
+                              input: {
+                                startAdornment: (
+                                  <InputAdornment position="start">
+                                    <Lock size={18} color="#9ca3af" />
+                                  </InputAdornment>
+                                ),
+                                endAdornment: (
+                                  <InputAdornment position="end">
+                                    <IconButton
+                                      size="small"
+                                      onClick={() => setShowPassword(!showPassword)}
+                                      edge="end"
+                                    >
+                                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                    </IconButton>
+                                  </InputAdornment>
+                                ),
+                              },
+                            }}
+                            error={!!accountErrors.password}
+                            helperText={accountErrors.password}
+                          />
+
+                          <TextField
+                            fullWidth
+                            label="Confirm Password"
+                            type={showConfirmPassword ? "text" : "password"}
+                            required
+                            placeholder="Confirm your password"
+                            value={accountInfo.confirmPassword}
+                            onChange={(e) => setAccountInfo({ ...accountInfo, confirmPassword: e.target.value })}
+                            error={
+                              !!accountErrors.confirmPassword ||
+                              (accountInfo.confirmPassword.length > 0 && accountInfo.password !== accountInfo.confirmPassword)
+                            }
+                            helperText={
+                              accountErrors.confirmPassword ||
+                              (accountInfo.confirmPassword.length > 0 && accountInfo.password !== accountInfo.confirmPassword
+                                ? "Passwords do not match"
+                                : "")
+                            }
+                            slotProps={{
+                              input: {
+                                startAdornment: (
+                                  <InputAdornment position="start">
+                                    <Lock size={18} color="#9ca3af" />
+                                  </InputAdornment>
+                                ),
+                                endAdornment: (
+                                  <InputAdornment position="end">
+                                    <IconButton
+                                      size="small"
+                                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                      edge="end"
+                                    >
+                                      {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                    </IconButton>
+                                  </InputAdornment>
+                                ),
+                              },
+                            }}
+                          />
+                        </Stack>
+                      </Box>
 
                       <AppButton
                         type="submit"
@@ -665,10 +749,68 @@ const Checkout = () => {
                       <FileText size={18} /> Order Summary
                     </Typography>
 
+                    <Grid container spacing={2} sx={{ mb: 2.5 }}>
+                      <Grid size={{ xs: 12, md: 12 }}>
+                        <Box
+                          className="rounded-xl border border-slate-200 shadow-sm"
+                          sx={{
+                            borderRadius: "14px",
+                            border: "1px solid",
+                            borderColor: alpha(theme.palette.primary.main, 0.2),
+                            bgcolor: alpha(theme.palette.primary.main, 0.04),
+                            p: { xs: 2, sm: 2.5 },
+                          }}
+                        >
+                          <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.25 }}>
+                            <Building2 size={15} color={theme.palette.primary.dark} />
+                            <Typography variant="subtitle2" sx={{ fontWeight: 800, color: "text.primary" }}>
+                              Company Information
+                            </Typography>
+                          </Stack>
+                          <Stack spacing={0.75}>
+                            <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                              Company Name: <strong>{accountInfo.companyName || "-"}</strong>
+                            </Typography>
+                            <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                              Company Code: <strong>{accountInfo.companyCode || "-"}</strong>
+                            </Typography>
+                          </Stack>
+                        </Box>
+                      </Grid>
+
+                      <Grid size={{ xs: 12, md: 12 }}>
+                        <Box
+                          className="rounded-xl border border-slate-200 shadow-sm"
+                          sx={{
+                            borderRadius: "14px",
+                            border: "1px solid",
+                            borderColor: alpha(theme.palette.primary.main, 0.2),
+                            bgcolor: alpha(theme.palette.primary.main, 0.04),
+                            p: { xs: 2, sm: 2.5 },
+                          }}
+                        >
+                          <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.25 }}>
+                            <User size={15} color={theme.palette.primary.dark} />
+                            <Typography variant="subtitle2" sx={{ fontWeight: 800, color: "text.primary" }}>
+                              User Information
+                            </Typography>
+                          </Stack>
+                          <Stack spacing={0.75}>
+                            <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                              Full Name: <strong>{accountInfo.fullName || "-"}</strong>
+                            </Typography>
+                            <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                              Email Address: <strong>{accountInfo.email || "-"}</strong>
+                            </Typography>
+                          </Stack>
+                        </Box>
+                      </Grid>
+                    </Grid>
+
                     <Box
                       sx={{
                         mb: 2.5,
-                        borderRadius: 3,
+                        borderRadius: "16px",
                         border: "1px solid",
                         borderColor: "#D4DCE5",
                         background: "linear-gradient(180deg, #F8FBFD 0%, #F2F6FA 100%)",
