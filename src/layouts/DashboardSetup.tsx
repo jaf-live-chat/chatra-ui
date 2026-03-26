@@ -160,8 +160,8 @@ const DashboardSetup = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col font-sans items-center justify-center p-6">
-      <div className="max-w-xl w-full bg-white p-8 md:p-12 rounded-[2rem] shadow-[0_8px_40px_-12px_#00000014] border border-gray-100/80 relative overflow-hidden">
+    <div className="min-h-screen bg-gray-50 flex flex-col font-sans items-center justify-center p-4 sm:p-6">
+      <div className="max-w-xl w-full bg-white p-5 sm:p-8 md:p-12 rounded-[1.5rem] sm:rounded-[2rem] shadow-[0_8px_40px_-12px_#00000014] border border-gray-100/80 relative overflow-hidden">
         {/* Subtle modern gradients */}
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-cyan-50/50 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none"></div>
         <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-gray-50/80 rounded-full blur-3xl translate-y-1/2 -translate-x-1/3 pointer-events-none"></div>
@@ -170,7 +170,7 @@ const DashboardSetup = () => {
           {!isComplete ? (
             <div className="flex flex-col gap-8">
               {/* Header & Percentage */}
-              <div className="flex items-end justify-between">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                   <p className="text-xs font-semibold tracking-widest text-cyan-600 uppercase mb-2">System Setup</p>
                   <h2 className="text-2xl font-semibold text-gray-900 tracking-tight">Initializing Workspace</h2>
@@ -251,7 +251,7 @@ const DashboardSetup = () => {
                 An email has been sent{tenantEmail ? ` to ${tenantEmail}` : " to your newly registered tenant email"}.
               </p>
 
-              <div className="w-full bg-[#0A0A0A] rounded-2xl p-1.5 pl-5 mb-10 flex items-center justify-between shadow-xl shadow-gray-200/50 border border-gray-800/60 transition-transform hover:scale-[1.01] duration-300">
+              <div className="w-full bg-[#0A0A0A] rounded-2xl p-1.5 sm:pl-5 mb-10 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between shadow-xl shadow-gray-200/50 border border-gray-800/60 transition-transform hover:scale-[1.01] duration-300">
                 <div className="flex items-center gap-3 overflow-hidden flex-1">
                   <KeyRound className="w-4 h-4 text-gray-500 shrink-0" />
                   <input
@@ -264,7 +264,7 @@ const DashboardSetup = () => {
                 <button
                   onClick={copyToClipboard}
                   disabled={!apiKey}
-                  className={`flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all shrink-0 ml-4 shadow-sm cursor-pointer ${copied
+                  className={`flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all shrink-0 sm:ml-4 shadow-sm cursor-pointer ${copied
                     ? "bg-emerald-500 text-white"
                     : !apiKey
                       ? "bg-gray-300 text-gray-500 cursor-not-allowed"

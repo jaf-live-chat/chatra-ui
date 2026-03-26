@@ -813,7 +813,7 @@ const AgentsManagementView = () => {
               startIcon={<UserPlus size={16} />}
               sx={{ px: 3.2, borderRadius: 1, fontWeight: 800 }}
             >
-              {isAddingAgents ? "Adding..." : `Add ${inviteRows.length} Agents`}
+              {isAddingAgents ? "Adding..." : `Create ${inviteRows.length} Agents`}
             </Button>
           </DialogActions>
         </Box>

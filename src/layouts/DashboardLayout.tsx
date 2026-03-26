@@ -12,6 +12,7 @@ import { Chip, Tooltip, Typography } from "@mui/material";
 import { DarkModeProvider, useDarkMode } from "../providers/DarkModeContext";
 import { APP_LOGO } from "../constants/constants";
 import useAuth from "../hooks/useAuth";
+import useIsMobile from "../hooks/useMobile";
 import { MODULE_GROUPS } from "../constants/modules";
 import filterModulesByRole from "../utils/filterModules";
 import { formatDate } from "../utils/dateFormatter";
@@ -23,6 +24,7 @@ import toTitleCase from "../utils/toTitleCase";
 function DashboardLayoutInner() {
   const navigate = useNavigate();
   const location = useLocation();
+  const isMobile = useIsMobile();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [agentStatus, setAgentStatus] = useState(() => {
@@ -37,6 +39,11 @@ function DashboardLayoutInner() {
     window.addEventListener("jaf_agent_status_changed", handleStatusChange);
     return () => window.removeEventListener("jaf_agent_status_changed", handleStatusChange);
   }, []);
+
+  useEffect(() => {
+    setIsSidebarOpen(!isMobile);
+  }, [isMobile]);
+
   const [isStatusOpen, setIsStatusOpen] = useState(false);
 
   const { isDark, toggleDark } = useDarkMode();
@@ -80,6 +87,13 @@ function DashboardLayoutInner() {
     navigate("/login", { replace: true });
   };
 
+  const handleModuleNavigation = (path: string) => {
+    navigate(path);
+    if (isMobile) {
+      setIsSidebarOpen(false);
+    }
+  };
+
   const userInitial = user?.fullName?.charAt(0)?.toUpperCase() || "U";
   const userName = user?.fullName || "User";
   const userEmail = user?.emailAddress || "";
@@ -109,10 +123,19 @@ function DashboardLayoutInner() {
 
   return (
     <div className={`min-h-screen w-full overflow-x-hidden flex font-sans bg-gray-50 dark:bg-slate-900 transition-colors duration-300${isDark ? " dark" : ""}`}>
+      {isMobile && isSidebarOpen && (
+        <button
+          type="button"
+          aria-label="Close sidebar"
+          onClick={() => setIsSidebarOpen(false)}
+          className="fixed inset-0 z-20 bg-slate-900/40 md:hidden"
+        />
+      )}
+
       {/* ── Sidebar ─────────────────────────────────────────────────────────── */}
       <aside
-        className={`${isSidebarOpen ? "w-full md:w-56" : "w-20"
-          } bg-white dark:bg-slate-800 border-r border-gray-200 dark:border-slate-700 flex flex-col fixed top-0 left-0 h-screen shrink-0 z-10 transition-all duration-300`}
+        className={`${isSidebarOpen ? "translate-x-0 md:w-56" : "-translate-x-full md:translate-x-0 md:w-20"
+          } w-[86vw] max-w-72 md:max-w-none bg-white dark:bg-slate-800 border-r border-gray-200 dark:border-slate-700 flex flex-col fixed top-0 left-0 h-screen shrink-0 z-30 transition-all duration-300`}
       >
         {/* Logo row */}
         <div className="h-16 flex items-center justify-between px-4 border-b border-gray-100 dark:border-slate-700">
@@ -135,7 +158,7 @@ function DashboardLayoutInner() {
           )}
           <button
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="p-1.5 text-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors absolute -right-3 top-5 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 shadow-sm z-20"
+            className="hidden md:inline-flex p-1.5 text-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors absolute -right-3 top-5 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 shadow-sm z-20"
           >
             <Menu className="w-4 h-4" />
           </button>
@@ -157,7 +180,7 @@ function DashboardLayoutInner() {
                 return (
                   <button
                     key={module.id}
-                    onClick={() => navigate(module.path)}
+                    onClick={() => handleModuleNavigation(module.path)}
                     className={`w-full flex items-center ${isSidebarOpen ? "justify-start px-3" : "justify-center px-0"} py-2.5 rounded-lg text-sm font-medium transition-colors ${isActivePath(module.path) ? activeNavCls : inactiveNavCls}`}
                     title={module.label}
                   >
@@ -181,8 +204,16 @@ function DashboardLayoutInner() {
           }`}
       >
         {/* Top header */}
-        <header className="h-16 bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between px-8 sticky top-0 z-10 transition-colors duration-300">
+        <header className="h-16 bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between px-3 sm:px-4 md:px-8 sticky top-0 z-10 transition-colors duration-300">
           <div className="flex items-center gap-6 min-w-0">
+            <button
+              type="button"
+              aria-label="Open sidebar"
+              onClick={() => setIsSidebarOpen(true)}
+              className="md:hidden p-2 rounded-lg text-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
             <div className="h-6 w-px bg-gray-200 dark:bg-slate-700 hidden sm:block"></div>
             <div className="relative hidden md:flex items-center gap-3 min-w-0">
               <Typography
@@ -238,12 +269,12 @@ function DashboardLayoutInner() {
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
             {/* Agent Status */}
             <div className="relative">
               <button
                 onClick={() => setIsStatusOpen(!isStatusOpen)}
-                className="flex items-center gap-2 bg-gray-50 dark:bg-slate-700/60 border border-gray-200 dark:border-slate-600 px-3 py-1.5 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+                className="flex items-center gap-2 bg-gray-50 dark:bg-slate-700/60 border border-gray-200 dark:border-slate-600 px-2 sm:px-3 py-1.5 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
               >
                 <span
                   className={`w-2 h-2 rounded-full ${agentStatus === "Online"
@@ -255,7 +286,7 @@ function DashboardLayoutInner() {
                         : "bg-gray-400"
                     }`}
                 ></span>
-                <span className="text-sm font-medium text-gray-700 dark:text-slate-300">
+                <span className="hidden sm:inline text-sm font-medium text-gray-700 dark:text-slate-300">
                   {agentStatus}
                 </span>
                 <ChevronDown className="w-4 h-4 text-gray-400 dark:text-slate-500 ml-1" />
@@ -357,7 +388,7 @@ function DashboardLayoutInner() {
         </header>
 
         {/* Child route content */}
-        <div className="p-8">
+        <div className="p-4 sm:p-6 md:p-8">
           <Outlet />
         </div>
       </main>
