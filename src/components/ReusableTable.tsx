@@ -19,7 +19,6 @@ import type { SxProps, Theme } from "@mui/material/styles";
 import Skeleton from "./Skeleton";
 
 type SortDirection = "asc" | "desc";
-type TableMode = "client" | "server";
 
 type SortableValue = string | number | boolean | Date | null | undefined;
 
@@ -43,25 +42,28 @@ interface ReusableTableProps<T> {
   rows: T[];
   columns: ReusableTableColumn<T>[];
   getRowKey: (row: T) => string;
-  searchPlaceholder?: string;
-  searchBy?: (row: T) => string;
-  filterFn?: (row: T, searchTerm: string) => boolean;
-  filterMode?: TableMode;
-  rowsPerPage?: number;
-  paginationMode?: TableMode;
-  page?: number;
-  onPageChange?: (page: number) => void;
-  totalRows?: number;
-  sortingMode?: TableMode;
-  sortBy?: string | null;
-  sortDirection?: SortDirection;
-  onSortChange?: (sortBy: string | null, sortDirection: SortDirection) => void;
-  defaultSortBy?: string | null;
-  defaultSortDirection?: SortDirection;
-  searchTerm?: string;
-  onSearchTermChange?: (searchTerm: string) => void;
-  showSearch?: boolean;
-  showPagination?: boolean;
+  search?: {
+    placeholder?: string;
+    by?: (row: T) => string;
+    filter?: (row: T, searchTerm: string) => boolean;
+    value?: string;
+    onChange?: (searchTerm: string) => void;
+    show?: boolean;
+  };
+  pagination?: {
+    rowsPerPage?: number;
+    page?: number;
+    onPageChange?: (page: number) => void;
+    totalRows?: number;
+    show?: boolean;
+  };
+  sorting?: {
+    sortBy?: string | null;
+    sortDirection?: SortDirection;
+    onChange?: (sortBy: string | null, sortDirection: SortDirection) => void;
+    defaultSortBy?: string | null;
+    defaultSortDirection?: SortDirection;
+  };
   headerIcon?: ReactNode;
   headerBadges?: ReactNode;
   headerActions?: ReactNode;
@@ -107,25 +109,9 @@ const ReusableTable = <T,>({
   rows,
   columns,
   getRowKey,
-  searchPlaceholder = "Search...",
-  searchBy,
-  filterFn,
-  filterMode = "client",
-  rowsPerPage = DEFAULT_ROWS_PER_PAGE,
-  paginationMode = "client",
-  page,
-  onPageChange,
-  totalRows,
-  sortingMode = "client",
-  sortBy,
-  sortDirection,
-  onSortChange,
-  defaultSortBy = null,
-  defaultSortDirection = "asc",
-  searchTerm,
-  onSearchTermChange,
-  showSearch = true,
-  showPagination = true,
+  search,
+  pagination,
+  sorting,
   headerIcon,
   headerBadges,
   headerActions,
@@ -135,11 +121,49 @@ const ReusableTable = <T,>({
   emptyStateDescription = "Try adjusting your search.",
   totalLabel = "records",
 }: ReusableTableProps<T>) => {
+  const {
+    placeholder: searchPlaceholder = "Search...",
+    by: searchBy,
+    filter: filterFn,
+    value: searchTerm,
+    onChange: onSearchTermChange,
+    show: showSearch = true,
+  } = search ?? {};
+
+  const {
+    rowsPerPage = DEFAULT_ROWS_PER_PAGE,
+    page,
+    onPageChange,
+    totalRows,
+    show: showPagination = true,
+  } = pagination ?? {};
+
+  const {
+    sortBy,
+    sortDirection,
+    onChange: onSortChange,
+    defaultSortBy = null,
+    defaultSortDirection = "asc",
+  } = sorting ?? {};
+
   const [internalSearchTerm, setInternalSearchTerm] = useState("");
   const [internalPage, setInternalPage] = useState(1);
   const [internalSortBy, setInternalSortBy] = useState<string | null>(defaultSortBy);
   const [internalSortDirection, setInternalSortDirection] =
     useState<SortDirection>(defaultSortDirection);
+
+  const isServerFiltering =
+    searchTerm !== undefined &&
+    typeof onSearchTermChange === "function" &&
+    !searchBy &&
+    !filterFn;
+
+  const isServerPagination = totalRows !== undefined;
+
+  const isServerSorting =
+    sortBy !== undefined &&
+    sortDirection !== undefined &&
+    typeof onSortChange === "function";
 
   const resolvedSearchTerm = searchTerm ?? internalSearchTerm;
   const resolvedPage = page ?? internalPage;
@@ -176,7 +200,7 @@ const ReusableTable = <T,>({
   };
 
   const filteredRows = useMemo(() => {
-    if (filterMode === "server") {
+    if (isServerFiltering) {
       return rows;
     }
 
@@ -197,10 +221,10 @@ const ReusableTable = <T,>({
 
       return true;
     });
-  }, [filterFn, filterMode, resolvedSearchTerm, rows, searchBy]);
+  }, [filterFn, isServerFiltering, resolvedSearchTerm, rows, searchBy]);
 
   const sortedRows = useMemo(() => {
-    if (sortingMode === "server" || !resolvedSortBy) {
+    if (isServerSorting || !resolvedSortBy) {
       return filteredRows;
     }
 
@@ -225,9 +249,9 @@ const ReusableTable = <T,>({
 
       return compareValues(leftValue, rightValue) * directionFactor;
     });
-  }, [columns, filteredRows, resolvedSortBy, resolvedSortDirection, sortingMode]);
+  }, [columns, filteredRows, isServerSorting, resolvedSortBy, resolvedSortDirection]);
 
-  const totalRecords = paginationMode === "server" ? totalRows ?? rows.length : sortedRows.length;
+  const totalRecords = isServerPagination ? totalRows ?? rows.length : sortedRows.length;
   const totalPages = Math.max(1, Math.ceil(totalRecords / rowsPerPage));
 
   useEffect(() => {
@@ -237,13 +261,13 @@ const ReusableTable = <T,>({
   }, [resolvedPage, totalPages]);
 
   const pagedRows = useMemo(() => {
-    if (paginationMode === "server") {
+    if (isServerPagination) {
       return sortedRows;
     }
 
     const start = (resolvedPage - 1) * rowsPerPage;
     return sortedRows.slice(start, start + rowsPerPage);
-  }, [paginationMode, resolvedPage, rowsPerPage, sortedRows]);
+  }, [isServerPagination, resolvedPage, rowsPerPage, sortedRows]);
 
   const startRecord = totalRecords === 0 ? 0 : (resolvedPage - 1) * rowsPerPage + 1;
   const endRecord = Math.min(resolvedPage * rowsPerPage, totalRecords);
@@ -467,7 +491,7 @@ const ReusableTable = <T,>({
         </Table>
       </TableContainer>
 
-      {showPagination && totalPages > 1 && (
+      {showPagination && (
         <Box
           sx={{
             px: 3,
