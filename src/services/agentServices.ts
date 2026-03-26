@@ -10,6 +10,7 @@ import type {
   UpdateAgentInput,
   UpdateAgentResponse,
   DeleteAgentResponse,
+  VerifyPasswordResponse,
 } from "../models/AgentModel";
 import { API_BASE_URL, SWR_OPTIONS } from "../constants/constants";
 import useSWR from "swr";
@@ -17,6 +18,8 @@ import useSWR from "swr";
 const endpoints = {
   key: `${API_BASE_URL}/agents`,
   me: `${API_BASE_URL}/agents/me`,
+  profile: `${API_BASE_URL}/agents/profile`,
+  verifyPassword: `${API_BASE_URL}/agents/verify-password`,
 };
 
 type UseGetAgentsParams = {
@@ -129,6 +132,20 @@ const Agents = {
     data: UpdateAgentInput
   ): Promise<UpdateAgentResponse> => {
     const response = await axiosServices.put(`/agents/${agentId}`, data);
+    return response.data;
+  },
+
+  updateMyProfile: async (data: UpdateAgentInput | FormData): Promise<UpdateAgentResponse> => {
+    const response = await axiosServices.put(endpoints.profile, data,
+      data instanceof FormData
+        ? { headers: { "Content-Type": "multipart/form-data" } }
+        : undefined
+    );
+    return response.data;
+  },
+
+  verifyPassword: async (password: string): Promise<VerifyPasswordResponse> => {
+    const response = await axiosServices.post(endpoints.verifyPassword, { password });
     return response.data;
   },
 

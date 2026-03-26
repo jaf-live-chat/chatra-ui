@@ -1,12 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   User,
   Mail,
   Lock,
   Bell,
   Shield,
-  Globe,
-  Camera,
   Save,
   Eye,
   EyeOff,
@@ -14,20 +12,119 @@ import {
   Code,
   Copy,
 } from "lucide-react";
-import ImageWithFallback from "../../components/ImageWithFallback";
-import { motion, AnimatePresence } from "motion/react";
+import { motion } from "motion/react";
+import axios from "axios";
+import useAuth from "../../hooks/useAuth";
+import Agents from "../../services/agentServices";
+import AvatarUpload from "../../components/uploads/AvatarUpload";
+import { API_BASE_URL, USER_ROLES } from "../../constants/constants";
+
+const ACCOUNT_SETTINGS_UNLOCK_MS = 10 * 60 * 1000;
+
+const formatCountdown = (remainingMs: number) => {
+  const totalSeconds = Math.max(0, Math.floor(remainingMs / 1000));
+  const minutes = String(Math.floor(totalSeconds / 60)).padStart(2, "0");
+  const seconds = String(totalSeconds % 60).padStart(2, "0");
+  return `${minutes}:${seconds}`;
+};
+
+const splitFullName = (fullName: string) => {
+  const name = String(fullName || "").trim();
+
+  if (!name) {
+    return { firstName: "", lastName: "" };
+  }
+
+  const [firstName, ...rest] = name.split(/\s+/);
+  return { firstName, lastName: rest.join(" ") };
+};
+
+const formatRoleLabel = (role?: string) =>
+  String(role || "")
+    .toLowerCase()
+    .split("_")
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ") || "User";
+
+const getApiErrorMessage = (error: unknown, fallbackMessage: string) => {
+  if (axios.isAxiosError(error)) {
+    const data = error.response?.data as { message?: string } | undefined;
+    if (data?.message) {
+      return data.message;
+    }
+  }
+
+  return fallbackMessage;
+};
+
+const normalizePhilippinePhoneDigits = (value: string) => {
+  const digits = String(value || "").replace(/\D/g, "");
+
+  if (!digits) {
+    return "";
+  }
+
+  if (digits.startsWith("63")) {
+    return `0${digits.slice(2, 12)}`;
+  }
+
+  if (digits.startsWith("9")) {
+    return `0${digits.slice(0, 10)}`;
+  }
+
+  if (digits.startsWith("0")) {
+    return digits.slice(0, 11);
+  }
+
+  return digits.slice(0, 11);
+};
+
+const formatPhilippinePhone = (value: string) => {
+  const normalized = normalizePhilippinePhoneDigits(value);
+
+  if (!normalized) {
+    return "";
+  }
+
+  const part1 = normalized.slice(0, 4);
+  const part2 = normalized.slice(4, 7);
+  const part3 = normalized.slice(7, 11);
+
+  return [part1, part2, part3].filter(Boolean).join(" ");
+};
+
+const isValidPhilippinePhone = (value: string) => {
+  const normalized = normalizePhilippinePhoneDigits(value);
+  if (!normalized) {
+    return true;
+  }
+
+  return /^09\d{9}$/.test(normalized);
+};
+
+const toPhilippineE164 = (value: string) => {
+  const normalized = normalizePhilippinePhoneDigits(value);
+  if (!/^09\d{9}$/.test(normalized)) {
+    return null;
+  }
+
+  return `+63${normalized.slice(1)}`;
+};
 
 const AccountSettingsView = () => {
+  const { user, tenant, accessToken, updateUser } = useAuth();
   const [activeSection, setActiveSection] = useState("profile");
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [saved, setSaved] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
-  const [integrationRevealed, setIntegrationRevealed] = useState(true);
-  const [showVerifyModal, setShowVerifyModal] = useState(false);
-  const [verifyPassword, setVerifyPassword] = useState("");
-  const [showVerifyPassword, setShowVerifyPassword] = useState(false);
-  const [verifyError, setVerifyError] = useState(false);
+  const [unlockPassword, setUnlockPassword] = useState("");
+  const [showUnlockPassword, setShowUnlockPassword] = useState(false);
+  const [unlockError, setUnlockError] = useState("");
+  const [unlockUntil, setUnlockUntil] = useState<number | null>(null);
+  const [nowTs, setNowTs] = useState(Date.now());
+  const [isUnlocking, setIsUnlocking] = useState(false);
 
   const handleCopy = (text: string, id: string) => {
     const textarea = document.createElement("textarea");
@@ -44,14 +141,31 @@ const AccountSettingsView = () => {
 
   // Profile state
   const [profile, setProfile] = useState({
-    firstName: "Admin",
-    lastName: "User",
-    email: "admin@jaflivechat.com",
-    phone: "+1 (555) 123-4567",
-    role: "Owner",
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    role: "",
     timezone: "America/New_York",
     language: "English",
   });
+  const [isProfileLoading, setIsProfileLoading] = useState(true);
+  const [isProfileSaving, setIsProfileSaving] = useState(false);
+  const [profileSaved, setProfileSaved] = useState(false);
+  const [profileError, setProfileError] = useState("");
+  const [profileFieldErrors, setProfileFieldErrors] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+  });
+  const [isSecuritySaving, setIsSecuritySaving] = useState(false);
+  const [securitySaved, setSecuritySaved] = useState(false);
+  const [securityError, setSecurityError] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [pendingAvatarFile, setPendingAvatarFile] = useState<File | null>(null);
+  const [pendingAvatarPreviewUrl, setPendingAvatarPreviewUrl] = useState<string | null>(null);
+  const [clearAvatarRequested, setClearAvatarRequested] = useState(false);
 
   // Notification preferences
   const [notifications, setNotifications] = useState({
@@ -75,15 +189,304 @@ const AccountSettingsView = () => {
     setTimeout(() => setSaved(false), 2000);
   };
 
-  const handleVerifySubmit = () => {
-    if (verifyPassword.length >= 1) {
-      setIntegrationRevealed(true);
-      setShowVerifyModal(false);
-      setVerifyPassword("");
-      setVerifyError(false);
-      setShowVerifyPassword(false);
-    } else {
-      setVerifyError(true);
+  const unlockStorageKey = accessToken
+    ? `jaf_account_settings_unlock_until_${accessToken}`
+    : null;
+
+  useEffect(() => {
+    if (!unlockStorageKey) {
+      setUnlockUntil(null);
+      return;
+    }
+
+    const storedUnlockUntil = Number(sessionStorage.getItem(unlockStorageKey) || "0");
+    setUnlockUntil(storedUnlockUntil > Date.now() ? storedUnlockUntil : null);
+  }, [unlockStorageKey]);
+
+  useEffect(() => {
+    if (!unlockUntil) {
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      setNowTs(Date.now());
+    }, 1000);
+
+    return () => {
+      window.clearInterval(timer);
+    };
+  }, [unlockUntil]);
+
+  useEffect(() => {
+    if (!unlockUntil || !unlockStorageKey) {
+      return;
+    }
+
+    if (Date.now() >= unlockUntil) {
+      setUnlockUntil(null);
+      sessionStorage.removeItem(unlockStorageKey);
+    }
+  }, [nowTs, unlockStorageKey, unlockUntil]);
+
+  const handleUnlockPage = async () => {
+    if (!unlockPassword.trim()) {
+      setUnlockError("Please enter your password to continue.");
+      return;
+    }
+
+    try {
+      setIsUnlocking(true);
+      setUnlockError("");
+
+      await Agents.verifyPassword(unlockPassword);
+
+      const nextUnlockUntil = Date.now() + ACCOUNT_SETTINGS_UNLOCK_MS;
+      setUnlockUntil(nextUnlockUntil);
+
+      if (unlockStorageKey) {
+        sessionStorage.setItem(unlockStorageKey, String(nextUnlockUntil));
+      }
+
+      setUnlockPassword("");
+      setShowUnlockPassword(false);
+    } catch (error) {
+      setUnlockError(getApiErrorMessage(error, "Password verification failed."));
+    } finally {
+      setIsUnlocking(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!user) {
+      return;
+    }
+
+    const { firstName, lastName } = splitFullName(user.fullName || "");
+
+    setProfile((prev) => ({
+      ...prev,
+      firstName,
+      lastName,
+      email: user.emailAddress || "",
+      phone: formatPhilippinePhone(user.phoneNumber || ""),
+      role: formatRoleLabel(user.role),
+    }));
+    setAvatarUrl(user.profilePicture || null);
+    setPendingAvatarFile(null);
+    setPendingAvatarPreviewUrl(null);
+    setClearAvatarRequested(false);
+  }, [user]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchProfile = async () => {
+      try {
+        setIsProfileLoading(true);
+        const me = await Agents.getMe();
+
+        if (!isMounted) {
+          return;
+        }
+
+        const { firstName, lastName } = splitFullName(me.agent?.fullName || "");
+
+        setProfile((prev) => ({
+          ...prev,
+          firstName,
+          lastName,
+          email: me.agent?.emailAddress || "",
+          phone: formatPhilippinePhone(me.agent?.phoneNumber || ""),
+          role: formatRoleLabel(me.agent?.role),
+        }));
+        setAvatarUrl(me.agent?.profilePicture || null);
+        setPendingAvatarFile(null);
+        setPendingAvatarPreviewUrl(null);
+        setClearAvatarRequested(false);
+        setProfileError("");
+      } catch (error) {
+        if (!isMounted) {
+          return;
+        }
+
+        setProfileError(getApiErrorMessage(error, "Failed to load account profile."));
+      } finally {
+        if (isMounted) {
+          setIsProfileLoading(false);
+        }
+      }
+    };
+
+    fetchProfile();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (pendingAvatarPreviewUrl) {
+        URL.revokeObjectURL(pendingAvatarPreviewUrl);
+      }
+    };
+  }, [pendingAvatarPreviewUrl]);
+
+  const canViewTenantApiKey = [
+    USER_ROLES.MASTER_ADMIN.value,
+    USER_ROLES.ADMIN.value,
+  ].includes(user?.role || "");
+
+  // Reset to profile tab if user loses access to integration
+  useEffect(() => {
+    if (activeSection === "integration" && !canViewTenantApiKey) {
+      setActiveSection("profile");
+    }
+  }, [canViewTenantApiKey, activeSection]);
+
+  const handleProfileSave = async () => {
+    const fullName = `${profile.firstName} ${profile.lastName}`.trim();
+    const trimmedFirstName = profile.firstName.trim();
+    const trimmedLastName = profile.lastName.trim();
+    const trimmedEmail = profile.email.trim();
+
+    const nextFieldErrors = {
+      firstName: "",
+      lastName: "",
+      email: "",
+      phone: "",
+    };
+
+    if (!trimmedFirstName) {
+      nextFieldErrors.firstName = "First name is required.";
+    }
+
+    if (!trimmedLastName) {
+      nextFieldErrors.lastName = "Last name is required.";
+    }
+
+    if (!trimmedEmail) {
+      nextFieldErrors.email = "Email address is required.";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      nextFieldErrors.email = "Enter a valid email address.";
+    }
+
+    if (!isValidPhilippinePhone(profile.phone)) {
+      nextFieldErrors.phone = "Use a valid PH mobile number (e.g. 0917 123 4567).";
+    }
+
+    setProfileFieldErrors(nextFieldErrors);
+
+    if (Object.values(nextFieldErrors).some(Boolean)) {
+      setProfileError("Please fix the highlighted fields.");
+      return;
+    }
+
+    const phoneForApi = profile.phone.trim() ? toPhilippineE164(profile.phone) : null;
+
+    try {
+      setIsProfileSaving(true);
+      setProfileError("");
+
+      let response;
+
+      if (pendingAvatarFile) {
+        const formData = new FormData();
+        formData.append("avatar", pendingAvatarFile);
+        formData.append("fullName", fullName);
+        formData.append("emailAddress", trimmedEmail);
+        if (phoneForApi) {
+          formData.append("phoneNumber", phoneForApi);
+        }
+        response = await Agents.updateMyProfile(formData);
+      } else {
+        response = await Agents.updateMyProfile({
+          fullName,
+          emailAddress: trimmedEmail,
+          phoneNumber: phoneForApi,
+          profilePicture: clearAvatarRequested ? null : undefined,
+        });
+      }
+
+      if (response?.agent) {
+        updateUser(response.agent);
+        setAvatarUrl(response.agent.profilePicture || null);
+        if (pendingAvatarPreviewUrl) {
+          URL.revokeObjectURL(pendingAvatarPreviewUrl);
+        }
+        setPendingAvatarFile(null);
+        setPendingAvatarPreviewUrl(null);
+        setClearAvatarRequested(false);
+      }
+
+      setProfileSaved(true);
+      setTimeout(() => setProfileSaved(false), 2000);
+    } catch (error) {
+      setProfileError(getApiErrorMessage(error, "Failed to save profile changes."));
+    } finally {
+      setIsProfileSaving(false);
+    }
+  };
+
+  const handleAvatarSelected = (file: File, previewUrl: string) => {
+    if (pendingAvatarPreviewUrl) {
+      URL.revokeObjectURL(pendingAvatarPreviewUrl);
+    }
+
+    setPendingAvatarFile(file);
+    setPendingAvatarPreviewUrl(previewUrl);
+    setClearAvatarRequested(false);
+    setProfileError("");
+  };
+
+  const handleAvatarClear = () => {
+    if (pendingAvatarPreviewUrl) {
+      URL.revokeObjectURL(pendingAvatarPreviewUrl);
+    }
+
+    setPendingAvatarFile(null);
+    setPendingAvatarPreviewUrl(null);
+    setClearAvatarRequested(true);
+    setProfileError("");
+  };
+
+  const handleSecuritySave = async () => {
+    const currentPassword = security.currentPassword.trim();
+    const newPassword = security.newPassword.trim();
+
+    if (!currentPassword || !newPassword) {
+      setSecurityError("Current and new password are required.");
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      setSecurityError("New password must be at least 8 characters.");
+      return;
+    }
+
+    try {
+      setIsSecuritySaving(true);
+      setSecurityError("");
+
+      const response = await Agents.updateMyProfile({
+        password: newPassword,
+      });
+
+      if (response?.agent) {
+        updateUser(response.agent);
+      }
+
+      setSecurity((prev) => ({
+        ...prev,
+        currentPassword: "",
+        newPassword: "",
+      }));
+      setSecuritySaved(true);
+      setTimeout(() => setSecuritySaved(false), 2000);
+    } catch (error) {
+      setSecurityError(getApiErrorMessage(error, "Failed to update password."));
+    } finally {
+      setIsSecuritySaving(false);
     }
   };
 
@@ -91,10 +494,15 @@ const AccountSettingsView = () => {
     { id: "profile", label: "Profile", icon: User },
     { id: "notifications", label: "Notifications", icon: Bell },
     { id: "security", label: "Security", icon: Shield },
-    { id: "integration", label: "Integration", icon: Code },
+    ...(canViewTenantApiKey ? [{ id: "integration", label: "Integration", icon: Code }] : []),
   ];
 
-  const widgetScript = `<!-- Live Chat Widget -->\n<script>\n  window.LiveChatConfig = {\n    apiUrl: 'https://depauperate-destiny-superdelicate.ngrok-free.dev/api/v1',\n    socketUrl: 'https://depauperate-destiny-superdelicate.ngrok-free.dev'\n  };\n</script>\n<script src="https://timora-live-chat.vercel.app/widget/live-chat-widget.js"></script>`;
+  const isUnlocked = Boolean(unlockUntil && unlockUntil > nowTs);
+  const remainingUnlockMs = isUnlocked ? (unlockUntil || 0) - nowTs : 0;
+
+  const tenantApiKey = canViewTenantApiKey ? tenant?.apiKey || "" : "";
+  const socketUrl = API_BASE_URL.replace(/\/api\/v\d+\/?$/, "");
+  const widgetScript = `<!-- Live Chat Widget -->\n<script>\n  window.LiveChatConfig = {\n    apiUrl: '${API_BASE_URL}',\n    socketUrl: '${socketUrl}',\n    apiKey: '${tenantApiKey || ""}'\n  };\n</script>\n<script src="https://timora-live-chat.vercel.app/widget/live-chat-widget.js"></script>`;
 
   return (
     <div>
@@ -136,16 +544,14 @@ const AccountSettingsView = () => {
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
               {/* Avatar Area */}
               <div className="p-6 border-b border-gray-100 flex items-center gap-5">
-                <div className="relative group">
-                  <ImageWithFallback
-                    src="https://images.unsplash.com/photo-1622169804256-0eb6873ff441?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwcm9mZXNzaW9uYWwlMjBoZWFkc2hvdCUyMGFkbWluJTIwYXZhdGFyfGVufDF8fHx8MTc3MzYyNzk0MXww&ixlib=rb-4.1.0&q=80&w=1080"
-                    alt="Profile"
-                    className="w-20 h-20 rounded-full object-cover border-2 border-gray-200"
-                  />
-                  <button className="absolute inset-0 w-20 h-20 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                    <Camera className="w-5 h-5 text-white" />
-                  </button>
-                </div>
+                <AvatarUpload
+                  imageUrl={clearAvatarRequested ? null : pendingAvatarPreviewUrl || avatarUrl}
+                  fullName={`${profile.firstName} ${profile.lastName}`}
+                  onFileSelected={handleAvatarSelected}
+                  onClear={handleAvatarClear}
+                  onError={(message) => setProfileError(message)}
+                  disabled={isProfileLoading || isProfileSaving}
+                />
                 <div>
                   <p className="text-lg font-semibold text-gray-900">
                     {profile.firstName} {profile.lastName}
@@ -165,6 +571,12 @@ const AccountSettingsView = () => {
 
               {/* Form Fields */}
               <div className="p-6 space-y-5">
+                {profileError && (
+                  <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                    {profileError}
+                  </div>
+                )}
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">
@@ -176,9 +588,16 @@ const AccountSettingsView = () => {
                       onChange={(e) =>
                         setProfile({ ...profile, firstName: e.target.value })
                       }
-                      className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-cyan-100 focus:border-cyan-400 transition-colors"
-                      placeholder="Admin"
+                      className={`w-full px-3.5 py-2.5 border rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 transition-colors ${profileFieldErrors.firstName
+                        ? "border-red-300 focus:ring-red-100 focus:border-red-400"
+                        : "border-gray-200 focus:ring-cyan-100 focus:border-cyan-400"
+                        }`}
+                      placeholder="First name"
+                      disabled={isProfileLoading}
                     />
+                    {profileFieldErrors.firstName && (
+                      <p className="mt-1 text-xs text-red-600">{profileFieldErrors.firstName}</p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">
@@ -190,9 +609,16 @@ const AccountSettingsView = () => {
                       onChange={(e) =>
                         setProfile({ ...profile, lastName: e.target.value })
                       }
-                      className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-cyan-100 focus:border-cyan-400 transition-colors"
-                      placeholder="User"
+                      className={`w-full px-3.5 py-2.5 border rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 transition-colors ${profileFieldErrors.lastName
+                        ? "border-red-300 focus:ring-red-100 focus:border-red-400"
+                        : "border-gray-200 focus:ring-cyan-100 focus:border-cyan-400"
+                        }`}
+                      placeholder="Last name"
+                      disabled={isProfileLoading}
                     />
+                    {profileFieldErrors.lastName && (
+                      <p className="mt-1 text-xs text-red-600">{profileFieldErrors.lastName}</p>
+                    )}
                   </div>
                 </div>
 
@@ -208,9 +634,17 @@ const AccountSettingsView = () => {
                       onChange={(e) =>
                         setProfile({ ...profile, email: e.target.value })
                       }
-                      className="w-full pl-10 pr-3.5 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-cyan-100 focus:border-cyan-400 transition-colors"
+                      className={`w-full pl-10 pr-3.5 py-2.5 border rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 transition-colors ${profileFieldErrors.email
+                        ? "border-red-300 focus:ring-red-100 focus:border-red-400"
+                        : "border-gray-200 focus:ring-cyan-100 focus:border-cyan-400"
+                        }`}
+                      placeholder="name@example.com"
+                      disabled={isProfileLoading}
                     />
                   </div>
+                  {profileFieldErrors.email && (
+                    <p className="mt-1 text-xs text-red-600">{profileFieldErrors.email}</p>
+                  )}
                 </div>
 
                 <div>
@@ -221,41 +655,34 @@ const AccountSettingsView = () => {
                     type="tel"
                     value={profile.phone}
                     onChange={(e) =>
-                      setProfile({ ...profile, phone: e.target.value })
+                      setProfile({ ...profile, phone: formatPhilippinePhone(e.target.value) })
                     }
-                    className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-cyan-100 focus:border-cyan-400 transition-colors"
+                    className={`w-full px-3.5 py-2.5 border rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 transition-colors ${profileFieldErrors.phone
+                      ? "border-red-300 focus:ring-red-100 focus:border-red-400"
+                      : "border-gray-200 focus:ring-cyan-100 focus:border-cyan-400"
+                      }`}
+                    placeholder="0917 123 4567"
+                    disabled={isProfileLoading}
                   />
+                  {profileFieldErrors.phone && (
+                    <p className="mt-1 text-xs text-red-600">{profileFieldErrors.phone}</p>
+                  )}
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                      Language
-                    </label>
-                    <select
-                      value={profile.language}
-                      onChange={(e) =>
-                        setProfile({ ...profile, language: e.target.value })
-                      }
-                      className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-cyan-100 focus:border-cyan-400 transition-colors bg-white"
-                    >
-                      <option>English</option>
-                      <option>Spanish</option>
-                      <option>French</option>
-                      <option>German</option>
-                      <option>Japanese</option>
-                    </select>
-                  </div>
-                </div>
               </div>
 
               {/* Save Button */}
               <div className="px-6 py-4 border-t border-gray-100 flex justify-end">
                 <button
-                  onClick={handleSave}
+                  onClick={handleProfileSave}
+                  disabled={isProfileLoading || isProfileSaving}
                   className="flex items-center gap-2 px-5 py-2.5 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg text-sm font-semibold transition-colors cursor-pointer"
                 >
-                  {saved ? (
+                  {isProfileSaving ? (
+                    <>
+                      <Save className="w-4 h-4" /> Saving...
+                    </>
+                  ) : profileSaved ? (
                     <>
                       <Check className="w-4 h-4" /> Saved
                     </>
@@ -434,6 +861,12 @@ const AccountSettingsView = () => {
               </div>
 
               <div className="p-6 space-y-6">
+                {securityError && (
+                  <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                    {securityError}
+                  </div>
+                )}
+
                 {/* Change Password */}
                 <div>
                   <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
@@ -506,54 +939,20 @@ const AccountSettingsView = () => {
                     </div>
                   </div>
                 </div>
-
-                <div className="h-px bg-gray-100" />
-
-                {/* Two-Factor */}
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                    <Shield className="w-4 h-4 text-gray-400" /> Two-Factor
-                    Authentication
-                  </h3>
-                  <div className="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-lg border border-gray-200">
-                    <div>
-                      <p className="text-sm font-medium text-gray-800">
-                        {security.twoFactorEnabled ? "Enabled" : "Disabled"}
-                      </p>
-                      <p className="text-xs text-gray-400">
-                        Add an extra layer of security to your account.
-                      </p>
-                    </div>
-                    <button
-                      onClick={() =>
-                        setSecurity({
-                          ...security,
-                          twoFactorEnabled: !security.twoFactorEnabled,
-                        })
-                      }
-                      className={`relative w-10 h-[22px] rounded-full transition-colors duration-200 cursor-pointer ${security.twoFactorEnabled
-                        ? "bg-green-500"
-                        : "bg-gray-300"
-                        }`}
-                    >
-                      <span
-                        className={`absolute top-[3px] left-[3px] w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-200 ${security.twoFactorEnabled
-                          ? "translate-x-[18px]"
-                          : "translate-x-0"
-                          }`}
-                      />
-                    </button>
-                  </div>
-                </div>
               </div>
 
               {/* Save */}
               <div className="px-6 py-4 border-t border-gray-100 flex justify-end">
                 <button
-                  onClick={handleSave}
+                  onClick={handleSecuritySave}
+                  disabled={isSecuritySaving}
                   className="flex items-center gap-2 px-5 py-2.5 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg text-sm font-semibold transition-colors cursor-pointer"
                 >
-                  {saved ? (
+                  {isSecuritySaving ? (
+                    <>
+                      <Save className="w-4 h-4" /> Updating...
+                    </>
+                  ) : securitySaved ? (
                     <>
                       <Check className="w-4 h-4" /> Saved
                     </>
@@ -568,7 +967,7 @@ const AccountSettingsView = () => {
           )}
 
           {/* Integration Section */}
-          {activeSection === "integration" && (
+          {activeSection === "integration" && canViewTenantApiKey && (
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
               <div className="p-6 border-b border-gray-100">
                 <div className="flex items-center justify-between">
@@ -583,240 +982,127 @@ const AccountSettingsView = () => {
                 </div>
               </div>
 
-              <div className="p-6 space-y-6">
-                {/* API Key */}
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                    <Shield className="w-4 h-4 text-gray-400" /> API Key
-                  </h3>
-                  <div className="flex items-center gap-3">
-                    <AnimatePresence mode="wait">
-                      <motion.code
-                        key={integrationRevealed ? "revealed" : "hidden"}
-                        initial={{ opacity: 0, filter: "blur(4px)" }}
-                        animate={{ opacity: 1, filter: "blur(0px)" }}
-                        exit={{ opacity: 0, filter: "blur(4px)" }}
-                        transition={{ duration: 0.3 }}
-                        className="flex-1 px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800 font-mono select-all"
+              {!isUnlocked ? (
+                <div className="p-6">
+                  <div className="max-w-lg mx-auto bg-white border border-gray-200 rounded-xl shadow-sm p-6">
+                    <h2 className="text-xl font-bold text-gray-900">Verify To Continue</h2>
+                    <p className="text-sm text-gray-600 mt-2">
+                      For security, enter your current password to access Integration settings. Access expires after 10 minutes.
+                    </p>
+
+                    <div className="mt-4 relative">
+                      <input
+                        type={showUnlockPassword ? "text" : "password"}
+                        value={unlockPassword}
+                        onChange={(event) => {
+                          setUnlockPassword(event.target.value);
+                          setUnlockError("");
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            handleUnlockPage();
+                          }
+                        }}
+                        placeholder="Enter your password"
+                        className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-cyan-100 focus:border-cyan-400 pr-10"
+                        autoFocus
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowUnlockPassword((prev) => !prev)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                       >
-                        {integrationRevealed ? "jaf_7soh2kez6vabraidwkdrd8" : "••••••••••••••••••••••••••"}
-                      </motion.code>
-                    </AnimatePresence>
-                    <motion.button
-                      whileTap={{ scale: 0.93 }}
-                      whileHover={{ scale: 1.03 }}
-                      onClick={() => {
-                        if (integrationRevealed) {
-                          handleCopy("jaf_7soh2kez6vabraidwkdrd8", "apiKey");
-                        } else {
-                          setShowVerifyModal(true);
-                        }
-                      }}
-                      className="flex items-center gap-1.5 px-3 py-2.5 bg-cyan-50 text-cyan-700 hover:bg-cyan-100 rounded-lg text-sm font-medium transition-colors cursor-pointer"
-                    >
-                      <AnimatePresence mode="wait">
-                        {!integrationRevealed ? (
-                          <motion.span key="verify" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} transition={{ duration: 0.2 }} className="flex items-center gap-1.5">
-                            <Eye className="w-4 h-4" /> Verify
-                          </motion.span>
-                        ) : copied === "apiKey" ? (
-                          <motion.span key="copied" initial={{ opacity: 0, scale: 0.8, rotate: -10 }} animate={{ opacity: 1, scale: 1, rotate: 0 }} exit={{ opacity: 0, scale: 0.8 }} transition={{ type: "spring", stiffness: 400, damping: 15 }} className="flex items-center gap-1.5 text-green-600">
-                            <Check className="w-4 h-4" /> Copied!
-                          </motion.span>
-                        ) : (
-                          <motion.span key="copy" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} transition={{ duration: 0.2 }} className="flex items-center gap-1.5">
-                            <Copy className="w-4 h-4" /> Copy
-                          </motion.span>
-                        )}
-                      </AnimatePresence>
-                    </motion.button>
+                        {showUnlockPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+
+                    {unlockError && <p className="mt-2 text-xs text-red-600">{unlockError}</p>}
+
+                    <div className="mt-4 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={handleUnlockPage}
+                        disabled={isUnlocking}
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg text-sm font-semibold disabled:opacity-70"
+                      >
+                        {isUnlocking ? "Verifying..." : "Verify Password"}
+                      </button>
+                    </div>
                   </div>
                 </div>
-
-                <div className="h-px bg-gray-100" />
-
-                {/* Widget Script */}
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                    <Code className="w-4 h-4 text-gray-400" /> Widget Installation
-                  </h3>
-                  <p className="text-xs text-gray-500 mb-3">
-                    Paste this snippet before the closing <code className="text-cyan-600">&lt;/body&gt;</code> tag of your website.
+              ) : (
+                <div className="p-6 space-y-6">
+                  <p className="text-xs text-cyan-700">
+                    Verified session expires in {formatCountdown(remainingUnlockMs)}. You will be asked for your password again when it expires.
                   </p>
-                  <div className="relative">
-                    <AnimatePresence mode="wait">
-                      <motion.pre
-                        key={integrationRevealed ? "revealed" : "hidden"}
-                        initial={{ opacity: 0, filter: "blur(4px)", y: 6 }}
-                        animate={{ opacity: 1, filter: "blur(0px)", y: 0 }}
-                        exit={{ opacity: 0, filter: "blur(4px)", y: -6 }}
-                        transition={{ duration: 0.35, delay: 0.05 }}
-                        className="px-4 py-3.5 bg-gray-900 text-gray-100 rounded-lg text-xs font-mono overflow-x-auto whitespace-pre-wrap"
+
+                  {/* API Key */}
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                      <Shield className="w-4 h-4 text-gray-400" /> API Key
+                    </h3>
+                    {!canViewTenantApiKey ? (
+                      <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                        API key access is available only for Admin and Master Admin accounts.
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-3">
+                        <code className="flex-1 px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800 font-mono select-all break-all">
+                          {tenantApiKey || "No API key available"}
+                        </code>
+                        <button
+                          onClick={() => handleCopy(tenantApiKey || "", "apiKey")}
+                          disabled={!tenantApiKey}
+                          className="flex items-center gap-1.5 px-3 py-2.5 bg-cyan-50 text-cyan-700 hover:bg-cyan-100 rounded-lg text-sm font-medium transition-colors cursor-pointer disabled:opacity-60"
+                        >
+                          {copied === "apiKey" ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                          {copied === "apiKey" ? "Copied!" : "Copy"}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="h-px bg-gray-100" />
+
+                  {/* Widget Script */}
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                      <Code className="w-4 h-4 text-gray-400" /> Widget Installation
+                    </h3>
+                    <p className="text-xs text-gray-500 mb-3">
+                      Paste this snippet before the closing <code className="text-cyan-600">&lt;/body&gt;</code> tag of your website.
+                    </p>
+                    <div className="relative">
+                      <pre className="px-4 py-3.5 bg-gray-900 text-gray-100 rounded-lg text-xs font-mono overflow-x-auto whitespace-pre-wrap">
+                        {widgetScript}
+                      </pre>
+                      <motion.button
+                        whileTap={{ scale: 0.93 }}
+                        whileHover={{ scale: 1.05 }}
+                        onClick={() => handleCopy(widgetScript, "widget")}
+                        className="absolute top-2.5 right-2.5 flex items-center gap-1.5 px-2.5 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-md text-xs font-medium transition-colors cursor-pointer"
                       >
-                        {integrationRevealed
-                          ? `<!-- Live Chat Widget -->
-<script>
-  window.LiveChatConfig = {
-    apiUrl: 'https://depauperate-destiny-superdelicate.ngrok-free.dev/api/v1',
-    socketUrl: 'https://depauperate-destiny-superdelicate.ngrok-free.dev'
-  };
-</script>
-<script src="https://timora-live-chat.vercel.app/widget/live-chat-widget.js"></script>`
-                          : `<!-- ••••••••••••••••••• -->
-<••••••>
-  ••••••.•••••••••••••••• = {
-    ••••••: '•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••',
-    •••••••••: '•••••••••••••••••••••••••••••••••••••••••••••••••••••••••'
-  };
-</••••••>
-<•••••• •••="••••••••••••••••••••••••••••••••••••••••••••••••••••••••••"></••••••>`}
-                      </motion.pre>
-                    </AnimatePresence>
-                    <motion.button
-                      whileTap={{ scale: 0.93 }}
-                      whileHover={{ scale: 1.05 }}
-                      onClick={() => {
-                        if (integrationRevealed) {
-                          handleCopy(widgetScript, "widget");
-                        } else {
-                          setShowVerifyModal(true);
-                        }
-                      }}
-                      className="absolute top-2.5 right-2.5 flex items-center gap-1.5 px-2.5 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-md text-xs font-medium transition-colors cursor-pointer"
-                    >
-                      <AnimatePresence mode="wait">
-                        {!integrationRevealed ? (
-                          <motion.span key="verify" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} transition={{ duration: 0.2 }} className="flex items-center gap-1.5">
-                            <Eye className="w-3.5 h-3.5" /> Verify
-                          </motion.span>
-                        ) : copied === "widget" ? (
-                          <motion.span key="copied" initial={{ opacity: 0, scale: 0.8, rotate: -10 }} animate={{ opacity: 1, scale: 1, rotate: 0 }} exit={{ opacity: 0, scale: 0.8 }} transition={{ type: "spring", stiffness: 400, damping: 15 }} className="flex items-center gap-1.5 text-green-400">
+                        {copied === "widget" ? (
+                          <span className="flex items-center gap-1.5 text-green-400">
                             <Check className="w-3.5 h-3.5" /> Copied!
-                          </motion.span>
+                          </span>
                         ) : (
-                          <motion.span key="copy" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} transition={{ duration: 0.2 }} className="flex items-center gap-1.5">
+                          <span className="flex items-center gap-1.5">
                             <Copy className="w-3.5 h-3.5" /> Copy
-                          </motion.span>
+                          </span>
                         )}
-                      </AnimatePresence>
-                    </motion.button>
+                      </motion.button>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           )}
         </div>
       </div>
 
-      {/* Verification Modal */}
-      <AnimatePresence>
-        {showVerifyModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-            onClick={() => {
-              setShowVerifyModal(false);
-              setVerifyPassword("");
-              setVerifyError(false);
-              setShowVerifyPassword(false);
-            }}
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              transition={{ type: "spring", stiffness: 350, damping: 25 }}
-              className="bg-white rounded-xl shadow-xl w-full max-w-sm mx-4 overflow-hidden"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <motion.div
-                    initial={{ scale: 0, rotate: -90 }}
-                    animate={{ scale: 1, rotate: 0 }}
-                    transition={{ type: "spring", stiffness: 300, damping: 15, delay: 0.1 }}
-                    className="w-10 h-10 bg-cyan-50 rounded-full flex items-center justify-center"
-                  >
-                    <Lock className="w-5 h-5 text-cyan-600" />
-                  </motion.div>
-                  <div>
-                    <h3 className="text-sm font-semibold text-gray-900">Verify Your Identity</h3>
-                    <p className="text-xs text-gray-500">Enter your password to reveal credentials</p>
-                  </div>
-                </div>
-                <div className="relative mb-2">
-                  <input
-                    type={showVerifyPassword ? "text" : "password"}
-                    value={verifyPassword}
-                    onChange={(e) => {
-                      setVerifyPassword(e.target.value);
-                      setVerifyError(false);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") handleVerifySubmit();
-                    }}
-                    placeholder="Enter your password"
-                    autoFocus
-                    className={`w-full px-3.5 py-2.5 border rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 transition-colors pr-10 ${verifyError
-                      ? "border-red-300 focus:border-red-400 focus:ring-red-100"
-                      : "border-gray-200 focus:ring-cyan-100 focus:border-cyan-400"
-                      }`}
-                  />
-                  <button
-                    onClick={() => setShowVerifyPassword(!showVerifyPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
-                  >
-                    {showVerifyPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-                <AnimatePresence>
-                  {verifyError && (
-                    <motion.p
-                      initial={{ opacity: 0, y: -4, height: 0 }}
-                      animate={{ opacity: 1, y: 0, height: "auto" }}
-                      exit={{ opacity: 0, y: -4, height: 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="text-xs text-red-500 mb-2"
-                    >
-                      Please enter your password.
-                    </motion.p>
-                  )}
-                </AnimatePresence>
-              </div>
-              <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-2">
-                <motion.button
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => {
-                    setShowVerifyModal(false);
-                    setVerifyPassword("");
-                    setVerifyError(false);
-                    setShowVerifyPassword(false);
-                  }}
-                  className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
-                >
-                  Cancel
-                </motion.button>
-                <motion.button
-                  whileTap={{ scale: 0.95 }}
-                  whileHover={{ scale: 1.02 }}
-                  onClick={handleVerifySubmit}
-                  className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg text-sm font-semibold transition-colors cursor-pointer"
-                >
-                  Verify
-                </motion.button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }
 
 export default AccountSettingsView;
-
-
-

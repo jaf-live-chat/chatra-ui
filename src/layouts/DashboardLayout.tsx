@@ -52,10 +52,7 @@ function DashboardLayoutInner() {
   const sidebarGroups = roleFilteredGroups
     .map((group) => ({
       ...group,
-      modules: filterModulesByRole(group.modules, user?.role).filter(
-        (module) =>
-          module.path !== "/portal/agent" && !module.path.startsWith("/portal/agent/")
-      ),
+      modules: filterModulesByRole(group.modules, user?.role),
     }))
     .filter((group) => group.modules.length > 0);
 
@@ -97,6 +94,8 @@ function DashboardLayoutInner() {
   const userInitial = user?.fullName?.charAt(0)?.toUpperCase() || "U";
   const userName = user?.fullName || "User";
   const userEmail = user?.emailAddress || "";
+  const userProfilePicture = user?.profilePicture || "";
+  const [profileImageFailed, setProfileImageFailed] = useState(false);
   const companyName = tenant?.companyName || "-";
   const userRole = (user?.role || "-") as UserRole | "-";
   const subscription = tenant?.subscription ?? null;
@@ -123,6 +122,10 @@ function DashboardLayoutInner() {
   const sidebarLogo = isSidebarOpen
     ? (isDark ? APP_LOGO.logoLight : APP_LOGO.logoDark)
     : APP_LOGO.logoMain;
+
+  useEffect(() => {
+    setProfileImageFailed(false);
+  }, [userProfilePicture]);
 
   return (
     <div className={`min-h-screen w-full overflow-x-hidden flex font-sans bg-gray-50 dark:bg-slate-900 transition-colors duration-300${isDark ? " dark" : ""}`}>
@@ -302,7 +305,7 @@ function DashboardLayoutInner() {
               {isStatusOpen && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setIsStatusOpen(false)}></div>
-                  <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl shadow-lg dark:shadow-slate-900/50 z-50 py-1">
+                  <div className="absolute right-0 top-full mt-2 w-40 sm:w-48 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl shadow-lg dark:shadow-slate-900/50 z-50 py-1 -right-2 sm:right-0">
                     {[
                       { label: "Online", color: "bg-green-500", value: "Online" },
                       { label: "Busy", color: "bg-yellow-500", value: "Busy" },
@@ -315,9 +318,9 @@ function DashboardLayoutInner() {
                           setIsStatusOpen(false);
                           try { localStorage.setItem("jaf_agent_status", value); } catch { /* ignore */ }
                         }}
-                        className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700/60 flex items-center gap-3 transition-colors"
+                        className="w-full text-left px-3 sm:px-4 py-2 text-xs sm:text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700/60 flex items-center gap-3 transition-colors"
                       >
-                        <span className={`w-2 h-2 rounded-full ${color}`}></span> {label}
+                        <span className={`w-2 h-2 rounded-full flex-shrink-0 ${color}`}></span> <span className="truncate">{label}</span>
                       </button>
                     ))}
                   </div>
@@ -342,9 +345,18 @@ function DashboardLayoutInner() {
                 className="flex items-center gap-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700/60 p-1.5 pr-3 rounded-lg transition-colors border border-transparent hover:border-gray-200 dark:hover:border-slate-600 ml-1"
                 onClick={() => setIsProfileOpen(!isProfileOpen)}
               >
-                <div className="w-8 h-8 bg-gray-900 dark:bg-cyan-700 rounded-full flex items-center justify-center text-white font-medium text-sm">
-                  {userInitial}
-                </div>
+                {userProfilePicture && !profileImageFailed ? (
+                  <img
+                    src={userProfilePicture}
+                    alt={userName}
+                    onError={() => setProfileImageFailed(true)}
+                    className="w-8 h-8 rounded-full object-cover border border-gray-200 dark:border-slate-600"
+                  />
+                ) : (
+                  <div className="w-8 h-8 bg-gray-900 dark:bg-cyan-700 rounded-full flex items-center justify-center text-white font-medium text-sm">
+                    {userInitial}
+                  </div>
+                )}
                 <div className="hidden lg:block text-left">
                   <p className="text-sm font-semibold text-gray-900 dark:text-slate-100 leading-none">
                     {userName}
@@ -357,16 +369,30 @@ function DashboardLayoutInner() {
               {isProfileOpen && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setIsProfileOpen(false)}></div>
-                  <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl shadow-lg dark:shadow-slate-900/50 z-50 py-2">
-                    <div className="px-4 py-2 border-b border-gray-100 dark:border-slate-700 mb-1">
-                      <p className="text-sm font-semibold text-gray-900 dark:text-slate-100">{userName}</p>
-                      <p className="text-xs text-gray-500 dark:text-slate-400">{userEmail}</p>
+                  <div className="absolute right-0 top-full mt-2 w-48 sm:w-56 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl shadow-lg dark:shadow-slate-900/50 z-50 py-2 max-h-96 overflow-y-auto -right-2 sm:right-0">
+                    <div className="px-3 sm:px-4 py-2 border-b border-gray-100 dark:border-slate-700 mb-1 flex items-center gap-2.5 min-w-0">
+                      {userProfilePicture && !profileImageFailed ? (
+                        <img
+                          src={userProfilePicture}
+                          alt={userName}
+                          onError={() => setProfileImageFailed(true)}
+                          className="w-8 h-8 rounded-full object-cover border border-gray-200 dark:border-slate-600 flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="w-8 h-8 bg-gray-900 dark:bg-cyan-700 rounded-full flex items-center justify-center text-white font-medium text-xs flex-shrink-0">
+                          {userInitial}
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <p className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-slate-100 truncate">{userName}</p>
+                        <p className="text-xs text-gray-500 dark:text-slate-400 truncate">{userEmail}</p>
+                      </div>
                     </div>
-                    <div className="px-4 py-2 border-b border-gray-100 dark:border-slate-700 mb-1">
-                      <Typography variant="caption" sx={{ color: isDark ? "#94A3B8" : "#64748B" }}>
+                    <div className="px-3 sm:px-4 py-2 border-b border-gray-100 dark:border-slate-700 mb-1">
+                      <Typography variant="caption" sx={{ color: isDark ? "#94A3B8" : "#64748B", fontSize: "0.7rem" }}>
                         Role
                       </Typography>
-                      <Typography variant="body2" sx={{ color: isDark ? "#E2E8F0" : "#334155", fontWeight: 600 }}>
+                      <Typography variant="body2" sx={{ color: isDark ? "#E2E8F0" : "#334155", fontWeight: 600, fontSize: "0.85rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {toTitleCase(userRole)}
                       </Typography>
                     </div>
@@ -375,17 +401,17 @@ function DashboardLayoutInner() {
                         navigate("/portal/account-settings");
                         setIsProfileOpen(false);
                       }}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700/60 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors flex items-center gap-2"
+                      className="w-full text-left px-3 sm:px-4 py-2 text-xs sm:text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700/60 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors flex items-center gap-2"
                     >
-                      <Settings2 className="w-4 h-4" /> Account Settings
+                      <Settings2 className="w-4 h-4 flex-shrink-0" /> <span className="truncate">Account Settings</span>
                     </button>
                     <div className="h-px bg-gray-100 dark:bg-slate-700 my-1"></div>
                     <Link
                       to="/login"
                       onClick={handleLogout}
-                      className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center gap-2"
+                      className="w-full text-left px-3 sm:px-4 py-2 text-xs sm:text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center gap-2"
                     >
-                      <LogOut className="w-4 h-4" /> Log out
+                      <LogOut className="w-4 h-4 flex-shrink-0" /> <span className="truncate">Log out</span>
                     </Link>
                   </div>
                 </>

@@ -2,7 +2,6 @@ import { Navigate, type RouteObject } from "react-router";
 import { USER_ROLES } from "../constants/constants";
 
 import DashboardLayout from "../layouts/DashboardLayout";
-import AgentDashboardLayout from "../layouts/AgentDashboardLayout";
 import RouteGuard from "../layouts/RouteGuard";
 import AuthGuard from "../components/guards/AuthGuard";
 import Dashboard from "../pages/portal/dashboard";
@@ -18,16 +17,11 @@ import AgentDetailsPage from "../pages/portal/agent-details";
 import AgentsPage from "../pages/portal/agents";
 import CustomerDashboard from "../pages/portal/customer-dashboard";
 import ChatSessionManagementPage from "../pages/portal/chat-session-management";
-import AgentDashboard from "../pages/portal/agent-dashboard";
-import AgentQueuePage from "../pages/portal/agent-queue";
-import AgentHistoryPage from "../pages/portal/agent-history";
-import AgentQuickRepliesPage from "../pages/portal/agent-quick-replies";
 import CompanyInfoPage from "../pages/portal/company-info";
 import SubscriptionPlansPage from "../pages/portal/subscription-plans";
 import HomepageFaqsPage from "../pages/portal/homepage-faqs";
 import QuickRepliesPage from "../pages/portal/quick-replies";
 import QueueAssignmentPage from "../pages/portal/queue-assignment";
-import AgentSettingsPage from "../sections/settings/AgentSettingsPage";
 import Tenants from "../pages/portal/tenants";
 import TenantDetails from "../pages/portal/tenants/details";
 import Payments from "../pages/portal/payments";
@@ -43,7 +37,7 @@ const PortalRoutes: RouteObject[] = [
           {
             element: (
               <AuthGuard
-                allowedRoles={[USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value]}
+                allowedRoles={[USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value, USER_ROLES.SUPPORT_AGENT.value]}
               >
                 <DashboardLayout />
               </AuthGuard>
@@ -53,7 +47,7 @@ const PortalRoutes: RouteObject[] = [
                 path: "dashboard",
                 element: (
                   <AuthGuard
-                    allowedRoles={[USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value]}
+                    allowedRoles={[USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value, USER_ROLES.SUPPORT_AGENT.value]}
                   >
                     <Dashboard />
                   </AuthGuard>
@@ -143,7 +137,7 @@ const PortalRoutes: RouteObject[] = [
                 path: "account-settings",
                 element: (
                   <AuthGuard
-                    allowedRoles={[USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value]}
+                    allowedRoles={[USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value, USER_ROLES.SUPPORT_AGENT.value]}
                   >
                     <AccountSettingsPage />
                   </AuthGuard>
@@ -272,59 +266,30 @@ const PortalRoutes: RouteObject[] = [
           },
           {
             path: "agent",
-            element: (
-              <AuthGuard allowedRoles={[USER_ROLES.SUPPORT_AGENT.value]}>
-                <AgentDashboardLayout />
-              </AuthGuard>
-            ),
             children: [
               {
                 index: true,
-                element: (
-                  <AuthGuard allowedRoles={[USER_ROLES.SUPPORT_AGENT.value]}>
-                    <AgentDashboard />
-                  </AuthGuard>
-                ),
+                element: <Navigate to="/portal/dashboard" replace />,
               },
               {
                 path: "queue",
-                element: (
-                  <AuthGuard allowedRoles={[USER_ROLES.SUPPORT_AGENT.value]}>
-                    <AgentQueuePage />
-                  </AuthGuard>
-                ),
+                element: <Navigate to="/portal/queue" replace />,
               },
               {
                 path: "history",
-                element: (
-                  <AuthGuard allowedRoles={[USER_ROLES.SUPPORT_AGENT.value]}>
-                    <AgentHistoryPage />
-                  </AuthGuard>
-                ),
+                element: <Navigate to="/portal/dashboard" replace />,
               },
               {
                 path: "quick-replies",
-                element: (
-                  <AuthGuard allowedRoles={[USER_ROLES.SUPPORT_AGENT.value]}>
-                    <AgentQuickRepliesPage />
-                  </AuthGuard>
-                ),
+                element: <Navigate to="/portal/quick-replies" replace />,
               },
               {
                 path: "chat-sessions",
-                element: (
-                  <AuthGuard allowedRoles={[USER_ROLES.SUPPORT_AGENT.value]}>
-                    <ChatSessionManagementPage />
-                  </AuthGuard>
-                ),
+                element: <Navigate to="/portal/chat-sessions" replace />,
               },
               {
                 path: "settings",
-                element: (
-                  <AuthGuard allowedRoles={[USER_ROLES.SUPPORT_AGENT.value]}>
-                    <AgentSettingsPage />
-                  </AuthGuard>
-                ),
+                element: <Navigate to="/portal/account-settings" replace />,
               },
             ],
           },

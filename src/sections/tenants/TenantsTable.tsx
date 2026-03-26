@@ -236,30 +236,40 @@ const TenantsTable = () => {
         id: "name",
         label: "Tenant Name",
         width: "24%",
+        sortable: true,
+        sortAccessor: (tenant) => tenant.name,
         renderCell: (tenant) => tenant.name || EMPTY_LABEL,
       },
       {
         id: "plan",
         label: "Plan",
         width: "20%",
+        sortable: true,
+        sortAccessor: (tenant) => tenant.subscription.planName,
         renderCell: (tenant) => tenant.subscription.planName || EMPTY_LABEL,
       },
       {
         id: "startDate",
         label: "Start Date",
         width: "16%",
+        sortable: true,
+        sortAccessor: (tenant) => new Date(tenant.subscription.startDate),
         renderCell: (tenant) => formatDate(tenant.subscription.startDate),
       },
       {
         id: "endDate",
         label: "End Date",
         width: "16%",
+        sortable: true,
+        sortAccessor: (tenant) => new Date(tenant.subscription.endDate),
         renderCell: (tenant) => formatDate(tenant.subscription.endDate),
       },
       {
         id: "status",
         label: "Status",
         width: "12%",
+        sortable: true,
+        sortAccessor: (tenant) => tenant.subscription.status,
         renderCell: (tenant) => {
           const statusDisplay = getStatusChipStyles(tenant.subscription.status);
           return <Chip label={statusDisplay.label} size="small" sx={statusDisplay.sx} />;
@@ -312,11 +322,11 @@ const TenantsTable = () => {
         loadingLabel="Loading tenants..."
         emptyStateTitle="No tenants found"
         emptyStateDescription="Try adjusting your search or add a new tenant."
-        searchPlaceholder="Search tenants, plans, or status"
-        searchBy={(tenant) =>
-          `${tenant.name} ${tenant.subscription.planName} ${tenant.subscription.status}`
-        }
-        rowsPerPage={5}
+        search={{
+          placeholder: "Search tenants, plans, or status",
+          by: (tenant) => `${tenant.name} ${tenant.subscription.planName} ${tenant.subscription.status}`,
+        }}
+        pagination={{ rowsPerPage: 5 }}
         totalLabel="tenants"
       />
 

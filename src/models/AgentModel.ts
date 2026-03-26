@@ -32,6 +32,7 @@ export type AuthTenant = {
   id: string;
   companyName: string;
   companyCode: string;
+  apiKey?: string | null;
   subscription?: Subscription | null;
 };
 
@@ -67,6 +68,7 @@ export type AuthContextValue = {
   isLoggedIn: boolean;
   login: (loginData: LoginData) => Promise<AgentLoginResponse>;
   logout: () => void;
+  updateUser: (agent: AuthAgent) => void;
 };
 
 // Agent CRUD Operations
@@ -108,6 +110,7 @@ export type UpdateAgentInput = {
   profilePicture?: string | null;
   role?: string;
   status?: string;
+  password?: string;
 };
 
 export type UpdateAgentResponse = {
@@ -119,4 +122,10 @@ export type UpdateAgentResponse = {
 export type DeleteAgentResponse = {
   success: boolean;
   message: string;
+};
+
+export type VerifyPasswordResponse = {
+  success: boolean;
+  message: string;
+  verified: boolean;
 };

@@ -2,6 +2,7 @@ import { createContext, useCallback, useEffect, useMemo, useState } from "react"
 import type { ReactNode } from "react";
 import type {
   AgentLoginResponse,
+  AuthAgent,
   AuthContextValue,
   AuthSession,
   LoginData,
@@ -40,6 +41,9 @@ type AuthProviderProps = {
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [session, setSession] = useState<AuthSession | null>(readStoredSession);
 
+  const isPrivilegedRole =
+    session?.agent?.role === "MASTER_ADMIN" || session?.agent?.role === "ADMIN";
+
   useEffect(() => {
     if (!session) {
       localStorage.removeItem(AUTH_STORAGE_KEY);
@@ -52,11 +56,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   }, [session]);
 
   useEffect(() => {
-    const shouldHydrateSubscription = Boolean(
-      session?.accessToken && session?.tenant && !session?.tenant?.subscription
+    const shouldHydrateSession = Boolean(
+      session?.accessToken &&
+      session?.tenant &&
+      (!session?.tenant?.subscription || (isPrivilegedRole && !session?.tenant?.apiKey))
     );
 
-    if (!shouldHydrateSubscription) {
+    if (!shouldHydrateSession) {
       return;
     }
 
@@ -91,7 +97,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     return () => {
       isMounted = false;
     };
-  }, [session?.accessToken, session?.tenant]);
+  }, [isPrivilegedRole, session?.accessToken, session?.tenant]);
 
   const login = useCallback(async (loginData: LoginData): Promise<AgentLoginResponse> => {
     const response = await Agents.login(loginData);
@@ -113,6 +119,19 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     setSession(null);
   }, []);
 
+  const updateUser = useCallback((agent: AuthAgent) => {
+    setSession((prevSession) => {
+      if (!prevSession) {
+        return prevSession;
+      }
+
+      return {
+        ...prevSession,
+        agent,
+      };
+    });
+  }, []);
+
   const value = useMemo<AuthContextValue>(
     () => ({
       user: session?.agent ?? null,
@@ -121,8 +140,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       isLoggedIn: Boolean(session?.accessToken && session?.agent),
       login,
       logout,
+      updateUser,
     }),
-    [session, login, logout]
+    [session, login, logout, updateUser]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

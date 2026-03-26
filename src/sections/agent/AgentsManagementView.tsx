@@ -636,15 +636,17 @@ const AgentsManagementView = () => {
         loadingLabel="Loading agents..."
         emptyStateTitle="No agents found"
         emptyStateDescription="Adjust your search or add a new agent."
-        searchPlaceholder="Search agents..."
-        searchTerm={searchTerm}
-        onSearchTermChange={setSearchTerm}
-        filterMode="server"
-        rowsPerPage={ITEMS_PER_PAGE}
-        page={page}
-        onPageChange={setPage}
-        paginationMode="server"
-        totalRows={totalRecords}
+        search={{
+          placeholder: "Search agents...",
+          value: searchTerm,
+          onChange: setSearchTerm,
+        }}
+        pagination={{
+          rowsPerPage: ITEMS_PER_PAGE,
+          page,
+          onPageChange: setPage,
+          totalRows: totalRecords,
+        }}
         totalLabel="agents"
       />
 
