@@ -120,6 +120,9 @@ function DashboardLayoutInner() {
   const activeNavCls = "bg-cyan-50 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400";
   const inactiveNavCls =
     "text-gray-600 hover:bg-gray-100 dark:text-slate-400 dark:hover:bg-slate-700/60";
+  const sidebarLogo = isSidebarOpen
+    ? (isDark ? APP_LOGO.logoLight : APP_LOGO.logoDark)
+    : APP_LOGO.logoMain;
 
   return (
     <div className={`min-h-screen w-full overflow-x-hidden flex font-sans bg-gray-50 dark:bg-slate-900 transition-colors duration-300${isDark ? " dark" : ""}`}>
@@ -138,22 +141,22 @@ function DashboardLayoutInner() {
           } w-[86vw] max-w-72 md:max-w-none bg-white dark:bg-slate-800 border-r border-gray-200 dark:border-slate-700 flex flex-col fixed top-0 left-0 h-screen shrink-0 z-30 transition-all duration-300`}
       >
         {/* Logo row */}
-        <div className="h-16 flex items-center justify-between px-4 border-b border-gray-100 dark:border-slate-700">
+        <div className={`h-16 flex items-center ${isSidebarOpen ? "justify-between px-4" : "justify-center px-2"} border-b border-gray-100 dark:border-slate-700`}>
           {isSidebarOpen ? (
-            <div className="flex items-center gap-2 overflow-hidden">
+            <div className="flex w-full items-center justify-center overflow-hidden">
               <img
-                src={APP_LOGO.logoDark}
+                src={sidebarLogo}
                 alt="JAF Chatra Logo"
                 style={{ height: "104px", width: "auto" }}
-                className="ml-6"
+                className="mx-auto"
               />
             </div>
           ) : (
             <img
-              src={APP_LOGO.logoDark}
+              src={sidebarLogo}
               alt="JAF Chatra Minimized"
-              style={{ height: "36px", width: "auto", objectFit: "contain" }}
-              className="-ml-1"
+              style={{ height: "46px", width: "auto", objectFit: "contain" }}
+              className="mx-auto"
             />
           )}
           <button
