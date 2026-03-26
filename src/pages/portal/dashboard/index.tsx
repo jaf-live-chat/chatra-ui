@@ -3,9 +3,12 @@ import {
   Users,
   Clock,
   ListOrdered,
-  Eye,
+   Eye,
   UserCog,
   Star,
+  Activity,
+  MessageCircle,
+  UserPlus
 } from "lucide-react";
 import { useNavigate } from "react-router";
 import Tooltip from "@mui/material/Tooltip";
@@ -35,6 +38,7 @@ type LiveQueueRow = {
   id: string;
   visitor: string;
   queueId: string;
+  message: string;
   wait: string;
   priority: "HIGH" | "NORMAL" | "LOW";
 };
@@ -98,11 +102,11 @@ const agentStatuses: AgentStatusRow[] = [
 ];
 
 const liveQueue: LiveQueueRow[] = [
-  { id: "Q-102", visitor: "Guest_882", queueId: "#Q-102", wait: "04:12", priority: "HIGH" },
-  { id: "Q-103", visitor: "david.c@web.com", queueId: "#Q-103", wait: "02:45", priority: "NORMAL" },
-  { id: "Q-104", visitor: "Guest_911", queueId: "#Q-104", wait: "01:30", priority: "NORMAL" },
-  { id: "Q-105", visitor: "anna.m@test.com", queueId: "#Q-105", wait: "01:05", priority: "HIGH" },
-  { id: "Q-106", visitor: "Guest_223", queueId: "#Q-106", wait: "00:15", priority: "LOW" },
+  { id: "Q-102", visitor: "Guest_882", queueId: "#Q: 102", message: "I need help with pricing plans.", wait: "04:12", priority: "HIGH" },
+  { id: "Q-103", visitor: "david.c@web.com", queueId: "#Q: 103", message: "How does the custom domain feature work?", wait: "02:45", priority: "NORMAL" },
+  { id: "Q-104", visitor: "Guest_911", queueId: "#Q: 104", message: "Hello, I cannot login.", wait: "01:30", priority: "NORMAL" },
+  { id: "Q-105", visitor: "anna.m@test.com", queueId: "#Q: 105", message: "Billing issue, please help urgently.", wait: "01:05", priority: "HIGH" },
+  { id: "Q-106", visitor: "Guest_223", queueId: "#Q: 106", message: "Where is the API documentation?", wait: "00:15", priority: "LOW" },
 ];
 
 const recentFeedback: FeedbackRow[] = [
@@ -121,49 +125,30 @@ const DashboardPage = () => {
     {
       id: "visitor",
       label: "VISITOR",
-      width: "40%",
+      width: "55%",
       renderCell: (row) => (
         <div>
-          <p className="text-sm font-semibold text-slate-900">{row.visitor}</p>
-          <p className="text-xs text-slate-500 mt-0.5">{row.channelId}</p>
+          <p className="text-[13px] font-bold text-slate-900">{row.visitor}</p>
+          <span className="inline-block mt-0.5 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-500 font-medium">
+            {row.channelId.replace("-", " ")}
+          </span>
         </div>
       ),
     },
     {
-      id: "agent",
-      label: "AGENT",
-      width: "28%",
-      headerSx: { display: { xs: "none", md: "table-cell" } },
-      sx: { display: { xs: "none", md: "table-cell" } },
-      renderCell: (row) => <p className="text-sm text-slate-800">{row.agent}</p>,
-    },
-    {
-      id: "status",
-      label: "STATUS",
-      width: "17%",
-      headerSx: { display: { xs: "none", sm: "table-cell" } },
-      sx: { display: { xs: "none", sm: "table-cell" } },
-      renderCell: (row) => (
-        <span
-          className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-bold tracking-wide ${
-            row.status === "ACTIVE"
-              ? "bg-emerald-100 text-emerald-700"
-              : "bg-amber-100 text-amber-700"
-          }`}
-        >
-          {row.status === "ACTIVE" ? "ACTIVE" : "IN QUEUE"}
-        </span>
-      ),
-    },
-    {
-      id: "time",
-      label: "TIME",
-      width: "15%",
+      id: "agentTime",
+      label: "AGENT / TIME",
+      width: "45%",
       align: "right",
       headerAlign: "right",
-      headerSx: { display: { xs: "none", sm: "table-cell" } },
-      sx: { display: { xs: "none", sm: "table-cell" } },
-      renderCell: (row) => <p className="text-sm font-medium text-slate-800">{row.time}</p>,
+      renderCell: (row) => (
+        <div className="flex flex-col items-end">
+          <p className="text-[13px] font-medium text-slate-800">{row.agent}</p>
+          <span className="inline-block mt-1 font-bold tracking-wide text-[10px] text-emerald-500 border border-emerald-200/60 bg-emerald-50/50 px-2 py-0.5 rounded">
+            {row.time}
+          </span>
+        </div>
+      ),
     },
   ];
 
@@ -171,48 +156,51 @@ const DashboardPage = () => {
     {
       id: "agent",
       label: "AGENT",
-      width: "60%",
-      renderCell: (row) => (
-        <div className="flex items-center gap-3">
-          <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white">
-            {row.name.charAt(0).toUpperCase()}
-          </span>
-          <div>
-            <p className="text-sm font-bold text-slate-900">{row.name}</p>
-            <p className="text-[10px] text-slate-500 font-medium">{row.code}</p>
+      width: "70%",
+      renderCell: (row, rowIndex) => {
+        const colors = [
+          "bg-teal-600",
+          "bg-blue-600",
+          "bg-cyan-600",
+          "bg-pink-500",
+          "bg-purple-600",
+        ];
+        const avatarColor = colors[rowIndex % colors.length];
+
+        return (
+          <div className="flex items-center gap-3">
+            <span className={`inline-flex h-8 w-8 items-center justify-center rounded-full ${avatarColor} text-xs font-bold text-white`}>
+              {row.name.charAt(0).toUpperCase()}
+            </span>
+            <div>
+              <p className="text-[13px] font-bold text-slate-900">{row.name}</p>
+              <p className="text-[10px] text-slate-400 font-medium tracking-wide bg-slate-50 px-1 py-0.5 rounded mt-0.5 inline-block">{row.code}</p>
+            </div>
           </div>
-        </div>
-      ),
+        );
+      },
     },
     {
       id: "status",
       label: "STATUS",
       width: "28%",
-      renderCell: (row) => (
-        <span className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-700">
-          <span
-            className={`h-2 w-2 rounded-full ${
-              row.status === "Available"
-                ? "bg-emerald-500"
-                : row.status === "In Chat"
-                  ? "bg-blue-500"
-                  : "bg-slate-300"
-            }`}
-          />
-          {row.status}
-        </span>
-      ),
-    },
-    {
-      id: "count",
-      label: "#",
-      width: "12%",
       align: "right",
       headerAlign: "right",
       renderCell: (row) => (
-        <span className="rounded-md bg-slate-50 px-2.5 py-1 text-xs font-bold text-slate-900 border border-slate-200">
-          {row.activeCount}
-        </span>
+        <div className="flex justify-end pr-4">
+          <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-slate-700">
+            <span
+              className={`h-2 w-2 rounded-full ${
+                row.status === "Available"
+                  ? "bg-emerald-500"
+                  : row.status === "In Chat"
+                    ? "bg-blue-500"
+                    : "bg-slate-300"
+              }`}
+            />
+            {row.status}
+          </span>
+        </div>
       ),
     },
   ];
@@ -221,40 +209,47 @@ const DashboardPage = () => {
     {
       id: "visitor",
       label: "VISITOR",
-      width: "52%",
+      width: "35%",
       renderCell: (row) => (
         <div>
-          <p className="text-sm font-bold text-slate-900">{row.visitor}</p>
-          <p className="text-xs text-slate-500 mt-0.5">{row.queueId}</p>
+          <p className="text-[13px] font-bold text-slate-900">{row.visitor}</p>
+          <span className="inline-block mt-0.5 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-500 font-medium">
+            {row.queueId}
+          </span>
         </div>
+      ),
+    },
+    {
+      id: "message",
+      label: "MESSAGE",
+      width: "35%",
+      renderCell: (row) => (
+        <p className="text-[13px] text-slate-600 truncate mr-2" title={row.message}>
+          {row.message}
+        </p>
       ),
     },
     {
       id: "wait",
       label: "WAIT",
-      width: "22%",
-      renderCell: (row) => <span className="text-sm font-medium text-amber-600">{row.wait}</span>,
+      width: "15%",
+      renderCell: (row) => <span className="text-[13px] font-bold text-orange-500">{row.wait}</span>,
     },
     {
-      id: "prio",
-      label: "PRIO",
-      width: "26%",
+      id: "action",
+      label: "ACTION",
+      width: "15%",
       align: "right",
       headerAlign: "right",
-      headerSx: { display: { xs: "none", sm: "table-cell" } },
-      sx: { display: { xs: "none", sm: "table-cell" } },
-      renderCell: (row) => (
-        <span
-          className={`inline-flex rounded-md px-2 py-0.5 text-[10px] font-bold tracking-wide ${
-            row.priority === "HIGH"
-              ? "bg-rose-100 text-rose-700"
-              : row.priority === "LOW"
-                ? "bg-slate-100 text-slate-600"
-                : "bg-sky-100 text-sky-700"
-          }`}
-        >
-          {row.priority}
-        </span>
+      renderCell: () => (
+        <div className="flex items-center justify-end gap-2 text-right w-full pr-2">
+          <button className="flex h-7 w-7 items-center justify-center rounded-full bg-teal-600 text-white hover:bg-teal-700 transition-colors">
+            <MessageCircle size={14} className="fill-current" />
+          </button>
+          <button className="flex h-7 w-7 items-center justify-center rounded-full bg-purple-100 text-purple-600 hover:bg-purple-200 transition-colors">
+            <UserPlus size={14} />
+          </button>
+        </div>
       ),
     },
   ];
@@ -344,23 +339,23 @@ const DashboardPage = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-stretch">
-        <div className="xl:col-span-8 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] rounded-2xl bg-white border border-slate-100 overflow-hidden h-full flex flex-col">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-stretch mb-6">
+        <div className="xl:col-span-7 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] rounded-2xl bg-white border border-slate-100 overflow-hidden h-full flex flex-col">
           <ReusableTable
-            title="Active Sessions"
-            rows={activeSessions}
-            columns={activeSessionsColumns}
+            title="Waiting Queue"
+            rows={liveQueue}
+            columns={liveQueueColumns}
             getRowKey={(row) => row.id}
-            showSearch={false}
             compact={true}
-            showTotalBadge={true}
+            showSearch={false}
+            showTotalBadge={false}
             showPagination={false}
             rowsPerPage={5}
-            headerIcon={<MessageSquare className="text-blue-500" size={20} />}
+            headerIcon={<Clock className="text-amber-500" size={20} />}
             headerActions={
-              <Tooltip title="View all active sessions" placement="top">
+              <Tooltip title="View waiting queue" placement="top">
                 <button
-                  onClick={() => navigate("/portal/chat-sessions")}
+                  onClick={() => navigate("/portal/chats")}
                   className="text-xs font-bold text-blue-600 hover:text-blue-700 tracking-wide px-3 py-1.5 rounded-md hover:bg-blue-50 transition-colors border border-transparent hover:border-blue-100 uppercase"
                 >
                   View all
@@ -370,6 +365,33 @@ const DashboardPage = () => {
           />
         </div>
 
+        <div className="xl:col-span-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] rounded-2xl bg-white border border-slate-100 overflow-hidden h-full flex flex-col">
+          <ReusableTable
+            title="Currently Being Served"
+            rows={activeSessions}
+            columns={activeSessionsColumns}
+            getRowKey={(row) => row.id}
+            showSearch={false}
+            compact={true}
+            showTotalBadge={false}
+            showPagination={false}
+            rowsPerPage={5}
+            headerIcon={<Activity className="text-blue-500" size={20} />}
+            headerActions={
+              <Tooltip title="View all active sessions" placement="top">
+                <button
+                  onClick={() => navigate("/portal/chat-sessions")}
+                  className="text-xs font-bold text-blue-600 hover:text-blue-700 tracking-wide px-3 py-1.5 rounded-md hover:bg-blue-50 transition-colors border border-transparent hover:border-blue-100 uppercase"
+                >
+                  View All
+                </button>
+              </Tooltip>
+            }
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-stretch">
         <div className="xl:col-span-4 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] rounded-2xl bg-white border border-slate-100 overflow-hidden h-full flex flex-col">
           <ReusableTable
             title="Agent Status"
@@ -378,10 +400,10 @@ const DashboardPage = () => {
             getRowKey={(row) => row.id}
             compact={true}
             showSearch={false}
-            showTotalBadge={true}
+            showTotalBadge={false}
             showPagination={false}
             rowsPerPage={5}
-            headerIcon={<Users className="text-blue-500" size={20} />}
+            headerIcon={<UserCog className="text-blue-500" size={20} />}
             headerActions={
               <Tooltip title="Manage agent status" placement="top">
                 <button
@@ -395,40 +417,15 @@ const DashboardPage = () => {
           />
         </div>
 
-        <div className="xl:col-span-4 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] rounded-2xl bg-white border border-slate-100 overflow-hidden h-full flex flex-col">
-          <ReusableTable
-            title="Live Queue"
-            rows={liveQueue}
-            columns={liveQueueColumns}
-            getRowKey={(row) => row.id}
-            compact={true}
-            showSearch={false}
-            showTotalBadge={true}
-            showPagination={false}
-            rowsPerPage={5}
-            headerIcon={<ListOrdered className="text-amber-500" size={20} />}
-            headerActions={
-              <Tooltip title="View live queue" placement="top">
-                <button
-                  onClick={() => navigate("/portal/chats")}
-                  className="text-xs font-bold text-blue-600 hover:text-blue-700 tracking-wide px-3 py-1.5 rounded-md hover:bg-blue-50 transition-colors border border-transparent hover:border-blue-100 uppercase"
-                >
-                  View all
-                </button>
-              </Tooltip>
-            }
-          />
-        </div>
-
         <div className="xl:col-span-8 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] rounded-2xl bg-white border border-slate-100 overflow-hidden h-full flex flex-col">
           <ReusableTable
-            title="Recent Feedback"
+            title="Ratings"
             rows={recentFeedback}
             columns={feedbackColumns}
             getRowKey={(row) => row.id}
             compact={true}
             showSearch={false}
-            showTotalBadge={true}
+            showTotalBadge={false}
             showPagination={false}
             rowsPerPage={5}
             headerIcon={<Star className="text-purple-500" size={20} />}
@@ -438,7 +435,7 @@ const DashboardPage = () => {
                   onClick={() => navigate("/portal/analytics")}
                   className="text-xs font-bold text-blue-600 hover:text-blue-700 tracking-wide px-3 py-1.5 rounded-md hover:bg-blue-50 transition-colors border border-transparent hover:border-blue-100 uppercase"
                 >
-                  All reviews
+                  View All 
                 </button>
               </Tooltip>
             }
