@@ -25,7 +25,7 @@ const LoginPage = () => {
       return;
     }
 
-    navigate(user.role === "SUPPORT_AGENT" ? "/portal/agent" : "/portal/dashboard", {
+    navigate("/portal/dashboard", {
       replace: true,
     });
   }, [isLoggedIn, user, navigate]);
@@ -42,7 +42,7 @@ const LoginPage = () => {
         password,
       });
 
-      navigate(response.agent.role === "SUPPORT_AGENT" ? "/portal/agent" : "/portal/dashboard", {
+      navigate("/portal/dashboard", {
         replace: true,
       });
     } catch (error) {

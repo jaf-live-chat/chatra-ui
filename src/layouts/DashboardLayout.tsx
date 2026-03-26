@@ -52,10 +52,7 @@ function DashboardLayoutInner() {
   const sidebarGroups = roleFilteredGroups
     .map((group) => ({
       ...group,
-      modules: filterModulesByRole(group.modules, user?.role).filter(
-        (module) =>
-          module.path !== "/portal/agent" && !module.path.startsWith("/portal/agent/")
-      ),
+      modules: filterModulesByRole(group.modules, user?.role),
     }))
     .filter((group) => group.modules.length > 0);
 

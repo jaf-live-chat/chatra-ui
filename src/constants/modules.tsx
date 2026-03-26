@@ -37,14 +37,14 @@ const MODULE_GROUPS: ModuleGroup[] = [
   {
     id: "group-navigation",
     label: "Menu",
-    allowedRoles: [USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value],
+    allowedRoles: [USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value, USER_ROLES.SUPPORT_AGENT.value],
     modules: [
       {
         id: "dashboard",
         label: "Dashboard",
         path: "/portal/dashboard",
         icon: <LayoutDashboard className="w-5 h-5" />,
-        allowedRoles: [USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value],
+        allowedRoles: [USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value, USER_ROLES.SUPPORT_AGENT.value],
       },
       {
         id: "analytics",
@@ -156,7 +156,7 @@ const MODULE_GROUPS: ModuleGroup[] = [
         label: "Quick Replies",
         path: "/portal/quick-replies",
         icon: <Zap className="w-5 h-5" />,
-        allowedRoles: [USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value, USER_ROLES.SUPPORT_AGENT.value],
+        allowedRoles: [USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value],
       },
     ],
   },
@@ -168,7 +168,7 @@ const MODULE_GROUPS: ModuleGroup[] = [
       {
         id: "agent-quick-replies",
         label: "Quick Replies",
-        path: "/portal/agent/quick-replies",
+        path: "/portal/quick-replies",
         icon: <Zap className="w-5 h-5" />,
         allowedRoles: [USER_ROLES.SUPPORT_AGENT.value],
       },
