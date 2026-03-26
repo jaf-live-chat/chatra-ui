@@ -1,7 +1,41 @@
 import { useEffect, useMemo, useState } from "react";
-import { Check, Crown, DollarSign, Pencil, Plus, Save, Sparkles, Star, Trash2, Users, X } from "lucide-react";
+import {
+  AlertCircle,
+  Check,
+  Crown,
+  DollarSign,
+  Info,
+  Pencil,
+  Plus,
+  Save,
+  Sparkles,
+  Star,
+  Trash2,
+  Users,
+  X,
+} from "lucide-react";
 
 import { useDarkMode } from "../../providers/DarkModeContext";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "../../components/AlertDialog";
+import { Alert, AlertDescription, AlertTitle } from "../../components/Alert";
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from "../../components/drawer";
 import {
   createSubscriptionPlan,
   deleteSubscriptionPlanById,
@@ -35,6 +69,11 @@ interface SubscriptionPlan {
 interface ToastState {
   type: "success" | "error";
   message: string;
+}
+
+interface ValidationResult {
+  valid: boolean;
+  message?: string;
 }
 
 const toPeriod = (billingCycle: BillingCycle, interval: number) => {
@@ -107,6 +146,38 @@ const toApiPayload = (plan: SubscriptionPlan) => {
   };
 };
 
+const createDefaultPlanDraft = (): SubscriptionPlan => ({
+  id: `tmp-plan-${Date.now()}`,
+  name: "New Plan",
+  description: "Plan description",
+  price: "0",
+  period: "/mo",
+  features: [],
+  popular: false,
+  active: true,
+  limits: {
+    maxAgents: "1",
+    maxWebsites: "1",
+  },
+});
+
+const validatePlanDraft = (plan: SubscriptionPlan): ValidationResult => {
+  if (!plan.name.trim()) return { valid: false, message: "Plan name is required." };
+  if (!plan.description.trim()) return { valid: false, message: "Plan description is required." };
+
+  const parsedPrice = Number(plan.price);
+  if (Number.isNaN(parsedPrice) || parsedPrice < 0) {
+    return { valid: false, message: "Price must be a valid number greater than or equal to 0." };
+  }
+
+  const featuresCount = plan.features.map((f) => f.text.trim()).filter(Boolean).length;
+  if (featuresCount < 1) {
+    return { valid: false, message: "At least one feature is required for every plan." };
+  }
+
+  return { valid: true };
+};
+
 const SubscriptionPlansView = () => {
   const { plans: fetchedPlans, isLoading, mutate } = useGetSubscriptionPlans();
   const { isDark } = useDarkMode();
@@ -117,6 +188,12 @@ const SubscriptionPlansView = () => {
   const [savingPlanId, setSavingPlanId] = useState<string | null>(null);
   const [newFeatureTextByPlan, setNewFeatureTextByPlan] = useState<Record<string, string>>({});
   const [toast, setToast] = useState<ToastState | null>(null);
+  const [isCreateDrawerOpen, setIsCreateDrawerOpen] = useState(false);
+  const [isCreatingPlan, setIsCreatingPlan] = useState(false);
+  const [createPlanDraft, setCreatePlanDraft] = useState<SubscriptionPlan>(createDefaultPlanDraft);
+  const [createFeatureText, setCreateFeatureText] = useState("");
+  const [createValidationAlert, setCreateValidationAlert] = useState<string | null>(null);
+  const [planPendingDelete, setPlanPendingDelete] = useState<SubscriptionPlan | null>(null);
 
   useEffect(() => {
     setPlans(fetchedPlans.map(mapApiPlanToView));
@@ -130,6 +207,13 @@ const SubscriptionPlansView = () => {
   const showToast = (type: ToastState["type"], message: string) => {
     setToast({ type, message });
     setTimeout(() => setToast(null), 2500);
+  };
+
+  const openCreateDrawer = () => {
+    setCreatePlanDraft(createDefaultPlanDraft());
+    setCreateFeatureText("");
+    setCreateValidationAlert(null);
+    setIsCreateDrawerOpen(true);
   };
 
   const updatePlan = (planId: string, updates: Partial<SubscriptionPlan>) => {
@@ -191,6 +275,12 @@ const SubscriptionPlansView = () => {
 
   const savePlan = async (plan: SubscriptionPlan) => {
     const currentPlans = plans;
+    const validation = validatePlanDraft(plan);
+
+    if (!validation.valid) {
+      showToast("error", validation.message || "Please check plan details.");
+      return;
+    }
 
     try {
       setSavingPlanId(plan.id);
@@ -219,6 +309,13 @@ const SubscriptionPlansView = () => {
   const saveAll = async () => {
     const currentPlans = plans;
 
+    const invalidPlan = plans.find((plan) => !validatePlanDraft(plan).valid);
+    if (invalidPlan) {
+      const invalidMessage = validatePlanDraft(invalidPlan).message || "Please check plan details.";
+      showToast("error", `${invalidPlan.name}: ${invalidMessage}`);
+      return;
+    }
+
     try {
       setSavingPlanId("ALL");
       await Promise.all(
@@ -244,51 +341,86 @@ const SubscriptionPlansView = () => {
   };
 
   const addNewPlan = () => {
-    const newPlan: SubscriptionPlan = {
-      id: `tmp-plan-${Date.now()}`,
-      name: "New Plan",
-      description: "Plan description",
-      price: "0",
-      period: "/mo",
-      features: [],
-      popular: false,
-      active: true,
-      limits: {
-        maxAgents: "1",
-        maxWebsites: "1",
-      },
-    };
-
-    setPlans((prev) => [...prev, newPlan]);
-    setEditingPlan(newPlan.id);
+    openCreateDrawer();
   };
 
-  const deletePlan = async (planId: string) => {
-    const plan = plans.find((p) => p.id === planId);
-    if (!plan) return;
-
-    if (!window.confirm(`Are you sure you want to delete the "${plan.name}" plan?`)) {
-      return;
-    }
-
+  const deletePlan = async (planId: string, planName: string) => {
     const currentPlans = plans;
 
     try {
       setPlans((prev) => prev.filter((p) => p.id !== planId));
 
       if (planId.startsWith("tmp-plan-")) {
-        showToast("success", `"${plan.name}" removed.`);
+        showToast("success", `"${planName}" removed.`);
         return;
       }
 
       await deleteSubscriptionPlanById(planId);
       await mutate();
-      showToast("success", `"${plan.name}" deleted successfully.`);
+      showToast("success", `"${planName}" deleted successfully.`);
     } catch (error) {
       console.error("Failed to delete plan:", error);
       setPlans(currentPlans);
       showToast("error", "Failed to delete plan.");
     }
+  };
+
+  const addFeatureToDraft = () => {
+    const text = createFeatureText.trim();
+    if (!text) return;
+
+    setCreatePlanDraft((prev) => ({
+      ...prev,
+      features: [...prev.features, { id: `feature-${Date.now()}`, text }],
+    }));
+    setCreateFeatureText("");
+    if (createValidationAlert) {
+      setCreateValidationAlert(null);
+    }
+  };
+
+  const removeDraftFeature = (featureId: string) => {
+    setCreatePlanDraft((prev) => ({
+      ...prev,
+      features: prev.features.filter((f) => f.id !== featureId),
+    }));
+  };
+
+  const updateDraftFeature = (featureId: string, text: string) => {
+    setCreatePlanDraft((prev) => ({
+      ...prev,
+      features: prev.features.map((f) => (f.id === featureId ? { ...f, text } : f)),
+    }));
+  };
+
+  const submitNewPlan = async () => {
+    const validation = validatePlanDraft(createPlanDraft);
+    if (!validation.valid) {
+      setCreateValidationAlert(validation.message || "Please review plan details.");
+      showToast("error", validation.message || "Please review plan details.");
+      return;
+    }
+
+    try {
+      setIsCreatingPlan(true);
+      await createSubscriptionPlan(toApiPayload(createPlanDraft));
+      await mutate();
+      setIsCreateDrawerOpen(false);
+      setCreateValidationAlert(null);
+      showSaved();
+      showToast("success", `"${createPlanDraft.name}" created successfully.`);
+    } catch (error) {
+      console.error("Failed to create plan:", error);
+      showToast("error", "Failed to create subscription plan.");
+    } finally {
+      setIsCreatingPlan(false);
+    }
+  };
+
+  const requestDeletePlan = (planId: string) => {
+    const plan = plans.find((p) => p.id === planId);
+    if (!plan) return;
+    setPlanPendingDelete(plan);
   };
 
   const orderedPlans = useMemo(() => {
@@ -317,14 +449,25 @@ const SubscriptionPlansView = () => {
   return (
     <div className={`flex flex-col gap-6${isDark ? " dark" : ""}`}>
       {toast && (
-        <div className="fixed top-5 right-5 z-50">
+        <div className="fixed bottom-5 right-5 z-50 max-w-sm">
           <div
             className={`px-4 py-3 rounded-lg border text-sm font-medium shadow-md ${toast.type === "success"
-              ? "bg-green-50 border-green-200 text-green-700 dark:bg-green-900/40 dark:border-green-700 dark:text-green-300"
+              ? "bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-900/40 dark:border-emerald-700 dark:text-emerald-300"
               : "bg-red-50 border-red-200 text-red-700 dark:bg-red-900/40 dark:border-red-700 dark:text-red-300"
               }`}
           >
-            {toast.message}
+            <div className="flex items-start gap-2">
+              {toast.type === "success" ? <Check className="w-4 h-4 mt-0.5" /> : <AlertCircle className="w-4 h-4 mt-0.5" />}
+              <span>{toast.message}</span>
+              <button
+                type="button"
+                onClick={() => setToast(null)}
+                className="ml-2 opacity-70 hover:opacity-100 transition-opacity"
+                aria-label="Dismiss notification"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -413,7 +556,7 @@ const SubscriptionPlansView = () => {
                       {isEditing ? "Save" : "Edit"}
                     </button>
                     <button
-                      onClick={() => deletePlan(plan.id)}
+                      onClick={() => requestDeletePlan(plan.id)}
                       className="p-1.5 rounded-lg text-gray-400 dark:text-slate-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -551,6 +694,14 @@ const SubscriptionPlansView = () => {
                   ))}
                 </ul>
 
+                {isEditing && plan.features.map((feature) => feature.text.trim()).filter(Boolean).length < 1 && (
+                  <Alert className="mt-4 border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-200">
+                    <Info className="h-4 w-4" />
+                    <AlertTitle>Feature Required</AlertTitle>
+                    <AlertDescription>Add at least one feature before saving this plan.</AlertDescription>
+                  </Alert>
+                )}
+
                 {isEditing && (
                   <div className="mt-4 flex items-center gap-2">
                     <input
@@ -585,6 +736,229 @@ const SubscriptionPlansView = () => {
           </button>
         </div>
       )}
+
+      <Drawer direction="right" open={isCreateDrawerOpen} onOpenChange={setIsCreateDrawerOpen}>
+        <DrawerContent className="w-full sm:max-w-xl">
+          <DrawerHeader>
+            <DrawerTitle>Create Subscription Plan</DrawerTitle>
+            <DrawerDescription>
+              Fill in plan details. A plan must include at least one feature.
+            </DrawerDescription>
+          </DrawerHeader>
+
+          <div className="px-4 pb-4 overflow-y-auto">
+            <div className="space-y-3">
+              {createValidationAlert && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Unable to Create Plan</AlertTitle>
+                  <AlertDescription>{createValidationAlert}</AlertDescription>
+                </Alert>
+              )}
+
+              <div>
+                <label className="text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Plan Name</label>
+                <input
+                  type="text"
+                  value={createPlanDraft.name}
+                  onChange={(e) => setCreatePlanDraft((prev) => ({ ...prev, name: e.target.value }))}
+                  className={inputCls}
+                  placeholder="Starter"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Description</label>
+                <input
+                  type="text"
+                  value={createPlanDraft.description}
+                  onChange={(e) => setCreatePlanDraft((prev) => ({ ...prev, description: e.target.value }))}
+                  className={inputCls}
+                  placeholder="Starter plan with basic features"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Price (PHP)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={createPlanDraft.price}
+                    onChange={(e) => setCreatePlanDraft((prev) => ({ ...prev, price: e.target.value }))}
+                    className={inputCls}
+                    placeholder="699"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Billing Period</label>
+                  <select
+                    value={createPlanDraft.period}
+                    onChange={(e) => setCreatePlanDraft((prev) => ({ ...prev, period: e.target.value }))}
+                    className={`${inputCls} cursor-pointer`}
+                  >
+                    <option value="/mo">/mo</option>
+                    <option value="/yr">/yr</option>
+                    <option value="/1 weekly">/1 weekly</option>
+                    <option value="/1 day">/1 day</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Max Agents</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={createPlanDraft.limits.maxAgents}
+                    onChange={(e) =>
+                      setCreatePlanDraft((prev) => ({
+                        ...prev,
+                        limits: { ...prev.limits, maxAgents: e.target.value },
+                      }))
+                    }
+                    className={inputCls}
+                    placeholder="3"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Max Websites</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={createPlanDraft.limits.maxWebsites}
+                    onChange={(e) =>
+                      setCreatePlanDraft((prev) => ({
+                        ...prev,
+                        limits: { ...prev.limits, maxWebsites: e.target.value },
+                      }))
+                    }
+                    className={inputCls}
+                    placeholder="1"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-4">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setCreatePlanDraft((prev) => ({ ...prev, popular: !prev.popular }))
+                  }
+                  className={`inline-flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-sm transition-colors ${createPlanDraft.popular
+                    ? "border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-600 dark:bg-amber-900/20 dark:text-amber-300"
+                    : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600"
+                    }`}
+                >
+                  <Star className={`w-4 h-4 ${createPlanDraft.popular ? "fill-current" : ""}`} />
+                  Most Popular
+                </button>
+                <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-slate-400">
+                  <input
+                    type="checkbox"
+                    checked={createPlanDraft.active}
+                    onChange={(e) =>
+                      setCreatePlanDraft((prev) => ({ ...prev, active: e.target.checked }))
+                    }
+                  />
+                  Active
+                </label>
+              </div>
+
+              <div className="pt-2">
+                <p className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-3">
+                  Features ({createPlanDraft.features.length})
+                </p>
+
+                <ul className="space-y-2">
+                  {createPlanDraft.features.map((feature) => (
+                    <li key={feature.id} className="flex items-start gap-2">
+                      <Check className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
+                      <div className="flex-1 flex gap-2">
+                        <input
+                          value={feature.text}
+                          onChange={(e) => updateDraftFeature(feature.id, e.target.value)}
+                          className="flex-1 px-2 py-1 border border-gray-200 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700"
+                        />
+                        <button onClick={() => removeDraftFeature(feature.id)} className="p-1 text-red-500" type="button">
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+
+                <div className="mt-4 flex items-center gap-2">
+                  <input
+                    value={createFeatureText}
+                    onChange={(e) => setCreateFeatureText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") addFeatureToDraft();
+                    }}
+                    placeholder="Add feature (e.g. Priority Support)"
+                    className="flex-1 px-3 py-2 border border-gray-200 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700"
+                  />
+                  <button onClick={addFeatureToDraft} className="px-3 py-2 rounded-lg bg-cyan-600 text-white text-sm" type="button">
+                    <Plus className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <DrawerFooter className="border-t border-gray-200 dark:border-slate-700">
+            <button
+              onClick={submitNewPlan}
+              disabled={isCreatingPlan}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-cyan-600 text-white hover:bg-cyan-700 transition-colors text-sm font-medium disabled:opacity-50"
+            >
+              <Save className="w-4 h-4" /> {isCreatingPlan ? "Creating..." : "Create Plan"}
+            </button>
+            <DrawerClose asChild>
+              <button
+                type="button"
+                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors text-sm font-medium"
+              >
+                Cancel
+              </button>
+            </DrawerClose>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
+
+      <AlertDialog
+        open={Boolean(planPendingDelete)}
+        onOpenChange={(open) => {
+          if (!open) setPlanPendingDelete(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete subscription plan?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {planPendingDelete
+                ? `This will permanently delete "${planPendingDelete.name}" and cannot be undone.`
+                : "This action cannot be undone."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700 text-white"
+              onClick={async () => {
+                if (!planPendingDelete) return;
+                await deletePlan(planPendingDelete.id, planPendingDelete.name);
+                setPlanPendingDelete(null);
+              }}
+            >
+              Delete Plan
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
