@@ -19,6 +19,9 @@ import AgentsPage from "../pages/portal/agents";
 import CustomerDashboard from "../pages/portal/customer-dashboard";
 import ChatSessionManagementPage from "../pages/portal/chat-session-management";
 import AgentDashboard from "../pages/portal/agent-dashboard";
+import AgentQueuePage from "../pages/portal/agent-queue";
+import AgentHistoryPage from "../pages/portal/agent-history";
+import AgentQuickRepliesPage from "../pages/portal/agent-quick-replies";
 import CompanyInfoPage from "../pages/portal/company-info";
 import SubscriptionPlansPage from "../pages/portal/subscription-plans";
 import HomepageFaqsPage from "../pages/portal/homepage-faqs";
@@ -27,6 +30,7 @@ import QueueAssignmentPage from "../pages/portal/queue-assignment";
 import AgentSettingsPage from "../sections/settings/AgentSettingsPage";
 import Tenants from "../pages/portal/tenants";
 import TenantDetails from "../pages/portal/tenants/details";
+import Payments from "../pages/portal/payments";
 
 const PortalRoutes: RouteObject[] = [
   {
@@ -249,6 +253,21 @@ const PortalRoutes: RouteObject[] = [
                   }
                 ]
               },
+              {
+                path: 'payments',
+                children: [
+                  {
+                    index: true,
+                    element: (
+                      <AuthGuard
+                        allowedRoles={[USER_ROLES.MASTER_ADMIN.value]}
+                      >
+                        <Payments />
+                      </AuthGuard>
+                    )
+                  }
+                ]
+              }
             ],
           },
           {
@@ -264,6 +283,30 @@ const PortalRoutes: RouteObject[] = [
                 element: (
                   <AuthGuard allowedRoles={[USER_ROLES.SUPPORT_AGENT.value]}>
                     <AgentDashboard />
+                  </AuthGuard>
+                ),
+              },
+              {
+                path: "queue",
+                element: (
+                  <AuthGuard allowedRoles={[USER_ROLES.SUPPORT_AGENT.value]}>
+                    <AgentQueuePage />
+                  </AuthGuard>
+                ),
+              },
+              {
+                path: "history",
+                element: (
+                  <AuthGuard allowedRoles={[USER_ROLES.SUPPORT_AGENT.value]}>
+                    <AgentHistoryPage />
+                  </AuthGuard>
+                ),
+              },
+              {
+                path: "quick-replies",
+                element: (
+                  <AuthGuard allowedRoles={[USER_ROLES.SUPPORT_AGENT.value]}>
+                    <AgentQuickRepliesPage />
                   </AuthGuard>
                 ),
               },

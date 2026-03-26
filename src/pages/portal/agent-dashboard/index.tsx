@@ -7,11 +7,7 @@ import {
   History,
   Zap,
 } from "lucide-react";
-import { useNavigate, useSearchParams } from "react-router";
-import QueueView from "../../../sections/chat/QueueView";
-import ActiveChatView from "../../../sections/chat/ActiveChatView";
-import ChatHistoryView from "../../../sections/chat/ChatHistoryView";
-import QuickRepliesView from "../../../sections/settings/QuickRepliesView";
+import { useNavigate } from "react-router";
 
 const initialMockQueue = [
   { id: "Q-1001", name: "Alice Johnson", message: "I need help with upgrading my plan.", status: "Waiting", timeInQueue: "5m 20s" },
@@ -30,21 +26,10 @@ const initialMockQueue = [
   { id: "Q-1014", name: "Noah Lopez", message: "I forgot my password and the reset link isn't working.", status: "Waiting", timeInQueue: "14m 15s" },
 ];
 
-const initialMockHistory = [
-  { id: "CH-1002", visitor: "Michael Smith", length: "5m 45s", date: "Oct 24, 2026, 11:15", transcript: [{ sender: "Michael", time: "11:15", text: "Does this integrate with Salesforce?" }, { sender: "Agent", time: "11:17", text: "Yes, we have a native Salesforce integration available on the Enterprise tier." }, { sender: "Michael", time: "11:20", text: "Okay, I'll check out the Enterprise pricing." }] },
-  { id: "CH-1003", visitor: "Emily Davis", length: "22m 10s", date: "Oct 23, 2026, 09:45", transcript: [{ sender: "Emily", time: "09:45", text: "My card was declined, can you help?" }, { sender: "Agent", time: "09:48", text: "Hi Emily, let me check your account." }, { sender: "Agent", time: "09:50", text: "It looks like the bank rejected the transaction. Could you try updating your payment method?" }, { sender: "Emily", time: "10:05", text: "Done. It went through now." }, { sender: "Agent", time: "10:07", text: "Great! Let me know if you need anything else." }] },
-  { id: "CH-1004", visitor: "James Wilson", length: "8m 30s", date: "Oct 22, 2026, 16:20", transcript: [{ sender: "James", time: "16:20", text: "How do I add team members?" }, { sender: "Agent", time: "16:22", text: "You can go to Workspace Settings > Members and click 'Invite'." }, { sender: "James", time: "16:28", text: "Found it, thanks!" }] },
-  { id: "CH-1005", visitor: "Sarah Brown", length: "35m 00s", date: "Oct 21, 2026, 13:10", transcript: [{ sender: "Sarah", time: "13:10", text: "Where can I find the API key?" }, { sender: "Agent", time: "13:15", text: "Hi Sarah! You can generate an API key under Settings > API." }, { sender: "Sarah", time: "13:40", text: "Got it, setting it up now." }, { sender: "Agent", time: "13:45", text: "Awesome. Reach out if you hit any roadblocks." }] },
-];
-
 const AGENT_QUEUE_STORAGE_KEY = "jaf_agent_mock_queue_state";
 
 const AgentDashboard = () => {
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const activeTab = searchParams.get("tab") || "queue";
-  const [activeChatVisitor, setActiveChatVisitor] = useState<any>(null);
-  const [agentStatus, setAgentStatus] = useState("Online");
   const [queueItems, setQueueItems] = useState<typeof initialMockQueue>(() => {
     // Rehydrate from localStorage so state survives navigation away from this route
     try {
@@ -53,7 +38,6 @@ const AgentDashboard = () => {
     } catch (e) { /* silently fail */ }
     return initialMockQueue;
   });
-  const [historyItems, setHistoryItems] = useState(initialMockHistory);
   const [liveQueueItems, setLiveQueueItems] = useState<any[]>([]);
 
   // Persist queueItems to localStorage whenever they change
@@ -62,14 +46,6 @@ const AgentDashboard = () => {
       localStorage.setItem(AGENT_QUEUE_STORAGE_KEY, JSON.stringify(queueItems));
     } catch (e) { /* silently fail */ }
   }, [queueItems]);
-
-  const setActiveTab = (tab: string) => {
-    if (tab === "queue") {
-      setSearchParams({});
-    } else {
-      setSearchParams({ tab });
-    }
-  };
 
   // Load live visitor chats from shared localStorage queue
   useEffect(() => {
@@ -113,57 +89,6 @@ const AgentDashboard = () => {
     return [...liveQueueItems, ...mockFiltered];
   }, [queueItems, liveQueueItems]);
 
-  const handleEndChat = (visitor: any, messages: any[], length: string) => {
-    setQueueItems((prev) => prev.filter((q) => q.id !== visitor.id));
-
-    if (visitor.sessionId) {
-      try {
-        const stored = localStorage.getItem("jaf_live_queue");
-        if (stored) {
-          const queue = JSON.parse(stored);
-          const filtered = queue.filter((q: any) => q.sessionId !== visitor.sessionId);
-          localStorage.setItem("jaf_live_queue", JSON.stringify(filtered));
-          window.dispatchEvent(new Event("jaf_queue_updated"));
-        }
-      } catch (e) {
-        // silently fail
-      }
-    }
-
-    const newHistoryItem = {
-      id: `CH-${Date.now()}`,
-      visitor: visitor.name,
-      length: length || visitor.timeInQueue || "5m 00s",
-      date: new Date().toLocaleString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-      }),
-      transcript: messages.map((m) => ({
-        sender: m.sender === "visitor" ? visitor.name : "Agent",
-        time: m.timestamp,
-        text: m.text,
-      })),
-    };
-
-    setHistoryItems((prev) => [newHistoryItem, ...prev]);
-    setActiveTab("queue");
-    setAgentStatus("Online");
-
-    // Update agent status to Online in localStorage
-    try {
-      localStorage.setItem("jaf_agent_status", "Online");
-      window.dispatchEvent(new CustomEvent("jaf_agent_status_changed", { detail: { status: "Online" } }));
-    } catch (e) {
-      // silently fail
-    }
-
-    setActiveChatVisitor(null);
-  };
-
   // Exclude accepted assignments from waiting count
   const acceptedIds = useMemo(() => {
     try {
@@ -180,130 +105,79 @@ const AgentDashboard = () => {
   const assignedCount = mergedQueue.filter((q) => q.status === "Assigned").length;
 
   return (
-    <>
-      {activeTab === "active-chat" && activeChatVisitor ? (
-        <ActiveChatView
-          visitor={activeChatVisitor}
-          onEndChat={(messages, length) => handleEndChat(activeChatVisitor, messages, length)}
-        />
-      ) : activeTab === "history" ? (
-        <ChatHistoryView history={historyItems} />
-      ) : activeTab === "quick-replies" ? (
-        <QuickRepliesView />
-      ) : activeTab === "queue" ? (
-        <QueueView
-          queue={mergedQueue}
-          isAgent={true}
-          currentAgentId="AGT-001"
-          onStartChat={(visitor) => {
-            setQueueItems((prev) =>
-              prev.map((q) => (q.id === visitor.id ? { ...q, status: "Assigned" } : q))
-            );
-            if (visitor.sessionId) {
-              try {
-                const stored = localStorage.getItem("jaf_live_queue");
-                if (stored) {
-                  const liveQueue = JSON.parse(stored);
-                  const updated = liveQueue.map((q: any) =>
-                    q.id === visitor.id ? { ...q, status: "Assigned" } : q
-                  );
-                  localStorage.setItem("jaf_live_queue", JSON.stringify(updated));
-                  window.dispatchEvent(new Event("jaf_queue_updated"));
-                }
-              } catch (e) {
-                /* silently fail */
-              }
-            }
-            localStorage.setItem("jaf_active_chat_visitor", JSON.stringify(visitor));
-            window.dispatchEvent(new Event("jaf_chat_session_start"));
-            navigate("/portal/agent/chat-sessions");
-          }}
-        />
-      ) : (
-        /* ── Agent Overview ── */
-        <div className="p-8 max-w-5xl mx-auto">
-          <div className="mb-8">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">Welcome back, Agent</h1>
-            <p className="text-gray-500 dark:text-slate-400 mt-1">Pick up waiting visitors or manage your active chats.</p>
-          </div>
+    <div className="p-4 sm:p-6 md:p-8 max-w-5xl mx-auto">
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">Welcome back, Agent</h1>
+        <p className="text-gray-500 dark:text-slate-400 mt-1">Pick up waiting visitors or manage your active chats.</p>
+      </div>
 
-          {/* Status cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
-            <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm p-6 flex items-center gap-4">
-              <div className="w-10 h-10 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center shrink-0">
-                <Clock className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-500 dark:text-slate-400">Waiting in Queue</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-slate-100">{waitingCount}</p>
-              </div>
-            </div>
-            <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm p-6 flex items-center gap-4">
-              <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center shrink-0">
-                <MessagesSquare className="w-5 h-5 text-green-600 dark:text-green-400" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-500 dark:text-slate-400">Currently Assigned</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-slate-100">{assignedCount}</p>
-              </div>
-            </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
+        <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm p-6 flex items-center gap-4">
+          <div className="w-10 h-10 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center shrink-0">
+            <Clock className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
           </div>
-
-          {/* Quick actions */}
-          <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm divide-y divide-gray-100 dark:divide-slate-700">
-            {[
-              {
-                label: "View live queue",
-                sub: "See and pick up waiting visitors",
-                tab: "queue",
-                icon: <ListOrdered className="w-5 h-5 text-gray-400 dark:text-slate-500" />,
-              },
-              {
-                label: "Chat sessions",
-                sub: "Manage your active conversations",
-                tab: "chat-sessions-link",
-                icon: <MessagesSquare className="w-5 h-5 text-gray-400 dark:text-slate-500" />,
-              },
-              {
-                label: "Chat history",
-                sub: "Review past conversations",
-                tab: "history",
-                icon: <History className="w-5 h-5 text-gray-400 dark:text-slate-500" />,
-              },
-              {
-                label: "Quick Replies",
-                sub: "Manage your saved response shortcuts",
-                tab: "quick-replies",
-                icon: <Zap className="w-5 h-5 text-gray-400 dark:text-slate-500" />,
-              },
-            ].map((item) => (
-              <button
-                key={item.tab}
-                onClick={() => {
-                  if (item.tab === "chat-sessions-link") {
-                    navigate("/portal/agent/chat-sessions");
-                  } else {
-                    setActiveTab(item.tab);
-                  }
-                }}
-                className="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors group text-left"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="w-9 h-9 rounded-lg bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 flex items-center justify-center group-hover:bg-cyan-50 dark:group-hover:bg-cyan-900/30 group-hover:border-cyan-100 dark:group-hover:border-cyan-800 transition-colors">
-                    {item.icon}
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-gray-900 dark:text-slate-100">{item.label}</p>
-                    <p className="text-xs text-gray-500 dark:text-slate-400">{item.sub}</p>
-                  </div>
-                </div>
-                <ArrowRight className="w-4 h-4 text-gray-300 dark:text-slate-600 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors" />
-              </button>
-            ))}
+          <div>
+            <p className="text-sm text-gray-500 dark:text-slate-400">Waiting in Queue</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-slate-100">{waitingCount}</p>
           </div>
         </div>
-      )}
-    </>
+        <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm p-6 flex items-center gap-4">
+          <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center shrink-0">
+            <MessagesSquare className="w-5 h-5 text-green-600 dark:text-green-400" />
+          </div>
+          <div>
+            <p className="text-sm text-gray-500 dark:text-slate-400">Currently Assigned</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-slate-100">{assignedCount}</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm divide-y divide-gray-100 dark:divide-slate-700">
+        {[
+          {
+            label: "View live queue",
+            sub: "See and pick up waiting visitors",
+            path: "/portal/agent/queue",
+            icon: <ListOrdered className="w-5 h-5 text-gray-400 dark:text-slate-500" />,
+          },
+          {
+            label: "Chat sessions",
+            sub: "Manage your active conversations",
+            path: "/portal/agent/chat-sessions",
+            icon: <MessagesSquare className="w-5 h-5 text-gray-400 dark:text-slate-500" />,
+          },
+          {
+            label: "Chat history",
+            sub: "Review past conversations",
+            path: "/portal/agent/history",
+            icon: <History className="w-5 h-5 text-gray-400 dark:text-slate-500" />,
+          },
+          {
+            label: "Quick Replies",
+            sub: "Manage your saved response shortcuts",
+            path: "/portal/agent/quick-replies",
+            icon: <Zap className="w-5 h-5 text-gray-400 dark:text-slate-500" />,
+          },
+        ].map((item) => (
+          <button
+            key={item.path}
+            onClick={() => navigate(item.path)}
+            className="w-full flex items-center justify-between px-4 sm:px-6 py-4 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors group text-left"
+          >
+            <div className="flex items-center gap-4 min-w-0">
+              <div className="w-9 h-9 rounded-lg bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 flex items-center justify-center group-hover:bg-cyan-50 dark:group-hover:bg-cyan-900/30 group-hover:border-cyan-100 dark:group-hover:border-cyan-800 transition-colors shrink-0">
+                {item.icon}
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-gray-900 dark:text-slate-100">{item.label}</p>
+                <p className="text-xs text-gray-500 dark:text-slate-400 truncate">{item.sub}</p>
+              </div>
+            </div>
+            <ArrowRight className="w-4 h-4 text-gray-300 dark:text-slate-600 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors shrink-0" />
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 

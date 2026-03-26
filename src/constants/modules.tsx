@@ -161,27 +161,6 @@ const MODULE_GROUPS: ModuleGroup[] = [
     ],
   },
   {
-    id: "group-agent-live-chat",
-    label: "Live Chat",
-    allowedRoles: [USER_ROLES.SUPPORT_AGENT.value],
-    modules: [
-      {
-        id: "agent-queue",
-        label: "Queue",
-        path: "/portal/agent",
-        icon: <ListOrdered className="w-5 h-5" />,
-        allowedRoles: [USER_ROLES.SUPPORT_AGENT.value],
-      },
-      {
-        id: "agent-chat-sessions",
-        label: "Chat Sessions",
-        path: "/portal/agent/chat-sessions",
-        icon: <MessagesSquare className="w-5 h-5" />,
-        allowedRoles: [USER_ROLES.SUPPORT_AGENT.value],
-      },
-    ],
-  },
-  {
     id: "group-agent-tools",
     label: "Tools",
     allowedRoles: [USER_ROLES.SUPPORT_AGENT.value],
@@ -189,7 +168,7 @@ const MODULE_GROUPS: ModuleGroup[] = [
       {
         id: "agent-quick-replies",
         label: "Quick Replies",
-        path: "/portal/agent?tab=quick-replies",
+        path: "/portal/agent/quick-replies",
         icon: <Zap className="w-5 h-5" />,
         allowedRoles: [USER_ROLES.SUPPORT_AGENT.value],
       },
