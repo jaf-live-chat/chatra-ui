@@ -1,4 +1,5 @@
-import axiosServices from "../utils/axios";
+import { useMemo } from "react";
+import axiosServices, { fetcher } from "../utils/axios";
 import type {
   AgentLoginResponse,
   LoginData,
@@ -9,6 +10,74 @@ import type {
   UpdateAgentResponse,
   DeleteAgentResponse,
 } from "../models/AgentModel";
+import { API_BASE_URL, SWR_OPTIONS } from "../constants/constants";
+import useSWR from "swr";
+
+const endpoints = {
+  key: `${API_BASE_URL}/agents`,
+};
+
+type UseGetAgentsParams = {
+  page?: number;
+  limit?: number;
+  search?: string;
+};
+
+export const useGetAgents = ({ page = 1, limit = 10, search = "" }: UseGetAgentsParams = {}) => {
+  const searchParams = new URLSearchParams({
+    page: String(page),
+    limit: String(limit),
+    search,
+  });
+
+  const key = `${endpoints.key}?${searchParams.toString()}`;
+  const getAgents = (url: string) => fetcher<GetAgentsResponse>(url, true) as Promise<GetAgentsResponse>;
+
+  const { data, isLoading, error, mutate } = useSWR<GetAgentsResponse>(
+    key,
+    getAgents,
+    SWR_OPTIONS
+  );
+
+  const memoizedValue = useMemo(
+    () => ({
+      data,
+      agents: data?.agents ?? [],
+      pagination: data?.pagination,
+      isLoading,
+      error,
+      mutate,
+    }),
+    [data, isLoading, error, mutate]
+  );
+
+  return memoizedValue;
+};
+
+export const useGetSingleAgent = (agentId?: string) => {
+  const isValid = Boolean(agentId);
+  const key = isValid ? `${endpoints.key}/${agentId}` : null;
+  const getAgent = (url: string) => fetcher<UpdateAgentResponse>(url, true) as Promise<UpdateAgentResponse>;
+
+  const { data, isLoading, error, mutate } = useSWR<UpdateAgentResponse>(
+    key,
+    getAgent,
+    SWR_OPTIONS
+  );
+
+  const memoizedValue = useMemo(
+    () => ({
+      data,
+      agent: data?.agent,
+      isLoading,
+      error,
+      mutate,
+    }),
+    [data, isLoading, error, mutate]
+  );
+
+  return memoizedValue;
+};
 
 const Agents = {
   login: async (loginData: LoginData): Promise<AgentLoginResponse> => {

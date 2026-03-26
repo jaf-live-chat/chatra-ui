@@ -19,7 +19,7 @@ import {
   X,
 } from "lucide-react";
 import { useNavigate } from "react-router";
-import Agents from "../../services/agentServices";
+import Agents, { useGetAgents } from "../../services/agentServices";
 import useAuth from "../../hooks/useAuth";
 import type { AuthAgent, CreateAgentInput } from "../../models/AgentModel";
 import Box from "@mui/material/Box";
@@ -110,8 +110,6 @@ const AgentsManagementView = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
-  const [agents, setAgents] = useState<Agent[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [editAgent, setEditAgent] = useState<Agent | null>(null);
   const [agentToDelete, setAgentToDelete] = useState<Agent | null>(null);
   const [isDeletingAgent, setIsDeletingAgent] = useState(false);
@@ -151,40 +149,29 @@ const AgentsManagementView = () => {
     setSnackbar({ open: true, message, tone });
   };
 
-  // Load agents on mount
-  useEffect(() => {
-    const loadAgents = async () => {
-      try {
-        setIsLoading(true);
-        const response = await Agents.getAgents();
-        const agentsList = response.agents.map(mapAgentForView);
-        setAgents(agentsList);
-      } catch (err) {
-        showSnackbar(getApiErrorMessage(err, "Failed to load agents"), "error");
-        console.error(err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    loadAgents();
-  }, []);
+  const {
+    agents: fetchedAgents,
+    pagination,
+    isLoading,
+    error: agentsError,
+    mutate: mutateAgents,
+  } = useGetAgents({ page, limit: ITEMS_PER_PAGE, search: searchTerm });
 
-  const filteredAgents = useMemo(
-    () =>
-      agents.filter(
-        (a) =>
-          a.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          a.email.toLowerCase().includes(searchTerm.toLowerCase())
-      ),
-    [agents, searchTerm]
-  );
+  const agents = useMemo(() => fetchedAgents.map(mapAgentForView), [fetchedAgents]);
 
   useEffect(() => {
     setPage(1);
   }, [searchTerm]);
 
-  const totalPages = Math.ceil(filteredAgents.length / ITEMS_PER_PAGE);
-  const pagedAgents = filteredAgents.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
+  useEffect(() => {
+    if (agentsError) {
+      showSnackbar(getApiErrorMessage(agentsError, "Failed to load agents"), "error");
+    }
+  }, [agentsError]);
+
+  const totalPages = pagination?.totalPages || 1;
+  const totalRecords = pagination?.totalRecords || 0;
+  const pagedAgents = agents;
 
   const handleRemoveAgent = async (agentId: string) => {
     if (user?._id && user._id === agentId) {
@@ -195,8 +182,10 @@ const AgentsManagementView = () => {
     try {
       setIsDeletingAgent(true);
       await Agents.deleteAgent(agentId);
-      setAgents((prev) => prev.filter((a) => a.id !== agentId));
-      setPage(1);
+      if (agents.length === 1 && page > 1) {
+        setPage((prev) => Math.max(1, prev - 1));
+      }
+      await mutateAgents();
       showSnackbar("Agent deleted successfully", "delete");
       setAgentToDelete(null);
     } catch (err) {
@@ -234,19 +223,10 @@ const AgentsManagementView = () => {
         phoneNumber: editForm.phoneNumber.trim() || null,
         role: editForm.role,
       });
-      setAgents((prev) =>
-        prev.map((a) =>
-          a.id === agentId
-            ? {
-              ...a,
-              ...response.agent,
-              id: response.agent._id,
-              name: response.agent.fullName,
-              email: response.agent.emailAddress,
-            }
-            : a
-        )
-      );
+      if (!response?.agent) {
+        throw new Error("Agent update response is missing agent data");
+      }
+      await mutateAgents();
       setEditAgent(null);
       showSnackbar("Agent updated successfully", "edit");
     } catch (err) {
@@ -309,8 +289,7 @@ const AgentsManagementView = () => {
 
       const response = await Agents.createAgents({ agents: newAgents });
       const newAgentsList = response.agents.map(mapAgentForView);
-
-      setAgents((prev) => [...prev, ...newAgentsList]);
+      await mutateAgents();
       setAddOpen(false);
       showSnackbar(`${newAgentsList.length} agent(s) added successfully`, "add");
     } catch (err) {
@@ -348,15 +327,15 @@ const AgentsManagementView = () => {
         <Typography variant="body2" color="text.secondary" sx={{ fontSize: "0.8rem" }}>
           Showing{" "}
           <Typography component="span" variant="body2" sx={{ fontWeight: 600, color: "grey.900", fontSize: "0.8rem" }}>
-            {(page - 1) * ITEMS_PER_PAGE + 1}
+            {totalRecords === 0 ? 0 : (page - 1) * ITEMS_PER_PAGE + 1}
           </Typography>
           –
           <Typography component="span" variant="body2" sx={{ fontWeight: 600, color: "grey.900", fontSize: "0.8rem" }}>
-            {Math.min(page * ITEMS_PER_PAGE, filteredAgents.length)}
+            {Math.min(page * ITEMS_PER_PAGE, totalRecords)}
           </Typography>
           {" "}of{" "}
           <Typography component="span" variant="body2" sx={{ fontWeight: 600, color: "grey.900", fontSize: "0.8rem" }}>
-            {filteredAgents.length}
+            {totalRecords}
           </Typography>
           {" "}agents
         </Typography>
@@ -467,7 +446,7 @@ const AgentsManagementView = () => {
           >
             <Box>
               <Typography variant="body2" sx={{ fontWeight: 600, color: "text.secondary", mb: 0.5 }}>Total Agents</Typography>
-              <Typography variant="h4" sx={{ fontWeight: 800, color: "grey.900" }}>{agents.length}</Typography>
+              <Typography variant="h4" sx={{ fontWeight: 800, color: "grey.900" }}>{totalRecords}</Typography>
             </Box>
             <Avatar sx={{ bgcolor: "#c9d7ce", color: "#484e4a", width: 48, height: 48 }}>
               <Users size={24} />
@@ -552,7 +531,7 @@ const AgentsManagementView = () => {
                 sx={{ ...lightChipSx, bgcolor: "#dcfce7", color: "#15803d", height: 30, px: 0.6, "& .MuiChip-label": { px: 0.9 }, "& .MuiChip-icon": { ml: 0.5 } }}
               />
               <Chip
-                label={`${filteredAgents.length} agents`}
+                label={`${totalRecords} agents`}
                 size="small"
                 sx={{ ...lightChipSx, bgcolor: "#e0f2fe", color: "#0e7490", height: 30, px: 0.6, "& .MuiChip-label": { px: 0.9 } }}
               />
@@ -572,7 +551,7 @@ const AgentsManagementView = () => {
               alignItems: "center",
               gap: 0.8,
               minWidth: { xs: 180, sm: 230 },
-              
+
             }}
           >
             <Search size={14} color="#94a3b8" />
@@ -587,7 +566,7 @@ const AgentsManagementView = () => {
         </Box>
 
         {/* Table */}
-        <TableContainer sx={{ overflow: "visible",  }}>
+        <TableContainer sx={{ overflow: "visible", }}>
           <Table >
             <TableHead sx={{ bgcolor: "grey.50" }}>
               <TableRow>
