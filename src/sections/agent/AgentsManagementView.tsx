@@ -732,6 +732,16 @@ const AgentsManagementView = () => {
             </Button>
           </Stack>
 
+          <Alert
+            severity="info"
+            sx={{
+              borderRadius: 1,
+              "& .MuiAlert-message": { fontWeight: 600 },
+            }}
+          >
+            Passwords are auto-generated for new agents and shared with them securely.
+          </Alert>
+
           <Stack spacing={1.25}>
             {inviteRows.map((row, index) => (
               <Paper
