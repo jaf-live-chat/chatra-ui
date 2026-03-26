@@ -3,15 +3,12 @@ import axios from "axios";
 import {
   UserPlus,
   Circle,
-  ChevronLeft,
-  ChevronRight,
   Eye,
   Link2,
   Mail,
   MessageSquare,
   Pencil,
   Plus,
-  Search,
   Trash2,
   User,
   UserCheck,
@@ -28,17 +25,9 @@ import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
 import Button from "@mui/material/Button";
 import Avatar from "@mui/material/Avatar";
-import InputBase from "@mui/material/InputBase";
 import Stack from "@mui/material/Stack";
 import Chip from "@mui/material/Chip";
 import Grid from "@mui/material/Grid";
-import Divider from "@mui/material/Divider";
-import Table from "@mui/material/Table";
-import TableBody from "@mui/material/TableBody";
-import TableCell from "@mui/material/TableCell";
-import TableContainer from "@mui/material/TableContainer";
-import TableHead from "@mui/material/TableHead";
-import TableRow from "@mui/material/TableRow";
 import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
@@ -50,6 +39,7 @@ import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
 import FormControl from "@mui/material/FormControl";
 import Tooltip from '@mui/material/Tooltip'
+import ReusableTable, { type ReusableTableColumn } from "../../components/ReusableTable";
 import AgentEditDialog, { type AgentEditDialogFormValues } from "./components/AgentEditDialog";
 
 interface Agent extends AuthAgent {
@@ -160,18 +150,12 @@ const AgentsManagementView = () => {
   const agents = useMemo(() => fetchedAgents.map(mapAgentForView), [fetchedAgents]);
 
   useEffect(() => {
-    setPage(1);
-  }, [searchTerm]);
-
-  useEffect(() => {
     if (agentsError) {
       showSnackbar(getApiErrorMessage(agentsError, "Failed to load agents"), "error");
     }
   }, [agentsError]);
 
-  const totalPages = pagination?.totalPages || 1;
   const totalRecords = pagination?.totalRecords || 0;
-  const pagedAgents = agents;
 
   const handleRemoveAgent = async (agentId: string) => {
     if (user?._id && user._id === agentId) {
@@ -314,83 +298,207 @@ const AgentsManagementView = () => {
     });
   };
 
-  // ── Pagination bar ──────────────────────────────────────────────────────────
-  const PaginationBar = () =>
-    totalPages > 1 ? (
-      <Box
-        sx={{
-          px: 3, py: 1.5,
-          bgcolor: "grey.50",
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-        }}
-      >
-        <Typography variant="body2" color="text.secondary" sx={{ fontSize: "0.8rem" }}>
-          Showing{" "}
-          <Typography component="span" variant="body2" sx={{ fontWeight: 600, color: "grey.900", fontSize: "0.8rem" }}>
-            {totalRecords === 0 ? 0 : (page - 1) * ITEMS_PER_PAGE + 1}
-          </Typography>
-          –
-          <Typography component="span" variant="body2" sx={{ fontWeight: 600, color: "grey.900", fontSize: "0.8rem" }}>
-            {Math.min(page * ITEMS_PER_PAGE, totalRecords)}
-          </Typography>
-          {" "}of{" "}
-          <Typography component="span" variant="body2" sx={{ fontWeight: 600, color: "grey.900", fontSize: "0.8rem" }}>
-            {totalRecords}
-          </Typography>
-          {" "}agents
-        </Typography>
-        <Stack direction="row" alignItems="center" spacing={0.5}>
-          <IconButton
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page === 1}
-            size="small"
-            sx={{ border: "1px solid", borderColor: "grey.200", bgcolor: "background.paper", borderRadius: 1 }}
+  const agentColumns = useMemo<ReusableTableColumn<Agent>[]>(
+    () => [
+      {
+        id: "index",
+        label: "#",
+        width: "6%",
+        align: "center",
+        headerAlign: "center",
+        renderCell: (_agent, index) => (
+          <Box
+            sx={{
+              color: "grey.700",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontWeight: 700,
+              fontSize: "0.8rem",
+            }}
           >
-            <ChevronLeft size={16} />
-          </IconButton>
-          {Array.from({ length: totalPages }).map((_, i) => (
-            <Button
-              key={i}
-              onClick={() => setPage(i + 1)}
+            {index + 1}
+          </Box>
+        ),
+      },
+      {
+        id: "name",
+        label: "Agent",
+        width: "22%",
+        sortable: true,
+        sortAccessor: (agent) => agent.name,
+        renderCell: (agent) => (
+          <Stack direction="row" alignItems="center" spacing={1.5}>
+            <Avatar
               sx={{
-                minWidth: 30, p: 0, height: 30, borderRadius: 1,
-                bgcolor: page === i + 1 ? "primary.main" : "transparent",
-                color: page === i + 1 ? "#ffffff" : "text.secondary",
-                fontWeight: page === i + 1 ? 700 : 500,
-                fontSize: "0.8rem",
-                "&:hover": { bgcolor: page === i + 1 ? "primary.dark" : "grey.100" },
+                width: 36,
+                height: 36,
+                bgcolor: getAvatarColor(agent.id),
+                fontSize: "0.875rem",
+                fontWeight: 700,
               }}
             >
-              {i + 1}
-            </Button>
-          ))}
-          <IconButton
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            disabled={page === totalPages}
-            size="small"
-            sx={{ border: "1px solid", borderColor: "grey.200", bgcolor: "background.paper", borderRadius: 1 }}
+              {agent.name.charAt(0)}
+            </Avatar>
+            <Box>
+              <Typography variant="body2" sx={{ fontWeight: 600, color: "grey.900", lineHeight: 1.2 }}>
+                {agent.name}
+              </Typography>
+              <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.7rem" }}>
+                {agent.id}
+              </Typography>
+            </Box>
+          </Stack>
+        ),
+      },
+      {
+        id: "email",
+        label: "Email",
+        width: "22%",
+        sortable: true,
+        sortAccessor: (agent) => agent.email,
+        renderCell: (agent) => (
+          <Typography
+            variant="body2"
+            sx={{
+              color: "text.secondary",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+              maxWidth: 220,
+            }}
+            title={agent.email}
           >
-            <ChevronRight size={16} />
-          </IconButton>
-        </Stack>
-      </Box>
-    ) : null;
+            {agent.email}
+          </Typography>
+        ),
+      },
+      {
+        id: "role",
+        label: "Role",
+        width: "12%",
+        align: "center",
+        headerAlign: "center",
+        sortable: true,
+        sortAccessor: (agent) => formatRole(agent.role),
+        renderCell: (agent) => (
+          <Chip
+            label={formatRole(agent.role)}
+            size="small"
+            sx={{
+              ...lightChipSx,
+              bgcolor: agent.role === "SUPPORT_AGENT" ? "#e0f2fe" : "#ffedd5",
+              color: agent.role === "SUPPORT_AGENT" ? "#0e7490" : "#d97706",
+              height: 24,
+            }}
+          />
+        ),
+      },
+      {
+        id: "status",
+        label: "Status",
+        width: "12%",
+        align: "center",
+        headerAlign: "center",
+        sortable: true,
+        sortAccessor: (agent) => agent.status,
+        renderCell: (agent) => (
+          <Chip
+            icon={<Circle size={8} className="fill-current" />}
+            label={agent.status}
+            size="small"
+            sx={{
+              ...lightChipSx,
+              bgcolor: agent.status === "Online" ? "#dcfce7" : "#f1f5f9",
+              color: agent.status === "Online" ? "success.dark" : "grey.500",
+              height: 24,
+              "& .MuiChip-icon": { ml: 1, color: "inherit" },
+            }}
+          />
+        ),
+      },
+      {
+        id: "chats",
+        label: "Chats",
+        width: "10%",
+        align: "center",
+        headerAlign: "center",
+        sortable: true,
+        sortAccessor: (agent) => agent.chatsHandled,
+        renderCell: (agent) => (
+          <Typography variant="body2" sx={{ fontWeight: 700, color: "text.secondary" }}>
+            {agent.chatsHandled}
+          </Typography>
+        ),
+      },
+      {
+        id: "actions",
+        label: "Actions",
+        width: "16%",
+        align: "center",
+        headerAlign: "center",
+        renderCell: (agent) => (
+          <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
+            <Tooltip title="View agent details" placement="bottom">
+              <IconButton
+                onClick={() => handleViewAgent(agent.id)}
+                size="small"
+                sx={{
+                  color: "#94a3b8",
+                  bgcolor: "transparent",
+                  border: "none",
+                  "&:hover": { bgcolor: "transparent", color: "#64748b" },
+                }}
+              >
+                <Eye size={16} />
+              </IconButton>
+            </Tooltip>
 
-  // ── Empty state ─────────────────────────────────────────────────────────────
-  const EmptyState = () => (
-    <TableRow>
-      <TableCell colSpan={6} align="center" sx={{ py: 6 }}>
-        <Stack alignItems="center" spacing={1.5} sx={{ color: "text.secondary" }}>
-          <Box sx={{ width: 44, height: 44, borderRadius: "50%", bgcolor: "#0891b2", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <Users size={22} color="#ffffff" />
-          </Box>
-          <Box>
-            <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "grey.900" }}>No agents found</Typography>
-            <Typography variant="body2" sx={{ color: "text.secondary", fontSize: "0.8rem" }}>Adjust your search or add a new agent.</Typography>
-          </Box>
-        </Stack>
-      </TableCell>
-    </TableRow>
+            <Tooltip title="Edit agent" placement="bottom">
+              <IconButton
+                onClick={() => handleEditOpen(agent)}
+                size="small"
+                sx={{
+                  color: "#94a3b8",
+                  bgcolor: "transparent",
+                  border: "none",
+                  "&:hover": { bgcolor: "transparent", color: "#64748b" },
+                }}
+              >
+                <Pencil size={16} />
+              </IconButton>
+            </Tooltip>
+
+            <Tooltip
+              title={isOwnAccount(agent.id) ? "Owner cannot delete her own account." : "Remove agent"}
+              placement="bottom"
+            >
+              <span>
+                <IconButton
+                  onClick={() => {
+                    if (isOwnAccount(agent.id)) {
+                      return;
+                    }
+                    setAgentToDelete(agent);
+                  }}
+                  size="small"
+                  disabled={isOwnAccount(agent.id)}
+                  sx={{
+                    color: "#ef4444",
+                    bgcolor: "transparent",
+                    border: "none",
+                    "&:hover": { bgcolor: "transparent", color: "#dc2626" },
+                  }}
+                >
+                  <Trash2 size={16} />
+                </IconButton>
+              </span>
+            </Tooltip>
+          </Stack>
+        ),
+      },
+    ],
+    [agents, page, user?._id],
   );
 
   const snackbarToneStyles: Record<
@@ -501,272 +609,44 @@ const AgentsManagementView = () => {
         </Grid>
       </Grid>
 
-      {/* ── Agents table — styled like the Waiting Queue table ── */}
-      <Paper elevation={0} sx={{ borderRadius: 1, overflow: "hidden", flexShrink: 0, border: "1px solid", borderColor: "grey.200" }}>
-
-        {/* Section header */}
-        <Box sx={{
-          px: 3, py: 2,
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          background: "linear-gradient(135deg, #0891b210 0%, #0891b204 100%)",
-          borderBottom: "1px solid",
-          borderColor: "grey.200",
-        }}>
-          <Stack direction="row" alignItems="center" spacing={1.5}>
-            <Box sx={{ width: 34, height: 34, borderRadius: 1, bgcolor: "#0891b220", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Users size={17} color="#0891b2" />
-            </Box>
-            <Box>
-              <Typography variant="subtitle1" sx={{ fontWeight: 700, color: "grey.900", lineHeight: 1.2 }}>All Agents</Typography>
-              <Typography variant="caption" sx={{ color: "text.secondary" }}>Support agents and administrators</Typography>
-            </Box>
-
-            <Divider orientation="vertical" flexItem sx={{ borderColor: "grey.300" }} />
-
-            <Stack direction="row" alignItems="center" spacing={1.2}>
-              <Chip
-                icon={<Box sx={{ width: 7, height: 7, borderRadius: "50%", bgcolor: "success.main", ml: 0.5 }} />}
-                label={`${agents.filter((a) => a.status === "Online").length} online`}
-                size="small"
-                sx={{ ...lightChipSx, bgcolor: "#dcfce7", color: "#15803d", height: 30, px: 0.6, "& .MuiChip-label": { px: 0.9 }, "& .MuiChip-icon": { ml: 0.5 } }}
-              />
-              <Chip
-                label={`${totalRecords} agents`}
-                size="small"
-                sx={{ ...lightChipSx, bgcolor: "#e0f2fe", color: "#0e7490", height: 30, px: 0.6, "& .MuiChip-label": { px: 0.9 } }}
-              />
-            </Stack>
-          </Stack>
-
-          <Paper
-            elevation={0}
+      <ReusableTable
+        title="All Agents"
+        subtitle="Support agents and administrators"
+        rows={agents}
+        columns={agentColumns}
+        getRowKey={(agent) => agent.id}
+        headerIcon={<Users size={17} />}
+        headerBadges={
+          <Chip
+            icon={<Box sx={{ width: 7, height: 7, borderRadius: "50%", bgcolor: "success.main", ml: 0.5 }} />}
+            label={`${agents.filter((a) => a.status === "Online").length} online`}
+            size="small"
             sx={{
-              px: 1.2,
-              py: 0.7,
-              border: "1px solid",
-              borderColor: "grey.200",
-              borderRadius: 1,
-              bgcolor: "#ffffff",
-              display: "flex",
-              alignItems: "center",
-              gap: 0.8,
-              minWidth: { xs: 180, sm: 230 },
-
+              ...lightChipSx,
+              bgcolor: "#dcfce7",
+              color: "#15803d",
+              height: 30,
+              px: 0.6,
+              "& .MuiChip-label": { px: 0.9 },
+              "& .MuiChip-icon": { ml: 0.5 },
             }}
-          >
-            <Search size={14} color="#94a3b8" />
-            <InputBase
-              value={searchTerm}
-              onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder="Search agents..."
-              sx={{ fontSize: "0.85rem", width: "100%", color: "#475569" }}
-              inputProps={{ "aria-label": "search agents" }}
-            />
-          </Paper>
-        </Box>
-
-        {/* Table */}
-        <TableContainer sx={{ overflow: "visible", }}>
-          <Table >
-            <TableHead sx={{ bgcolor: "grey.50" }}>
-              <TableRow>
-                <TableCell width="6%" align="center" sx={{
-                  borderBottom: "1px solid",
-                  borderColor: "grey.200"
-                }}>#</TableCell>
-                <TableCell width="22%" sx={{
-                  borderBottom: "1px solid",
-                  borderColor: "grey.200"
-                }}>Agent</TableCell>
-                <TableCell width="22%" sx={{
-                  borderBottom: "1px solid",
-                  borderColor: "grey.200"
-                }}>Email</TableCell>
-                <TableCell width="12%" align="center" sx={{
-                  borderBottom: "1px solid",
-                  borderColor: "grey.200"
-                }}>Role</TableCell>
-                <TableCell width="12%" align="center" sx={{
-                  borderBottom: "1px solid",
-                  borderColor: "grey.200"
-                }}>Status</TableCell>
-                <TableCell width="10%" align="center" sx={{
-                  borderBottom: "1px solid",
-                  borderColor: "grey.200"
-                }}>Chats</TableCell>
-                <TableCell width="16%" align="center" sx={{
-                  borderBottom: "1px solid",
-                  borderColor: "grey.200"
-                }}>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {pagedAgents.length > 0 ? (
-                pagedAgents.map((agent, index) => {
-                  const pos = (page - 1) * ITEMS_PER_PAGE + index + 1;
-
-                  return (
-                    <TableRow
-                      key={agent.id}
-                      hover
-                      sx={{
-                        "&:last-child td, &:last-child th": { border: 0 },
-                        transition: "background 0.15s",
-                        "& td": { py: 2.1 },
-                      }}
-                    >
-                      {/* # */}
-                      <TableCell align="center">
-                        <Box sx={{
-                          color: "grey.700",
-                          display: "flex", alignItems: "center", justifyContent: "center",
-                          fontWeight: 700, fontSize: "0.8rem",
-                        }}>
-                          {pos}
-                        </Box>
-                      </TableCell>
-
-                      {/* Agent */}
-                      <TableCell>
-                        <Stack direction="row" alignItems="center" spacing={1.5}>
-                          <Avatar sx={{
-                            width: 36, height: 36,
-                            bgcolor: getAvatarColor(agent.id),
-                            fontSize: "0.875rem", fontWeight: 700,
-                          }}>
-                            {agent.name.charAt(0)}
-                          </Avatar>
-                          <Box>
-                            <Stack direction="row" alignItems="center" spacing={1}>
-                              <Typography variant="body2" sx={{ fontWeight: 600, color: "grey.900", lineHeight: 1.2 }}>
-                                {agent.name}
-                              </Typography>
-                            </Stack>
-                            <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.7rem" }}>{agent.id}</Typography>
-                          </Box>
-                        </Stack>
-                      </TableCell>
-
-                      {/* Email */}
-                      <TableCell>
-                        <Typography variant="body2" sx={{ color: "text.secondary", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 220 }} title={agent.email}>
-                          {agent.email}
-                        </Typography>
-                      </TableCell>
-
-                      {/* Role */}
-                      <TableCell align="center">
-                        <Chip
-                          label={formatRole(agent.role)}
-                          size="small"
-                          sx={{
-                            ...lightChipSx,
-                            bgcolor: agent.role === "SUPPORT_AGENT" ? "#e0f2fe" : "#ffedd5",
-                            color: agent.role === "SUPPORT_AGENT" ? "#0e7490" : "#d97706",
-                            height: 24,
-                          }}
-                        />
-                      </TableCell>
-
-                      {/* Status */}
-                      <TableCell align="center">
-                        <Chip
-                          icon={<Circle size={8} className="fill-current" />}
-                          label={agent.status}
-                          size="small"
-                          sx={{
-                            ...lightChipSx,
-                            bgcolor: agent.status === "Online" ? "#dcfce7" : "#f1f5f9",
-                            color: agent.status === "Online" ? "success.dark" : "grey.500",
-                            height: 24,
-                            "& .MuiChip-icon": { ml: 1, color: "inherit" },
-                          }}
-                        />
-                      </TableCell>
-
-                      {/* Chats */}
-                      <TableCell align="center">
-                        <Typography variant="body2" sx={{ fontWeight: 700, color: "text.secondary" }}>
-                          {agent.chatsHandled}
-                        </Typography>
-                      </TableCell>
-
-                      {/* Actions */}
-                      <TableCell align="center">
-                        <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
-                          <Tooltip title="View agent details" placement="bottom">
-                            <IconButton
-                              onClick={() => handleViewAgent(agent.id)}
-                              size="small"
-                              sx={{
-                                color: "#94a3b8",
-                                bgcolor: "transparent",
-                                border: "none",
-                                "&:hover": { bgcolor: "transparent", color: "#64748b" },
-                              }}
-                            >
-                              <Eye size={16} />
-                            </IconButton>
-                          </Tooltip>
-
-                          <Tooltip title="Edit agent" placement="bottom">
-                            <IconButton
-                              onClick={() => handleEditOpen(agent)}
-                              size="small"
-                              sx={{
-                                color: "#94a3b8",
-                                bgcolor: "transparent",
-                                border: "none",
-                                "&:hover": { bgcolor: "transparent", color: "#64748b" },
-                              }}
-                            >
-                              <Pencil size={16} />
-                            </IconButton>
-                          </Tooltip>
-
-                          <Tooltip
-                            title={
-                              isOwnAccount(agent.id)
-                                ? "Owner cannot delete her own account."
-                                : "Remove agent"
-                            }
-                            placement="bottom"
-                          >
-                            <span>
-                              <IconButton
-                                onClick={() => {
-                                  if (isOwnAccount(agent.id)) {
-                                    return;
-                                  }
-                                  setAgentToDelete(agent);
-                                }}
-                                size="small"
-                                disabled={isOwnAccount(agent.id)}
-                                sx={{
-                                  color: "#ef4444",
-                                  bgcolor: "transparent",
-                                  border: "none",
-                                  "&:hover": { bgcolor: "transparent", color: "#dc2626" },
-                                }}
-                              >
-                                <Trash2 size={16} />
-                              </IconButton>
-                            </span>
-                          </Tooltip>
-                        </Stack>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              ) : (
-                <EmptyState />
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-
-        <PaginationBar />
-      </Paper>
+          />
+        }
+        loading={isLoading}
+        loadingLabel="Loading agents..."
+        emptyStateTitle="No agents found"
+        emptyStateDescription="Adjust your search or add a new agent."
+        searchPlaceholder="Search agents..."
+        searchTerm={searchTerm}
+        onSearchTermChange={setSearchTerm}
+        filterMode="server"
+        rowsPerPage={ITEMS_PER_PAGE}
+        page={page}
+        onPageChange={setPage}
+        paginationMode="server"
+        totalRows={totalRecords}
+        totalLabel="agents"
+      />
 
       <AgentEditDialog
         open={!!editAgent}

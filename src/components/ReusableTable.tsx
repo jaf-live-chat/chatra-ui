@@ -1,10 +1,8 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { ChevronLeft, ChevronRight, Search } from "lucide-react";
-import Avatar from "@mui/material/Avatar";
+import { ArrowDownAZ, ChevronLeft, ChevronRight, Search } from "lucide-react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
-import CircularProgress from "@mui/material/CircularProgress";
 import IconButton from "@mui/material/IconButton";
 import InputBase from "@mui/material/InputBase";
 import Paper from "@mui/material/Paper";
@@ -15,8 +13,15 @@ import TableCell from "@mui/material/TableCell";
 import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
+import TableSortLabel from "@mui/material/TableSortLabel";
 import Typography from "@mui/material/Typography";
 import type { SxProps, Theme } from "@mui/material/styles";
+import Skeleton from "./Skeleton";
+
+type SortDirection = "asc" | "desc";
+type TableMode = "client" | "server";
+
+type SortableValue = string | number | boolean | Date | null | undefined;
 
 export interface ReusableTableColumn<T> {
   id: string;
@@ -24,6 +29,10 @@ export interface ReusableTableColumn<T> {
   width?: string | number;
   align?: "left" | "center" | "right";
   headerAlign?: "left" | "center" | "right";
+  sortable?: boolean;
+  sortAccessor?: (row: T) => SortableValue;
+  sortComparator?: (left: T, right: T) => number;
+  headerSx?: SxProps<Theme>;
   sx?: SxProps<Theme>;
   renderCell: (row: T, rowIndex: number) => ReactNode;
 }
@@ -37,7 +46,25 @@ interface ReusableTableProps<T> {
   searchPlaceholder?: string;
   searchBy?: (row: T) => string;
   filterFn?: (row: T, searchTerm: string) => boolean;
+  filterMode?: TableMode;
   rowsPerPage?: number;
+  paginationMode?: TableMode;
+  page?: number;
+  onPageChange?: (page: number) => void;
+  totalRows?: number;
+  sortingMode?: TableMode;
+  sortBy?: string | null;
+  sortDirection?: SortDirection;
+  onSortChange?: (sortBy: string | null, sortDirection: SortDirection) => void;
+  defaultSortBy?: string | null;
+  defaultSortDirection?: SortDirection;
+  searchTerm?: string;
+  onSearchTermChange?: (searchTerm: string) => void;
+  showSearch?: boolean;
+  showPagination?: boolean;
+  headerIcon?: ReactNode;
+  headerBadges?: ReactNode;
+  headerActions?: ReactNode;
   loading?: boolean;
   loadingLabel?: string;
   emptyStateTitle?: string;
@@ -46,6 +73,33 @@ interface ReusableTableProps<T> {
 }
 
 const DEFAULT_ROWS_PER_PAGE = 5;
+
+const getComparableValue = (value: SortableValue): string | number => {
+  if (value instanceof Date) {
+    return value.getTime();
+  }
+
+  if (typeof value === "boolean") {
+    return value ? 1 : 0;
+  }
+
+  if (typeof value === "number") {
+    return value;
+  }
+
+  return String(value ?? "").toLowerCase();
+};
+
+const compareValues = (left: SortableValue, right: SortableValue): number => {
+  const normalizedLeft = getComparableValue(left);
+  const normalizedRight = getComparableValue(right);
+
+  if (typeof normalizedLeft === "number" && typeof normalizedRight === "number") {
+    return normalizedLeft - normalizedRight;
+  }
+
+  return String(normalizedLeft).localeCompare(String(normalizedRight));
+};
 
 const ReusableTable = <T,>({
   title,
@@ -56,22 +110,81 @@ const ReusableTable = <T,>({
   searchPlaceholder = "Search...",
   searchBy,
   filterFn,
+  filterMode = "client",
   rowsPerPage = DEFAULT_ROWS_PER_PAGE,
+  paginationMode = "client",
+  page,
+  onPageChange,
+  totalRows,
+  sortingMode = "client",
+  sortBy,
+  sortDirection,
+  onSortChange,
+  defaultSortBy = null,
+  defaultSortDirection = "asc",
+  searchTerm,
+  onSearchTermChange,
+  showSearch = true,
+  showPagination = true,
+  headerIcon,
+  headerBadges,
+  headerActions,
   loading = false,
   loadingLabel = "Loading records...",
   emptyStateTitle = "No records found",
   emptyStateDescription = "Try adjusting your search.",
   totalLabel = "records",
 }: ReusableTableProps<T>) => {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [page, setPage] = useState(1);
+  const [internalSearchTerm, setInternalSearchTerm] = useState("");
+  const [internalPage, setInternalPage] = useState(1);
+  const [internalSortBy, setInternalSortBy] = useState<string | null>(defaultSortBy);
+  const [internalSortDirection, setInternalSortDirection] =
+    useState<SortDirection>(defaultSortDirection);
+
+  const resolvedSearchTerm = searchTerm ?? internalSearchTerm;
+  const resolvedPage = page ?? internalPage;
+  const resolvedSortBy = sortBy ?? internalSortBy;
+  const resolvedSortDirection = sortDirection ?? internalSortDirection;
+
+  const setPageValue = (nextPage: number) => {
+    if (onPageChange) {
+      onPageChange(nextPage);
+      return;
+    }
+
+    setInternalPage(nextPage);
+  };
+
+  const setSearchTermValue = (nextSearchTerm: string) => {
+    if (onSearchTermChange) {
+      onSearchTermChange(nextSearchTerm);
+    } else {
+      setInternalSearchTerm(nextSearchTerm);
+    }
+
+    setPageValue(1);
+  };
+
+  const setSortValue = (nextSortBy: string | null, nextSortDirection: SortDirection) => {
+    if (onSortChange) {
+      onSortChange(nextSortBy, nextSortDirection);
+      return;
+    }
+
+    setInternalSortBy(nextSortBy);
+    setInternalSortDirection(nextSortDirection);
+  };
 
   const filteredRows = useMemo(() => {
-    if (!searchTerm.trim()) {
+    if (filterMode === "server") {
       return rows;
     }
 
-    const normalizedSearchTerm = searchTerm.toLowerCase().trim();
+    if (!resolvedSearchTerm.trim()) {
+      return rows;
+    }
+
+    const normalizedSearchTerm = resolvedSearchTerm.toLowerCase().trim();
 
     return rows.filter((row) => {
       if (filterFn) {
@@ -84,24 +197,76 @@ const ReusableTable = <T,>({
 
       return true;
     });
-  }, [filterFn, rows, searchBy, searchTerm]);
+  }, [filterFn, filterMode, resolvedSearchTerm, rows, searchBy]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredRows.length / rowsPerPage));
-
-  useEffect(() => {
-    setPage(1);
-  }, [searchTerm, rows]);
-
-  useEffect(() => {
-    if (page > totalPages) {
-      setPage(totalPages);
+  const sortedRows = useMemo(() => {
+    if (sortingMode === "server" || !resolvedSortBy) {
+      return filteredRows;
     }
-  }, [page, totalPages]);
+
+    const sortingColumn = columns.find((column) => column.id === resolvedSortBy);
+    if (!sortingColumn || !sortingColumn.sortable) {
+      return filteredRows;
+    }
+
+    const directionFactor = resolvedSortDirection === "asc" ? 1 : -1;
+
+    return [...filteredRows].sort((leftRow, rightRow) => {
+      if (sortingColumn.sortComparator) {
+        return sortingColumn.sortComparator(leftRow, rightRow) * directionFactor;
+      }
+
+      const leftValue = sortingColumn.sortAccessor
+        ? sortingColumn.sortAccessor(leftRow)
+        : null;
+      const rightValue = sortingColumn.sortAccessor
+        ? sortingColumn.sortAccessor(rightRow)
+        : null;
+
+      return compareValues(leftValue, rightValue) * directionFactor;
+    });
+  }, [columns, filteredRows, resolvedSortBy, resolvedSortDirection, sortingMode]);
+
+  const totalRecords = paginationMode === "server" ? totalRows ?? rows.length : sortedRows.length;
+  const totalPages = Math.max(1, Math.ceil(totalRecords / rowsPerPage));
+
+  useEffect(() => {
+    if (resolvedPage > totalPages) {
+      setPageValue(totalPages);
+    }
+  }, [resolvedPage, totalPages]);
 
   const pagedRows = useMemo(() => {
-    const start = (page - 1) * rowsPerPage;
-    return filteredRows.slice(start, start + rowsPerPage);
-  }, [filteredRows, page, rowsPerPage]);
+    if (paginationMode === "server") {
+      return sortedRows;
+    }
+
+    const start = (resolvedPage - 1) * rowsPerPage;
+    return sortedRows.slice(start, start + rowsPerPage);
+  }, [paginationMode, resolvedPage, rowsPerPage, sortedRows]);
+
+  const startRecord = totalRecords === 0 ? 0 : (resolvedPage - 1) * rowsPerPage + 1;
+  const endRecord = Math.min(resolvedPage * rowsPerPage, totalRecords);
+  const skeletonRowCount = Math.max(1, rowsPerPage);
+
+  const handleSort = (column: ReusableTableColumn<T>) => {
+    if (!column.sortable) {
+      return;
+    }
+
+    const isActive = resolvedSortBy === column.id;
+    if (!isActive) {
+      setSortValue(column.id, "asc");
+      return;
+    }
+
+    if (resolvedSortDirection === "asc") {
+      setSortValue(column.id, "desc");
+      return;
+    }
+
+    setSortValue(null, "asc");
+  };
 
   return (
     <Paper
@@ -109,7 +274,7 @@ const ReusableTable = <T,>({
       sx={{
         border: "1px solid",
         borderColor: "grey.200",
-        borderRadius: 3,
+        borderRadius: 1,
         overflow: "hidden",
       }}
     >
@@ -128,17 +293,21 @@ const ReusableTable = <T,>({
           alignItems={{ xs: "flex-start", md: "center" }}
           justifyContent="space-between"
         >
-          <Stack direction="row" alignItems="center" spacing={1.5}>
-            <Avatar
+          <Stack direction="row" alignItems="center" spacing={1.5} flexWrap="wrap">
+            <Box
               sx={{
-                bgcolor: "#0891b220",
-                color: "#0e7490",
                 width: 34,
                 height: 34,
+                borderRadius: 1,
+                bgcolor: "#0891b220",
+                color: "#0891b2",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
               }}
             >
-              <Search size={17} />
-            </Avatar>
+              {headerIcon ?? <ArrowDownAZ size={17} />}
+            </Box>
             <Box>
               <Typography
                 variant="subtitle1"
@@ -152,36 +321,50 @@ const ReusableTable = <T,>({
                 </Typography>
               )}
             </Box>
+            {headerBadges}
           </Stack>
 
-          <Stack direction="row" spacing={1} alignItems="center" sx={{ width: { xs: "100%", md: "auto" } }}>
-            <Paper
-              variant="outlined"
-              sx={{
-                px: 1.25,
-                py: 0.5,
-                borderRadius: 2,
-                borderColor: "grey.300",
-                display: "flex",
-                alignItems: "center",
-                gap: 1,
-                width: { xs: "100%", md: 300 },
-              }}
-            >
-              <Search size={16} color="#6b7280" />
-              <InputBase
-                value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
-                placeholder={searchPlaceholder}
-                sx={{ width: "100%", fontSize: "0.875rem" }}
-              />
-            </Paper>
-
+          <Stack
+            direction="row"
+            spacing={1}
+            alignItems="center"
+            sx={{ width: { xs: "100%", md: "auto" }, flexWrap: "wrap", rowGap: 1 }}
+          >
+            {headerActions}
             <Chip
-              label={`${filteredRows.length} ${totalLabel}`}
+              label={`${totalRecords} ${totalLabel}`}
               size="small"
-              sx={{ bgcolor: "#0891b21a", color: "#0e7490", fontWeight: 700, height: 28 }}
+              sx={{
+                bgcolor: "#e0f2fe",
+                color: "#0e7490",
+                fontWeight: 700,
+                height: 30,
+                borderRadius: 1,
+              }}
             />
+            {showSearch && (
+              <Paper
+                variant="outlined"
+                sx={{
+                  px: 1.25,
+                  py: 0.5,
+                  borderRadius: 1,
+                  borderColor: "grey.200",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1,
+                  width: { xs: "100%", md: 260 },
+                }}
+              >
+                <Search size={14} color="#94a3b8" />
+                <InputBase
+                  value={resolvedSearchTerm}
+                  onChange={(event) => setSearchTermValue(event.target.value)}
+                  placeholder={searchPlaceholder}
+                  sx={{ width: "100%", fontSize: "0.85rem", color: "#475569" }}
+                />
+              </Paper>
+            )}
           </Stack>
         </Stack>
       </Box>
@@ -195,9 +378,25 @@ const ReusableTable = <T,>({
                   key={column.id}
                   width={column.width}
                   align={column.headerAlign || column.align || "left"}
-                  sx={{ fontWeight: 700, color: "grey.800" }}
+                  sx={{
+                    fontWeight: 700,
+                    color: "grey.800",
+                    borderBottom: "1px solid",
+                    borderColor: "grey.200",
+                    ...column.headerSx,
+                  }}
                 >
-                  {column.label}
+                  {column.sortable ? (
+                    <TableSortLabel
+                      active={resolvedSortBy === column.id}
+                      direction={resolvedSortBy === column.id ? resolvedSortDirection : "asc"}
+                      onClick={() => handleSort(column)}
+                    >
+                      {column.label}
+                    </TableSortLabel>
+                  ) : (
+                    column.label
+                  )}
                 </TableCell>
               ))}
             </TableRow>
@@ -205,16 +404,30 @@ const ReusableTable = <T,>({
 
           <TableBody>
             {loading && (
-              <TableRow>
-                <TableCell colSpan={columns.length} align="center" sx={{ py: 7 }}>
-                  <Stack direction="row" spacing={1} alignItems="center" justifyContent="center">
-                    <CircularProgress size={18} />
-                    <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                      {loadingLabel}
-                    </Typography>
-                  </Stack>
-                </TableCell>
-              </TableRow>
+              <>
+                {Array.from({ length: skeletonRowCount }).map((_, loadingRowIndex) => (
+                  <TableRow
+                    key={`loading-row-${loadingRowIndex}`}
+                    sx={{
+                      "& td": { py: 2.1 },
+                    }}
+                  >
+                    {columns.map((column, columnIndex) => (
+                      <TableCell key={`${column.id}-${loadingRowIndex}`} align={column.align || "left"}>
+                        <Skeleton
+                          className="rounded-md"
+                          style={{
+                            height: 14,
+                            width: columnIndex === 0 ? 28 : columnIndex === columns.length - 1 ? 92 : "70%",
+                            opacity: 0.8,
+                          }}
+                          aria-label={loadingLabel}
+                        />
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+              </>
             )}
 
             {!loading && pagedRows.length === 0 && (
@@ -239,12 +452,13 @@ const ReusableTable = <T,>({
                   hover
                   sx={{
                     transition: "background 0.15s",
+                    "& td": { py: 2.1 },
                     "&:last-child td, &:last-child th": { border: 0 },
                   }}
                 >
                   {columns.map((column) => (
                     <TableCell key={column.id} align={column.align || "left"} sx={column.sx}>
-                      {column.renderCell(row, rowIndex)}
+                      {column.renderCell(row, (resolvedPage - 1) * rowsPerPage + rowIndex)}
                     </TableCell>
                   ))}
                 </TableRow>
@@ -253,13 +467,11 @@ const ReusableTable = <T,>({
         </Table>
       </TableContainer>
 
-      {totalPages > 1 && (
+      {showPagination && totalPages > 1 && (
         <Box
           sx={{
             px: 3,
             py: 1.5,
-            borderTop: "1px solid",
-            borderColor: "grey.200",
             bgcolor: "grey.50",
             display: "flex",
             alignItems: "center",
@@ -267,16 +479,43 @@ const ReusableTable = <T,>({
           }}
         >
           <Typography variant="body2" sx={{ fontSize: "0.8rem", color: "text.secondary" }}>
-            Showing {(page - 1) * rowsPerPage + 1}-
-            {Math.min(page * rowsPerPage, filteredRows.length)} of {filteredRows.length}
+            Showing
+            <Typography
+              component="span"
+              variant="body2"
+              sx={{ fontWeight: 600, color: "grey.900", fontSize: "0.8rem", mx: 0.5 }}
+            >
+              {startRecord}
+            </Typography>
+            -
+            <Typography
+              component="span"
+              variant="body2"
+              sx={{ fontWeight: 600, color: "grey.900", fontSize: "0.8rem", mx: 0.5 }}
+            >
+              {endRecord}
+            </Typography>
+            of
+            <Typography
+              component="span"
+              variant="body2"
+              sx={{ fontWeight: 600, color: "grey.900", fontSize: "0.8rem", ml: 0.5 }}
+            >
+              {totalRecords}
+            </Typography>
           </Typography>
 
           <Stack direction="row" alignItems="center" spacing={0.5}>
             <IconButton
-              onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-              disabled={page === 1}
+              onClick={() => setPageValue(Math.max(1, resolvedPage - 1))}
+              disabled={resolvedPage === 1}
               size="small"
-              sx={{ border: "1px solid", borderColor: "grey.200", bgcolor: "background.paper", borderRadius: 1.5 }}
+              sx={{
+                border: "1px solid",
+                borderColor: "grey.200",
+                bgcolor: "background.paper",
+                borderRadius: 1,
+              }}
             >
               <ChevronLeft size={16} />
             </IconButton>
@@ -286,18 +525,18 @@ const ReusableTable = <T,>({
               return (
                 <Button
                   key={pageNumber}
-                  onClick={() => setPage(pageNumber)}
+                  onClick={() => setPageValue(pageNumber)}
                   sx={{
                     minWidth: 30,
                     p: 0,
                     height: 30,
-                    borderRadius: 1.5,
-                    bgcolor: page === pageNumber ? "primary.main" : "transparent",
-                    color: page === pageNumber ? "#fff" : "text.secondary",
-                    fontWeight: page === pageNumber ? 700 : 500,
+                    borderRadius: 1,
+                    bgcolor: resolvedPage === pageNumber ? "primary.main" : "transparent",
+                    color: resolvedPage === pageNumber ? "#fff" : "text.secondary",
+                    fontWeight: resolvedPage === pageNumber ? 700 : 500,
                     fontSize: "0.8rem",
                     "&:hover": {
-                      bgcolor: page === pageNumber ? "primary.dark" : "grey.100",
+                      bgcolor: resolvedPage === pageNumber ? "primary.dark" : "grey.100",
                     },
                   }}
                 >
@@ -307,10 +546,15 @@ const ReusableTable = <T,>({
             })}
 
             <IconButton
-              onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
-              disabled={page === totalPages}
+              onClick={() => setPageValue(Math.min(totalPages, resolvedPage + 1))}
+              disabled={resolvedPage === totalPages}
               size="small"
-              sx={{ border: "1px solid", borderColor: "grey.200", bgcolor: "background.paper", borderRadius: 1.5 }}
+              sx={{
+                border: "1px solid",
+                borderColor: "grey.200",
+                bgcolor: "background.paper",
+                borderRadius: 1,
+              }}
             >
               <ChevronRight size={16} />
             </IconButton>
