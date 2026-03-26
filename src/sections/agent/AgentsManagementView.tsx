@@ -782,11 +782,6 @@ const AgentsManagementView = () => {
               </Paper>
             ))}
           </Stack>
-
-
-
-
-
         </DialogContent>
         <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ m: 2, px: 3, py: 1.5, borderTop: "1px solid", borderColor: "grey.200", bgcolor: "grey.50" }}>
 
