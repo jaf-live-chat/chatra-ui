@@ -72,6 +72,8 @@ interface ReusableTableProps<T> {
   emptyStateTitle?: string;
   emptyStateDescription?: string;
   totalLabel?: string;
+  compact?: boolean;
+  showTotalBadge?: boolean;
 }
 
 const DEFAULT_ROWS_PER_PAGE = 5;
@@ -120,6 +122,8 @@ const ReusableTable = <T,>({
   emptyStateTitle = "No records found",
   emptyStateDescription = "Try adjusting your search.",
   totalLabel = "records",
+  compact = false,
+  showTotalBadge = false,
 }: ReusableTableProps<T>) => {
   const {
     placeholder: searchPlaceholder = "Search...",
@@ -300,12 +304,15 @@ const ReusableTable = <T,>({
         borderColor: "grey.200",
         borderRadius: 1,
         overflow: "hidden",
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
       }}
     >
       <Box
         sx={{
-          px: 3,
-          py: 2,
+          px: compact ? 2 : 3,
+          py: compact ? 1 : 2,
           borderBottom: "1px solid",
           borderColor: "grey.200",
           background: "linear-gradient(135deg, #0891b210 0%, #0891b204 100%)",
@@ -313,21 +320,22 @@ const ReusableTable = <T,>({
       >
         <Stack
           direction={{ xs: "column", md: "row" }}
-          spacing={2}
+          spacing={compact ? 1 : 2}
           alignItems={{ xs: "flex-start", md: "center" }}
           justifyContent="space-between"
         >
-          <Stack direction="row" alignItems="center" spacing={1.5} flexWrap="wrap">
+          <Stack direction="row" alignItems="center" spacing={compact ? 1 : 1.5} flexWrap="wrap">
             <Box
               sx={{
-                width: 34,
-                height: 34,
+                width: compact ? 30 : 34,
+                height: compact ? 30 : 34,
                 borderRadius: 1,
                 bgcolor: "#0891b220",
                 color: "#0891b2",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
+                "& > svg": compact ? { width: 16, height: 16 } : undefined,
               }}
             >
               {headerIcon ?? <ArrowDownAZ size={17} />}
@@ -335,7 +343,7 @@ const ReusableTable = <T,>({
             <Box>
               <Typography
                 variant="subtitle1"
-                sx={{ fontWeight: 700, color: "grey.900", lineHeight: 1.2 }}
+                sx={{ fontWeight: 700, color: "grey.900", lineHeight: 1.2, fontSize: compact ? "0.95rem" : "1rem" }}
               >
                 {title}
               </Typography>
@@ -393,8 +401,8 @@ const ReusableTable = <T,>({
         </Stack>
       </Box>
 
-      <TableContainer sx={{ overflow: "visible" }}>
-        <Table sx={{ minWidth: 650 }}>
+      <TableContainer sx={{ overflowX: "hidden", overflowY: "hidden", flexGrow: 1 }}>
+        <Table sx={{ minWidth: 0, width: "100%", tableLayout: "fixed" }}>
           <TableHead sx={{ bgcolor: "grey.50" }}>
             <TableRow>
               {columns.map((column) => (
@@ -404,9 +412,12 @@ const ReusableTable = <T,>({
                   align={column.headerAlign || column.align || "left"}
                   sx={{
                     fontWeight: 700,
+                    fontSize: compact ? "0.7rem" : "0.75rem",
                     color: "grey.800",
                     borderBottom: "1px solid",
                     borderColor: "grey.200",
+                    px: { xs: 1, sm: compact ? 1.5 : 3 },
+                    py: compact ? 0.75 : 2,
                     ...column.headerSx,
                   }}
                 >
@@ -433,7 +444,7 @@ const ReusableTable = <T,>({
                   <TableRow
                     key={`loading-row-${loadingRowIndex}`}
                     sx={{
-                      "& td": { py: 2.1 },
+                      "& td": { py: compact ? 0.75 : 2.1, px: { xs: 1, sm: compact ? 1.5 : 3 } },
                     }}
                   >
                     {columns.map((column, columnIndex) => (
@@ -476,12 +487,20 @@ const ReusableTable = <T,>({
                   hover
                   sx={{
                     transition: "background 0.15s",
-                    "& td": { py: 2.1 },
+                    "& td": { py: compact ? 0.6 : 2.1, px: { xs: 1, sm: compact ? 1.5 : 3 } },
                     "&:last-child td, &:last-child th": { border: 0 },
                   }}
                 >
                   {columns.map((column) => (
-                    <TableCell key={column.id} align={column.align || "left"} sx={column.sx}>
+                    <TableCell
+                      key={column.id}
+                      align={column.align || "left"}
+                      sx={{
+                        whiteSpace: "normal",
+                        wordBreak: "break-word",
+                        ...column.sx,
+                      }}
+                    >
                       {column.renderCell(row, (resolvedPage - 1) * rowsPerPage + rowIndex)}
                     </TableCell>
                   ))}
@@ -494,8 +513,8 @@ const ReusableTable = <T,>({
       {showPagination && (
         <Box
           sx={{
-            px: 3,
-            py: 1.5,
+            px: { xs: 1.5, sm: compact ? 2 : 3 },
+            py: compact ? 0.75 : 1.5,
             bgcolor: "grey.50",
             display: "flex",
             alignItems: "center",
