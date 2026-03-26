@@ -214,7 +214,7 @@ function DashboardLayoutInner() {
                     <Typography variant="caption" sx={{ display: "block", color: "#E2E8F0" }}>
                       End: {subscriptionEndDate
                         ? formatDate(subscriptionEndDate)
-                        : "-"}
+                        : "Unlimited for Internal Plan"}
                     </Typography>
                   </div>
                 }
