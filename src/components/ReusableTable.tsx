@@ -42,6 +42,10 @@ interface ReusableTableProps<T> {
   rows: T[];
   columns: ReusableTableColumn<T>[];
   getRowKey: (row: T) => string;
+  tableMinWidth?: number;
+  tableLayout?: "auto" | "fixed";
+  compact?: boolean;
+  noHorizontalScroll?: boolean;
   search?: {
     placeholder?: string;
     by?: (row: T) => string;
@@ -109,6 +113,10 @@ const ReusableTable = <T,>({
   rows,
   columns,
   getRowKey,
+  tableMinWidth = 650,
+  tableLayout = "auto",
+  compact = false,
+  noHorizontalScroll = false,
   search,
   pagination,
   sorting,
@@ -304,8 +312,8 @@ const ReusableTable = <T,>({
     >
       <Box
         sx={{
-          px: 3,
-          py: 2,
+          px: compact ? 2 : 3,
+          py: compact ? 1.25 : 2,
           borderBottom: "1px solid",
           borderColor: "grey.200",
           background: "linear-gradient(135deg, #0891b210 0%, #0891b204 100%)",
@@ -313,15 +321,15 @@ const ReusableTable = <T,>({
       >
         <Stack
           direction={{ xs: "column", md: "row" }}
-          spacing={2}
+          spacing={compact ? 1 : 2}
           alignItems={{ xs: "flex-start", md: "center" }}
           justifyContent="space-between"
         >
-          <Stack direction="row" alignItems="center" spacing={1.5} flexWrap="wrap">
+          <Stack direction="row" alignItems="center" spacing={compact ? 1 : 1.5} flexWrap="wrap">
             <Box
               sx={{
-                width: 34,
-                height: 34,
+                width: compact ? 30 : 34,
+                height: compact ? 30 : 34,
                 borderRadius: 1,
                 bgcolor: "#0891b220",
                 color: "#0891b2",
@@ -330,17 +338,17 @@ const ReusableTable = <T,>({
                 justifyContent: "center",
               }}
             >
-              {headerIcon ?? <ArrowDownAZ size={17} />}
+              {headerIcon ?? <ArrowDownAZ size={compact ? 15 : 17} />}
             </Box>
             <Box>
               <Typography
                 variant="subtitle1"
-                sx={{ fontWeight: 700, color: "grey.900", lineHeight: 1.2 }}
+                sx={{ fontWeight: 700, color: "grey.900", lineHeight: 1.2, fontSize: compact ? "0.98rem" : "1rem" }}
               >
                 {title}
               </Typography>
               {subtitle && (
-                <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                <Typography variant="caption" sx={{ color: "text.secondary", fontSize: compact ? "0.72rem" : "0.75rem" }}>
                   {subtitle}
                 </Typography>
               )}
@@ -362,7 +370,7 @@ const ReusableTable = <T,>({
                 bgcolor: "#e0f2fe",
                 color: "#0e7490",
                 fontWeight: 700,
-                height: 30,
+                height: compact ? 26 : 30,
                 borderRadius: 1,
               }}
             />
@@ -371,7 +379,7 @@ const ReusableTable = <T,>({
                 variant="outlined"
                 sx={{
                   px: 1.25,
-                  py: 0.5,
+                  py: compact ? 0.25 : 0.5,
                   borderRadius: 1,
                   borderColor: "grey.200",
                   display: "flex",
@@ -385,7 +393,7 @@ const ReusableTable = <T,>({
                   value={resolvedSearchTerm}
                   onChange={(event) => setSearchTermValue(event.target.value)}
                   placeholder={searchPlaceholder}
-                  sx={{ width: "100%", fontSize: "0.85rem", color: "#475569" }}
+                  sx={{ width: "100%", fontSize: compact ? "0.8rem" : "0.85rem", color: "#475569" }}
                 />
               </Paper>
             )}
@@ -393,8 +401,8 @@ const ReusableTable = <T,>({
         </Stack>
       </Box>
 
-      <TableContainer sx={{ overflow: "visible" }}>
-        <Table sx={{ minWidth: 650 }}>
+      <TableContainer sx={{ overflowX: noHorizontalScroll ? "hidden" : "auto", overflowY: "hidden" }}>
+        <Table sx={{ minWidth: tableMinWidth, tableLayout, width: "100%" }}>
           <TableHead sx={{ bgcolor: "grey.50" }}>
             <TableRow>
               {columns.map((column) => (
@@ -405,8 +413,11 @@ const ReusableTable = <T,>({
                   sx={{
                     fontWeight: 700,
                     color: "grey.800",
+                    fontSize: compact ? "0.72rem" : "0.8rem",
                     borderBottom: "1px solid",
                     borderColor: "grey.200",
+                    px: compact ? 1.5 : 2,
+                    py: compact ? 1 : 1.5,
                     ...column.headerSx,
                   }}
                 >
@@ -433,7 +444,7 @@ const ReusableTable = <T,>({
                   <TableRow
                     key={`loading-row-${loadingRowIndex}`}
                     sx={{
-                      "& td": { py: 2.1 },
+                        "& td": { py: compact ? 1.2 : 2.1, px: compact ? 1.5 : 2 },
                     }}
                   >
                     {columns.map((column, columnIndex) => (
@@ -476,7 +487,7 @@ const ReusableTable = <T,>({
                   hover
                   sx={{
                     transition: "background 0.15s",
-                    "& td": { py: 2.1 },
+                    "& td": { py: compact ? 1.2 : 2.1, px: compact ? 1.5 : 2 },
                     "&:last-child td, &:last-child th": { border: 0 },
                   }}
                 >

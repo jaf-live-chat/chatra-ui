@@ -24,6 +24,8 @@ import {
   ChevronDown,
   ChevronUp,
   Check as CheckIcon,
+  LayoutGrid,
+  List,
 } from "lucide-react";
 import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
@@ -55,6 +57,7 @@ import Collapse from "@mui/material/Collapse";
 import LinearProgress from "@mui/material/LinearProgress";
 import Snackbar from "@mui/material/Snackbar";
 import Alert from "@mui/material/Alert";
+import ReusableTable, { type ReusableTableColumn } from "../../components/ReusableTable";
 
 // ─── Mock Data ───────────────────────────────────────────────────────────────
 
@@ -128,6 +131,7 @@ const QueueView = ({ queue, onStartChat, isAgent = false, currentAgentId }: { qu
   const [queuePage, setQueuePage]             = useState(1);
   const [currentPage, setCurrentPage]         = useState(1);
   const [visitorPage, setVisitorPage]         = useState(1);
+  const [queueViewMode, setQueueViewMode]     = useState<"list" | "grid">("list");
   const itemsPerPage = 5;
 
   // Assignment mode state - load from localStorage (managed by QueueAssignmentSettingsPage)
@@ -306,8 +310,260 @@ const QueueView = ({ queue, onStartChat, isAgent = false, currentAgentId }: { qu
     </TableRow>
   );
 
+  const waitingGridColumns: ReusableTableColumn<any>[] = [
+    {
+      id: "position",
+      label: "#",
+      width: "10%",
+      align: "center",
+      headerAlign: "center",
+      renderCell: (_row, index) => {
+        const pos = index + 1;
+        const isFirst = pos === 1;
+        return (
+          <Box
+            sx={{
+              width: isFirst ? 30 : 24,
+              height: isFirst ? 30 : 24,
+              borderRadius: "50%",
+              mx: "auto",
+              bgcolor: isFirst ? "primary.main" : "grey.100",
+              color: isFirst ? "#fff" : "grey.700",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontWeight: 700,
+              fontSize: isFirst ? "0.8rem" : "0.75rem",
+            }}
+          >
+            {pos}
+          </Box>
+        );
+      },
+    },
+    {
+      id: "visitor",
+      label: "VISITOR",
+      width: "50%",
+      renderCell: (row) => (
+        <Stack direction="row" alignItems="center" spacing={1.5}>
+          <Avatar sx={{ width: 30, height: 30, bgcolor: getAvatarColor(row.id), fontSize: "0.78rem", fontWeight: 700 }}>
+            {row.name.charAt(0).toUpperCase()}
+          </Avatar>
+          <Box>
+            <Typography variant="body2" sx={{ fontWeight: 700, color: "grey.900", lineHeight: 1.2 }}>
+              {row.name}
+            </Typography>
+            <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.68rem" }}>
+              {getQueueDisplayId(row.id)}
+            </Typography>
+          </Box>
+        </Stack>
+      ),
+    },
+    {
+      id: "status",
+      label: "STATUS",
+      width: "22%",
+      align: "center",
+      headerAlign: "center",
+      renderCell: () => (
+        <Chip
+          icon={<Box sx={{ width: 6, height: 6, borderRadius: "50%", bgcolor: "warning.main", ml: 1 }} />}
+          label="Waiting"
+          size="small"
+          sx={{ bgcolor: "#eab30820", color: "#7a5d00", fontWeight: 600, height: 22, "& .MuiChip-icon": { ml: 1 } }}
+        />
+      ),
+    },
+    {
+      id: "action",
+      label: "ACTION",
+      width: "18%",
+      align: "center",
+      headerAlign: "center",
+      renderCell: (row, rowIndex) => {
+        const autoAgent = assignMode === "auto" ? getAutoAssignAgent(rowIndex, maxChatsPerAgent) : null;
+        return (
+          <Stack direction="row" spacing={0.7} justifyContent="center">
+            <Tooltip title="Start chat">
+              <IconButton
+                onClick={() => setChatToConfirm(row)}
+                size="small"
+                sx={{ bgcolor: "primary.main", color: "#fff", width: 28, height: 28, "&:hover": { bgcolor: "primary.dark" } }}
+              >
+                <MessageSquare size={14} />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title={assignMode === "auto" ? (autoAgent ? `Auto-assign to ${autoAgent.name}` : "No eligible agents") : "Assign to agent"}>
+              <span>
+                <IconButton
+                  onClick={() => {
+                    if (assignMode === "auto") {
+                      if (!autoAgent) return;
+                      setSelectedAgent(autoAgent.id);
+                    } else {
+                      setSelectedAgent("");
+                    }
+                    setAssignToConfirm(row);
+                  }}
+                  disabled={assignMode === "auto" && !autoAgent}
+                  size="small"
+                  sx={{
+                    bgcolor: "#a855f71a",
+                    color: "#7c3aed",
+                    width: 28,
+                    height: 28,
+                    border: "1px solid #a855f733",
+                    "&:hover": { bgcolor: "#a855f72e" },
+                    "&.Mui-disabled": { bgcolor: "grey.100", color: "grey.400", borderColor: "grey.200" },
+                  }}
+                >
+                  <UserPlus size={14} />
+                </IconButton>
+              </span>
+            </Tooltip>
+          </Stack>
+        );
+      },
+    },
+  ];
+
+  const activeGridColumns: ReusableTableColumn<any>[] = [
+    {
+      id: "position",
+      label: "#",
+      width: "14%",
+      align: "center",
+      headerAlign: "center",
+      renderCell: (_row, index) => (
+        <Box
+          sx={{
+            width: 24,
+            height: 24,
+            borderRadius: "50%",
+            mx: "auto",
+            bgcolor: "#dc262614",
+            color: "primary.main",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontWeight: 700,
+            fontSize: "0.72rem",
+          }}
+        >
+          {index + 1}
+        </Box>
+      ),
+    },
+    {
+      id: "visitor",
+      label: "VISITOR",
+      width: "50%",
+      renderCell: (row) => (
+        <Stack direction="row" alignItems="center" spacing={1.2}>
+          <Box sx={{ position: "relative" }}>
+            <Avatar sx={{ width: 28, height: 28, bgcolor: getAvatarColor(row.id), fontSize: "0.72rem", fontWeight: 700 }}>
+              {row.name.charAt(0).toUpperCase()}
+            </Avatar>
+            <Box sx={{ position: "absolute", bottom: -1, right: -1, width: 8, height: 8, borderRadius: "50%", bgcolor: "#16a34a", border: "1px solid #fff" }} />
+          </Box>
+          <Box>
+            <Typography variant="body2" sx={{ fontWeight: 600, color: "grey.900", lineHeight: 1.2 }}>
+              {row.name}
+            </Typography>
+            <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.66rem" }}>
+              {getQueueDisplayId(row.id)}
+            </Typography>
+          </Box>
+        </Stack>
+      ),
+    },
+    {
+      id: "status",
+      label: "STATUS",
+      width: "18%",
+      align: "center",
+      headerAlign: "center",
+      renderCell: () => (
+        <Chip
+          icon={<Box sx={{ width: 6, height: 6, borderRadius: "50%", bgcolor: "success.main", ml: 1 }} />}
+          label="Active"
+          size="small"
+          sx={{ bgcolor: "#16a34a1f", color: "#15803d", fontWeight: 600, height: 22, "& .MuiChip-icon": { ml: 1 } }}
+        />
+      ),
+    },
+    {
+      id: "action",
+      label: "ACTION",
+      width: "18%",
+      align: "center",
+      headerAlign: "center",
+      renderCell: (row) => (
+        <Tooltip title="View active chat">
+          <IconButton
+            onClick={() => { if (onStartChat) onStartChat(row); }}
+            size="small"
+            sx={{ bgcolor: "grey.100", color: "grey.700", width: 26, height: 26, "&:hover": { bgcolor: "grey.200" } }}
+          >
+            <Eye size={14} />
+          </IconButton>
+        </Tooltip>
+      ),
+    },
+  ];
+
+  const visitorGridColumns: ReusableTableColumn<any>[] = [
+    {
+      id: "visitor",
+      label: "VISITOR",
+      width: "46%",
+      renderCell: (row) => (
+        <Stack direction="row" alignItems="center" spacing={1.2}>
+          <Avatar sx={{ width: 28, height: 28, bgcolor: getAvatarColor(row.id), fontSize: "0.72rem", fontWeight: 700 }}>
+            {row.name.charAt(0).toUpperCase()}
+          </Avatar>
+          <Typography variant="body2" sx={{ fontWeight: 600, color: "grey.900" }}>{row.name}</Typography>
+        </Stack>
+      ),
+    },
+    {
+      id: "ip",
+      label: "IP ADDRESS",
+      width: "36%",
+      renderCell: (row) => {
+        const details = visitorDetailsMap[row.id];
+        const ip = details?.ip || "-";
+        return (
+          <Typography variant="body2" sx={{ color: "grey.700", fontFamily: "monospace", fontSize: "0.75rem" }}>
+            {ip}
+          </Typography>
+        );
+      },
+    },
+    {
+      id: "action",
+      label: "ACTION",
+      width: "18%",
+      align: "center",
+      headerAlign: "center",
+      renderCell: (row) => (
+        <Tooltip title="View details">
+          <IconButton
+            onClick={() => setVisitorDetail(row)}
+            size="small"
+            sx={{ bgcolor: "#0891b212", color: "#0891b2", width: 26, height: 26, "&:hover": { bgcolor: "#0891b224" } }}
+          >
+            <Eye size={14} />
+          </IconButton>
+        </Tooltip>
+      ),
+    },
+  ];
+
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 3.5 }}>
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 3.5, overflowX: "hidden" }}>
 
       {/* ── Agent notice banner ── */}
       {isAgent && (
@@ -333,7 +589,7 @@ const QueueView = ({ queue, onStartChat, isAgent = false, currentAgentId }: { qu
             {isAgent ? "Accept chats assigned to you by the admin to start a live session" : "Manage visitors waiting in queue and monitor active sessions"}
           </Typography>
         </Box>
-        <Stack direction="row" alignItems="center" spacing={2}>
+        <Stack direction="row" alignItems="center" spacing={1.25} sx={{ flexWrap: "wrap", justifyContent: "flex-end", width: { xs: "100%", md: "auto" } }}>
           <Stack direction="row" spacing={1}>
             <Chip icon={<Box sx={{ width: 7, height: 7, borderRadius: "50%", bgcolor: "warning.main", ml: 0.5 }} />}
               label={`${waitingCount} Waiting`} size="small"
@@ -345,7 +601,7 @@ const QueueView = ({ queue, onStartChat, isAgent = false, currentAgentId }: { qu
               label={`${queue.length} Total`} size="small"
               sx={{ bgcolor: "grey.100", color: "grey.700", fontWeight: 600, "& .MuiChip-icon": { ml: 0.5 } }} />
           </Stack>
-          <Box sx={{ position: "relative", width: { xs: "100%", md: 260 } }}>
+          <Box sx={{ position: "relative", width: { xs: "100%", md: 240 } }}>
             <Box sx={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "text.secondary", display: "flex" }}>
               <Search size={16} />
             </Box>
@@ -362,8 +618,94 @@ const QueueView = ({ queue, onStartChat, isAgent = false, currentAgentId }: { qu
               fullWidth
             />
           </Box>
+          {!isAgent && (
+            <Stack direction="row" spacing={0.5} sx={{ p: 0.5, border: "1px solid", borderColor: "grey.200", borderRadius: 2, bgcolor: "#fff" }}>
+              <Tooltip title="List view">
+                <IconButton
+                  onClick={() => setQueueViewMode("list")}
+                  size="small"
+                  sx={{
+                    width: 30,
+                    height: 30,
+                    bgcolor: queueViewMode === "list" ? "#0891b214" : "transparent",
+                    color: queueViewMode === "list" ? "#0891b2" : "text.secondary",
+                    border: queueViewMode === "list" ? "1px solid #0891b233" : "1px solid transparent",
+                  }}
+                >
+                  <List size={15} />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Grid view">
+                <IconButton
+                  onClick={() => setQueueViewMode("grid")}
+                  size="small"
+                  sx={{
+                    width: 30,
+                    height: 30,
+                    bgcolor: queueViewMode === "grid" ? "#0891b214" : "transparent",
+                    color: queueViewMode === "grid" ? "#0891b2" : "text.secondary",
+                    border: queueViewMode === "grid" ? "1px solid #0891b233" : "1px solid transparent",
+                  }}
+                >
+                  <LayoutGrid size={15} />
+                </IconButton>
+              </Tooltip>
+            </Stack>
+          )}
         </Stack>
       </Stack>
+
+      {!isAgent && queueViewMode === "grid" && (
+        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "minmax(0,1.2fr) minmax(0,1.05fr) minmax(0,1.05fr)" }, gap: 2 }}>
+          <ReusableTable
+            title="Waiting Queue"
+            subtitle="Visitors waiting for an agent"
+            rows={waitingQueue.slice(0, 5)}
+            columns={waitingGridColumns}
+            getRowKey={(row) => row.id}
+            tableMinWidth={0}
+            tableLayout="fixed"
+            compact={true}
+            noHorizontalScroll={true}
+            search={{ show: false }}
+            pagination={{ show: false, totalRows: waitingQueue.length }}
+            headerIcon={<Hourglass size={17} />}
+            totalLabel="waiting"
+          />
+
+          <ReusableTable
+            title="Currently Being Served"
+            subtitle="Active sessions assigned to agents"
+            rows={currentQueue.slice(0, 5)}
+            columns={activeGridColumns}
+            getRowKey={(row) => row.id}
+            tableMinWidth={0}
+            tableLayout="fixed"
+            compact={true}
+            noHorizontalScroll={true}
+            search={{ show: false }}
+            pagination={{ show: false, totalRows: currentQueue.length }}
+            headerIcon={<Zap size={17} />}
+            totalLabel="active"
+          />
+
+          <ReusableTable
+            title="Visitor Details"
+            subtitle="IP addresses, geolocation, and devices"
+            rows={allFiltered.slice(0, 5)}
+            columns={visitorGridColumns}
+            getRowKey={(row) => row.id}
+            tableMinWidth={0}
+            tableLayout="fixed"
+            compact={true}
+            noHorizontalScroll={true}
+            search={{ show: false }}
+            pagination={{ show: false, totalRows: allFiltered.length }}
+            headerIcon={<Globe size={17} />}
+            totalLabel="visitors"
+          />
+        </Box>
+      )}
 
       {/* ════════════════════ TABLE 2 — ASSIGNED TO YOU (agent: shown first) ════════════════════ */}
       {isAgent && (
@@ -473,6 +815,7 @@ const QueueView = ({ queue, onStartChat, isAgent = false, currentAgentId }: { qu
       )}
 
       {/* ════════════════════ TABLE 1 — WAITING QUEUE ════════════════════ */}
+      {(isAgent || queueViewMode === "list") && (
       <Paper elevation={0} sx={{ border: "1px solid", borderColor: "grey.200", borderRadius: 3, overflow: "hidden" }}>
         <Box sx={{
           px: 3, py: 2, display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -701,9 +1044,10 @@ const QueueView = ({ queue, onStartChat, isAgent = false, currentAgentId }: { qu
         </TableContainer>
         <PaginationBar current={queuePage} total={totalPages(waitingQueue)} onChange={setQueuePage} count={waitingQueue.length} label="waiting" />
       </Paper>
+      )}
 
       {/* ════════════════════ TABLE 2 — CURRENTLY BEING SERVED (admin only) ════════════════════ */}
-      {!isAgent && <Paper elevation={0} sx={{ border: "1px solid", borderColor: "grey.200", borderRadius: 3, overflow: "hidden" }}>
+      {!isAgent && queueViewMode === "list" && <Paper elevation={0} sx={{ border: "1px solid", borderColor: "grey.200", borderRadius: 3, overflow: "hidden" }}>
         <Box sx={{
           px: 3, py: 2, display: "flex", alignItems: "center", justifyContent: "space-between",
           borderBottom: "1px solid", borderColor: "grey.200",
@@ -801,7 +1145,7 @@ const QueueView = ({ queue, onStartChat, isAgent = false, currentAgentId }: { qu
       </Paper>}
 
       {/* ════════════════════ TABLE 3 — VISITOR DETAILS ════════════════════ */}
-      {!isAgent && <Paper elevation={0} sx={{ border: "1px solid", borderColor: "grey.200", borderRadius: 3, overflow: "hidden" }}>
+      {!isAgent && queueViewMode === "list" && <Paper elevation={0} sx={{ border: "1px solid", borderColor: "grey.200", borderRadius: 3, overflow: "hidden" }}>
         <Box sx={{
           px: 3, py: 2, display: "flex", alignItems: "center", justifyContent: "space-between",
           borderBottom: "1px solid", borderColor: "grey.200",
