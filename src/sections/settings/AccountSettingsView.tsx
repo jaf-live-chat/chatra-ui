@@ -332,6 +332,18 @@ const AccountSettingsView = () => {
     };
   }, [pendingAvatarPreviewUrl]);
 
+  const canViewTenantApiKey = [
+    USER_ROLES.MASTER_ADMIN.value,
+    USER_ROLES.ADMIN.value,
+  ].includes(user?.role || "");
+
+  // Reset to profile tab if user loses access to integration
+  useEffect(() => {
+    if (activeSection === "integration" && !canViewTenantApiKey) {
+      setActiveSection("profile");
+    }
+  }, [canViewTenantApiKey, activeSection]);
+
   const handleProfileSave = async () => {
     const fullName = `${profile.firstName} ${profile.lastName}`.trim();
     const trimmedFirstName = profile.firstName.trim();
@@ -482,16 +494,11 @@ const AccountSettingsView = () => {
     { id: "profile", label: "Profile", icon: User },
     { id: "notifications", label: "Notifications", icon: Bell },
     { id: "security", label: "Security", icon: Shield },
-    { id: "integration", label: "Integration", icon: Code },
+    ...(canViewTenantApiKey ? [{ id: "integration", label: "Integration", icon: Code }] : []),
   ];
 
   const isUnlocked = Boolean(unlockUntil && unlockUntil > nowTs);
   const remainingUnlockMs = isUnlocked ? (unlockUntil || 0) - nowTs : 0;
-
-  const canViewTenantApiKey = [
-    USER_ROLES.MASTER_ADMIN.value,
-    USER_ROLES.ADMIN.value,
-  ].includes(user?.role || "");
 
   const tenantApiKey = canViewTenantApiKey ? tenant?.apiKey || "" : "";
   const socketUrl = API_BASE_URL.replace(/\/api\/v\d+\/?$/, "");
@@ -960,7 +967,7 @@ const AccountSettingsView = () => {
           )}
 
           {/* Integration Section */}
-          {activeSection === "integration" && (
+          {activeSection === "integration" && canViewTenantApiKey && (
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
               <div className="p-6 border-b border-gray-100">
                 <div className="flex items-center justify-between">
