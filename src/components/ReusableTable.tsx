@@ -180,19 +180,26 @@ const ReusableTable = <T,>({
   const resolvedSortBy = sortBy ?? internalSortBy;
   const resolvedSortDirection = sortDirection ?? internalSortDirection;
 
+  const isControlledSearch = searchTerm !== undefined;
+  const isControlledPage = page !== undefined;
+  const isControlledSort = sortBy !== undefined && sortDirection !== undefined;
+
   const setPageValue = (nextPage: number) => {
     if (onPageChange) {
       onPageChange(nextPage);
-      return;
     }
 
-    setInternalPage(nextPage);
+    if (!isControlledPage) {
+      setInternalPage(nextPage);
+    }
   };
 
   const setSearchTermValue = (nextSearchTerm: string) => {
     if (onSearchTermChange) {
       onSearchTermChange(nextSearchTerm);
-    } else {
+    }
+
+    if (!isControlledSearch) {
       setInternalSearchTerm(nextSearchTerm);
     }
 
@@ -202,11 +209,12 @@ const ReusableTable = <T,>({
   const setSortValue = (nextSortBy: string | null, nextSortDirection: SortDirection) => {
     if (onSortChange) {
       onSortChange(nextSortBy, nextSortDirection);
-      return;
     }
 
-    setInternalSortBy(nextSortBy);
-    setInternalSortDirection(nextSortDirection);
+    if (!isControlledSort) {
+      setInternalSortBy(nextSortBy);
+      setInternalSortDirection(nextSortDirection);
+    }
   };
 
   const filteredRows = useMemo(() => {
@@ -265,10 +273,12 @@ const ReusableTable = <T,>({
   const totalPages = Math.max(1, Math.ceil(totalRecords / rowsPerPage));
 
   useEffect(() => {
-    if (resolvedPage > totalPages) {
+    // Only auto-clamp when pagination is fully internal.
+    // In callback-driven pagination, parent logic should control page validity.
+    if (!onPageChange && resolvedPage > totalPages) {
       setPageValue(totalPages);
     }
-  }, [resolvedPage, totalPages]);
+  }, [onPageChange, resolvedPage, totalPages]);
 
   const pagedRows = useMemo(() => {
     if (isServerPagination) {

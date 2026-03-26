@@ -347,9 +347,12 @@ const DashboardPage = () => {
             columns={liveQueueColumns}
             getRowKey={(row) => row.id}
             compact={true}
+            tableMinWidth={0}
+            tableLayout="fixed"
+            noHorizontalScroll={true}
             showTotalBadge={false}
             search={{ show: false }}
-            pagination={{ show: false, rowsPerPage: 5 }}
+            pagination={{ show: true, rowsPerPage: 3 }}
             headerIcon={<Clock className="text-amber-500" size={20} />}
             headerActions={
               <Tooltip title="View waiting queue" placement="top">
@@ -371,9 +374,12 @@ const DashboardPage = () => {
             columns={activeSessionsColumns}
             getRowKey={(row) => row.id}
             compact={true}
+            tableMinWidth={0}
+            tableLayout="fixed"
+            noHorizontalScroll={true}
             showTotalBadge={false}
             search={{ show: false }}
-            pagination={{ show: false, rowsPerPage: 5 }}
+            pagination={{ show: true, rowsPerPage: 3 }}
             headerIcon={<Activity className="text-blue-500" size={20} />}
             headerActions={
               <Tooltip title="View all active sessions" placement="top">
@@ -397,9 +403,12 @@ const DashboardPage = () => {
             columns={agentStatusColumns}
             getRowKey={(row) => row.id}
             compact={true}
+            tableMinWidth={0}
+            tableLayout="fixed"
+            noHorizontalScroll={true}
             showTotalBadge={false}
             search={{ show: false }}
-            pagination={{ show: false, rowsPerPage: 5 }}
+            pagination={{ show: true, rowsPerPage: 3 }}
             headerIcon={<UserCog className="text-blue-500" size={20} />}
             headerActions={
               <Tooltip title="Manage agent status" placement="top">
@@ -421,9 +430,12 @@ const DashboardPage = () => {
             columns={feedbackColumns}
             getRowKey={(row) => row.id}
             compact={true}
+            tableMinWidth={0}
+            tableLayout="fixed"
+            noHorizontalScroll={true}
             showTotalBadge={false}
             search={{ show: false }}
-            pagination={{ show: false, rowsPerPage: 5 }}
+            pagination={{ show: true, rowsPerPage: 3 }}
             headerIcon={<Star className="text-purple-500" size={20} />}
             headerActions={
               <Tooltip title="View all reviews" placement="top">

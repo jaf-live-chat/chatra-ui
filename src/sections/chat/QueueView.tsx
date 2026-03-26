@@ -660,7 +660,7 @@ const QueueView = ({ queue, onStartChat, isAgent = false, currentAgentId }: { qu
           <ReusableTable
             title="Waiting Queue"
             subtitle="Visitors waiting for an agent"
-            rows={waitingQueue.slice(0, 5)}
+            rows={waitingQueue}
             columns={waitingGridColumns}
             getRowKey={(row) => row.id}
             tableMinWidth={0}
@@ -668,7 +668,7 @@ const QueueView = ({ queue, onStartChat, isAgent = false, currentAgentId }: { qu
             compact={true}
             noHorizontalScroll={true}
             search={{ show: false }}
-            pagination={{ show: false, totalRows: waitingQueue.length }}
+            pagination={{ show: true, rowsPerPage: 5, totalRows: waitingQueue.length }}
             headerIcon={<Hourglass size={17} />}
             totalLabel="waiting"
           />
@@ -676,7 +676,7 @@ const QueueView = ({ queue, onStartChat, isAgent = false, currentAgentId }: { qu
           <ReusableTable
             title="Currently Being Served"
             subtitle="Active sessions assigned to agents"
-            rows={currentQueue.slice(0, 5)}
+            rows={currentQueue}
             columns={activeGridColumns}
             getRowKey={(row) => row.id}
             tableMinWidth={0}
@@ -684,7 +684,7 @@ const QueueView = ({ queue, onStartChat, isAgent = false, currentAgentId }: { qu
             compact={true}
             noHorizontalScroll={true}
             search={{ show: false }}
-            pagination={{ show: false, totalRows: currentQueue.length }}
+            pagination={{ show: true, rowsPerPage: 5, totalRows: currentQueue.length }}
             headerIcon={<Zap size={17} />}
             totalLabel="active"
           />
@@ -692,7 +692,7 @@ const QueueView = ({ queue, onStartChat, isAgent = false, currentAgentId }: { qu
           <ReusableTable
             title="Visitor Details"
             subtitle="IP addresses, geolocation, and devices"
-            rows={allFiltered.slice(0, 5)}
+            rows={allFiltered}
             columns={visitorGridColumns}
             getRowKey={(row) => row.id}
             tableMinWidth={0}
@@ -700,7 +700,7 @@ const QueueView = ({ queue, onStartChat, isAgent = false, currentAgentId }: { qu
             compact={true}
             noHorizontalScroll={true}
             search={{ show: false }}
-            pagination={{ show: false, totalRows: allFiltered.length }}
+            pagination={{ show: true, rowsPerPage: 5, totalRows: allFiltered.length }}
             headerIcon={<Globe size={17} />}
             totalLabel="visitors"
           />
