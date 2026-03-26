@@ -76,6 +76,7 @@ interface ReusableTableProps<T> {
   emptyStateTitle?: string;
   emptyStateDescription?: string;
   totalLabel?: string;
+  showTotalBadge?: boolean;
 }
 
 const DEFAULT_ROWS_PER_PAGE = 5;
@@ -128,6 +129,7 @@ const ReusableTable = <T,>({
   emptyStateTitle = "No records found",
   emptyStateDescription = "Try adjusting your search.",
   totalLabel = "records",
+  showTotalBadge = true,
 }: ReusableTableProps<T>) => {
   const {
     placeholder: searchPlaceholder = "Search...",
@@ -308,6 +310,9 @@ const ReusableTable = <T,>({
         borderColor: "grey.200",
         borderRadius: 1,
         overflow: "hidden",
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
       }}
     >
       <Box
@@ -336,6 +341,7 @@ const ReusableTable = <T,>({
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
+                "& > svg": compact ? { width: 16, height: 16 } : undefined,
               }}
             >
               {headerIcon ?? <ArrowDownAZ size={compact ? 15 : 17} />}
@@ -363,17 +369,19 @@ const ReusableTable = <T,>({
             sx={{ width: { xs: "100%", md: "auto" }, flexWrap: "wrap", rowGap: 1 }}
           >
             {headerActions}
-            <Chip
-              label={`${totalRecords} ${totalLabel}`}
-              size="small"
-              sx={{
-                bgcolor: "#e0f2fe",
-                color: "#0e7490",
-                fontWeight: 700,
-                height: compact ? 26 : 30,
-                borderRadius: 1,
-              }}
-            />
+            {showTotalBadge && (
+              <Chip
+                label={`${totalRecords} ${totalLabel}`}
+                size="small"
+                sx={{
+                  bgcolor: "#e0f2fe",
+                  color: "#0e7490",
+                  fontWeight: 700,
+                  height: compact ? 26 : 30,
+                  borderRadius: 1,
+                }}
+              />
+            )}
             {showSearch && (
               <Paper
                 variant="outlined"
@@ -492,7 +500,15 @@ const ReusableTable = <T,>({
                   }}
                 >
                   {columns.map((column) => (
-                    <TableCell key={column.id} align={column.align || "left"} sx={column.sx}>
+                    <TableCell
+                      key={column.id}
+                      align={column.align || "left"}
+                      sx={{
+                        whiteSpace: "normal",
+                        wordBreak: "break-word",
+                        ...column.sx,
+                      }}
+                    >
                       {column.renderCell(row, (resolvedPage - 1) * rowsPerPage + rowIndex)}
                     </TableCell>
                   ))}
@@ -505,8 +521,8 @@ const ReusableTable = <T,>({
       {showPagination && (
         <Box
           sx={{
-            px: 3,
-            py: 1.5,
+            px: { xs: 1.5, sm: compact ? 2 : 3 },
+            py: compact ? 0.75 : 1.5,
             bgcolor: "grey.50",
             display: "flex",
             alignItems: "center",

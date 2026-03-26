@@ -41,6 +41,9 @@ type AuthProviderProps = {
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [session, setSession] = useState<AuthSession | null>(readStoredSession);
 
+  const isPrivilegedRole =
+    session?.agent?.role === "MASTER_ADMIN" || session?.agent?.role === "ADMIN";
+
   useEffect(() => {
     if (!session) {
       localStorage.removeItem(AUTH_STORAGE_KEY);
@@ -53,11 +56,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   }, [session]);
 
   useEffect(() => {
-    const shouldHydrateSubscription = Boolean(
-      session?.accessToken && session?.tenant && !session?.tenant?.subscription
+    const shouldHydrateSession = Boolean(
+      session?.accessToken &&
+      session?.tenant &&
+      (!session?.tenant?.subscription || (isPrivilegedRole && !session?.tenant?.apiKey))
     );
 
-    if (!shouldHydrateSubscription) {
+    if (!shouldHydrateSession) {
       return;
     }
 
@@ -92,7 +97,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     return () => {
       isMounted = false;
     };
-  }, [session?.accessToken, session?.tenant]);
+  }, [isPrivilegedRole, session?.accessToken, session?.tenant]);
 
   const login = useCallback(async (loginData: LoginData): Promise<AgentLoginResponse> => {
     const response = await Agents.login(loginData);
