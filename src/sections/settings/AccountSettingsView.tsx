@@ -856,45 +856,6 @@ const AccountSettingsView = () => {
                     </div>
                   </div>
                 </div>
-
-                <div className="h-px bg-gray-100" />
-
-                {/* Two-Factor */}
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                    <Shield className="w-4 h-4 text-gray-400" /> Two-Factor
-                    Authentication
-                  </h3>
-                  <div className="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-lg border border-gray-200">
-                    <div>
-                      <p className="text-sm font-medium text-gray-800">
-                        {security.twoFactorEnabled ? "Enabled" : "Disabled"}
-                      </p>
-                      <p className="text-xs text-gray-400">
-                        Add an extra layer of security to your account.
-                      </p>
-                    </div>
-                    <button
-                      onClick={() =>
-                        setSecurity({
-                          ...security,
-                          twoFactorEnabled: !security.twoFactorEnabled,
-                        })
-                      }
-                      className={`relative w-10 h-[22px] rounded-full transition-colors duration-200 cursor-pointer ${security.twoFactorEnabled
-                        ? "bg-green-500"
-                        : "bg-gray-300"
-                        }`}
-                    >
-                      <span
-                        className={`absolute top-[3px] left-[3px] w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-200 ${security.twoFactorEnabled
-                          ? "translate-x-[18px]"
-                          : "translate-x-0"
-                          }`}
-                      />
-                    </button>
-                  </div>
-                </div>
               </div>
 
               {/* Save */}
