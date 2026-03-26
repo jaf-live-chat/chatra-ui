@@ -130,6 +130,12 @@ const AgentDashboardLayoutInner = () => {
   const userInitial = user?.fullName?.charAt(0)?.toUpperCase() || "U";
   const userName = user?.fullName || "User";
   const userEmail = user?.emailAddress || "";
+  const userProfilePicture = user?.profilePicture || "";
+  const [profileImageFailed, setProfileImageFailed] = useState(false);
+
+  useEffect(() => {
+    setProfileImageFailed(false);
+  }, [userProfilePicture]);
 
   const activeNavCls = "bg-cyan-50 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400";
   const inactiveNavCls =
@@ -300,9 +306,18 @@ const AgentDashboardLayoutInner = () => {
                 className="flex items-center gap-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700/60 p-1.5 pr-3 rounded-lg transition-colors border border-transparent hover:border-gray-200 dark:hover:border-slate-600 ml-1"
                 onClick={() => setIsProfileOpen(!isProfileOpen)}
               >
-                <div className="w-8 h-8 bg-cyan-700 rounded-full flex items-center justify-center text-white font-medium text-sm">
-                  {userInitial}
-                </div>
+                {userProfilePicture && !profileImageFailed ? (
+                  <img
+                    src={userProfilePicture}
+                    alt={userName}
+                    onError={() => setProfileImageFailed(true)}
+                    className="w-8 h-8 rounded-full object-cover border border-gray-200 dark:border-slate-600"
+                  />
+                ) : (
+                  <div className="w-8 h-8 bg-cyan-700 rounded-full flex items-center justify-center text-white font-medium text-sm">
+                    {userInitial}
+                  </div>
+                )}
                 <div className="hidden lg:block text-left">
                   <p className="text-sm font-semibold text-gray-900 dark:text-slate-100 leading-none">
                     {userName}
@@ -316,9 +331,23 @@ const AgentDashboardLayoutInner = () => {
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setIsProfileOpen(false)}></div>
                   <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl shadow-lg dark:shadow-slate-900/50 z-50 py-2">
-                    <div className="px-4 py-2 border-b border-gray-100 dark:border-slate-700 mb-1">
-                      <p className="text-sm font-semibold text-gray-900 dark:text-slate-100">{userName}</p>
-                      <p className="text-xs text-gray-500 dark:text-slate-400">{userEmail}</p>
+                    <div className="px-4 py-2 border-b border-gray-100 dark:border-slate-700 mb-1 flex items-center gap-2.5">
+                      {userProfilePicture && !profileImageFailed ? (
+                        <img
+                          src={userProfilePicture}
+                          alt={userName}
+                          onError={() => setProfileImageFailed(true)}
+                          className="w-8 h-8 rounded-full object-cover border border-gray-200 dark:border-slate-600"
+                        />
+                      ) : (
+                        <div className="w-8 h-8 bg-cyan-700 rounded-full flex items-center justify-center text-white font-medium text-xs">
+                          {userInitial}
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-sm font-semibold text-gray-900 dark:text-slate-100">{userName}</p>
+                        <p className="text-xs text-gray-500 dark:text-slate-400">{userEmail}</p>
+                      </div>
                     </div>
                     <div className="h-px bg-gray-100 dark:bg-slate-700 my-1"></div>
                     <Link

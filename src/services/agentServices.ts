@@ -17,6 +17,7 @@ import useSWR from "swr";
 const endpoints = {
   key: `${API_BASE_URL}/agents`,
   me: `${API_BASE_URL}/agents/me`,
+  profile: `${API_BASE_URL}/agents/profile`,
 };
 
 type UseGetAgentsParams = {
@@ -129,6 +130,15 @@ const Agents = {
     data: UpdateAgentInput
   ): Promise<UpdateAgentResponse> => {
     const response = await axiosServices.put(`/agents/${agentId}`, data);
+    return response.data;
+  },
+
+  updateMyProfile: async (data: UpdateAgentInput | FormData): Promise<UpdateAgentResponse> => {
+    const response = await axiosServices.put(endpoints.profile, data,
+      data instanceof FormData
+        ? { headers: { "Content-Type": "multipart/form-data" } }
+        : undefined
+    );
     return response.data;
   },
 

@@ -67,6 +67,7 @@ export type AuthContextValue = {
   isLoggedIn: boolean;
   login: (loginData: LoginData) => Promise<AgentLoginResponse>;
   logout: () => void;
+  updateUser: (agent: AuthAgent) => void;
 };
 
 // Agent CRUD Operations
@@ -108,6 +109,7 @@ export type UpdateAgentInput = {
   profilePicture?: string | null;
   role?: string;
   status?: string;
+  password?: string;
 };
 
 export type UpdateAgentResponse = {

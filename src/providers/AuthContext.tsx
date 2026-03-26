@@ -2,6 +2,7 @@ import { createContext, useCallback, useEffect, useMemo, useState } from "react"
 import type { ReactNode } from "react";
 import type {
   AgentLoginResponse,
+  AuthAgent,
   AuthContextValue,
   AuthSession,
   LoginData,
@@ -113,6 +114,19 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     setSession(null);
   }, []);
 
+  const updateUser = useCallback((agent: AuthAgent) => {
+    setSession((prevSession) => {
+      if (!prevSession) {
+        return prevSession;
+      }
+
+      return {
+        ...prevSession,
+        agent,
+      };
+    });
+  }, []);
+
   const value = useMemo<AuthContextValue>(
     () => ({
       user: session?.agent ?? null,
@@ -121,8 +135,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       isLoggedIn: Boolean(session?.accessToken && session?.agent),
       login,
       logout,
+      updateUser,
     }),
-    [session, login, logout]
+    [session, login, logout, updateUser]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
