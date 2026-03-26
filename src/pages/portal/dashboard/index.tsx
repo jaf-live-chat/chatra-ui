@@ -13,6 +13,7 @@ import {
   Settings2,
 } from "lucide-react";
 import ConversationsView from "../../../sections/chat/ConversationsView";
+import AgentDetailsView from "../../../sections/agent/AgentDetailsView";
 import QueueView from "../../../sections/chat/QueueView";
 import ActiveChatView from "../../../sections/chat/ActiveChatView";
 import ChatHistoryView from "../../../sections/chat/ChatHistoryView";
@@ -84,7 +85,9 @@ const pathByTab: Record<string, string> = {
 const Dashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const activeTab = tabByPathname[location.pathname] || "overview";
+  const activeTab = location.pathname.startsWith("/portal/agents/")
+    ? "agent-details"
+    : tabByPathname[location.pathname] || "overview";
   const [activeChatVisitor, setActiveChatVisitor] = useState<any>(null);
   const [agentStatus, setAgentStatus] = useState("Online");
   const [queueItems, setQueueItems] = useState<typeof initialMockQueue>(() => {
@@ -218,6 +221,8 @@ const Dashboard = () => {
               visitor={activeChatVisitor}
               onEndChat={(messages, length) => handleEndChat(activeChatVisitor, messages, length)}
             />
+          ) : activeTab === "agent-details" ? (
+            <AgentDetailsView />
           ) : activeTab === "conversations" ? (
             <ConversationsView />
           ) : activeTab === "queue" ? (
