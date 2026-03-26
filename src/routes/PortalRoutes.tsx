@@ -6,6 +6,15 @@ import AgentDashboardLayout from "../layouts/AgentDashboardLayout";
 import RouteGuard from "../layouts/RouteGuard";
 import AuthGuard from "../components/guards/AuthGuard";
 import Dashboard from "../pages/portal/dashboard";
+import AnalyticsPage from "../pages/portal/analytics";
+import QueuePage from "../pages/portal/queue";
+import HistoryPage from "../pages/portal/history";
+import ConversationsPage from "../pages/portal/conversations";
+import BillingPage from "../pages/portal/billing";
+import AssignmentPage from "../pages/portal/assignment";
+import AccountSettingsPage from "../pages/portal/account-settings";
+import WidgetSettingsPage from "../pages/portal/widget-settings";
+import AgentDetailsPage from "../pages/portal/agent-details";
 import AgentsPage from "../pages/portal/agents";
 import CustomerDashboard from "../pages/portal/customer-dashboard";
 import ChatSessionManagementPage from "../pages/portal/chat-session-management";
@@ -52,7 +61,7 @@ const PortalRoutes: RouteObject[] = [
                   <AuthGuard
                     allowedRoles={[USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value]}
                   >
-                    <Dashboard />
+                    <AnalyticsPage />
                   </AuthGuard>
                 ),
               },
@@ -72,7 +81,7 @@ const PortalRoutes: RouteObject[] = [
                   <AuthGuard
                     allowedRoles={[USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value]}
                   >
-                    <Dashboard />
+                    <AgentDetailsPage />
                   </AuthGuard>
                 ),
               },
@@ -82,7 +91,7 @@ const PortalRoutes: RouteObject[] = [
                   <AuthGuard
                     allowedRoles={[USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value, USER_ROLES.SUPPORT_AGENT.value]}
                   >
-                    <Dashboard />
+                    <QueuePage />
                   </AuthGuard>
                 ),
               },
@@ -92,7 +101,7 @@ const PortalRoutes: RouteObject[] = [
                   <AuthGuard
                     allowedRoles={[USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value]}
                   >
-                    <Dashboard />
+                    <HistoryPage />
                   </AuthGuard>
                 ),
               },
@@ -102,7 +111,7 @@ const PortalRoutes: RouteObject[] = [
                   <AuthGuard
                     allowedRoles={[USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value]}
                   >
-                    <Dashboard />
+                    <ConversationsPage />
                   </AuthGuard>
                 ),
               },
@@ -112,7 +121,7 @@ const PortalRoutes: RouteObject[] = [
                   <AuthGuard
                     allowedRoles={[USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value]}
                   >
-                    <Dashboard />
+                    <BillingPage />
                   </AuthGuard>
                 ),
               },
@@ -122,7 +131,7 @@ const PortalRoutes: RouteObject[] = [
                   <AuthGuard
                     allowedRoles={[USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value]}
                   >
-                    <Dashboard />
+                    <AssignmentPage />
                   </AuthGuard>
                 ),
               },
@@ -132,7 +141,7 @@ const PortalRoutes: RouteObject[] = [
                   <AuthGuard
                     allowedRoles={[USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value]}
                   >
-                    <Dashboard />
+                    <AccountSettingsPage />
                   </AuthGuard>
                 ),
               },
@@ -142,7 +151,7 @@ const PortalRoutes: RouteObject[] = [
                   <AuthGuard
                     allowedRoles={[USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value]}
                   >
-                    <Dashboard />
+                    <WidgetSettingsPage />
                   </AuthGuard>
                 ),
               },

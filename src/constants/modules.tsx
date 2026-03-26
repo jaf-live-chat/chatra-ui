@@ -10,6 +10,7 @@ import {
   MessagesSquare,
   Settings2,
   Zap,
+  CreditCardIcon
 } from "lucide-react";
 import type { ReactNode } from "react";
 
@@ -88,10 +89,17 @@ const MODULE_GROUPS: ModuleGroup[] = [
     allowedRoles: [USER_ROLES.MASTER_ADMIN.value],
     modules: [
       {
-        id: "widget-settings",
+        id: "tenants-list",
         label: "Tenants",
         path: "/portal/tenants",
         icon: <Building2 className="w-5 h-5" />,
+        allowedRoles: [USER_ROLES.MASTER_ADMIN.value],
+      },
+      {
+        id: "tenants-payments",
+        label: "Payments",
+        path: "/portal/payments",
+        icon: <CreditCardIcon className="w-5 h-5" />,
         allowedRoles: [USER_ROLES.MASTER_ADMIN.value],
       },
     ],
