@@ -321,23 +321,18 @@ const QueueView = ({ queue, onStartChat, isAgent = false, currentAgentId }: { qu
         const pos = index + 1;
         const isFirst = pos === 1;
         return (
-          <Box
+          <Typography
+            component="span"
             sx={{
-              width: isFirst ? 30 : 24,
-              height: isFirst ? 30 : 24,
-              borderRadius: "50%",
+              display: "inline-block",
               mx: "auto",
-              bgcolor: isFirst ? "primary.main" : "grey.100",
-              color: isFirst ? "#fff" : "grey.700",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
               fontWeight: 700,
-              fontSize: isFirst ? "0.8rem" : "0.75rem",
+              color: isFirst ? "primary.main" : "grey.700",
+              fontSize: isFirst ? "0.85rem" : "0.75rem",
             }}
           >
             {pos}
-          </Box>
+          </Typography>
         );
       },
     },
@@ -437,23 +432,18 @@ const QueueView = ({ queue, onStartChat, isAgent = false, currentAgentId }: { qu
       align: "center",
       headerAlign: "center",
       renderCell: (_row, index) => (
-        <Box
+        <Typography
+          component="span"
           sx={{
-            width: 24,
-            height: 24,
-            borderRadius: "50%",
+            display: "inline-block",
             mx: "auto",
-            bgcolor: "#dc262614",
             color: "primary.main",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
             fontWeight: 700,
-            fontSize: "0.72rem",
+            fontSize: "0.75rem",
           }}
         >
           {index + 1}
-        </Box>
+        </Typography>
       ),
     },
     {
@@ -878,15 +868,10 @@ const QueueView = ({ queue, onStartChat, isAgent = false, currentAgentId }: { qu
                       }),
                     }}>
                       <TableCell align="center">
-                        <Box sx={{
-                          width: isFirst ? 38 : 28, height: isFirst ? 38 : 28, borderRadius: 1.5, mx: "auto",
-                          bgcolor: isFirst ? "primary.main" : "grey.100",
-                          color:   isFirst ? "#fff"         : "grey.700",
-                          display: "flex", alignItems: "center", justifyContent: "center",
-                          fontWeight: 700, fontSize: isFirst ? "1rem" : "0.8rem",
-                          ...(isFirst && { boxShadow: "0 2px 8px #0891b259" }),
-                        }}>
+                        <Box sx={{ mx: "auto", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                          <Typography sx={{ fontWeight: 700, fontSize: isFirst ? "1rem" : "0.8rem", color: isFirst ? "primary.main" : "grey.700" }}>
                           {pos}
+                          </Typography>
                         </Box>
                       </TableCell>
                       <TableCell>
@@ -1085,13 +1070,10 @@ const QueueView = ({ queue, onStartChat, isAgent = false, currentAgentId }: { qu
                   return (
                     <TableRow key={item.id} hover sx={{ "&:last-child td, &:last-child th": { border: 0 } }}>
                       <TableCell align="center">
-                        <Box sx={{
-                          width: 28, height: 28, borderRadius: 1.5, mx: "auto",
-                          bgcolor: "#dc262614", color: "primary.main",
-                          display: "flex", alignItems: "center", justifyContent: "center",
-                          fontWeight: 700, fontSize: "0.8rem",
-                        }}>
+                        <Box sx={{ mx: "auto", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                          <Typography sx={{ color: "primary.main", fontWeight: 700, fontSize: "0.8rem" }}>
                           {pos}
+                          </Typography>
                         </Box>
                       </TableCell>
                       <TableCell>
