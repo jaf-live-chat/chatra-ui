@@ -24,6 +24,13 @@ interface TenantListResponse {
   tenants: TenantApiItem[];
 }
 
+interface SingleTenantHookResponse {
+  tenant: Tenant | null;
+  isLoading: boolean;
+  error: unknown;
+  mutate: () => Promise<TenantListResponse | undefined>;
+}
+
 interface TenantUpdateResponse {
   success: boolean;
   message: string;
@@ -91,6 +98,21 @@ const getTenants = async (): Promise<Tenant[]> => {
   return mapAndSortTenants(tenants);
 };
 
+const getSingleTenant = async (tenantId: string): Promise<Tenant | null> => {
+  if (!tenantId) return null;
+
+  const response = await axiosServices.get<TenantListResponse>("/tenants", {
+    params: { _id: tenantId },
+  });
+
+  const tenants = Array.isArray(response.data?.tenants) ? response.data.tenants : [];
+  if (tenants.length === 0) {
+    return null;
+  }
+
+  return normalizeTenant(tenants[0]);
+};
+
 const useGetTenants = () => {
   const getTenantList = (url: string) =>
     fetcher<TenantListResponse>(url, true) as Promise<TenantListResponse>;
@@ -116,6 +138,35 @@ const useGetTenants = () => {
   return memoizedValue;
 };
 
+const useGetSingleTenant = (tenantId?: string): SingleTenantHookResponse => {
+  const shouldFetch = Boolean(tenantId);
+  const requestUrl = shouldFetch ? `${endpoints.key}?_id=${encodeURIComponent(tenantId || "")}` : null;
+
+  const getTenant = (url: string) =>
+    fetcher<TenantListResponse>(url, true) as Promise<TenantListResponse>;
+
+  const { data, isLoading, error, mutate } = useSWR<TenantListResponse>(
+    requestUrl,
+    getTenant,
+    SWR_OPTIONS,
+  );
+
+  const tenant = useMemo(() => {
+    if (!Array.isArray(data?.tenants) || data.tenants.length === 0) {
+      return null;
+    }
+
+    return normalizeTenant(data.tenants[0]);
+  }, [data]);
+
+  return {
+    tenant,
+    isLoading,
+    error,
+    mutate,
+  };
+};
+
 const updateTenantStatus = async (id: string, status: TenantStatus): Promise<Tenant> => {
   const response = await axiosServices.put<TenantUpdateResponse>(`/tenants/${id}/status`, {
     status,
@@ -130,10 +181,19 @@ const deleteTenant = async (id: string): Promise<void> => {
 
 const tenantService = {
   getTenants,
+  getSingleTenant,
   useGetTenants,
+  useGetSingleTenant,
   updateTenantStatus,
   deleteTenant,
 };
 
-export { getTenants, useGetTenants, updateTenantStatus, deleteTenant };
+export {
+  getTenants,
+  getSingleTenant,
+  useGetTenants,
+  useGetSingleTenant,
+  updateTenantStatus,
+  deleteTenant,
+};
 export default tenantService;

@@ -17,6 +17,7 @@ import QuickRepliesPage from "../pages/portal/quick-replies";
 import QueueAssignmentPage from "../pages/portal/queue-assignment";
 import AgentSettingsPage from "../sections/settings/AgentSettingsPage";
 import Tenants from "../pages/portal/tenants";
+import TenantDetails from "../pages/portal/tenants/details";
 
 const PortalRoutes: RouteObject[] = [
   {
@@ -217,13 +218,27 @@ const PortalRoutes: RouteObject[] = [
               },
               {
                 path: "tenants",
-                element: (
-                  <AuthGuard
-                    allowedRoles={[USER_ROLES.MASTER_ADMIN.value]}
-                  >
-                    <Tenants />
-                  </AuthGuard>
-                ),
+                children: [
+                  {
+                    index: true, element: (
+                      <AuthGuard
+                        allowedRoles={[USER_ROLES.MASTER_ADMIN.value]}
+                      >
+                        <Tenants />
+                      </AuthGuard>
+                    ),
+                  },
+                  {
+                    path: ':id',
+                    element: (
+                      <AuthGuard
+                        allowedRoles={[USER_ROLES.MASTER_ADMIN.value]}
+                      >
+                        <TenantDetails />
+                      </AuthGuard>
+                    )
+                  }
+                ]
               },
             ],
           },

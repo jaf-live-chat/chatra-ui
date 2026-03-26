@@ -144,7 +144,7 @@ const TenantsTable = () => {
   const handleViewTenant = () => {
     if (!selectedTenant) return;
     handleCloseActionMenu();
-    navigate(`/portal/company-info?tenantId=${selectedTenant.id}`);
+    navigate(`/portal/tenants/${selectedTenant.id}`);
   };
 
   const handleOpenManageDialog = () => {
