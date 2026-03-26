@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import axiosServices, { fetcher } from "../utils/axios";
 import type {
   AgentLoginResponse,
+  AgentMeResponse,
   LoginData,
   CreateAgentsPayload,
   CreateAgentsResponse,
@@ -15,6 +16,7 @@ import useSWR from "swr";
 
 const endpoints = {
   key: `${API_BASE_URL}/agents`,
+  me: `${API_BASE_URL}/agents/me`,
 };
 
 type UseGetAgentsParams = {
@@ -88,6 +90,11 @@ const Agents = {
       console.error('Error logging in:', error);
       throw error;
     }
+  },
+
+  getMe: async (): Promise<AgentMeResponse> => {
+    const response = await axiosServices.get(endpoints.me);
+    return response.data;
   },
 
   // Get all agents

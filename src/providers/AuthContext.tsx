@@ -51,6 +51,48 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     localStorage.setItem(TOKEN_STORAGE_KEY, session.accessToken);
   }, [session]);
 
+  useEffect(() => {
+    const shouldHydrateSubscription = Boolean(
+      session?.accessToken && session?.tenant && !session?.tenant?.subscription
+    );
+
+    if (!shouldHydrateSubscription) {
+      return;
+    }
+
+    let isMounted = true;
+
+    const hydrateSession = async () => {
+      try {
+        const meResponse = await Agents.getMe();
+
+        if (!isMounted) {
+          return;
+        }
+
+        setSession((prevSession) => {
+          if (!prevSession) {
+            return prevSession;
+          }
+
+          return {
+            ...prevSession,
+            tenant: meResponse.tenant,
+            agent: meResponse.agent,
+          };
+        });
+      } catch {
+        // Keep existing session if hydration fails.
+      }
+    };
+
+    hydrateSession();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [session?.accessToken, session?.tenant]);
+
   const login = useCallback(async (loginData: LoginData): Promise<AgentLoginResponse> => {
     const response = await Agents.login(loginData);
 

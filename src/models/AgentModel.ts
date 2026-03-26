@@ -4,11 +4,25 @@ export type LoginData = {
   password: string;
 };
 
+export interface Subscription {
+  planName: string;
+  startDate: string;
+  endDate: string;
+}
+
+export type UserRole = "MASTER_ADMIN" | "ADMIN" | "SUPPORT_AGENT" | "VISITOR";
+
+export interface AuthUser {
+  companyName: string;
+  role: UserRole;
+  subscription: Subscription;
+}
+
 export type AuthAgent = {
   _id: string;
   fullName: string;
   emailAddress: string;
-  role: string;
+  role: UserRole;
   phoneNumber?: string | null;
   profilePicture?: string | null;
   status?: string;
@@ -18,6 +32,7 @@ export type AuthTenant = {
   id: string;
   companyName: string;
   companyCode: string;
+  subscription?: Subscription | null;
 };
 
 export type AgentLoginResponse = {
@@ -26,6 +41,13 @@ export type AgentLoginResponse = {
   accessToken: string;
   tokenType: string;
   expiresIn: string;
+  tenant: AuthTenant;
+  agent: AuthAgent;
+};
+
+export type AgentMeResponse = {
+  success: boolean;
+  message: string;
   tenant: AuthTenant;
   agent: AuthAgent;
 };

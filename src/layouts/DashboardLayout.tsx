@@ -8,11 +8,15 @@ import {
   Menu,
 } from "lucide-react";
 import { Link, Outlet, useNavigate, useLocation } from "react-router";
+import { Chip, Tooltip, Typography } from "@mui/material";
 import { DarkModeProvider, useDarkMode } from "../providers/DarkModeContext";
 import { APP_LOGO } from "../constants/constants";
 import useAuth from "../hooks/useAuth";
 import { MODULE_GROUPS } from "../constants/modules";
 import filterModulesByRole from "../utils/filterModules";
+import { formatDate } from "../utils/dateFormatter";
+import type { AuthUser, UserRole } from "../models/AgentModel";
+import toTitleCase from "../utils/toTitleCase";
 
 // ── Inner layout (consumes dark-mode context) ──────────────────────────────────
 
@@ -36,7 +40,7 @@ function DashboardLayoutInner() {
   const [isStatusOpen, setIsStatusOpen] = useState(false);
 
   const { isDark, toggleDark } = useDarkMode();
-  const { user, logout } = useAuth();
+  const { user, tenant, logout } = useAuth();
   const roleFilteredGroups = filterModulesByRole(MODULE_GROUPS, user?.role);
   const sidebarGroups = roleFilteredGroups
     .map((group) => ({
@@ -79,6 +83,25 @@ function DashboardLayoutInner() {
   const userInitial = user?.fullName?.charAt(0)?.toUpperCase() || "U";
   const userName = user?.fullName || "User";
   const userEmail = user?.emailAddress || "";
+  const companyName = tenant?.companyName || "-";
+  const userRole = (user?.role || "-") as UserRole | "-";
+  const subscription = tenant?.subscription ?? null;
+  const planName = subscription?.planName || "No Plan";
+
+  const authUser: AuthUser | null =
+    tenant?.companyName && user?.role && subscription?.planName && subscription?.startDate && subscription?.endDate
+      ? {
+        companyName: tenant.companyName,
+        role: user.role,
+        subscription: {
+          planName: subscription.planName,
+          startDate: subscription.startDate,
+          endDate: subscription.endDate,
+        },
+      }
+      : null;
+  const subscriptionStartDate = authUser?.subscription.startDate || subscription?.startDate;
+  const subscriptionEndDate = authUser?.subscription.endDate || subscription?.endDate;
 
   const activeNavCls = "bg-cyan-50 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400";
   const inactiveNavCls =
@@ -159,9 +182,60 @@ function DashboardLayoutInner() {
       >
         {/* Top header */}
         <header className="h-16 bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between px-8 sticky top-0 z-10 transition-colors duration-300">
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-6 min-w-0">
             <div className="h-6 w-px bg-gray-200 dark:bg-slate-700 hidden sm:block"></div>
-            <div className="w-72 relative hidden md:block"></div>
+            <div className="relative hidden md:flex items-center gap-3 min-w-0">
+              <Typography
+                variant="body2"
+                sx={{
+                  color: isDark ? "#CBD5E1" : "#475569",
+                  fontWeight: 600,
+                  maxWidth: "220px",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {companyName}
+              </Typography>
+              <Tooltip
+                arrow
+                placement="bottom"
+                title={
+                  <div className="py-1">
+                    <Typography variant="caption" sx={{ display: "block", color: "#E2E8F0" }}>
+                      Plan: {planName}
+                    </Typography>
+                    <Typography variant="caption" sx={{ display: "block", color: "#E2E8F0" }}>
+                      Start: {subscriptionStartDate
+                        ? formatDate(subscriptionStartDate)
+                        : "-"}
+                    </Typography>
+                    <Typography variant="caption" sx={{ display: "block", color: "#E2E8F0" }}>
+                      End: {subscriptionEndDate
+                        ? formatDate(subscriptionEndDate)
+                        : "-"}
+                    </Typography>
+                  </div>
+                }
+              >
+                <Chip
+                  label={planName}
+                  size="small"
+                  variant="outlined"
+                  sx={{
+                    height: 24,
+                    borderColor: isDark ? "#334155" : "#CBD5E1",
+                    color: isDark ? "#E2E8F0" : "#334155",
+                    backgroundColor: isDark ? "rgba(30,41,59,0.35)" : "#F8FAFC",
+                    "& .MuiChip-label": {
+                      px: 1.2,
+                      fontWeight: 500,
+                    },
+                  }}
+                />
+              </Tooltip>
+            </div>
           </div>
 
           <div className="flex items-center gap-4">
@@ -249,6 +323,14 @@ function DashboardLayoutInner() {
                     <div className="px-4 py-2 border-b border-gray-100 dark:border-slate-700 mb-1">
                       <p className="text-sm font-semibold text-gray-900 dark:text-slate-100">{userName}</p>
                       <p className="text-xs text-gray-500 dark:text-slate-400">{userEmail}</p>
+                    </div>
+                    <div className="px-4 py-2 border-b border-gray-100 dark:border-slate-700 mb-1">
+                      <Typography variant="caption" sx={{ color: isDark ? "#94A3B8" : "#64748B" }}>
+                        Role
+                      </Typography>
+                      <Typography variant="body2" sx={{ color: isDark ? "#E2E8F0" : "#334155", fontWeight: 600 }}>
+                        {toTitleCase(userRole)}
+                      </Typography>
                     </div>
                     <button
                       onClick={() => {
