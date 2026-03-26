@@ -12,11 +12,21 @@ import {
   Code,
   Copy,
 } from "lucide-react";
-import { motion, AnimatePresence } from "motion/react";
+import { motion } from "motion/react";
 import axios from "axios";
 import useAuth from "../../hooks/useAuth";
 import Agents from "../../services/agentServices";
 import AvatarUpload from "../../components/uploads/AvatarUpload";
+import { API_BASE_URL, USER_ROLES } from "../../constants/constants";
+
+const ACCOUNT_SETTINGS_UNLOCK_MS = 10 * 60 * 1000;
+
+const formatCountdown = (remainingMs: number) => {
+  const totalSeconds = Math.max(0, Math.floor(remainingMs / 1000));
+  const minutes = String(Math.floor(totalSeconds / 60)).padStart(2, "0");
+  const seconds = String(totalSeconds % 60).padStart(2, "0");
+  return `${minutes}:${seconds}`;
+};
 
 const splitFullName = (fullName: string) => {
   const name = String(fullName || "").trim();
@@ -103,17 +113,18 @@ const toPhilippineE164 = (value: string) => {
 };
 
 const AccountSettingsView = () => {
-  const { user, updateUser } = useAuth();
+  const { user, tenant, accessToken, updateUser } = useAuth();
   const [activeSection, setActiveSection] = useState("profile");
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [saved, setSaved] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
-  const [integrationRevealed, setIntegrationRevealed] = useState(true);
-  const [showVerifyModal, setShowVerifyModal] = useState(false);
-  const [verifyPassword, setVerifyPassword] = useState("");
-  const [showVerifyPassword, setShowVerifyPassword] = useState(false);
-  const [verifyError, setVerifyError] = useState(false);
+  const [unlockPassword, setUnlockPassword] = useState("");
+  const [showUnlockPassword, setShowUnlockPassword] = useState(false);
+  const [unlockError, setUnlockError] = useState("");
+  const [unlockUntil, setUnlockUntil] = useState<number | null>(null);
+  const [nowTs, setNowTs] = useState(Date.now());
+  const [isUnlocking, setIsUnlocking] = useState(false);
 
   const handleCopy = (text: string, id: string) => {
     const textarea = document.createElement("textarea");
@@ -176,6 +187,73 @@ const AccountSettingsView = () => {
   const handleSave = () => {
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
+  };
+
+  const unlockStorageKey = accessToken
+    ? `jaf_account_settings_unlock_until_${accessToken}`
+    : null;
+
+  useEffect(() => {
+    if (!unlockStorageKey) {
+      setUnlockUntil(null);
+      return;
+    }
+
+    const storedUnlockUntil = Number(sessionStorage.getItem(unlockStorageKey) || "0");
+    setUnlockUntil(storedUnlockUntil > Date.now() ? storedUnlockUntil : null);
+  }, [unlockStorageKey]);
+
+  useEffect(() => {
+    if (!unlockUntil) {
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      setNowTs(Date.now());
+    }, 1000);
+
+    return () => {
+      window.clearInterval(timer);
+    };
+  }, [unlockUntil]);
+
+  useEffect(() => {
+    if (!unlockUntil || !unlockStorageKey) {
+      return;
+    }
+
+    if (Date.now() >= unlockUntil) {
+      setUnlockUntil(null);
+      sessionStorage.removeItem(unlockStorageKey);
+    }
+  }, [nowTs, unlockStorageKey, unlockUntil]);
+
+  const handleUnlockPage = async () => {
+    if (!unlockPassword.trim()) {
+      setUnlockError("Please enter your password to continue.");
+      return;
+    }
+
+    try {
+      setIsUnlocking(true);
+      setUnlockError("");
+
+      await Agents.verifyPassword(unlockPassword);
+
+      const nextUnlockUntil = Date.now() + ACCOUNT_SETTINGS_UNLOCK_MS;
+      setUnlockUntil(nextUnlockUntil);
+
+      if (unlockStorageKey) {
+        sessionStorage.setItem(unlockStorageKey, String(nextUnlockUntil));
+      }
+
+      setUnlockPassword("");
+      setShowUnlockPassword(false);
+    } catch (error) {
+      setUnlockError(getApiErrorMessage(error, "Password verification failed."));
+    } finally {
+      setIsUnlocking(false);
+    }
   };
 
   useEffect(() => {
@@ -400,18 +478,6 @@ const AccountSettingsView = () => {
     }
   };
 
-  const handleVerifySubmit = () => {
-    if (verifyPassword.length >= 1) {
-      setIntegrationRevealed(true);
-      setShowVerifyModal(false);
-      setVerifyPassword("");
-      setVerifyError(false);
-      setShowVerifyPassword(false);
-    } else {
-      setVerifyError(true);
-    }
-  };
-
   const sections = [
     { id: "profile", label: "Profile", icon: User },
     { id: "notifications", label: "Notifications", icon: Bell },
@@ -419,7 +485,17 @@ const AccountSettingsView = () => {
     { id: "integration", label: "Integration", icon: Code },
   ];
 
-  const widgetScript = `<!-- Live Chat Widget -->\n<script>\n  window.LiveChatConfig = {\n    apiUrl: 'https://depauperate-destiny-superdelicate.ngrok-free.dev/api/v1',\n    socketUrl: 'https://depauperate-destiny-superdelicate.ngrok-free.dev'\n  };\n</script>\n<script src="https://timora-live-chat.vercel.app/widget/live-chat-widget.js"></script>`;
+  const isUnlocked = Boolean(unlockUntil && unlockUntil > nowTs);
+  const remainingUnlockMs = isUnlocked ? (unlockUntil || 0) - nowTs : 0;
+
+  const canViewTenantApiKey = [
+    USER_ROLES.MASTER_ADMIN.value,
+    USER_ROLES.ADMIN.value,
+  ].includes(user?.role || "");
+
+  const tenantApiKey = canViewTenantApiKey ? tenant?.apiKey || "" : "";
+  const socketUrl = API_BASE_URL.replace(/\/api\/v\d+\/?$/, "");
+  const widgetScript = `<!-- Live Chat Widget -->\n<script>\n  window.LiveChatConfig = {\n    apiUrl: '${API_BASE_URL}',\n    socketUrl: '${socketUrl}',\n    apiKey: '${tenantApiKey || ""}'\n  };\n</script>\n<script src="https://timora-live-chat.vercel.app/widget/live-chat-widget.js"></script>`;
 
   return (
     <div>
@@ -899,240 +975,127 @@ const AccountSettingsView = () => {
                 </div>
               </div>
 
-              <div className="p-6 space-y-6">
-                {/* API Key */}
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                    <Shield className="w-4 h-4 text-gray-400" /> API Key
-                  </h3>
-                  <div className="flex items-center gap-3">
-                    <AnimatePresence mode="wait">
-                      <motion.code
-                        key={integrationRevealed ? "revealed" : "hidden"}
-                        initial={{ opacity: 0, filter: "blur(4px)" }}
-                        animate={{ opacity: 1, filter: "blur(0px)" }}
-                        exit={{ opacity: 0, filter: "blur(4px)" }}
-                        transition={{ duration: 0.3 }}
-                        className="flex-1 px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800 font-mono select-all"
+              {!isUnlocked ? (
+                <div className="p-6">
+                  <div className="max-w-lg mx-auto bg-white border border-gray-200 rounded-xl shadow-sm p-6">
+                    <h2 className="text-xl font-bold text-gray-900">Verify To Continue</h2>
+                    <p className="text-sm text-gray-600 mt-2">
+                      For security, enter your current password to access Integration settings. Access expires after 10 minutes.
+                    </p>
+
+                    <div className="mt-4 relative">
+                      <input
+                        type={showUnlockPassword ? "text" : "password"}
+                        value={unlockPassword}
+                        onChange={(event) => {
+                          setUnlockPassword(event.target.value);
+                          setUnlockError("");
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            handleUnlockPage();
+                          }
+                        }}
+                        placeholder="Enter your password"
+                        className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-cyan-100 focus:border-cyan-400 pr-10"
+                        autoFocus
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowUnlockPassword((prev) => !prev)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                       >
-                        {integrationRevealed ? "jaf_7soh2kez6vabraidwkdrd8" : "••••••••••••••••••••••••••"}
-                      </motion.code>
-                    </AnimatePresence>
-                    <motion.button
-                      whileTap={{ scale: 0.93 }}
-                      whileHover={{ scale: 1.03 }}
-                      onClick={() => {
-                        if (integrationRevealed) {
-                          handleCopy("jaf_7soh2kez6vabraidwkdrd8", "apiKey");
-                        } else {
-                          setShowVerifyModal(true);
-                        }
-                      }}
-                      className="flex items-center gap-1.5 px-3 py-2.5 bg-cyan-50 text-cyan-700 hover:bg-cyan-100 rounded-lg text-sm font-medium transition-colors cursor-pointer"
-                    >
-                      <AnimatePresence mode="wait">
-                        {!integrationRevealed ? (
-                          <motion.span key="verify" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} transition={{ duration: 0.2 }} className="flex items-center gap-1.5">
-                            <Eye className="w-4 h-4" /> Verify
-                          </motion.span>
-                        ) : copied === "apiKey" ? (
-                          <motion.span key="copied" initial={{ opacity: 0, scale: 0.8, rotate: -10 }} animate={{ opacity: 1, scale: 1, rotate: 0 }} exit={{ opacity: 0, scale: 0.8 }} transition={{ type: "spring", stiffness: 400, damping: 15 }} className="flex items-center gap-1.5 text-green-600">
-                            <Check className="w-4 h-4" /> Copied!
-                          </motion.span>
-                        ) : (
-                          <motion.span key="copy" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} transition={{ duration: 0.2 }} className="flex items-center gap-1.5">
-                            <Copy className="w-4 h-4" /> Copy
-                          </motion.span>
-                        )}
-                      </AnimatePresence>
-                    </motion.button>
+                        {showUnlockPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+
+                    {unlockError && <p className="mt-2 text-xs text-red-600">{unlockError}</p>}
+
+                    <div className="mt-4 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={handleUnlockPage}
+                        disabled={isUnlocking}
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg text-sm font-semibold disabled:opacity-70"
+                      >
+                        {isUnlocking ? "Verifying..." : "Verify Password"}
+                      </button>
+                    </div>
                   </div>
                 </div>
-
-                <div className="h-px bg-gray-100" />
-
-                {/* Widget Script */}
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                    <Code className="w-4 h-4 text-gray-400" /> Widget Installation
-                  </h3>
-                  <p className="text-xs text-gray-500 mb-3">
-                    Paste this snippet before the closing <code className="text-cyan-600">&lt;/body&gt;</code> tag of your website.
+              ) : (
+                <div className="p-6 space-y-6">
+                  <p className="text-xs text-cyan-700">
+                    Verified session expires in {formatCountdown(remainingUnlockMs)}. You will be asked for your password again when it expires.
                   </p>
-                  <div className="relative">
-                    <AnimatePresence mode="wait">
-                      <motion.pre
-                        key={integrationRevealed ? "revealed" : "hidden"}
-                        initial={{ opacity: 0, filter: "blur(4px)", y: 6 }}
-                        animate={{ opacity: 1, filter: "blur(0px)", y: 0 }}
-                        exit={{ opacity: 0, filter: "blur(4px)", y: -6 }}
-                        transition={{ duration: 0.35, delay: 0.05 }}
-                        className="px-4 py-3.5 bg-gray-900 text-gray-100 rounded-lg text-xs font-mono overflow-x-auto whitespace-pre-wrap"
+
+                  {/* API Key */}
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                      <Shield className="w-4 h-4 text-gray-400" /> API Key
+                    </h3>
+                    {!canViewTenantApiKey ? (
+                      <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                        API key access is available only for Admin and Master Admin accounts.
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-3">
+                        <code className="flex-1 px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800 font-mono select-all break-all">
+                          {tenantApiKey || "No API key available"}
+                        </code>
+                        <button
+                          onClick={() => handleCopy(tenantApiKey || "", "apiKey")}
+                          disabled={!tenantApiKey}
+                          className="flex items-center gap-1.5 px-3 py-2.5 bg-cyan-50 text-cyan-700 hover:bg-cyan-100 rounded-lg text-sm font-medium transition-colors cursor-pointer disabled:opacity-60"
+                        >
+                          {copied === "apiKey" ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                          {copied === "apiKey" ? "Copied!" : "Copy"}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="h-px bg-gray-100" />
+
+                  {/* Widget Script */}
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                      <Code className="w-4 h-4 text-gray-400" /> Widget Installation
+                    </h3>
+                    <p className="text-xs text-gray-500 mb-3">
+                      Paste this snippet before the closing <code className="text-cyan-600">&lt;/body&gt;</code> tag of your website.
+                    </p>
+                    <div className="relative">
+                      <pre className="px-4 py-3.5 bg-gray-900 text-gray-100 rounded-lg text-xs font-mono overflow-x-auto whitespace-pre-wrap">
+                        {widgetScript}
+                      </pre>
+                      <motion.button
+                        whileTap={{ scale: 0.93 }}
+                        whileHover={{ scale: 1.05 }}
+                        onClick={() => handleCopy(widgetScript, "widget")}
+                        className="absolute top-2.5 right-2.5 flex items-center gap-1.5 px-2.5 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-md text-xs font-medium transition-colors cursor-pointer"
                       >
-                        {integrationRevealed
-                          ? `<!-- Live Chat Widget -->
-<script>
-  window.LiveChatConfig = {
-    apiUrl: 'https://depauperate-destiny-superdelicate.ngrok-free.dev/api/v1',
-    socketUrl: 'https://depauperate-destiny-superdelicate.ngrok-free.dev'
-  };
-</script>
-<script src="https://timora-live-chat.vercel.app/widget/live-chat-widget.js"></script>`
-                          : `<!-- ••••••••••••••••••• -->
-<••••••>
-  ••••••.•••••••••••••••• = {
-    ••••••: '•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••',
-    •••••••••: '•••••••••••••••••••••••••••••••••••••••••••••••••••••••••'
-  };
-</••••••>
-<•••••• •••="••••••••••••••••••••••••••••••••••••••••••••••••••••••••••"></••••••>`}
-                      </motion.pre>
-                    </AnimatePresence>
-                    <motion.button
-                      whileTap={{ scale: 0.93 }}
-                      whileHover={{ scale: 1.05 }}
-                      onClick={() => {
-                        if (integrationRevealed) {
-                          handleCopy(widgetScript, "widget");
-                        } else {
-                          setShowVerifyModal(true);
-                        }
-                      }}
-                      className="absolute top-2.5 right-2.5 flex items-center gap-1.5 px-2.5 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-md text-xs font-medium transition-colors cursor-pointer"
-                    >
-                      <AnimatePresence mode="wait">
-                        {!integrationRevealed ? (
-                          <motion.span key="verify" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} transition={{ duration: 0.2 }} className="flex items-center gap-1.5">
-                            <Eye className="w-3.5 h-3.5" /> Verify
-                          </motion.span>
-                        ) : copied === "widget" ? (
-                          <motion.span key="copied" initial={{ opacity: 0, scale: 0.8, rotate: -10 }} animate={{ opacity: 1, scale: 1, rotate: 0 }} exit={{ opacity: 0, scale: 0.8 }} transition={{ type: "spring", stiffness: 400, damping: 15 }} className="flex items-center gap-1.5 text-green-400">
+                        {copied === "widget" ? (
+                          <span className="flex items-center gap-1.5 text-green-400">
                             <Check className="w-3.5 h-3.5" /> Copied!
-                          </motion.span>
+                          </span>
                         ) : (
-                          <motion.span key="copy" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} transition={{ duration: 0.2 }} className="flex items-center gap-1.5">
+                          <span className="flex items-center gap-1.5">
                             <Copy className="w-3.5 h-3.5" /> Copy
-                          </motion.span>
+                          </span>
                         )}
-                      </AnimatePresence>
-                    </motion.button>
+                      </motion.button>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           )}
         </div>
       </div>
 
-      {/* Verification Modal */}
-      <AnimatePresence>
-        {showVerifyModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-            onClick={() => {
-              setShowVerifyModal(false);
-              setVerifyPassword("");
-              setVerifyError(false);
-              setShowVerifyPassword(false);
-            }}
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              transition={{ type: "spring", stiffness: 350, damping: 25 }}
-              className="bg-white rounded-xl shadow-xl w-full max-w-sm mx-4 overflow-hidden"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <motion.div
-                    initial={{ scale: 0, rotate: -90 }}
-                    animate={{ scale: 1, rotate: 0 }}
-                    transition={{ type: "spring", stiffness: 300, damping: 15, delay: 0.1 }}
-                    className="w-10 h-10 bg-cyan-50 rounded-full flex items-center justify-center"
-                  >
-                    <Lock className="w-5 h-5 text-cyan-600" />
-                  </motion.div>
-                  <div>
-                    <h3 className="text-sm font-semibold text-gray-900">Verify Your Identity</h3>
-                    <p className="text-xs text-gray-500">Enter your password to reveal credentials</p>
-                  </div>
-                </div>
-                <div className="relative mb-2">
-                  <input
-                    type={showVerifyPassword ? "text" : "password"}
-                    value={verifyPassword}
-                    onChange={(e) => {
-                      setVerifyPassword(e.target.value);
-                      setVerifyError(false);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") handleVerifySubmit();
-                    }}
-                    placeholder="Enter your password"
-                    autoFocus
-                    className={`w-full px-3.5 py-2.5 border rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 transition-colors pr-10 ${verifyError
-                      ? "border-red-300 focus:border-red-400 focus:ring-red-100"
-                      : "border-gray-200 focus:ring-cyan-100 focus:border-cyan-400"
-                      }`}
-                  />
-                  <button
-                    onClick={() => setShowVerifyPassword(!showVerifyPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
-                  >
-                    {showVerifyPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-                <AnimatePresence>
-                  {verifyError && (
-                    <motion.p
-                      initial={{ opacity: 0, y: -4, height: 0 }}
-                      animate={{ opacity: 1, y: 0, height: "auto" }}
-                      exit={{ opacity: 0, y: -4, height: 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="text-xs text-red-500 mb-2"
-                    >
-                      Please enter your password.
-                    </motion.p>
-                  )}
-                </AnimatePresence>
-              </div>
-              <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-2">
-                <motion.button
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => {
-                    setShowVerifyModal(false);
-                    setVerifyPassword("");
-                    setVerifyError(false);
-                    setShowVerifyPassword(false);
-                  }}
-                  className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
-                >
-                  Cancel
-                </motion.button>
-                <motion.button
-                  whileTap={{ scale: 0.95 }}
-                  whileHover={{ scale: 1.02 }}
-                  onClick={handleVerifySubmit}
-                  className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg text-sm font-semibold transition-colors cursor-pointer"
-                >
-                  Verify
-                </motion.button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }
 
 export default AccountSettingsView;
-
-
-

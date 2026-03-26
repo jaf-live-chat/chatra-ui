@@ -32,6 +32,7 @@ export type AuthTenant = {
   id: string;
   companyName: string;
   companyCode: string;
+  apiKey?: string | null;
   subscription?: Subscription | null;
 };
 
@@ -121,4 +122,10 @@ export type UpdateAgentResponse = {
 export type DeleteAgentResponse = {
   success: boolean;
   message: string;
+};
+
+export type VerifyPasswordResponse = {
+  success: boolean;
+  message: string;
+  verified: boolean;
 };
