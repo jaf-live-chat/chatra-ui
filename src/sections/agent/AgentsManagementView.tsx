@@ -882,11 +882,8 @@ const AgentsManagementView = () => {
           {snackbar.message}
         </Alert>
       </Snackbar>
-
     </Box>
   );
 }
 
 export default AgentsManagementView;
-
-

@@ -8,7 +8,7 @@ import {
   Menu,
 } from "lucide-react";
 import { Link, Outlet, useNavigate, useLocation } from "react-router";
-import { Chip, Tooltip, Typography } from "@mui/material";
+import { Button, Chip, Stack, Tooltip, Typography } from "@mui/material";
 import { DarkModeProvider, useDarkMode } from "../providers/DarkModeContext";
 import { APP_LOGO } from "../constants/constants";
 import useAuth from "../hooks/useAuth";
@@ -247,6 +247,10 @@ function DashboardLayoutInner() {
                         ? formatDate(subscriptionEndDate)
                         : "Unlimited for Internal Plan"}
                     </Typography>
+
+                    <Stack direction='row' justifyContent='center'>
+                      <Button fullWidth variant="outlined"> View your Subscription  </Button>
+                    </Stack>
                   </div>
                 }
               >
