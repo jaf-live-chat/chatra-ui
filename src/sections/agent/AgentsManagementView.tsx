@@ -172,7 +172,7 @@ const AgentsManagementView = () => {
 
   const handleRemoveAgent = async (agentId: string) => {
     if (user?._id && user._id === agentId) {
-      showSnackbar("Admin cannot remove her own account.", "error");
+      showSnackbar("Admin cannot remove its own account.", "error");
       return;
     }
 
@@ -479,7 +479,7 @@ const AgentsManagementView = () => {
               </Tooltip>
 
               <Tooltip
-                title={ownAccount ? "Owner cannot delete her own account." : "Remove agent"}
+                title={ownAccount ? "Owner cannot delete its own account." : "Remove agent"}
                 placement="bottom"
               >
                 <span>
@@ -861,7 +861,7 @@ const AgentsManagementView = () => {
           </Typography>
           {agentToDelete && isOwnAccount(agentToDelete.id) && (
             <Typography variant="caption" sx={{ color: "error.main", mt: 1.5, display: "block", fontWeight: 600 }}>
-              Admin cannot remove her own account.
+              Admin cannot remove its own account.
             </Typography>
           )}
         </DialogContent>
