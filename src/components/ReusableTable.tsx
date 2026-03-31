@@ -42,6 +42,10 @@ interface ReusableTableProps<T> {
   rows: T[];
   columns: ReusableTableColumn<T>[];
   getRowKey: (row: T) => string;
+  tableMinWidth?: number;
+  tableLayout?: "auto" | "fixed";
+  compact?: boolean;
+  noHorizontalScroll?: boolean;
   search?: {
     placeholder?: string;
     by?: (row: T) => string;
@@ -72,7 +76,6 @@ interface ReusableTableProps<T> {
   emptyStateTitle?: string;
   emptyStateDescription?: string;
   totalLabel?: string;
-  compact?: boolean;
   showTotalBadge?: boolean;
 }
 
@@ -111,6 +114,10 @@ const ReusableTable = <T,>({
   rows,
   columns,
   getRowKey,
+  tableMinWidth = 650,
+  tableLayout = "auto",
+  compact = false,
+  noHorizontalScroll = false,
   search,
   pagination,
   sorting,
@@ -122,8 +129,7 @@ const ReusableTable = <T,>({
   emptyStateTitle = "No records found",
   emptyStateDescription = "Try adjusting your search.",
   totalLabel = "records",
-  compact = false,
-  showTotalBadge = false,
+  showTotalBadge = true,
 }: ReusableTableProps<T>) => {
   const {
     placeholder: searchPlaceholder = "Search...",
@@ -174,19 +180,26 @@ const ReusableTable = <T,>({
   const resolvedSortBy = sortBy ?? internalSortBy;
   const resolvedSortDirection = sortDirection ?? internalSortDirection;
 
+  const isControlledSearch = searchTerm !== undefined;
+  const isControlledPage = page !== undefined;
+  const isControlledSort = sortBy !== undefined && sortDirection !== undefined;
+
   const setPageValue = (nextPage: number) => {
     if (onPageChange) {
       onPageChange(nextPage);
-      return;
     }
 
-    setInternalPage(nextPage);
+    if (!isControlledPage) {
+      setInternalPage(nextPage);
+    }
   };
 
   const setSearchTermValue = (nextSearchTerm: string) => {
     if (onSearchTermChange) {
       onSearchTermChange(nextSearchTerm);
-    } else {
+    }
+
+    if (!isControlledSearch) {
       setInternalSearchTerm(nextSearchTerm);
     }
 
@@ -196,11 +209,12 @@ const ReusableTable = <T,>({
   const setSortValue = (nextSortBy: string | null, nextSortDirection: SortDirection) => {
     if (onSortChange) {
       onSortChange(nextSortBy, nextSortDirection);
-      return;
     }
 
-    setInternalSortBy(nextSortBy);
-    setInternalSortDirection(nextSortDirection);
+    if (!isControlledSort) {
+      setInternalSortBy(nextSortBy);
+      setInternalSortDirection(nextSortDirection);
+    }
   };
 
   const filteredRows = useMemo(() => {
@@ -259,10 +273,12 @@ const ReusableTable = <T,>({
   const totalPages = Math.max(1, Math.ceil(totalRecords / rowsPerPage));
 
   useEffect(() => {
-    if (resolvedPage > totalPages) {
+    // Only auto-clamp when pagination is fully internal.
+    // In callback-driven pagination, parent logic should control page validity.
+    if (!onPageChange && resolvedPage > totalPages) {
       setPageValue(totalPages);
     }
-  }, [resolvedPage, totalPages]);
+  }, [onPageChange, resolvedPage, totalPages]);
 
   const pagedRows = useMemo(() => {
     if (isServerPagination) {
@@ -312,7 +328,7 @@ const ReusableTable = <T,>({
       <Box
         sx={{
           px: compact ? 2 : 3,
-          py: compact ? 1 : 2,
+          py: compact ? 1.25 : 2,
           borderBottom: "1px solid",
           borderColor: "grey.200",
           background: "linear-gradient(135deg, #0891b210 0%, #0891b204 100%)",
@@ -338,17 +354,17 @@ const ReusableTable = <T,>({
                 "& > svg": compact ? { width: 16, height: 16 } : undefined,
               }}
             >
-              {headerIcon ?? <ArrowDownAZ size={17} />}
+              {headerIcon ?? <ArrowDownAZ size={compact ? 15 : 17} />}
             </Box>
             <Box>
               <Typography
                 variant="subtitle1"
-                sx={{ fontWeight: 700, color: "grey.900", lineHeight: 1.2, fontSize: compact ? "0.95rem" : "1rem" }}
+                sx={{ fontWeight: 700, color: "grey.900", lineHeight: 1.2, fontSize: compact ? "0.98rem" : "1rem" }}
               >
                 {title}
               </Typography>
               {subtitle && (
-                <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                <Typography variant="caption" sx={{ color: "text.secondary", fontSize: compact ? "0.72rem" : "0.75rem" }}>
                   {subtitle}
                 </Typography>
               )}
@@ -363,23 +379,25 @@ const ReusableTable = <T,>({
             sx={{ width: { xs: "100%", md: "auto" }, flexWrap: "wrap", rowGap: 1 }}
           >
             {headerActions}
-            <Chip
-              label={`${totalRecords} ${totalLabel}`}
-              size="small"
-              sx={{
-                bgcolor: "#e0f2fe",
-                color: "#0e7490",
-                fontWeight: 700,
-                height: 30,
-                borderRadius: 1,
-              }}
-            />
+            {showTotalBadge && (
+              <Chip
+                label={`${totalRecords} ${totalLabel}`}
+                size="small"
+                sx={{
+                  bgcolor: "#e0f2fe",
+                  color: "#0e7490",
+                  fontWeight: 700,
+                  height: compact ? 26 : 30,
+                  borderRadius: 1,
+                }}
+              />
+            )}
             {showSearch && (
               <Paper
                 variant="outlined"
                 sx={{
                   px: 1.25,
-                  py: 0.5,
+                  py: compact ? 0.25 : 0.5,
                   borderRadius: 1,
                   borderColor: "grey.200",
                   display: "flex",
@@ -393,7 +411,7 @@ const ReusableTable = <T,>({
                   value={resolvedSearchTerm}
                   onChange={(event) => setSearchTermValue(event.target.value)}
                   placeholder={searchPlaceholder}
-                  sx={{ width: "100%", fontSize: "0.85rem", color: "#475569" }}
+                  sx={{ width: "100%", fontSize: compact ? "0.8rem" : "0.85rem", color: "#475569" }}
                 />
               </Paper>
             )}
@@ -401,8 +419,8 @@ const ReusableTable = <T,>({
         </Stack>
       </Box>
 
-      <TableContainer sx={{ overflowX: "hidden", overflowY: "hidden", flexGrow: 1 }}>
-        <Table sx={{ minWidth: 0, width: "100%", tableLayout: "fixed" }}>
+      <TableContainer sx={{ overflowX: noHorizontalScroll ? "hidden" : "auto", overflowY: "hidden" }}>
+        <Table sx={{ minWidth: tableMinWidth, tableLayout, width: "100%" }}>
           <TableHead sx={{ bgcolor: "grey.50" }}>
             <TableRow>
               {columns.map((column) => (
@@ -412,12 +430,12 @@ const ReusableTable = <T,>({
                   align={column.headerAlign || column.align || "left"}
                   sx={{
                     fontWeight: 700,
-                    fontSize: compact ? "0.7rem" : "0.75rem",
                     color: "grey.800",
+                    fontSize: compact ? "0.72rem" : "0.8rem",
                     borderBottom: "1px solid",
                     borderColor: "grey.200",
-                    px: { xs: 1, sm: compact ? 1.5 : 3 },
-                    py: compact ? 0.75 : 2,
+                    px: compact ? 1.5 : 2,
+                    py: compact ? 1 : 1.5,
                     ...column.headerSx,
                   }}
                 >
@@ -444,7 +462,7 @@ const ReusableTable = <T,>({
                   <TableRow
                     key={`loading-row-${loadingRowIndex}`}
                     sx={{
-                      "& td": { py: compact ? 0.75 : 2.1, px: { xs: 1, sm: compact ? 1.5 : 3 } },
+                        "& td": { py: compact ? 1.2 : 2.1, px: compact ? 1.5 : 2 },
                     }}
                   >
                     {columns.map((column, columnIndex) => (
@@ -487,7 +505,7 @@ const ReusableTable = <T,>({
                   hover
                   sx={{
                     transition: "background 0.15s",
-                    "& td": { py: compact ? 0.6 : 2.1, px: { xs: 1, sm: compact ? 1.5 : 3 } },
+                    "& td": { py: compact ? 1.2 : 2.1, px: compact ? 1.5 : 2 },
                     "&:last-child td, &:last-child th": { border: 0 },
                   }}
                 >
