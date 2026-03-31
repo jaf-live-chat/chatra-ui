@@ -1,6 +1,5 @@
-import { useMemo, useState, type MouseEvent } from "react";
+import { useState, type CSSProperties } from "react";
 import Alert from "@mui/material/Alert";
-import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
@@ -8,26 +7,19 @@ import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
-import IconButton from "@mui/material/IconButton";
-import ListItemText from "@mui/material/ListItemText";
-import Menu from "@mui/material/Menu";
-import MenuItem from "@mui/material/MenuItem";
 import Snackbar from "@mui/material/Snackbar";
 import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import { Eye, MoreVertical, ReceiptText, Trash2 } from "lucide-react";
+import { Eye, Power } from "lucide-react";
 import { useNavigate } from "react-router";
 
-import ReusableTable, {
-  type ReusableTableColumn,
-} from "../../components/ReusableTable";
-import tenantService, { useGetTenants } from "../../services/tenantService";
+import ReusableTable, { type ReusableTableColumn } from "../../components/ReusableTable";
 import type { Tenant, TenantStatus } from "../../models/TenantModel";
+import tenantService, { useGetTenants } from "../../services/tenantService";
+import { formatDate } from "../../utils/dateFormatter";
 
 const EMPTY_LABEL = "-";
-
-type ActionType = "status" | "delete" | "navigate";
 
 interface SnackbarState {
   open: boolean;
@@ -40,7 +32,6 @@ interface ConfirmDialogState {
   title: string;
   description: string;
   actionLabel: string;
-  actionType: ActionType;
   tenantId: string;
   nextStatus?: TenantStatus;
 }
@@ -50,7 +41,6 @@ const defaultDialogState: ConfirmDialogState = {
   title: "",
   description: "",
   actionLabel: "",
-  actionType: "navigate",
   tenantId: "",
 };
 
@@ -87,134 +77,56 @@ const getStatusChipStyles = (status: TenantStatus) => {
   };
 };
 
-const formatDate = (rawDate: string) => {
-  if (!rawDate) return EMPTY_LABEL;
-
-  const parsedDate = new Date(rawDate);
-  if (Number.isNaN(parsedDate.getTime())) return EMPTY_LABEL;
-
-  return new Intl.DateTimeFormat("en-SG", {
-    year: "numeric",
-    month: "short",
-    day: "2-digit",
-  }).format(parsedDate);
-};
-
 const TenantsTable = () => {
   const navigate = useNavigate();
   const { tenants, isLoading, mutate: mutateTenants } = useGetTenants();
   const [processingTenantId, setProcessingTenantId] = useState<string>("");
-  const [actionAnchorEl, setActionAnchorEl] = useState<null | HTMLElement>(null);
-  const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>(defaultDialogState);
-  const [manageDialogOpen, setManageDialogOpen] = useState<boolean>(false);
-  const [snackbar, setSnackbar] = useState<SnackbarState>({
-    open: false,
-    message: "",
-    severity: "success",
-  });
+  const [snackbar, setSnackbar] = useState<SnackbarState>({ open: false, message: "", severity: "success" });
 
   const isActionProcessing = (tenantId: string) => processingTenantId === tenantId;
 
   const showSnackbar = (message: string, severity: "success" | "error") => {
-    setSnackbar({
-      open: true,
-      message,
-      severity,
-    });
+    setSnackbar({ open: true, message, severity });
   };
 
-  const closeSnackbar = () => {
-    setSnackbar((prev) => ({ ...prev, open: false }));
-  };
+  const closeSnackbar = () => setSnackbar((prev) => ({ ...prev, open: false }));
 
   const refreshTenants = async () => {
     await mutateTenants();
   };
 
-  const handleOpenActionMenu = (event: MouseEvent<HTMLButtonElement>, tenant: Tenant) => {
-    setActionAnchorEl(event.currentTarget);
-    setSelectedTenant(tenant);
+  const handleViewTenant = (tenant: Tenant) => {
+    navigate(`/portal/tenants/${tenant.id}`);
   };
 
-  const handleCloseActionMenu = () => {
-    setActionAnchorEl(null);
-  };
-
-  const handleViewTenant = () => {
-    if (!selectedTenant) return;
-    handleCloseActionMenu();
-    navigate(`/portal/tenants/${selectedTenant.id}`);
-  };
-
-  const handleOpenManageDialog = () => {
-    if (!selectedTenant) return;
-    handleCloseActionMenu();
-    setManageDialogOpen(true);
-  };
-
-  const handleCloseManageDialog = () => {
-    setManageDialogOpen(false);
-  };
-
-  const handleOpenStatusDialog = () => {
-    if (!selectedTenant) return;
-
-    const nextStatus: TenantStatus =
-      selectedTenant.subscription.status === "ACTIVE" ? "INACTIVE" : "ACTIVE";
+  const handleOpenStatusDialog = (tenant: Tenant) => {
+    const nextStatus: TenantStatus = tenant.subscription.status === "ACTIVE" ? "INACTIVE" : "ACTIVE";
 
     setConfirmDialog({
       open: true,
       title: nextStatus === "ACTIVE" ? "Activate tenant" : "Deactivate tenant",
       description:
         nextStatus === "ACTIVE"
-          ? `Activate ${selectedTenant.name} and mark the subscription as active?`
-          : `Deactivate ${selectedTenant.name}. The tenant will no longer be active.`,
+          ? `Activate ${tenant.name} and mark the subscription as active?`
+          : `Deactivate ${tenant.name}. The tenant will no longer be active.`,
       actionLabel: nextStatus === "ACTIVE" ? "Activate" : "Deactivate",
-      actionType: "status",
-      tenantId: selectedTenant.id,
+      tenantId: tenant.id,
       nextStatus,
     });
-
-    handleCloseActionMenu();
   };
 
-  const handleOpenDeleteDialog = () => {
-    if (!selectedTenant) return;
-
-    setConfirmDialog({
-      open: true,
-      title: "Delete tenant",
-      description: `Delete ${selectedTenant.name}? This action cannot be undone.`,
-      actionLabel: "Delete",
-      actionType: "delete",
-      tenantId: selectedTenant.id,
-    });
-
-    handleCloseActionMenu();
-  };
-
-  const handleCloseConfirmDialog = () => {
-    setConfirmDialog(defaultDialogState);
-  };
+  const handleCloseConfirmDialog = () => setConfirmDialog(defaultDialogState);
 
   const handleConfirmAction = async () => {
     const tenantId = confirmDialog.tenantId;
-    if (!tenantId) return;
+    if (!tenantId || !confirmDialog.nextStatus) return;
 
     setProcessingTenantId(tenantId);
     try {
-      if (confirmDialog.actionType === "status" && confirmDialog.nextStatus) {
-        await tenantService.updateTenantStatus(tenantId, confirmDialog.nextStatus);
-        await refreshTenants();
-        showSnackbar("Tenant status updated successfully.", "success");
-      }
-
-      if (confirmDialog.actionType === "delete") {
-        await tenantService.deleteTenant(tenantId);
-        await refreshTenants();
-        showSnackbar("Tenant deleted successfully.", "success");
-      }
+      await tenantService.updateTenantStatus(tenantId, confirmDialog.nextStatus);
+      await refreshTenants();
+      showSnackbar("Tenant status updated successfully.", "success");
     } catch (error) {
       console.error("Error processing tenant action:", error);
       showSnackbar("Failed to process tenant action.", "error");
@@ -224,82 +136,119 @@ const TenantsTable = () => {
     }
   };
 
-  const goToSubscriptionPlans = () => {
-    if (!selectedTenant) return;
-    setManageDialogOpen(false);
-    navigate(`/portal/subscription-plans?tenantId=${selectedTenant.id}`);
+  const visuallyHidden: CSSProperties = {
+    border: 0,
+    clip: "rect(0 0 0 0)",
+    height: 1,
+    margin: -1,
+    overflow: "hidden",
+    padding: 0,
+    position: "absolute",
+    width: 1,
   };
 
-  const tenantColumns = useMemo<ReusableTableColumn<Tenant>[]>(
-    () => [
-      {
-        id: "name",
-        label: "Tenant Name",
-        width: "24%",
-        sortable: true,
-        sortAccessor: (tenant) => tenant.name,
-        renderCell: (tenant) => tenant.name || EMPTY_LABEL,
+  const actionButtonSx = {
+    textTransform: "none" as const,
+    borderRadius: 9999,
+    px: 1.6,
+    borderColor: "grey.300",
+    color: "grey.800",
+    fontWeight: 700,
+    height: 34,
+    minWidth: 76,
+    backgroundColor: "#f8fafc",
+    "&:hover": { bgcolor: "#e2e8f0", borderColor: "grey.400" },
+  };
+
+  const tenantColumns: ReusableTableColumn<Tenant>[] = [
+    {
+      id: "name",
+      label: "Tenant Name",
+      sortable: true,
+      sortAccessor: (tenant) => tenant.name,
+      renderCell: (tenant) => tenant.name || EMPTY_LABEL,
+    },
+    {
+      id: "plan",
+      label: "Plan",
+      sortable: true,
+      sortAccessor: (tenant) => tenant.subscription.planName,
+      renderCell: (tenant) => tenant.subscription.planName || EMPTY_LABEL,
+    },
+    {
+      id: "startDate",
+      label: "Start Date",
+      sortable: true,
+      sortAccessor: (tenant) => new Date(tenant.subscription.startDate),
+      renderCell: (tenant) => formatDate(tenant.subscription.startDate),
+    },
+    {
+      id: "endDate",
+      label: "End Date",
+      sortable: true,
+      sortAccessor: (tenant) => new Date(tenant.subscription.endDate),
+      renderCell: (tenant) => formatDate(tenant.subscription.endDate),
+    },
+    {
+      id: "status",
+      label: "Status",
+      sortable: true,
+      sortAccessor: (tenant) => tenant.subscription.status,
+      renderCell: (tenant) => {
+        const statusDisplay = getStatusChipStyles(tenant.subscription.status);
+        return <Chip label={statusDisplay.label} size="small" sx={statusDisplay.sx} />;
       },
-      {
-        id: "plan",
-        label: "Plan",
-        width: "20%",
-        sortable: true,
-        sortAccessor: (tenant) => tenant.subscription.planName,
-        renderCell: (tenant) => tenant.subscription.planName || EMPTY_LABEL,
-      },
-      {
-        id: "startDate",
-        label: "Start Date",
-        width: "16%",
-        sortable: true,
-        sortAccessor: (tenant) => new Date(tenant.subscription.startDate),
-        renderCell: (tenant) => formatDate(tenant.subscription.startDate),
-      },
-      {
-        id: "endDate",
-        label: "End Date",
-        width: "16%",
-        sortable: true,
-        sortAccessor: (tenant) => new Date(tenant.subscription.endDate),
-        renderCell: (tenant) => formatDate(tenant.subscription.endDate),
-      },
-      {
-        id: "status",
-        label: "Status",
-        width: "12%",
-        sortable: true,
-        sortAccessor: (tenant) => tenant.subscription.status,
-        renderCell: (tenant) => {
-          const statusDisplay = getStatusChipStyles(tenant.subscription.status);
-          return <Chip label={statusDisplay.label} size="small" sx={statusDisplay.sx} />;
-        },
-      },
-      {
-        id: "actions",
-        label: "Actions",
-        width: "12%",
-        align: "right",
-        headerAlign: "right",
-        renderCell: (tenant) => (
-          <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
-            <Tooltip title="Tenant actions">
-              <span>
-                <IconButton
-                  size="small"
-                  onClick={(event) => handleOpenActionMenu(event, tenant)}
-                  disabled={isActionProcessing(tenant.id)}
-                >
-                  <MoreVertical size={16} />
-                </IconButton>
-              </span>
-            </Tooltip>
-          </Box>
-        ),
-      },
-    ],
-    [processingTenantId],
-  );
+    },
+    {
+      id: "actions",
+      label: <span style={visuallyHidden}>Actions</span>,
+      align: "right",
+      headerAlign: "right",
+      renderCell: (tenant) => (
+        <Stack direction="row" spacing={1} justifyContent="flex-end" flexWrap="wrap" rowGap={0.5}>
+          <Tooltip title="View tenant details">
+            <span>
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={() => handleViewTenant(tenant)}
+                sx={actionButtonSx}
+                disabled={isActionProcessing(tenant.id)}
+                startIcon={<Eye size={16} />}
+              >
+                View
+              </Button>
+            </span>
+          </Tooltip>
+          <Tooltip
+            title={tenant.subscription.status === "ACTIVE" ? "Deactivate tenant" : "Activate tenant"}
+          >
+            <span>
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={() => handleOpenStatusDialog(tenant)}
+                sx={{
+                  ...actionButtonSx,
+                  color: tenant.subscription.status === "ACTIVE" ? "#b91c1c" : "#166534",
+                  borderColor: tenant.subscription.status === "ACTIVE" ? "#fecdd3" : "#bbf7d0",
+                  backgroundColor: tenant.subscription.status === "ACTIVE" ? "#fff1f2" : "#f0fdf4",
+                  "&:hover": {
+                    bgcolor: tenant.subscription.status === "ACTIVE" ? "#ffe4e6" : "#dcfce7",
+                    borderColor: tenant.subscription.status === "ACTIVE" ? "#fca5a5" : "#86efac",
+                  },
+                }}
+                disabled={isActionProcessing(tenant.id)}
+                startIcon={<Power size={16} />}
+              >
+                {tenant.subscription.status === "ACTIVE" ? "Deactivate" : "Activate"}
+              </Button>
+            </span>
+          </Tooltip>
+        </Stack>
+      ),
+    },
+  ];
 
   return (
     <div className="space-y-5">
@@ -327,88 +276,11 @@ const TenantsTable = () => {
           by: (tenant) => `${tenant.name} ${tenant.subscription.planName} ${tenant.subscription.status}`,
         }}
         pagination={{ rowsPerPage: 5 }}
+        tableMinWidth={1150}
         totalLabel="tenants"
       />
 
-      <Menu
-        anchorEl={actionAnchorEl}
-        open={Boolean(actionAnchorEl)}
-        onClose={handleCloseActionMenu}
-      >
-        <MenuItem onClick={handleViewTenant}>
-          <Stack direction="row" spacing={1.25} alignItems="center">
-            <Eye size={16} />
-            <ListItemText primary="View Tenant" />
-          </Stack>
-        </MenuItem>
-        <MenuItem onClick={handleOpenManageDialog}>
-          <Stack direction="row" spacing={1.25} alignItems="center">
-            <ReceiptText size={16} />
-            <ListItemText primary="Manage Subscription" />
-          </Stack>
-        </MenuItem>
-        <MenuItem onClick={handleOpenStatusDialog}>
-          <ListItemText
-            primary={
-              selectedTenant?.subscription.status === "ACTIVE"
-                ? "Deactivate Tenant"
-                : "Activate Tenant"
-            }
-          />
-        </MenuItem>
-        <MenuItem onClick={handleOpenDeleteDialog} sx={{ color: "error.main" }}>
-          <Stack direction="row" spacing={1.25} alignItems="center">
-            <Trash2 size={16} />
-            <ListItemText primary="Delete Tenant" />
-          </Stack>
-        </MenuItem>
-      </Menu>
-
-      <Dialog
-        open={manageDialogOpen}
-        onClose={handleCloseManageDialog}
-        fullWidth
-        maxWidth="sm"
-      >
-        <DialogTitle>Manage Subscription</DialogTitle>
-        <DialogContent>
-          <Stack spacing={1.5} sx={{ pt: 1 }}>
-            <Typography variant="body2" color="text.secondary">
-              {selectedTenant?.name || EMPTY_LABEL}
-            </Typography>
-            <Box>
-              <Typography variant="caption" color="text.secondary">
-                Current Plan
-              </Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                {selectedTenant?.subscription.planName || EMPTY_LABEL}
-              </Typography>
-            </Box>
-            <Box>
-              <Typography variant="caption" color="text.secondary">
-                Subscription Window
-              </Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                {formatDate(selectedTenant?.subscription.startDate || "")} - {" "}
-                {formatDate(selectedTenant?.subscription.endDate || "")}
-              </Typography>
-            </Box>
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseManageDialog}>Close</Button>
-          <Button variant="contained" onClick={goToSubscriptionPlans}>
-            Go To Subscription Plans
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      <Dialog
-        open={confirmDialog.open}
-        onClose={handleCloseConfirmDialog}
-        fullWidth
-        maxWidth="xs"
-      >
+      <Dialog open={confirmDialog.open} onClose={handleCloseConfirmDialog} fullWidth maxWidth="xs">
         <DialogTitle>{confirmDialog.title}</DialogTitle>
         <DialogContent>
           <Typography variant="body2" color="text.secondary">
@@ -416,34 +288,27 @@ const TenantsTable = () => {
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button
-            onClick={handleCloseConfirmDialog}
-            disabled={isActionProcessing(confirmDialog.tenantId)}
-          >
+          <Button onClick={handleCloseConfirmDialog} disabled={isActionProcessing(confirmDialog.tenantId)}>
             Cancel
           </Button>
           <Button
-            color={confirmDialog.actionType === "delete" ? "error" : "primary"}
+            color="primary"
             variant="contained"
             onClick={handleConfirmAction}
             disabled={isActionProcessing(confirmDialog.tenantId)}
           >
-            {isActionProcessing(confirmDialog.tenantId) ? (
-              <CircularProgress size={16} color="inherit" />
-            ) : (
-              confirmDialog.actionLabel
-            )}
+            {isActionProcessing(confirmDialog.tenantId) ? <CircularProgress size={16} color="inherit" /> : confirmDialog.actionLabel}
           </Button>
         </DialogActions>
       </Dialog>
 
       <Snackbar
         open={snackbar.open}
-        autoHideDuration={2800}
+        autoHideDuration={4000}
         onClose={closeSnackbar}
-        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
-        <Alert onClose={closeSnackbar} severity={snackbar.severity} variant="filled">
+        <Alert onClose={closeSnackbar} severity={snackbar.severity} variant="filled" sx={{ width: "100%" }}>
           {snackbar.message}
         </Alert>
       </Snackbar>

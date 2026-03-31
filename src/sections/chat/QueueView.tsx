@@ -1,45 +1,46 @@
-import { useState, useMemo, useEffect, useCallback } from "react";
-import { 
-  Clock, 
-  Search,
-  CheckCircle2,
-  UserPlus,
+import { useState, useMemo, useEffect, useCallback, type CSSProperties, type ReactNode } from "react";
+import {
   Activity,
+  Bot,
+  Check as CheckIcon,
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
-  X,
-  MessageSquare,
-  Globe,
-  MapPin,
-  Monitor,
-  Smartphone,
-  Tablet,
-  Wifi,
+  Clock,
   Eye,
-  Zap,
+  Globe,
   Hourglass,
-  Bot,
-  Hand,
-  Settings2,
-  ChevronDown,
-  ChevronUp,
-  Check as CheckIcon,
   LayoutGrid,
   List,
+  MapPin,
+  MessageSquare,
+  Monitor,
+  Search,
+  Smartphone,
+  Tablet,
+  UserPlus,
+  Wifi,
+  X,
+  Zap,
 } from "lucide-react";
-import Box from "@mui/material/Box";
-import Paper from "@mui/material/Paper";
-import Typography from "@mui/material/Typography";
-import IconButton from "@mui/material/IconButton";
-import Button from "@mui/material/Button";
-import Dialog from "@mui/material/Dialog";
-import DialogContent from "@mui/material/DialogContent";
-import DialogActions from "@mui/material/DialogActions";
-import DialogTitle from "@mui/material/DialogTitle";
+import Alert from "@mui/material/Alert";
 import Avatar from "@mui/material/Avatar";
-import InputBase from "@mui/material/InputBase";
-import Stack from "@mui/material/Stack";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import Divider from "@mui/material/Divider";
+import FormControl from "@mui/material/FormControl";
+import IconButton from "@mui/material/IconButton";
+import InputBase from "@mui/material/InputBase";
+import InputLabel from "@mui/material/InputLabel";
+import MenuItem from "@mui/material/MenuItem";
+import Paper from "@mui/material/Paper";
+import Select from "@mui/material/Select";
+import Snackbar from "@mui/material/Snackbar";
+import Stack from "@mui/material/Stack";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
 import TableCell from "@mui/material/TableCell";
@@ -47,26 +48,17 @@ import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import Tooltip from "@mui/material/Tooltip";
-import Divider from "@mui/material/Divider";
-import Select from "@mui/material/Select";
-import MenuItem from "@mui/material/MenuItem";
-import FormControl from "@mui/material/FormControl";
-import InputLabel from "@mui/material/InputLabel";
-import Slider from "@mui/material/Slider";
-import Collapse from "@mui/material/Collapse";
-import LinearProgress from "@mui/material/LinearProgress";
-import Snackbar from "@mui/material/Snackbar";
-import Alert from "@mui/material/Alert";
+import Typography from "@mui/material/Typography";
 import ReusableTable, { type ReusableTableColumn } from "../../components/ReusableTable";
 
 // ─── Mock Data ───────────────────────────────────────────────────────────────
 
 const availableAgents = [
-  { id: "AGT-001", name: "Sarah Chen",     status: "online", activeChats: 2 },
-  { id: "AGT-002", name: "Mike Johnson",   status: "online", activeChats: 1 },
-  { id: "AGT-003", name: "Emily Davis",    status: "online", activeChats: 3 },
-  { id: "AGT-004", name: "James Wilson",   status: "away",   activeChats: 0 },
-  { id: "AGT-005", name: "Ana Rodriguez",  status: "online", activeChats: 0 },
+  { id: "AGT-001", name: "Sarah Chen", status: "online", activeChats: 2 },
+  { id: "AGT-002", name: "Mike Johnson", status: "online", activeChats: 1 },
+  { id: "AGT-003", name: "Emily Davis", status: "online", activeChats: 3 },
+  { id: "AGT-004", name: "James Wilson", status: "away", activeChats: 0 },
+  { id: "AGT-005", name: "Ana Rodriguez", status: "online", activeChats: 0 },
 ];
 
 const visitorDetailsMap: Record<string, {
@@ -74,20 +66,20 @@ const visitorDetailsMap: Record<string, {
   browser: string; device: string; deviceType: "desktop" | "mobile" | "tablet";
   os: string; referrer: string; currentPage: string; visits: number; language: string;
 }> = {
-  "Q-1001": { visitorId: "VS-A7X2K9", ip: "192.168.1.104",   location: "New York, NY",   country: "United States", countryFlag: "🇺🇸", browser: "Chrome 120",  device: "MacBook Pro",        deviceType: "desktop", os: "macOS Sonoma",    referrer: "google.com",       currentPage: "/pricing",         visits: 3,  language: "en-US" },
-  "Q-1002": { visitorId: "VS-B3M8P1", ip: "10.0.0.52",       location: "London",          country: "United Kingdom",countryFlag: "🇬🇧", browser: "Safari 17",   device: "iPhone 15",          deviceType: "mobile",  os: "iOS 17.2",        referrer: "twitter.com",      currentPage: "/features",        visits: 1,  language: "en-GB" },
-  "Q-1003": { visitorId: "VS-C9R4T6", ip: "172.16.254.1",    location: "Toronto, ON",     country: "Canada",        countryFlag: "🇨🇦", browser: "Firefox 121", device: "Dell XPS 15",        deviceType: "desktop", os: "Windows 11",      referrer: "direct",           currentPage: "/billing",         visits: 7,  language: "en-CA" },
-  "Q-1004": { visitorId: "VS-D5N1W3", ip: "198.51.100.14",   location: "Sydney",          country: "Australia",     countryFlag: "🇦🇺", browser: "Chrome 120",  device: "iPad Air",           deviceType: "tablet",  os: "iPadOS 17",       referrer: "linkedin.com",     currentPage: "/dashboard",       visits: 2,  language: "en-AU" },
-  "Q-1005": { visitorId: "VS-E2H7Z8", ip: "203.0.113.89",    location: "Berlin",          country: "Germany",       countryFlag: "🇩🇪", browser: "Edge 120",    device: "Surface Pro",        deviceType: "tablet",  os: "Windows 11",      referrer: "google.de",        currentPage: "/login",           visits: 12, language: "de-DE" },
-  "Q-1006": { visitorId: "VS-F8K3Q5", ip: "192.0.2.146",     location: "Tokyo",           country: "Japan",         countryFlag: "🇯🇵", browser: "Chrome 120",  device: "Pixel 8",            deviceType: "mobile",  os: "Android 14",      referrer: "google.co.jp",     currentPage: "/pricing",         visits: 1,  language: "ja-JP" },
-  "Q-1007": { visitorId: "VS-G4L9U2", ip: "100.24.56.78",    location: "São Paulo",       country: "Brazil",        countryFlag: "🇧🇷", browser: "Chrome 119",  device: "Samsung Galaxy S24", deviceType: "mobile",  os: "Android 14",      referrer: "facebook.com",     currentPage: "/features",        visits: 4,  language: "pt-BR" },
-  "Q-1008": { visitorId: "VS-H1M6V7", ip: "85.214.132.40",   location: "Paris",           country: "France",        countryFlag: "🇫🇷", browser: "Safari 17",   device: "MacBook Air",        deviceType: "desktop", os: "macOS Ventura",   referrer: "direct",           currentPage: "/",                visits: 1,  language: "fr-FR" },
-  "Q-1009": { visitorId: "VS-I7N2X4", ip: "45.33.32.156",    location: "Mumbai",          country: "India",         countryFlag: "🇮🇳", browser: "Chrome 120",  device: "ThinkPad X1",        deviceType: "desktop", os: "Ubuntu 22.04",    referrer: "stackoverflow.com", currentPage: "/docs/sso",       visits: 6,  language: "en-IN" },
-  "Q-1010": { visitorId: "VS-J3P8Y1", ip: "104.26.10.229",   location: "Mexico City",     country: "Mexico",        countryFlag: "🇲🇽", browser: "Firefox 121", device: "HP Pavilion",        deviceType: "desktop", os: "Windows 10",      referrer: "google.com.mx",    currentPage: "/billing",         visits: 2,  language: "es-MX" },
-  "Q-1011": { visitorId: "VS-K6R1Z9", ip: "151.101.1.140",   location: "Seoul",           country: "South Korea",   countryFlag: "🇰🇷", browser: "Chrome 120",  device: "Galaxy Tab S9",      deviceType: "tablet",  os: "Android 14",      referrer: "naver.com",        currentPage: "/dashboard",       visits: 8,  language: "ko-KR" },
-  "Q-1012": { visitorId: "VS-L2S5A3", ip: "188.114.97.3",    location: "Amsterdam",       country: "Netherlands",   countryFlag: "🇳🇱", browser: "Firefox 121", device: "ASUS ROG",           deviceType: "desktop", os: "Windows 11",      referrer: "reddit.com",       currentPage: "/settings/billing",visits: 3,  language: "nl-NL" },
-  "Q-1013": { visitorId: "VS-M9T4B6", ip: "34.117.59.81",    location: "Singapore",       country: "Singapore",     countryFlag: "🇸🇬", browser: "Chrome 120",  device: "MacBook Pro",        deviceType: "desktop", os: "macOS Sonoma",    referrer: "google.com.sg",    currentPage: "/settings/api",    visits: 5,  language: "en-SG" },
-  "Q-1014": { visitorId: "VS-N5U8C2", ip: "52.58.78.16",     location: "Dubai",           country: "UAE",           countryFlag: "🇦🇪", browser: "Safari 17",   device: "iPhone 14 Pro",      deviceType: "mobile",  os: "iOS 17.1",        referrer: "direct",           currentPage: "/login",           visits: 15, language: "ar-AE" },
+  "Q-1001": { visitorId: "VS-A7X2K9", ip: "192.168.1.104", location: "New York, NY", country: "United States", countryFlag: "🇺🇸", browser: "Chrome 120", device: "MacBook Pro", deviceType: "desktop", os: "macOS Sonoma", referrer: "google.com", currentPage: "/pricing", visits: 3, language: "en-US" },
+  "Q-1002": { visitorId: "VS-B3M8P1", ip: "10.0.0.52", location: "London", country: "United Kingdom", countryFlag: "🇬🇧", browser: "Safari 17", device: "iPhone 15", deviceType: "mobile", os: "iOS 17.2", referrer: "twitter.com", currentPage: "/features", visits: 1, language: "en-GB" },
+  "Q-1003": { visitorId: "VS-C9R4T6", ip: "172.16.254.1", location: "Toronto, ON", country: "Canada", countryFlag: "🇨🇦", browser: "Firefox 121", device: "Dell XPS 15", deviceType: "desktop", os: "Windows 11", referrer: "direct", currentPage: "/billing", visits: 7, language: "en-CA" },
+  "Q-1004": { visitorId: "VS-D5N1W3", ip: "198.51.100.14", location: "Sydney", country: "Australia", countryFlag: "🇦🇺", browser: "Chrome 120", device: "iPad Air", deviceType: "tablet", os: "iPadOS 17", referrer: "linkedin.com", currentPage: "/dashboard", visits: 2, language: "en-AU" },
+  "Q-1005": { visitorId: "VS-E2H7Z8", ip: "203.0.113.89", location: "Berlin", country: "Germany", countryFlag: "🇩🇪", browser: "Edge 120", device: "Surface Pro", deviceType: "tablet", os: "Windows 11", referrer: "google.de", currentPage: "/login", visits: 12, language: "de-DE" },
+  "Q-1006": { visitorId: "VS-F8K3Q5", ip: "192.0.2.146", location: "Tokyo", country: "Japan", countryFlag: "🇯🇵", browser: "Chrome 120", device: "Pixel 8", deviceType: "mobile", os: "Android 14", referrer: "google.co.jp", currentPage: "/pricing", visits: 1, language: "ja-JP" },
+  "Q-1007": { visitorId: "VS-G4L9U2", ip: "100.24.56.78", location: "São Paulo", country: "Brazil", countryFlag: "🇧🇷", browser: "Chrome 119", device: "Samsung Galaxy S24", deviceType: "mobile", os: "Android 14", referrer: "facebook.com", currentPage: "/features", visits: 4, language: "pt-BR" },
+  "Q-1008": { visitorId: "VS-H1M6V7", ip: "85.214.132.40", location: "Paris", country: "France", countryFlag: "🇫🇷", browser: "Safari 17", device: "MacBook Air", deviceType: "desktop", os: "macOS Ventura", referrer: "direct", currentPage: "/", visits: 1, language: "fr-FR" },
+  "Q-1009": { visitorId: "VS-I7N2X4", ip: "45.33.32.156", location: "Mumbai", country: "India", countryFlag: "🇮🇳", browser: "Chrome 120", device: "ThinkPad X1", deviceType: "desktop", os: "Ubuntu 22.04", referrer: "stackoverflow.com", currentPage: "/docs/sso", visits: 6, language: "en-IN" },
+  "Q-1010": { visitorId: "VS-J3P8Y1", ip: "104.26.10.229", location: "Mexico City", country: "Mexico", countryFlag: "🇲🇽", browser: "Firefox 121", device: "HP Pavilion", deviceType: "desktop", os: "Windows 10", referrer: "google.com.mx", currentPage: "/billing", visits: 2, language: "es-MX" },
+  "Q-1011": { visitorId: "VS-K6R1Z9", ip: "151.101.1.140", location: "Seoul", country: "South Korea", countryFlag: "🇰🇷", browser: "Chrome 120", device: "Galaxy Tab S9", deviceType: "tablet", os: "Android 14", referrer: "naver.com", currentPage: "/dashboard", visits: 8, language: "ko-KR" },
+  "Q-1012": { visitorId: "VS-L2S5A3", ip: "188.114.97.3", location: "Amsterdam", country: "Netherlands", countryFlag: "🇳🇱", browser: "Firefox 121", device: "ASUS ROG", deviceType: "desktop", os: "Windows 11", referrer: "reddit.com", currentPage: "/settings/billing", visits: 3, language: "nl-NL" },
+  "Q-1013": { visitorId: "VS-M9T4B6", ip: "34.117.59.81", location: "Singapore", country: "Singapore", countryFlag: "🇸🇬", browser: "Chrome 120", device: "MacBook Pro", deviceType: "desktop", os: "macOS Sonoma", referrer: "google.com.sg", currentPage: "/settings/api", visits: 5, language: "en-SG" },
+  "Q-1014": { visitorId: "VS-N5U8C2", ip: "52.58.78.16", location: "Dubai", country: "UAE", countryFlag: "🇦🇪", browser: "Safari 17", device: "iPhone 14 Pro", deviceType: "mobile", os: "iOS 17.1", referrer: "direct", currentPage: "/login", visits: 15, language: "ar-AE" },
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -104,9 +96,9 @@ function getAvatarColor(id: string) {
 }
 function getDeviceIcon(type: string) {
   switch (type) {
-    case "mobile":  return <Smartphone size={14} />;
-    case "tablet":  return <Tablet size={14} />;
-    default:        return <Monitor size={14} />;
+    case "mobile": return <Smartphone size={14} />;
+    case "tablet": return <Tablet size={14} />;
+    default: return <Monitor size={14} />;
   }
 }
 
@@ -122,20 +114,20 @@ function getAutoAssignAgent(queueIndex: number, maxChats: number) {
 // ─── Component ───────────────────────────────────────────────────────────────
 
 const QueueView = ({ queue, onStartChat, isAgent = false, currentAgentId }: { queue: any[]; onStartChat?: (visitor: any) => void; isAgent?: boolean; currentAgentId?: string }) => {
-  const [searchTerm, setSearchTerm]           = useState("");
-  const [chatToConfirm, setChatToConfirm]     = useState<any>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [chatToConfirm, setChatToConfirm] = useState<any>(null);
   const [assignToConfirm, setAssignToConfirm] = useState<any>(null);
   const [acceptToConfirm, setAcceptToConfirm] = useState<any>(null);
-  const [selectedAgent, setSelectedAgent]     = useState("");
-  const [visitorDetail, setVisitorDetail]     = useState<any>(null);
-  const [queuePage, setQueuePage]             = useState(1);
-  const [currentPage, setCurrentPage]         = useState(1);
-  const [visitorPage, setVisitorPage]         = useState(1);
-  const [queueViewMode, setQueueViewMode]     = useState<"list" | "grid">("list");
+  const [selectedAgent, setSelectedAgent] = useState("");
+  const [visitorDetail, setVisitorDetail] = useState<any>(null);
+  const [queuePage, setQueuePage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [visitorPage, setVisitorPage] = useState(1);
+  const [queueViewMode, setQueueViewMode] = useState<"list" | "grid">("list");
   const itemsPerPage = 5;
 
   // Assignment mode state - load from localStorage (managed by QueueAssignmentSettingsPage)
-  const [assignMode, setAssignMode]           = useState<"auto" | "manual">("manual");
+  const [assignMode, setAssignMode] = useState<"auto" | "manual">("manual");
   const [maxChatsPerAgent, setMaxChatsPerAgent] = useState(5);
 
   // Assignment tracking state
@@ -145,6 +137,46 @@ const QueueView = ({ queue, onStartChat, isAgent = false, currentAgentId }: { qu
 
   // ── Agent-side: assignments received from admin via localStorage ──
   const [agentAssignments, setAgentAssignments] = useState<any[]>([]);
+
+  const visuallyHidden: CSSProperties = {
+    border: 0,
+    clip: "rect(0 0 0 0)",
+    height: 1,
+    margin: -1,
+    overflow: "hidden",
+    padding: 0,
+    position: "absolute",
+    width: 1,
+  };
+
+  const actionButtonSx = {
+    textTransform: "none" as const,
+    borderRadius: 9999,
+    px: 1.4,
+    borderColor: "grey.300",
+    color: "grey.700",
+    fontWeight: 600,
+    height: 32,
+    minWidth: 70,
+    backgroundColor: "background.paper",
+    "&:hover": { bgcolor: "grey.50", borderColor: "grey.400" },
+  };
+
+  const primaryButtonSx = {
+    ...actionButtonSx,
+    color: "primary.main",
+    borderColor: "primary.light",
+    "&:hover": { bgcolor: "#e0f2fe", borderColor: "primary.main" },
+  };
+
+  const dangerButtonSx = {
+    ...actionButtonSx,
+    color: "error.main",
+    borderColor: "error.light",
+    "&:hover": { bgcolor: "#fee2e2", borderColor: "error.main" },
+  };
+
+  const actionsHeaderLabel = <span style={visuallyHidden}>Actions</span>;
 
   // Filter assignments to only those for the current agent (when in agent mode)
   const myAgentAssignments = useMemo(() => {
@@ -238,13 +270,13 @@ const QueueView = ({ queue, onStartChat, isAgent = false, currentAgentId }: { qu
     });
   }, [queue, searchTerm, acceptedVisitorIds]);
   const currentQueue = useMemo(() => queue.filter(i => i.status === "Assigned" && filter(i)), [queue, searchTerm]);
-  const allFiltered  = useMemo(() => queue.filter(filter), [queue, searchTerm]);
+  const allFiltered = useMemo(() => queue.filter(filter), [queue, searchTerm]);
 
-  const paginate    = (arr: any[], page: number) => arr.slice((page - 1) * itemsPerPage, page * itemsPerPage);
-  const totalPages  = (arr: any[]) => Math.ceil(arr.length / itemsPerPage);
+  const paginate = (arr: any[], page: number) => arr.slice((page - 1) * itemsPerPage, page * itemsPerPage);
+  const totalPages = (arr: any[]) => Math.ceil(arr.length / itemsPerPage);
 
   const waitingCount = queue.filter(q => q.status === "Waiting" && !acceptedVisitorIds.has(q.id)).length;
-  const servedCount  = queue.filter(q => q.status === "Assigned").length;
+  const servedCount = queue.filter(q => q.status === "Assigned").length;
   const availableCount = availableAgents.filter(a => a.status === "online" && a.activeChats < maxChatsPerAgent).length;
 
   // ── Sub-components ──
@@ -279,7 +311,7 @@ const QueueView = ({ queue, onStartChat, isAgent = false, currentAgentId }: { qu
               sx={{
                 minWidth: 30, p: 0, height: 30, borderRadius: 1.5,
                 bgcolor: current === i + 1 ? "primary.main" : "transparent",
-                color:   current === i + 1 ? "#ffffff" : "text.secondary",
+                color: current === i + 1 ? "#ffffff" : "text.secondary",
                 fontWeight: current === i + 1 ? 700 : 500, fontSize: "0.8rem",
                 "&:hover": { bgcolor: current === i + 1 ? "primary.dark" : "grey.100" },
               }}>
@@ -294,7 +326,7 @@ const QueueView = ({ queue, onStartChat, isAgent = false, currentAgentId }: { qu
       </Box>
     ) : null;
 
-  const EmptyState = ({ icon, title, subtitle }: { icon: React.ReactNode; title: string; subtitle: string }) => (
+  const EmptyState = ({ icon, title, subtitle }: { icon: ReactNode; title: string; subtitle: string }) => (
     <TableRow>
       <TableCell colSpan={10} align="center" sx={{ py: 6 }}>
         <Stack alignItems="center" spacing={1.5} sx={{ color: "text.secondary" }}>
@@ -314,7 +346,6 @@ const QueueView = ({ queue, onStartChat, isAgent = false, currentAgentId }: { qu
     {
       id: "position",
       label: "#",
-      width: "10%",
       align: "center",
       headerAlign: "center",
       renderCell: (_row, index) => {
@@ -339,7 +370,6 @@ const QueueView = ({ queue, onStartChat, isAgent = false, currentAgentId }: { qu
     {
       id: "visitor",
       label: "VISITOR",
-      width: "50%",
       renderCell: (row) => (
         <Stack direction="row" alignItems="center" spacing={1.5}>
           <Avatar sx={{ width: 30, height: 30, bgcolor: getAvatarColor(row.id), fontSize: "0.78rem", fontWeight: 700 }}>
@@ -359,7 +389,6 @@ const QueueView = ({ queue, onStartChat, isAgent = false, currentAgentId }: { qu
     {
       id: "status",
       label: "STATUS",
-      width: "22%",
       align: "center",
       headerAlign: "center",
       renderCell: () => (
@@ -373,51 +402,38 @@ const QueueView = ({ queue, onStartChat, isAgent = false, currentAgentId }: { qu
     },
     {
       id: "action",
-      label: "ACTION",
-      width: "18%",
+      label: actionsHeaderLabel,
       align: "center",
       headerAlign: "center",
       renderCell: (row, rowIndex) => {
         const autoAgent = assignMode === "auto" ? getAutoAssignAgent(rowIndex, maxChatsPerAgent) : null;
         return (
-          <Stack direction="row" spacing={0.7} justifyContent="center">
-            <Tooltip title="Start chat">
-              <IconButton
-                onClick={() => setChatToConfirm(row)}
-                size="small"
-                sx={{ bgcolor: "primary.main", color: "#fff", width: 28, height: 28, "&:hover": { bgcolor: "primary.dark" } }}
-              >
-                <MessageSquare size={14} />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title={assignMode === "auto" ? (autoAgent ? `Auto-assign to ${autoAgent.name}` : "No eligible agents") : "Assign to agent"}>
-              <span>
-                <IconButton
-                  onClick={() => {
-                    if (assignMode === "auto") {
-                      if (!autoAgent) return;
-                      setSelectedAgent(autoAgent.id);
-                    } else {
-                      setSelectedAgent("");
-                    }
-                    setAssignToConfirm(row);
-                  }}
-                  disabled={assignMode === "auto" && !autoAgent}
-                  size="small"
-                  sx={{
-                    bgcolor: "#a855f71a",
-                    color: "#7c3aed",
-                    width: 28,
-                    height: 28,
-                    border: "1px solid #a855f733",
-                    "&:hover": { bgcolor: "#a855f72e" },
-                    "&.Mui-disabled": { bgcolor: "grey.100", color: "grey.400", borderColor: "grey.200" },
-                  }}
-                >
-                  <UserPlus size={14} />
-                </IconButton>
-              </span>
-            </Tooltip>
+          <Stack direction="row" spacing={1} justifyContent="center">
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={() => setChatToConfirm(row)}
+              sx={primaryButtonSx}
+            >
+              Start
+            </Button>
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={() => {
+                if (assignMode === "auto") {
+                  if (!autoAgent) return;
+                  setSelectedAgent(autoAgent.id);
+                } else {
+                  setSelectedAgent("");
+                }
+                setAssignToConfirm(row);
+              }}
+              disabled={assignMode === "auto" && !autoAgent}
+              sx={actionButtonSx}
+            >
+              {assignMode === "auto" ? "Auto-Assign" : "Assign"}
+            </Button>
           </Stack>
         );
       },
@@ -428,7 +444,6 @@ const QueueView = ({ queue, onStartChat, isAgent = false, currentAgentId }: { qu
     {
       id: "position",
       label: "#",
-      width: "14%",
       align: "center",
       headerAlign: "center",
       renderCell: (_row, index) => (
@@ -449,7 +464,6 @@ const QueueView = ({ queue, onStartChat, isAgent = false, currentAgentId }: { qu
     {
       id: "visitor",
       label: "VISITOR",
-      width: "50%",
       renderCell: (row) => (
         <Stack direction="row" alignItems="center" spacing={1.2}>
           <Box sx={{ position: "relative" }}>
@@ -472,7 +486,6 @@ const QueueView = ({ queue, onStartChat, isAgent = false, currentAgentId }: { qu
     {
       id: "status",
       label: "STATUS",
-      width: "18%",
       align: "center",
       headerAlign: "center",
       renderCell: () => (
@@ -486,20 +499,18 @@ const QueueView = ({ queue, onStartChat, isAgent = false, currentAgentId }: { qu
     },
     {
       id: "action",
-      label: "ACTION",
-      width: "18%",
+      label: actionsHeaderLabel,
       align: "center",
       headerAlign: "center",
       renderCell: (row) => (
-        <Tooltip title="View active chat">
-          <IconButton
-            onClick={() => { if (onStartChat) onStartChat(row); }}
-            size="small"
-            sx={{ bgcolor: "grey.100", color: "grey.700", width: 26, height: 26, "&:hover": { bgcolor: "grey.200" } }}
-          >
-            <Eye size={14} />
-          </IconButton>
-        </Tooltip>
+        <Button
+          size="small"
+          variant="outlined"
+          onClick={() => { if (onStartChat) onStartChat(row); }}
+          sx={actionButtonSx}
+        >
+          View
+        </Button>
       ),
     },
   ];
@@ -508,7 +519,6 @@ const QueueView = ({ queue, onStartChat, isAgent = false, currentAgentId }: { qu
     {
       id: "visitor",
       label: "VISITOR",
-      width: "46%",
       renderCell: (row) => (
         <Stack direction="row" alignItems="center" spacing={1.2}>
           <Avatar sx={{ width: 28, height: 28, bgcolor: getAvatarColor(row.id), fontSize: "0.72rem", fontWeight: 700 }}>
@@ -521,7 +531,6 @@ const QueueView = ({ queue, onStartChat, isAgent = false, currentAgentId }: { qu
     {
       id: "ip",
       label: "IP ADDRESS",
-      width: "36%",
       renderCell: (row) => {
         const details = visitorDetailsMap[row.id];
         const ip = details?.ip || "-";
@@ -534,20 +543,18 @@ const QueueView = ({ queue, onStartChat, isAgent = false, currentAgentId }: { qu
     },
     {
       id: "action",
-      label: "ACTION",
-      width: "18%",
+      label: actionsHeaderLabel,
       align: "center",
       headerAlign: "center",
       renderCell: (row) => (
-        <Tooltip title="View details">
-          <IconButton
-            onClick={() => setVisitorDetail(row)}
-            size="small"
-            sx={{ bgcolor: "#0891b212", color: "#0891b2", width: 26, height: 26, "&:hover": { bgcolor: "#0891b224" } }}
-          >
-            <Eye size={14} />
-          </IconButton>
-        </Tooltip>
+        <Button
+          size="small"
+          variant="outlined"
+          onClick={() => setVisitorDetail(row)}
+          sx={primaryButtonSx}
+        >
+          View
+        </Button>
       ),
     },
   ];
@@ -699,336 +706,336 @@ const QueueView = ({ queue, onStartChat, isAgent = false, currentAgentId }: { qu
 
       {/* ════════════════════ TABLE 2 — ASSIGNED TO YOU (agent: shown first) ════════════════════ */}
       {isAgent && (
-      <Paper elevation={0} sx={{ border: "1px solid", borderColor: "grey.200", borderRadius: 3, overflow: "hidden" }}>
-        <Box sx={{
-          px: 3, py: 2, display: "flex", alignItems: "center", justifyContent: "space-between",
-          borderBottom: "1px solid", borderColor: "grey.200",
-          background: "linear-gradient(135deg, #dc262614 0%, #dc262605 100%)",
-        }}>
-          <Stack direction="row" alignItems="center" spacing={1.5}>
-            <Box sx={{ width: 34, height: 34, borderRadius: 2, bgcolor: "#dc26261a", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Zap size={17} color="#0891b2" />
-            </Box>
-            <Box>
-              <Typography variant="subtitle1" sx={{ fontWeight: 700, color: "grey.900", lineHeight: 1.2 }}>Assigned to You</Typography>
-              <Typography variant="caption" sx={{ color: "text.secondary" }}>Chats assigned by admin — accept to start</Typography>
-            </Box>
-          </Stack>
-          <Chip label={`${myAgentAssignments.filter(a => a.status === "pending").length} active`} size="small"
-            sx={{ bgcolor: "#dc26261a", color: "primary.dark", fontWeight: 700, height: 26 }} />
-        </Box>
-        <TableContainer sx={{ overflow: "visible" }}>
-          <Table>
-            <TableHead sx={{ bgcolor: "grey.50" }}>
-              <TableRow>
-                <TableCell width="8%"  align="center">#</TableCell>
-                <TableCell width="22%">Visitor</TableCell>
-                <TableCell width="35%">Message</TableCell>
-                <TableCell width="15%" align="center">Session Time</TableCell>
-                <TableCell width="10%" align="center">Status</TableCell>
-                <TableCell width="10%" align="center">Action</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {myAgentAssignments.filter(a => a.status === "pending").length > 0 ? (
-                myAgentAssignments.filter(a => a.status === "pending").map((assignment, index) => {
-                  const pos = index + 1;
-                  return (
-                    <TableRow key={assignment.visitorId} hover sx={{ "&:last-child td, &:last-child th": { border: 0 } }}>
-                      <TableCell align="center">
-                        <Box sx={{ width: 28, height: 28, borderRadius: 1.5, mx: "auto", bgcolor: "#dc262614", color: "primary.main", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: "0.8rem" }}>
-                          {pos}
-                        </Box>
-                      </TableCell>
-                      <TableCell>
-                        <Stack direction="row" alignItems="center" spacing={1.5}>
-                          <Box sx={{ position: "relative" }}>
-                            <Avatar sx={{ width: 34, height: 34, bgcolor: getAvatarColor(assignment.visitorId), fontSize: "0.85rem", fontWeight: 700 }}>
-                              {assignment.visitorName.charAt(0).toUpperCase()}
-                            </Avatar>
-                            <Box sx={{ position: "absolute", bottom: -1, right: -1, width: 10, height: 10, borderRadius: "50%", bgcolor: "#eab308", border: "2px solid #fff" }} />
+        <Paper elevation={0} sx={{ border: "1px solid", borderColor: "grey.200", borderRadius: 3, overflow: "hidden" }}>
+          <Box sx={{
+            px: 3, py: 2, display: "flex", alignItems: "center", justifyContent: "space-between",
+            borderBottom: "1px solid", borderColor: "grey.200",
+            background: "linear-gradient(135deg, #dc262614 0%, #dc262605 100%)",
+          }}>
+            <Stack direction="row" alignItems="center" spacing={1.5}>
+              <Box sx={{ width: 34, height: 34, borderRadius: 2, bgcolor: "#dc26261a", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Zap size={17} color="#0891b2" />
+              </Box>
+              <Box>
+                <Typography variant="subtitle1" sx={{ fontWeight: 700, color: "grey.900", lineHeight: 1.2 }}>Assigned to You</Typography>
+                <Typography variant="caption" sx={{ color: "text.secondary" }}>Chats assigned by admin — accept to start</Typography>
+              </Box>
+            </Stack>
+            <Chip label={`${myAgentAssignments.filter(a => a.status === "pending").length} active`} size="small"
+              sx={{ bgcolor: "#dc26261a", color: "primary.dark", fontWeight: 700, height: 26 }} />
+          </Box>
+          <TableContainer sx={{ overflow: "visible" }}>
+            <Table>
+              <TableHead sx={{ bgcolor: "grey.50" }}>
+                <TableRow>
+                  <TableCell width="8%" align="center">#</TableCell>
+                  <TableCell width="22%">Visitor</TableCell>
+                  <TableCell width="35%">Message</TableCell>
+                  <TableCell width="15%" align="center">Session Time</TableCell>
+                  <TableCell width="10%" align="center">Status</TableCell>
+                  <TableCell width="10%" align="center">{actionsHeaderLabel}</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {myAgentAssignments.filter(a => a.status === "pending").length > 0 ? (
+                  myAgentAssignments.filter(a => a.status === "pending").map((assignment, index) => {
+                    const pos = index + 1;
+                    return (
+                      <TableRow key={assignment.visitorId} hover sx={{ "&:last-child td, &:last-child th": { border: 0 } }}>
+                        <TableCell align="center">
+                          <Box sx={{ width: 28, height: 28, borderRadius: 1.5, mx: "auto", bgcolor: "#dc262614", color: "primary.main", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: "0.8rem" }}>
+                            {pos}
                           </Box>
-                          <Box>
-                            <Typography variant="body2" sx={{ fontWeight: 600, color: "grey.900", lineHeight: 1.2 }}>{assignment.visitorName}</Typography>
-                            <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.7rem" }}>
-                              Assigned to{" "}
-                              <Typography component="span" variant="caption" sx={{ fontWeight: 700, color: "#0e7490", fontSize: "0.7rem" }}>
-                                {assignment.agentName || "You"}
+                        </TableCell>
+                        <TableCell>
+                          <Stack direction="row" alignItems="center" spacing={1.5}>
+                            <Box sx={{ position: "relative" }}>
+                              <Avatar sx={{ width: 34, height: 34, bgcolor: getAvatarColor(assignment.visitorId), fontSize: "0.85rem", fontWeight: 700 }}>
+                                {assignment.visitorName.charAt(0).toUpperCase()}
+                              </Avatar>
+                              <Box sx={{ position: "absolute", bottom: -1, right: -1, width: 10, height: 10, borderRadius: "50%", bgcolor: "#eab308", border: "2px solid #fff" }} />
+                            </Box>
+                            <Box>
+                              <Typography variant="body2" sx={{ fontWeight: 600, color: "grey.900", lineHeight: 1.2 }}>{assignment.visitorName}</Typography>
+                              <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.7rem" }}>
+                                Assigned to{" "}
+                                <Typography component="span" variant="caption" sx={{ fontWeight: 700, color: "#0e7490", fontSize: "0.7rem" }}>
+                                  {assignment.agentName || "You"}
+                                </Typography>
                               </Typography>
-                            </Typography>
-                          </Box>
-                        </Stack>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2" sx={{ color: "text.secondary", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 320 }} title={assignment.message}>
-                          {assignment.message}
-                        </Typography>
-                      </TableCell>
-                      <TableCell align="center">
-                        <Chip icon={<Clock size={12} />} label={assignment.timeInQueue || "0m"} size="small"
-                          sx={{ bgcolor: "#eab3081a", color: "#7a5d00", fontWeight: 600, height: 24, "& .MuiChip-icon": { color: "#b48600" } }} />
-                      </TableCell>
-                      <TableCell align="center">
-                        <Chip
-                          icon={<Box sx={{ width: 6, height: 6, borderRadius: "50%", bgcolor: "warning.main", ml: 1 }} />}
-                          label="Pending" size="small"
-                          sx={{ bgcolor: "#eab30820", color: "#7a5d00", fontWeight: 600, height: 24, "& .MuiChip-icon": { ml: 1 } }}
-                        />
-                      </TableCell>
-                      <TableCell align="center">
-                        <Button
-                          onClick={() => setAcceptToConfirm(assignment)}
-                          variant="contained"
-                          size="small"
-                          startIcon={<CheckIcon size={14} />}
-                          sx={{
-                            bgcolor: "#16a34a", color: "#fff",
-                            "&:hover": { bgcolor: "#15803d" },
-                            textTransform: "none", fontSize: "0.75rem", fontWeight: 700,
-                            px: 2, py: 0.5, borderRadius: 2,
-                            boxShadow: "0 2px 8px #16a34a40",
-                          }}
-                        >
-                          Accept
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              ) : (
-                <EmptyState icon={<Zap size={22} color="#a3a3a3" />} title="No active sessions" subtitle="No chats have been assigned to you yet." />
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </Paper>
+                            </Box>
+                          </Stack>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" sx={{ color: "text.secondary", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 320 }} title={assignment.message}>
+                            {assignment.message}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="center">
+                          <Chip icon={<Clock size={12} />} label={assignment.timeInQueue || "0m"} size="small"
+                            sx={{ bgcolor: "#eab3081a", color: "#7a5d00", fontWeight: 600, height: 24, "& .MuiChip-icon": { color: "#b48600" } }} />
+                        </TableCell>
+                        <TableCell align="center">
+                          <Chip
+                            icon={<Box sx={{ width: 6, height: 6, borderRadius: "50%", bgcolor: "warning.main", ml: 1 }} />}
+                            label="Pending" size="small"
+                            sx={{ bgcolor: "#eab30820", color: "#7a5d00", fontWeight: 600, height: 24, "& .MuiChip-icon": { ml: 1 } }}
+                          />
+                        </TableCell>
+                        <TableCell align="center">
+                          <Button
+                            onClick={() => setAcceptToConfirm(assignment)}
+                            variant="contained"
+                            size="small"
+                            startIcon={<CheckIcon size={14} />}
+                            sx={{
+                              bgcolor: "#16a34a", color: "#fff",
+                              "&:hover": { bgcolor: "#15803d" },
+                              textTransform: "none", fontSize: "0.75rem", fontWeight: 700,
+                              px: 2, py: 0.5, borderRadius: 2,
+                              boxShadow: "0 2px 8px #16a34a40",
+                            }}
+                          >
+                            Accept
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                ) : (
+                  <EmptyState icon={<Zap size={22} color="#a3a3a3" />} title="No active sessions" subtitle="No chats have been assigned to you yet." />
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Paper>
       )}
 
       {/* ════════════════════ TABLE 1 — WAITING QUEUE ════════════════════ */}
       {(isAgent || queueViewMode === "list") && (
-      <Paper elevation={0} sx={{ border: "1px solid", borderColor: "grey.200", borderRadius: 3, overflow: "hidden" }}>
-        <Box sx={{
-          px: 3, py: 2, display: "flex", alignItems: "center", justifyContent: "space-between",
-          borderBottom: "1px solid", borderColor: "grey.200",
-          background: "linear-gradient(135deg, #eab30814 0%, #eab30808 100%)",
-        }}>
-          <Stack direction="row" alignItems="center" spacing={1.5}>
-            <Box sx={{ width: 34, height: 34, borderRadius: 2, bgcolor: "#eab30820", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Hourglass size={17} color="#b48600" />
-            </Box>
-            <Box>
-              <Typography variant="subtitle1" sx={{ fontWeight: 700, color: "grey.900", lineHeight: 1.2 }}>Waiting Queue</Typography>
-              <Typography variant="caption" sx={{ color: "text.secondary" }}>Visitors waiting for an agent</Typography>
-            </Box>
-          </Stack>
-          <Stack direction="row" alignItems="center" spacing={1}>
-            {assignMode === "auto" && (
-              <Chip
-                icon={<Bot size={12} />}
-                label="Auto-assigning"
-                size="small"
-                sx={{ bgcolor: "#0891b218", color: "#0e7490", fontWeight: 700, height: 24, "& .MuiChip-icon": { color: "#0891b2" } }}
-              />
-            )}
-            <Chip label={`${waitingQueue.length} waiting`} size="small"
-              sx={{ bgcolor: "#eab30826", color: "#7a5d00", fontWeight: 700, height: 26 }} />
-          </Stack>
-        </Box>
+        <Paper elevation={0} sx={{ border: "1px solid", borderColor: "grey.200", borderRadius: 3, overflow: "hidden" }}>
+          <Box sx={{
+            px: 3, py: 2, display: "flex", alignItems: "center", justifyContent: "space-between",
+            borderBottom: "1px solid", borderColor: "grey.200",
+            background: "linear-gradient(135deg, #eab30814 0%, #eab30808 100%)",
+          }}>
+            <Stack direction="row" alignItems="center" spacing={1.5}>
+              <Box sx={{ width: 34, height: 34, borderRadius: 2, bgcolor: "#eab30820", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Hourglass size={17} color="#b48600" />
+              </Box>
+              <Box>
+                <Typography variant="subtitle1" sx={{ fontWeight: 700, color: "grey.900", lineHeight: 1.2 }}>Waiting Queue</Typography>
+                <Typography variant="caption" sx={{ color: "text.secondary" }}>Visitors waiting for an agent</Typography>
+              </Box>
+            </Stack>
+            <Stack direction="row" alignItems="center" spacing={1}>
+              {assignMode === "auto" && (
+                <Chip
+                  icon={<Bot size={12} />}
+                  label="Auto-assigning"
+                  size="small"
+                  sx={{ bgcolor: "#0891b218", color: "#0e7490", fontWeight: 700, height: 24, "& .MuiChip-icon": { color: "#0891b2" } }}
+                />
+              )}
+              <Chip label={`${waitingQueue.length} waiting`} size="small"
+                sx={{ bgcolor: "#eab30826", color: "#7a5d00", fontWeight: 700, height: 26 }} />
+            </Stack>
+          </Box>
 
-        <TableContainer sx={{ overflow: "visible" }}>
-          <Table>
-            <TableHead sx={{ bgcolor: "grey.50" }}>
-              <TableRow>
-                <TableCell width="7%"  align="center">#</TableCell>
-                <TableCell width="20%">Visitor</TableCell>
-                <TableCell width="28%">Message</TableCell>
-                <TableCell width="12%" align="center">Wait Time</TableCell>
-                <TableCell width="10%" align="center">Status</TableCell>
-                {!isAgent && assignMode === "auto" && <TableCell width="14%" align="center">Auto-Assigned To</TableCell>}
-                
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {paginate(waitingQueue, queuePage).length > 0 ? (
-                paginate(waitingQueue, queuePage).map((item, index) => {
-                  const pos         = (queuePage - 1) * itemsPerPage + index + 1;
-                  const isFirst     = pos === 1;
-                  const globalIndex = (queuePage - 1) * itemsPerPage + index;
-                  const autoAgent   = assignMode === "auto" ? getAutoAssignAgent(globalIndex, maxChatsPerAgent) : null;
+          <TableContainer sx={{ overflow: "visible" }}>
+            <Table>
+              <TableHead sx={{ bgcolor: "grey.50" }}>
+                <TableRow>
+                  <TableCell width="7%" align="center">#</TableCell>
+                  <TableCell width="20%">Visitor</TableCell>
+                  <TableCell width="28%">Message</TableCell>
+                  <TableCell width="12%" align="center">Wait Time</TableCell>
+                  <TableCell width="10%" align="center">Status</TableCell>
+                  {!isAgent && assignMode === "auto" && <TableCell width="14%" align="center">Auto-Assigned To</TableCell>}
 
-                  return (
-                    <TableRow key={item.id} hover sx={{
-                      "&:last-child td, &:last-child th": { border: 0 },
-                      transition: "background 0.15s",
-                      ...(isFirst && {
-                        bgcolor: "#0891b20f",
-                        borderLeft: "3px solid", borderLeftColor: "primary.main",
-                        "& td:first-of-type": { pl: 1.5 },
-                        "& td": { py: 2.5 },
-                      }),
-                    }}>
-                      <TableCell align="center">
-                        <Box sx={{ mx: "auto", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
-                          <Typography sx={{ fontWeight: 700, fontSize: isFirst ? "1rem" : "0.8rem", color: isFirst ? "primary.main" : "grey.700" }}>
-                          {pos}
-                          </Typography>
-                        </Box>
-                      </TableCell>
-                      <TableCell>
-                        <Stack direction="row" alignItems="center" spacing={isFirst ? 2 : 1.5}>
-                          <Avatar sx={{
-                            width: isFirst ? 46 : 34, height: isFirst ? 46 : 34, bgcolor: getAvatarColor(item.id), fontSize: isFirst ? "1.1rem" : "0.85rem", fontWeight: 700,
-                            ...(isFirst && { boxShadow: "0 0 0 2px #0891b2" }),
-                          }}>
-                            {item.name.charAt(0).toUpperCase()}
-                          </Avatar>
-                          <Box>
-                            <Stack direction="row" alignItems="center" spacing={1}>
-                              <Typography variant={isFirst ? "body1" : "body2"} sx={{ fontWeight: isFirst ? 700 : 600, color: "grey.900", lineHeight: 1.2 }}>
-                                {item.name}
-                              </Typography>
-                              {isFirst && (
-                                <Chip label="Next Up" size="small" sx={{
-                                  height: 20, fontSize: "0.65rem", fontWeight: 800,
-                                  bgcolor: "primary.main", color: "#fff", letterSpacing: "0.03em",
-                                  "& .MuiChip-label": { px: 0.75, py: 0 },
-                                }} />
-                              )}
-                            </Stack>
-                            <Typography variant="caption" sx={{ color: "text.secondary", fontSize: isFirst ? "0.75rem" : "0.7rem" }}>{getQueueDisplayId(item.id)}</Typography>
-                          </Box>
-                        </Stack>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant={isFirst ? "body1" : "body2"} sx={{ color: "text.secondary", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 280 }} title={item.message}>
-                          {item.message}
-                        </Typography>
-                      </TableCell>
-                      <TableCell align="center">
-                        <Chip icon={<Clock size={isFirst ? 14 : 12} />} label={item.timeInQueue || "0m"} size="small"
-                          sx={{ bgcolor: "#eab3081a", color: "#7a5d00", fontWeight: 600, height: isFirst ? 28 : 24, ...(isFirst && { fontSize: "0.8rem" }), "& .MuiChip-icon": { color: "#b48600" } }} />
-                      </TableCell>
-                      <TableCell align="center">
-                        {assignedAgents[item.id] ? (
-                          <Tooltip title={`Assigned to ${assignedAgents[item.id].agentName}`}>
-                            <Chip
-                              icon={<CheckCircle2 size={12} />}
-                              label={`Agent: ${assignedAgents[item.id].agentName.split(" ")[0]}`}
-                              size="small"
-                              sx={{
-                                bgcolor: "#16a34a1a", color: "#15803d", fontWeight: 600, height: 24,
-                                "& .MuiChip-icon": { color: "#16a34a", ml: 0.5 },
-                              }}
-                            />
-                          </Tooltip>
-                        ) : (
-                          <Chip
-                            icon={<Box sx={{ width: 6, height: 6, borderRadius: "50%", bgcolor: "warning.main", ml: 1 }} />}
-                            label="Waiting" size="small"
-                            sx={{ bgcolor: "#eab30820", color: "#7a5d00", fontWeight: 600, height: 24, "& .MuiChip-icon": { ml: 1 } }}
-                          />
-                        )}
-                      </TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {paginate(waitingQueue, queuePage).length > 0 ? (
+                  paginate(waitingQueue, queuePage).map((item, index) => {
+                    const pos = (queuePage - 1) * itemsPerPage + index + 1;
+                    const isFirst = pos === 1;
+                    const globalIndex = (queuePage - 1) * itemsPerPage + index;
+                    const autoAgent = assignMode === "auto" ? getAutoAssignAgent(globalIndex, maxChatsPerAgent) : null;
 
-                      {/* Auto-Assigned-To column */}
-                      {!isAgent && assignMode === "auto" && (
+                    return (
+                      <TableRow key={item.id} hover sx={{
+                        "&:last-child td, &:last-child th": { border: 0 },
+                        transition: "background 0.15s",
+                        ...(isFirst && {
+                          bgcolor: "#0891b20f",
+                          borderLeft: "3px solid", borderLeftColor: "primary.main",
+                          "& td:first-of-type": { pl: 1.5 },
+                          "& td": { py: 2.5 },
+                        }),
+                      }}>
                         <TableCell align="center">
-                          {autoAgent ? (
-                            <Tooltip title={`Will be auto-assigned to ${autoAgent.name}`}>
-                              <Box sx={{
-                                display: "inline-flex", alignItems: "center", gap: 0.75,
-                                px: 1, py: 0.5, borderRadius: 1.5,
-                                bgcolor: "#0891b20d", border: "1px solid #0891b222",
-                              }}>
-                                <Avatar sx={{ width: 20, height: 20, bgcolor: getAvatarColor(autoAgent.id), fontSize: "0.55rem", fontWeight: 700 }}>
-                                  {autoAgent.name.charAt(0)}
-                                </Avatar>
-                                <Typography variant="caption" sx={{ fontWeight: 700, color: "#0e7490", fontSize: "0.7rem", whiteSpace: "nowrap" }}>
-                                  {autoAgent.name.split(" ")[0]}
-                                </Typography>
-                              </Box>
-                            </Tooltip>
-                          ) : (
-                            <Chip label="No agent" size="small"
-                              sx={{ height: 22, fontSize: "0.65rem", bgcolor: "grey.100", color: "grey.500", fontWeight: 600 }} />
-                          )}
+                          <Box sx={{ mx: "auto", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                            <Typography sx={{ fontWeight: 700, fontSize: isFirst ? "1rem" : "0.8rem", color: isFirst ? "primary.main" : "grey.700" }}>
+                              {pos}
+                            </Typography>
+                          </Box>
                         </TableCell>
-                      )}
-
-                      {/* Action column */}
-                      <TableCell align="center">
-                        {isAgent ? (
-                          (() => {
-                            const assignmentForItem = agentAssignments.find((a: any) => a.visitorId === item.id);
-                            return assignmentForItem ? (
+                        <TableCell>
+                          <Stack direction="row" alignItems="center" spacing={isFirst ? 2 : 1.5}>
+                            <Avatar sx={{
+                              width: isFirst ? 46 : 34, height: isFirst ? 46 : 34, bgcolor: getAvatarColor(item.id), fontSize: isFirst ? "1.1rem" : "0.85rem", fontWeight: 700,
+                              ...(isFirst && { boxShadow: "0 0 0 2px #0891b2" }),
+                            }}>
+                              {item.name.charAt(0).toUpperCase()}
+                            </Avatar>
+                            <Box>
+                              <Stack direction="row" alignItems="center" spacing={1}>
+                                <Typography variant={isFirst ? "body1" : "body2"} sx={{ fontWeight: isFirst ? 700 : 600, color: "grey.900", lineHeight: 1.2 }}>
+                                  {item.name}
+                                </Typography>
+                                {isFirst && (
+                                  <Chip label="Next Up" size="small" sx={{
+                                    height: 20, fontSize: "0.65rem", fontWeight: 800,
+                                    bgcolor: "primary.main", color: "#fff", letterSpacing: "0.03em",
+                                    "& .MuiChip-label": { px: 0.75, py: 0 },
+                                  }} />
+                                )}
+                              </Stack>
+                              <Typography variant="caption" sx={{ color: "text.secondary", fontSize: isFirst ? "0.75rem" : "0.7rem" }}>{getQueueDisplayId(item.id)}</Typography>
+                            </Box>
+                          </Stack>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant={isFirst ? "body1" : "body2"} sx={{ color: "text.secondary", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 280 }} title={item.message}>
+                            {item.message}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="center">
+                          <Chip icon={<Clock size={isFirst ? 14 : 12} />} label={item.timeInQueue || "0m"} size="small"
+                            sx={{ bgcolor: "#eab3081a", color: "#7a5d00", fontWeight: 600, height: isFirst ? 28 : 24, ...(isFirst && { fontSize: "0.8rem" }), "& .MuiChip-icon": { color: "#b48600" } }} />
+                        </TableCell>
+                        <TableCell align="center">
+                          {assignedAgents[item.id] ? (
+                            <Tooltip title={`Assigned to ${assignedAgents[item.id].agentName}`}>
                               <Chip
-                                icon={<Avatar sx={{ width: 18, height: 18, fontSize: "0.55rem", fontWeight: 700, bgcolor: "#16a34a" }}>{assignmentForItem.agentName?.charAt(0) || "A"}</Avatar>}
-                                label={`Assigned to ${assignmentForItem.agentName || "Agent"}`}
+                                icon={<CheckCircle2 size={12} />}
+                                label={`Agent: ${assignedAgents[item.id].agentName.split(" ")[0]}`}
                                 size="small"
                                 sx={{
-                                  bgcolor: "#22c55e1a",
-                                  color: "#16a34a",
-                                  fontWeight: 600,
-                                  height: 24,
-                                  fontSize: "0.7rem",
-                                  border: "1px solid #22c55e33",
-                                  "& .MuiChip-icon": { ml: 0.5 },
+                                  bgcolor: "#16a34a1a", color: "#15803d", fontWeight: 600, height: 24,
+                                  "& .MuiChip-icon": { color: "#16a34a", ml: 0.5 },
                                 }}
                               />
-                            ) : (
-                              <Chip label="Awaiting assignment" size="small"
-                                sx={{ bgcolor: "grey.100", color: "grey.500", fontWeight: 600, height: 24, fontSize: "0.7rem" }} />
-                            );
-                          })()
-                        ) : isFirst ? (
-                          assignMode === "manual" ? (
-                            <Stack direction="row" spacing={1} justifyContent="center">
-                              <Tooltip title="Start chat with this visitor">
-                                <IconButton onClick={() => setChatToConfirm(item)} size="small"
-                                  sx={{ bgcolor: "primary.main", color: "#fff", width: 38, height: 38, "&:hover": { bgcolor: "primary.dark" }, boxShadow: "0 2px 8px #0891b240" }}>
-                                  <MessageSquare size={17} />
-                                </IconButton>
-                              </Tooltip>
-                              <Tooltip title="Manually assign to an agent">
-                                <IconButton onClick={() => { setAssignToConfirm(item); setSelectedAgent(""); }} size="small"
-                                  sx={{ bgcolor: "#a855f71a", color: "#7c3aed", width: 38, height: 38, border: "1px solid #a855f733", "&:hover": { bgcolor: "#a855f72e" } }}>
-                                  <UserPlus size={17} />
-                                </IconButton>
-                              </Tooltip>
-                            </Stack>
+                            </Tooltip>
                           ) : (
-                            <Tooltip title={autoAgent ? `Confirm auto-assign to ${autoAgent.name}` : "No eligible agents"}>
-                              <span>
-                                <IconButton
-                                  onClick={() => { if (autoAgent) { setSelectedAgent(autoAgent.id); setAssignToConfirm(item); } }}
-                                  disabled={!autoAgent}
+                            <Chip
+                              icon={<Box sx={{ width: 6, height: 6, borderRadius: "50%", bgcolor: "warning.main", ml: 1 }} />}
+                              label="Waiting" size="small"
+                              sx={{ bgcolor: "#eab30820", color: "#7a5d00", fontWeight: 600, height: 24, "& .MuiChip-icon": { ml: 1 } }}
+                            />
+                          )}
+                        </TableCell>
+
+                        {/* Auto-Assigned-To column */}
+                        {!isAgent && assignMode === "auto" && (
+                          <TableCell align="center">
+                            {autoAgent ? (
+                              <Tooltip title={`Will be auto-assigned to ${autoAgent.name}`}>
+                                <Box sx={{
+                                  display: "inline-flex", alignItems: "center", gap: 0.75,
+                                  px: 1, py: 0.5, borderRadius: 1.5,
+                                  bgcolor: "#0891b20d", border: "1px solid #0891b222",
+                                }}>
+                                  <Avatar sx={{ width: 20, height: 20, bgcolor: getAvatarColor(autoAgent.id), fontSize: "0.55rem", fontWeight: 700 }}>
+                                    {autoAgent.name.charAt(0)}
+                                  </Avatar>
+                                  <Typography variant="caption" sx={{ fontWeight: 700, color: "#0e7490", fontSize: "0.7rem", whiteSpace: "nowrap" }}>
+                                    {autoAgent.name.split(" ")[0]}
+                                  </Typography>
+                                </Box>
+                              </Tooltip>
+                            ) : (
+                              <Chip label="No agent" size="small"
+                                sx={{ height: 22, fontSize: "0.65rem", bgcolor: "grey.100", color: "grey.500", fontWeight: 600 }} />
+                            )}
+                          </TableCell>
+                        )}
+
+                        {/* Action column */}
+                        <TableCell align="center">
+                          {isAgent ? (
+                            (() => {
+                              const assignmentForItem = agentAssignments.find((a: any) => a.visitorId === item.id);
+                              return assignmentForItem ? (
+                                <Chip
+                                  icon={<Avatar sx={{ width: 18, height: 18, fontSize: "0.55rem", fontWeight: 700, bgcolor: "#16a34a" }}>{assignmentForItem.agentName?.charAt(0) || "A"}</Avatar>}
+                                  label={`Assigned to ${assignmentForItem.agentName || "Agent"}`}
                                   size="small"
                                   sx={{
-                                    bgcolor: autoAgent ? "#0891b218" : "grey.100",
-                                    color:   autoAgent ? "#0891b2"   : "grey.400",
-                                    width: 38, height: 38,
-                                    "&:hover": { bgcolor: autoAgent ? "#0891b228" : "grey.100" },
-                                  }}>
-                                  <Bot size={17} />
-                                </IconButton>
-                              </span>
-                            </Tooltip>
-                          )
-                        ) : (
-                          <Typography variant="caption" sx={{ color: "grey.400" }}>—</Typography>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              ) : (
-                <EmptyState icon={<Hourglass size={22} color="#a3a3a3" />} title="No visitors waiting" subtitle="The queue is clear — great job!" />
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-        <PaginationBar current={queuePage} total={totalPages(waitingQueue)} onChange={setQueuePage} count={waitingQueue.length} label="waiting" />
-      </Paper>
+                                    bgcolor: "#22c55e1a",
+                                    color: "#16a34a",
+                                    fontWeight: 600,
+                                    height: 24,
+                                    fontSize: "0.7rem",
+                                    border: "1px solid #22c55e33",
+                                    "& .MuiChip-icon": { ml: 0.5 },
+                                  }}
+                                />
+                              ) : (
+                                <Chip label="Awaiting assignment" size="small"
+                                  sx={{ bgcolor: "grey.100", color: "grey.500", fontWeight: 600, height: 24, fontSize: "0.7rem" }} />
+                              );
+                            })()
+                          ) : isFirst ? (
+                            assignMode === "manual" ? (
+                              <Stack direction="row" spacing={1} justifyContent="center">
+                                <Tooltip title="Start chat with this visitor">
+                                  <IconButton onClick={() => setChatToConfirm(item)} size="small"
+                                    sx={{ bgcolor: "primary.main", color: "#fff", width: 38, height: 38, "&:hover": { bgcolor: "primary.dark" }, boxShadow: "0 2px 8px #0891b240" }}>
+                                    <MessageSquare size={17} />
+                                  </IconButton>
+                                </Tooltip>
+                                <Tooltip title="Manually assign to an agent">
+                                  <IconButton onClick={() => { setAssignToConfirm(item); setSelectedAgent(""); }} size="small"
+                                    sx={{ bgcolor: "#a855f71a", color: "#7c3aed", width: 38, height: 38, border: "1px solid #a855f733", "&:hover": { bgcolor: "#a855f72e" } }}>
+                                    <UserPlus size={17} />
+                                  </IconButton>
+                                </Tooltip>
+                              </Stack>
+                            ) : (
+                              <Tooltip title={autoAgent ? `Confirm auto-assign to ${autoAgent.name}` : "No eligible agents"}>
+                                <span>
+                                  <IconButton
+                                    onClick={() => { if (autoAgent) { setSelectedAgent(autoAgent.id); setAssignToConfirm(item); } }}
+                                    disabled={!autoAgent}
+                                    size="small"
+                                    sx={{
+                                      bgcolor: autoAgent ? "#0891b218" : "grey.100",
+                                      color: autoAgent ? "#0891b2" : "grey.400",
+                                      width: 38, height: 38,
+                                      "&:hover": { bgcolor: autoAgent ? "#0891b228" : "grey.100" },
+                                    }}>
+                                    <Bot size={17} />
+                                  </IconButton>
+                                </span>
+                              </Tooltip>
+                            )
+                          ) : (
+                            <Typography variant="caption" sx={{ color: "grey.400" }}>—</Typography>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                ) : (
+                  <EmptyState icon={<Hourglass size={22} color="#a3a3a3" />} title="No visitors waiting" subtitle="The queue is clear — great job!" />
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+          <PaginationBar current={queuePage} total={totalPages(waitingQueue)} onChange={setQueuePage} count={waitingQueue.length} label="waiting" />
+        </Paper>
       )}
 
       {/* ════════════════════ TABLE 2 — CURRENTLY BEING SERVED (admin only) ════════════════════ */}
@@ -1055,12 +1062,12 @@ const QueueView = ({ queue, onStartChat, isAgent = false, currentAgentId }: { qu
           <Table>
             <TableHead sx={{ bgcolor: "grey.50" }}>
               <TableRow>
-                <TableCell width="8%"  align="center">#</TableCell>
+                <TableCell width="8%" align="center">#</TableCell>
                 <TableCell width="22%">Visitor</TableCell>
                 <TableCell width="35%">Message</TableCell>
                 <TableCell width="15%" align="center">Session Time</TableCell>
                 <TableCell width="10%" align="center">Status</TableCell>
-                <TableCell width="10%" align="center">Action</TableCell>
+                <TableCell width="10%" align="center">{actionsHeaderLabel}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -1072,7 +1079,7 @@ const QueueView = ({ queue, onStartChat, isAgent = false, currentAgentId }: { qu
                       <TableCell align="center">
                         <Box sx={{ mx: "auto", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
                           <Typography sx={{ color: "primary.main", fontWeight: 700, fontSize: "0.8rem" }}>
-                          {pos}
+                            {pos}
                           </Typography>
                         </Box>
                       </TableCell>
@@ -1107,12 +1114,14 @@ const QueueView = ({ queue, onStartChat, isAgent = false, currentAgentId }: { qu
                         />
                       </TableCell>
                       <TableCell align="center">
-                        <Tooltip title="View active chat">
-                          <IconButton onClick={() => { if (onStartChat) onStartChat(item); }} size="small"
-                            sx={{ bgcolor: "grey.100", color: "grey.700", width: 32, height: 32, "&:hover": { bgcolor: "grey.200" } }}>
-                            <Eye size={15} />
-                          </IconButton>
-                        </Tooltip>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          onClick={() => { if (onStartChat) onStartChat(item); }}
+                          sx={actionButtonSx}
+                        >
+                          View
+                        </Button>
                       </TableCell>
                     </TableRow>
                   );
@@ -1153,15 +1162,15 @@ const QueueView = ({ queue, onStartChat, isAgent = false, currentAgentId }: { qu
                 <TableCell>Visitor</TableCell>
                 <TableCell>Visitor ID</TableCell>
                 <TableCell>IP Address</TableCell>
-                <TableCell align="center">Action</TableCell>
+                <TableCell align="center">{actionsHeaderLabel}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {paginate(allFiltered, visitorPage).length > 0 ? (
                 paginate(allFiltered, visitorPage).map((item) => {
-                  const details   = visitorDetailsMap[item.id];
+                  const details = visitorDetailsMap[item.id];
                   const visitorId = details?.visitorId || item.sessionId || item.id;
-                  const ip        = details?.ip || "—";
+                  const ip = details?.ip || "—";
                   return (
                     <TableRow key={item.id} hover sx={{ "&:last-child td, &:last-child th": { border: 0 } }}>
                       <TableCell>
@@ -1183,13 +1192,14 @@ const QueueView = ({ queue, onStartChat, isAgent = false, currentAgentId }: { qu
                         </Stack>
                       </TableCell>
                       <TableCell align="center">
-                        <IconButton onClick={() => setVisitorDetail(item)} size="small"
-                          sx={{
-                            bgcolor: "primary.main", color: "#fff", "&:hover": { bgcolor: "primary.dark" },
-                            borderRadius: 1.5,
-                          }}>
-                          <Eye size={16} />
-                        </IconButton>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          onClick={() => setVisitorDetail(item)}
+                          sx={primaryButtonSx}
+                        >
+                          View
+                        </Button>
                       </TableCell>
                     </TableRow>
                   );
@@ -1545,19 +1555,19 @@ const QueueView = ({ queue, onStartChat, isAgent = false, currentAgentId }: { qu
       {(() => {
         const d = visitorDetail ? visitorDetailsMap[visitorDetail.id] : null;
         const detail = {
-          visitorId:   d?.visitorId   || visitorDetail?.sessionId || visitorDetail?.id || "",
-          ip:          d?.ip          || "—",
-          location:    d?.location    || "Unknown",
-          country:     d?.country     || "—",
-          flag:        d?.countryFlag || "🌐",
-          browser:     d?.browser     || "—",
-          device:      d?.device      || "—",
-          deviceType:  d?.deviceType  || "desktop",
-          os:          d?.os          || "—",
-          referrer:    d?.referrer    || "—",
+          visitorId: d?.visitorId || visitorDetail?.sessionId || visitorDetail?.id || "",
+          ip: d?.ip || "—",
+          location: d?.location || "Unknown",
+          country: d?.country || "—",
+          flag: d?.countryFlag || "🌐",
+          browser: d?.browser || "—",
+          device: d?.device || "—",
+          deviceType: d?.deviceType || "desktop",
+          os: d?.os || "—",
+          referrer: d?.referrer || "—",
           currentPage: d?.currentPage || "—",
-          visits:      d?.visits      || 1,
-          language:    d?.language    || "en-US",
+          visits: d?.visits || 1,
+          language: d?.language || "en-US",
         };
         return (
           <Dialog open={!!visitorDetail} onClose={() => setVisitorDetail(null)} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3, overflow: "hidden" } }}>
@@ -1584,41 +1594,49 @@ const QueueView = ({ queue, onStartChat, isAgent = false, currentAgentId }: { qu
             <DialogContent sx={{ p: 0 }}>
               <Stack divider={<Divider />}>
                 {[
-                  { icon: <MapPin size={15} />, label: "Geo Location", value: (
-                    <Stack direction="row" alignItems="center" spacing={1}>
-                      <Typography sx={{ fontSize: "1rem", lineHeight: 1 }}>{detail.flag}</Typography>
+                  {
+                    icon: <MapPin size={15} />, label: "Geo Location", value: (
+                      <Stack direction="row" alignItems="center" spacing={1}>
+                        <Typography sx={{ fontSize: "1rem", lineHeight: 1 }}>{detail.flag}</Typography>
+                        <Box>
+                          <Typography variant="body2" sx={{ fontWeight: 500, color: "grey.900", lineHeight: 1.2 }}>{detail.location}</Typography>
+                          <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.68rem" }}>{detail.country}</Typography>
+                        </Box>
+                      </Stack>
+                    )
+                  },
+                  {
+                    icon: getDeviceIcon(detail.deviceType as string), label: "Device", value: (
                       <Box>
-                        <Typography variant="body2" sx={{ fontWeight: 500, color: "grey.900", lineHeight: 1.2 }}>{detail.location}</Typography>
-                        <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.68rem" }}>{detail.country}</Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 500, color: "grey.900", lineHeight: 1.2 }}>{detail.device}</Typography>
+                        <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.68rem" }}>{detail.os}</Typography>
                       </Box>
-                    </Stack>
-                  )},
-                  { icon: getDeviceIcon(detail.deviceType as string), label: "Device", value: (
-                    <Box>
-                      <Typography variant="body2" sx={{ fontWeight: 500, color: "grey.900", lineHeight: 1.2 }}>{detail.device}</Typography>
-                      <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.68rem" }}>{detail.os}</Typography>
-                    </Box>
-                  )},
-                  { icon: <Globe size={15} />, label: "Browser",      value: detail.browser },
-                  { icon: <Eye size={15} />,  label: "Current Page",  value: (
-                    <Chip label={detail.currentPage} size="small" sx={{
-                      bgcolor: "#0891b214", color: "primary.dark",
-                      fontWeight: 500, fontFamily: "monospace", fontSize: "0.72rem", height: 24,
-                    }} />
-                  )},
-                  { icon: <Activity size={15} />, label: "Total Visits", value: (
-                    <Box sx={{
-                      width: 28, height: 28, borderRadius: "50%",
-                      bgcolor: detail.visits > 5 ? "#16a34a1a" : "grey.100",
-                      color:   detail.visits > 5 ? "#15803d"   : "grey.700",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      fontWeight: 700, fontSize: "0.8rem",
-                    }}>
-                      {detail.visits}
-                    </Box>
-                  )},
+                    )
+                  },
+                  { icon: <Globe size={15} />, label: "Browser", value: detail.browser },
+                  {
+                    icon: <Eye size={15} />, label: "Current Page", value: (
+                      <Chip label={detail.currentPage} size="small" sx={{
+                        bgcolor: "#0891b214", color: "primary.dark",
+                        fontWeight: 500, fontFamily: "monospace", fontSize: "0.72rem", height: 24,
+                      }} />
+                    )
+                  },
+                  {
+                    icon: <Activity size={15} />, label: "Total Visits", value: (
+                      <Box sx={{
+                        width: 28, height: 28, borderRadius: "50%",
+                        bgcolor: detail.visits > 5 ? "#16a34a1a" : "grey.100",
+                        color: detail.visits > 5 ? "#15803d" : "grey.700",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontWeight: 700, fontSize: "0.8rem",
+                      }}>
+                        {detail.visits}
+                      </Box>
+                    )
+                  },
                   { icon: <MessageSquare size={15} />, label: "Language", value: detail.language },
-                  { icon: <Wifi size={15} />,          label: "Referrer",  value: detail.referrer },
+                  { icon: <Wifi size={15} />, label: "Referrer", value: detail.referrer },
                 ].map((row, i) => (
                   <Stack key={i} direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 3, py: 1.75 }}>
                     <Stack direction="row" alignItems="center" spacing={1.5} sx={{ color: "grey.500" }}>

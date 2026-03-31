@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode, type WheelEvent } from "react";
 import { ArrowDownAZ, ChevronLeft, ChevronRight, Search } from "lucide-react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -25,7 +25,6 @@ type SortableValue = string | number | boolean | Date | null | undefined;
 export interface ReusableTableColumn<T> {
   id: string;
   label: ReactNode;
-  width?: string | number;
   align?: "left" | "center" | "right";
   headerAlign?: "left" | "center" | "right";
   sortable?: boolean;
@@ -161,6 +160,7 @@ const ReusableTable = <T,>({
   const [internalSortBy, setInternalSortBy] = useState<string | null>(defaultSortBy);
   const [internalSortDirection, setInternalSortDirection] =
     useState<SortDirection>(defaultSortDirection);
+  const tableContainerRef = useRef<HTMLDivElement | null>(null);
 
   const isServerFiltering =
     searchTerm !== undefined &&
@@ -312,6 +312,26 @@ const ReusableTable = <T,>({
     setSortValue(null, "asc");
   };
 
+  const handleHorizontalScroll = (event: WheelEvent<HTMLDivElement>) => {
+    if (noHorizontalScroll) return;
+
+    const container = tableContainerRef.current;
+    if (!container) return;
+
+    const canScrollHorizontally = container.scrollWidth > container.clientWidth;
+    if (!canScrollHorizontally) return;
+
+    // Use whichever axis has the larger delta so touchpads that emit deltaX still work.
+    const dominantDelta = Math.abs(event.deltaY) >= Math.abs(event.deltaX)
+      ? event.deltaY
+      : event.deltaX;
+
+    if (!dominantDelta) return;
+
+    event.preventDefault();
+    container.scrollLeft += dominantDelta;
+  };
+
   return (
     <Paper
       elevation={0}
@@ -419,14 +439,32 @@ const ReusableTable = <T,>({
         </Stack>
       </Box>
 
-      <TableContainer sx={{ overflowX: noHorizontalScroll ? "hidden" : "auto", overflowY: "hidden" }}>
-        <Table sx={{ minWidth: tableMinWidth, tableLayout, width: "100%" }}>
+      <TableContainer
+        ref={tableContainerRef}
+        onWheel={handleHorizontalScroll}
+        sx={{
+          overflowX: noHorizontalScroll ? "hidden" : "auto",
+          overflowY: "hidden",
+          width: "100%",
+          maxWidth: "100%",
+          WebkitOverflowScrolling: "touch",
+        }}
+      >
+        <Table
+          sx={{
+            minWidth: tableMinWidth,
+            tableLayout,
+            // Fill available space but keep a floor for when horizontal scroll is needed.
+            width: "100%",
+            borderCollapse: "separate",
+            borderSpacing: 0,
+          }}
+        >
           <TableHead sx={{ bgcolor: "grey.50" }}>
             <TableRow>
               {columns.map((column) => (
                 <TableCell
                   key={column.id}
-                  width={column.width}
                   align={column.headerAlign || column.align || "left"}
                   sx={{
                     fontWeight: 700,
@@ -462,7 +500,7 @@ const ReusableTable = <T,>({
                   <TableRow
                     key={`loading-row-${loadingRowIndex}`}
                     sx={{
-                        "& td": { py: compact ? 1.2 : 2.1, px: compact ? 1.5 : 2 },
+                      "& td": { py: compact ? 1.2 : 2.1, px: compact ? 1.5 : 2 },
                     }}
                   >
                     {columns.map((column, columnIndex) => (
@@ -505,6 +543,7 @@ const ReusableTable = <T,>({
                   hover
                   sx={{
                     transition: "background 0.15s",
+                    "&:nth-of-type(odd) td": { bgcolor: "grey.50" },
                     "& td": { py: compact ? 1.2 : 2.1, px: compact ? 1.5 : 2 },
                     "&:last-child td, &:last-child th": { border: 0 },
                   }}

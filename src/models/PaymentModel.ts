@@ -27,3 +27,35 @@ export type CreatePaymentCheckoutResponse = {
   tenantEmail?: string;
   companyName?: string;
 };
+
+export type PaymentStatus = "PENDING" | "COMPLETED" | "FAILED";
+
+export interface PaymentApiItem {
+  id: string;
+  tenantId?: string;
+  subscriptionId?: string;
+  tenantName?: string;
+  subscriptionPlanName?: string;
+  status: PaymentStatus;
+  amount?: number;
+  referenceNumber?: string;
+  createdAt: string;
+}
+
+export interface Payment {
+  id: string;
+  tenantId?: string;
+  subscriptionId?: string;
+  tenantName: string;
+  subscriptionType: string;
+  status: PaymentStatus;
+  amount?: number;
+  referenceNumber?: string;
+  transactionDate: string;
+}
+
+export interface PaymentListResponse {
+  success: boolean;
+  count: number;
+  payments: PaymentApiItem[];
+}

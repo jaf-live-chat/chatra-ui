@@ -6,10 +6,13 @@ interface FormatDateOptions {
 }
 
 export const formatDate = (
-  dateString: string,
+  dateString: string | null | undefined,
   { format = "long", isIncludeTime = false }: FormatDateOptions = {}
 ): string => {
+  if (!dateString) return "-";
+
   const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return "-";
 
   const dateOptionsByFormat: Record<DateFormat, Intl.DateTimeFormatOptions> = {
     short: {

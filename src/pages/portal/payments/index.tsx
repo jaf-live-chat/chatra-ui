@@ -1,8 +1,11 @@
 import React from 'react'
+import PaymentsTable from '../../../sections/payments/PaymentsTable'
 
-const Payments = () => {
+const Payments: React.FC = () => {
   return (
-    <div>Payments</div>
+    <React.Fragment>
+      <PaymentsTable />
+    </React.Fragment>
   )
 }
 
