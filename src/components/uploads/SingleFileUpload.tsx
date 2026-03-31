@@ -1,17 +1,19 @@
 import { useState, type ChangeEvent } from "react";
 import { FileUp, Loader2 } from "lucide-react";
-import uploadService, { type UploadedFileAsset } from "../../services/uploadService";
+import type { UploadedFileAsset, UploadSingleFn } from "../../models/UploadModel";
 
 interface SingleFileUploadProps {
   label?: string;
   hint?: string;
   onUploaded?: (file: UploadedFileAsset) => void;
+  uploadSingle: UploadSingleFn;
 }
 
 const SingleFileUpload = ({
   label = "Upload File",
   hint = "Choose one file to upload",
   onUploaded,
+  uploadSingle,
 }: SingleFileUploadProps) => {
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState("");
@@ -27,7 +29,7 @@ const SingleFileUpload = ({
     try {
       setIsUploading(true);
       setError("");
-      const response = await uploadService.uploadSingle(file);
+      const response = await uploadSingle(file);
       setUploadedUrl(response.file.url);
       onUploaded?.(response.file);
     } catch (uploadError) {

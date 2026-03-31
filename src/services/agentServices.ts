@@ -14,12 +14,24 @@ import type {
 } from "../models/AgentModel";
 import { API_BASE_URL, SWR_OPTIONS } from "../constants/constants";
 import useSWR from "swr";
+import type {
+  UploadSingleResponse,
+  UploadMultipleResponse,
+} from "../models/UploadModel";
 
 const endpoints = {
   key: `${API_BASE_URL}/agents`,
   me: `${API_BASE_URL}/agents/me`,
   profile: `${API_BASE_URL}/agents/profile`,
   verifyPassword: `${API_BASE_URL}/agents/verify-password`,
+  uploadSingle: `${API_BASE_URL}/agents/upload/single`,
+  uploadMultiple: `${API_BASE_URL}/agents/upload/multiple`,
+};
+
+const buildFormData = (fieldName: string, file: File) => {
+  const formData = new FormData();
+  formData.append(fieldName, file);
+  return formData;
 };
 
 type UseGetAgentsParams = {
@@ -144,6 +156,46 @@ const Agents = {
     return response.data;
   },
 
+  uploadAvatar: async (file: File): Promise<UploadSingleResponse> => {
+    const response = await axiosServices.put(
+      "/agents/profile",
+      buildFormData("avatar", file),
+      { headers: { "Content-Type": "multipart/form-data" } }
+    );
+
+    return {
+      success: response.data?.success,
+      message: response.data?.message || "Avatar uploaded successfully.",
+      file: {
+        url: response.data?.agent?.profilePicture,
+        publicId: response.data?.agent?.profilePicture || "avatar",
+      },
+    };
+  },
+
+  uploadSingle: async (file: File): Promise<UploadSingleResponse> => {
+    const response = await axiosServices.post(
+      "/agents/upload/single",
+      buildFormData("file", file),
+      { headers: { "Content-Type": "multipart/form-data" } }
+    );
+
+    return response.data;
+  },
+
+  uploadMultiple: async (files: File[]): Promise<UploadMultipleResponse> => {
+    const formData = new FormData();
+    files.forEach((file) => formData.append("files", file));
+
+    const response = await axiosServices.post(
+      "/agents/upload/multiple",
+      formData,
+      { headers: { "Content-Type": "multipart/form-data" } }
+    );
+
+    return response.data;
+  },
+
   verifyPassword: async (password: string): Promise<VerifyPasswordResponse> => {
     const response = await axiosServices.post(endpoints.verifyPassword, { password });
     return response.data;
@@ -157,3 +209,4 @@ const Agents = {
 };
 
 export default Agents;
+export type { UploadedFileAsset, UploadSingleResponse, UploadMultipleResponse } from "../models/UploadModel";

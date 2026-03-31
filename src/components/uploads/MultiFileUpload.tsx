@@ -1,17 +1,19 @@
 import { useState, type ChangeEvent } from "react";
 import { Files, Loader2 } from "lucide-react";
-import uploadService, { type UploadedFileAsset } from "../../services/uploadService";
+import type { UploadedFileAsset, UploadMultipleFn } from "../../models/UploadModel";
 
 interface MultiFileUploadProps {
   label?: string;
   hint?: string;
   onUploaded?: (files: UploadedFileAsset[]) => void;
+  uploadMultiple: UploadMultipleFn;
 }
 
 const MultiFileUpload = ({
   label = "Upload Multiple Files",
   hint = "Choose multiple files",
   onUploaded,
+  uploadMultiple,
 }: MultiFileUploadProps) => {
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState("");
@@ -29,7 +31,7 @@ const MultiFileUpload = ({
       setError("");
 
       const files = Array.from(fileList);
-      const response = await uploadService.uploadMultiple(files);
+      const response = await uploadMultiple(files);
       setUploadedFiles(response.files);
       onUploaded?.(response.files);
     } catch (uploadError) {
