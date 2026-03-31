@@ -186,12 +186,26 @@ const TenantsTable = () => {
       id: "endDate",
       label: "End Date",
       sortable: true,
+      align: "center",
       sortAccessor: (tenant) => new Date(tenant.subscription.endDate),
-      renderCell: (tenant) => formatDate(tenant.subscription.endDate),
+      renderCell: (tenant) => {
+        if (tenant.subscription.planName === 'Free Internal Plan') {
+          return (
+            <Tooltip title="This is the owner tenant which has a free internal plan with no expiration date.">
+              <span style={{ cursor: "help" }}>
+                <Chip label="No Expiration" size="small" color="info" variant="filled" />
+              </span>
+            </Tooltip>
+          )
+        } else {
+          return formatDate(tenant.subscription.endDate);
+        }
+      },
     },
     {
       id: "status",
       label: "Status",
+      align: "right",
       sortable: true,
       sortAccessor: (tenant) => tenant.subscription.status,
       renderCell: (tenant) => {

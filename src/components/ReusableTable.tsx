@@ -474,6 +474,7 @@ const ReusableTable = <T,>({
                     borderColor: "grey.200",
                     px: compact ? 1.5 : 2,
                     py: compact ? 1 : 1.5,
+                    whiteSpace: "nowrap",
                     ...column.headerSx,
                   }}
                 >
@@ -553,8 +554,8 @@ const ReusableTable = <T,>({
                       key={column.id}
                       align={column.align || "left"}
                       sx={{
-                        whiteSpace: "normal",
-                        wordBreak: "break-word",
+                        whiteSpace: "nowrap",
+                        wordBreak: "keep-all",
                         ...column.sx,
                       }}
                     >

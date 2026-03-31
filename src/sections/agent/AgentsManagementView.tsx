@@ -362,6 +362,7 @@ const AgentsManagementView = () => {
           </Stack>
         ),
       },
+
       {
         id: "email",
         label: "Email",
@@ -448,7 +449,7 @@ const AgentsManagementView = () => {
           const deleteDisabled = ownAccount || isDeletingAgent;
 
           return (
-            <Stack direction="row" spacing={1} justifyContent="flex-end" alignItems="center" flexWrap="wrap" rowGap={0.5}>
+            <Stack direction="row" spacing={1} justifyContent="flex-end" alignItems="center" rowGap={0.5}>
               <Tooltip title="View agent details" placement="bottom">
                 <span>
                   <Button
