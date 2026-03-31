@@ -17,12 +17,12 @@ import Button from "@mui/material/Button";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import Chip from "@mui/material/Chip";
-import CircularProgress from "@mui/material/CircularProgress";
 import Divider from "@mui/material/Divider";
 import Grid from "@mui/material/Grid";
 import IconButton from "@mui/material/IconButton";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
+import Skeleton from "../../components/skeleton";
 import Agents from "../../services/agentServices";
 import type { AuthAgent } from "../../models/AgentModel";
 import toTitleCase from "../../utils/toTitleCase";
@@ -288,17 +288,68 @@ const AgentDetailsView = () => {
 
   if (isLoading) {
     return (
-      <Paper
-        elevation={0}
-        sx={{ p: 4, borderRadius: 1 }}
-      >
-        <Stack direction="row" alignItems="center" spacing={1.5}>
-          <CircularProgress size={22} sx={{ color: "primary.main" }} />
-          <Box component="p" className="text-sm text-gray-500 dark:text-slate-400">
-            Loading agent details...
-          </Box>
-        </Stack>
-      </Paper>
+      <Stack spacing={3.5} className="font-sans">
+        <Skeleton className="h-4 w-28" />
+
+        <Card
+          elevation={0}
+          sx={{ borderRadius: 1, bgcolor: "background.paper", border: "none", boxShadow: "none" }}
+        >
+          <CardContent sx={{ p: { xs: 2.2, md: 3.5 } }}>
+            <Stack
+              direction={{ xs: "column", lg: "row" }}
+              alignItems={{ xs: "flex-start", lg: "center" }}
+              justifyContent="space-between"
+              spacing={2}
+            >
+              <Stack direction="row" spacing={2.5} alignItems="center">
+                <Skeleton className="h-24 w-24 rounded-full" />
+                <Stack spacing={1} sx={{ minWidth: 0 }}>
+                  <Skeleton className="h-8 w-48" />
+                  <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ mt: 0.5 }}>
+                    <Skeleton className="h-6 w-40 rounded-md" />
+                    <Skeleton className="h-6 w-24 rounded-md" />
+                  </Stack>
+                </Stack>
+              </Stack>
+
+              <Skeleton className="h-10 w-32 rounded-full" />
+            </Stack>
+
+            <Stack direction="row" spacing={6} sx={{ mt: 3.3, mb: 3.2, flexWrap: "wrap", rowGap: 2 }}>
+              <Stack spacing={1}>
+                <Skeleton className="h-3 w-20" />
+                <Skeleton className="h-7 w-14" />
+              </Stack>
+              <Stack spacing={1}>
+                <Skeleton className="h-3 w-24" />
+                <Skeleton className="h-7 w-20" />
+              </Stack>
+            </Stack>
+
+            <Divider sx={{ mb: 3.2 }} />
+
+            <Grid container spacing={3.2}>
+              <Grid size={{ xs: 12, lg: 6 }}>
+                <Skeleton className="mb-3 h-5 w-40" />
+                <Stack spacing={1.2}>
+                  <Skeleton className="h-16 w-full rounded-lg" />
+                  <Skeleton className="h-16 w-full rounded-lg" />
+                </Stack>
+              </Grid>
+
+              <Grid size={{ xs: 12, lg: 6 }}>
+                <Skeleton className="mb-3 h-5 w-36" />
+                <Stack spacing={1.1} sx={{ maxHeight: 340, pr: 0.5 }}>
+                  {Array.from({ length: 3 }).map((_, idx) => (
+                    <Skeleton key={idx} className="h-20 w-full rounded-xl" />
+                  ))}
+                </Stack>
+              </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
+      </Stack>
     );
   }
 
@@ -414,7 +465,7 @@ const AgentDetailsView = () => {
                         height: 30,
                       }}
                     />
-                  
+
                     <Stack direction="row" spacing={0.6} alignItems="center">
                       <FiberManualRecordRounded sx={{ fontSize: "0.55rem", color: getStatusDotColor(agent.status) }} />
                       <Box component="span" className="text-sm font-semibold text-slate-500 dark:text-slate-300">
@@ -443,7 +494,7 @@ const AgentDetailsView = () => {
               Edit Profile
             </Button>
           </Stack>
-       
+
 
           <Stack direction="row" spacing={6} sx={{ mt: 3.3, mb: 3.2, flexWrap: "wrap", rowGap: 2 }}>
             <Box>
@@ -493,7 +544,7 @@ const AgentDetailsView = () => {
                   label="Phone Number"
                   value={agent.phoneNumber || "N/A"}
                 />
-              
+
               </Stack>
             </Grid>
 
@@ -510,7 +561,7 @@ const AgentDetailsView = () => {
                   >
                     <Stack direction="row" alignItems="center" justifyContent="space-between">
                       <Box component="p" className="text-base font-bold text-gray-900 dark:text-slate-100">
-                       <h4>{item.name}</h4>
+                        <h4>{item.name}</h4>
                       </Box>
                       <Box component="p" className="text-sm tracking-wide text-amber-400">
                         {"★".repeat(item.rating)}
