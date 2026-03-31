@@ -157,6 +157,19 @@ const AgentsManagementView = () => {
 
   const totalRecords = pagination?.totalRecords || 0;
 
+  const actionButtonSx = {
+    textTransform: "none" as const,
+    borderRadius: 9999,
+    px: 1.6,
+    borderColor: "grey.300",
+    color: "grey.800",
+    fontWeight: 700,
+    height: 34,
+    minWidth: 76,
+    backgroundColor: "#f8fafc",
+    "&:hover": { bgcolor: "#e2e8f0", borderColor: "grey.400" },
+  };
+
   const handleRemoveAgent = async (agentId: string) => {
     if (user?._id && user._id === agentId) {
       showSnackbar("Admin cannot remove her own account.", "error");
@@ -303,7 +316,6 @@ const AgentsManagementView = () => {
       {
         id: "index",
         label: "#",
-        width: "6%",
         align: "center",
         headerAlign: "center",
         renderCell: (_agent, index) => (
@@ -324,7 +336,6 @@ const AgentsManagementView = () => {
       {
         id: "name",
         label: "Agent",
-        width: "22%",
         sortable: true,
         sortAccessor: (agent) => agent.name,
         renderCell: (agent) => (
@@ -354,7 +365,6 @@ const AgentsManagementView = () => {
       {
         id: "email",
         label: "Email",
-        width: "22%",
         sortable: true,
         sortAccessor: (agent) => agent.email,
         renderCell: (agent) => (
@@ -376,7 +386,6 @@ const AgentsManagementView = () => {
       {
         id: "role",
         label: "Role",
-        width: "12%",
         align: "center",
         headerAlign: "center",
         sortable: true,
@@ -397,7 +406,6 @@ const AgentsManagementView = () => {
       {
         id: "status",
         label: "Status",
-        width: "12%",
         align: "center",
         headerAlign: "center",
         sortable: true,
@@ -420,7 +428,6 @@ const AgentsManagementView = () => {
       {
         id: "chats",
         label: "Chats",
-        width: "10%",
         align: "center",
         headerAlign: "center",
         sortable: true,
@@ -433,72 +440,79 @@ const AgentsManagementView = () => {
       },
       {
         id: "actions",
-        label: "Actions",
-        width: "16%",
-        align: "center",
-        headerAlign: "center",
-        renderCell: (agent) => (
-          <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
-            <Tooltip title="View agent details" placement="bottom">
-              <IconButton
-                onClick={() => handleViewAgent(agent.id)}
-                size="small"
-                sx={{
-                  color: "#94a3b8",
-                  bgcolor: "transparent",
-                  border: "none",
-                  "&:hover": { bgcolor: "transparent", color: "#64748b" },
-                }}
-              >
-                <Eye size={16} />
-              </IconButton>
-            </Tooltip>
+        label: "",
+        align: "right",
+        headerAlign: "right",
+        renderCell: (agent) => {
+          const ownAccount = isOwnAccount(agent.id);
+          const deleteDisabled = ownAccount || isDeletingAgent;
 
-            <Tooltip title="Edit agent" placement="bottom">
-              <IconButton
-                onClick={() => handleEditOpen(agent)}
-                size="small"
-                sx={{
-                  color: "#94a3b8",
-                  bgcolor: "transparent",
-                  border: "none",
-                  "&:hover": { bgcolor: "transparent", color: "#64748b" },
-                }}
-              >
-                <Pencil size={16} />
-              </IconButton>
-            </Tooltip>
+          return (
+            <Stack direction="row" spacing={1} justifyContent="flex-end" alignItems="center" flexWrap="wrap" rowGap={0.5}>
+              <Tooltip title="View agent details" placement="bottom">
+                <span>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={() => handleViewAgent(agent.id)}
+                    sx={actionButtonSx}
+                    startIcon={<Eye size={16} />}
+                  >
+                    View
+                  </Button>
+                </span>
+              </Tooltip>
 
-            <Tooltip
-              title={isOwnAccount(agent.id) ? "Owner cannot delete her own account." : "Remove agent"}
-              placement="bottom"
-            >
-              <span>
-                <IconButton
-                  onClick={() => {
-                    if (isOwnAccount(agent.id)) {
-                      return;
-                    }
-                    setAgentToDelete(agent);
-                  }}
-                  size="small"
-                  disabled={isOwnAccount(agent.id)}
-                  sx={{
-                    color: "#ef4444",
-                    bgcolor: "transparent",
-                    border: "none",
-                    "&:hover": { bgcolor: "transparent", color: "#dc2626" },
-                  }}
-                >
-                  <Trash2 size={16} />
-                </IconButton>
-              </span>
-            </Tooltip>
-          </Stack>
-        ),
+              <Tooltip title="Edit agent" placement="bottom">
+                <span>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={() => handleEditOpen(agent)}
+                    sx={actionButtonSx}
+                    startIcon={<Pencil size={16} />}
+                  >
+                    Edit
+                  </Button>
+                </span>
+              </Tooltip>
+
+              <Tooltip
+                title={ownAccount ? "Owner cannot delete her own account." : "Remove agent"}
+                placement="bottom"
+              >
+                <span>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={() => {
+                      if (ownAccount) return;
+                      setAgentToDelete(agent);
+                    }}
+                    disabled={deleteDisabled}
+                    startIcon={<Trash2 size={16} />}
+                    sx={{
+                      ...actionButtonSx,
+                      color: "#b91c1c",
+                      borderColor: "#fecdd3",
+                      backgroundColor: "#fff1f2",
+                      "&:hover": {
+                        bgcolor: "#ffe4e6",
+                        borderColor: "#fca5a5",
+                      },
+                      opacity: deleteDisabled ? 0.7 : 1,
+                    }}
+                  >
+                    Delete
+                  </Button>
+                </span>
+              </Tooltip>
+            </Stack>
+          );
+        },
       },
     ],
-    [agents, page, user?._id],
+    [agents, page, user?._id, isDeletingAgent],
   );
 
   const snackbarToneStyles: Record<

@@ -360,7 +360,7 @@ const ReusableTable = <T,>({
           alignItems={{ xs: "flex-start", md: "center" }}
           justifyContent="space-between"
         >
-          <Stack direction="row" alignItems="center" spacing={compact ? 1 : 1.5} flexWrap="wrap">
+          <Stack direction="row" alignItems="center" spacing={compact ? 1 : 1.5} gap={1} flexWrap="wrap">
             <Box
               sx={{
                 width: compact ? 30 : 34,
