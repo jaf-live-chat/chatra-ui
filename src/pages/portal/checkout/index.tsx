@@ -33,6 +33,7 @@ import { useGetSubscriptionPlans } from "../../../services/subscriptionPlanServi
 import Payments from "../../../services/paymentServices";
 import { Button as AppButton } from "../../../components/Button";
 import { Alert, AlertDescription, AlertTitle } from "../../../components/Alert";
+import type { CreatePaymentCheckoutResponse } from "../../../models/PaymentModel";
 
 type CheckoutPlan = {
   id: string;
@@ -84,6 +85,42 @@ const getPlanIcon = (slug: string) => {
     return <BookOpen size={26} />;
   }
   return <Zap size={26} />;
+};
+
+const normalizeCheckoutResponse = (response: CreatePaymentCheckoutResponse) => {
+  const responseRecord = response as unknown as Record<string, unknown>;
+
+  const tenantId =
+    response.tenant ||
+    response.tenantId ||
+    (typeof responseRecord.tenant_id === "string" ? responseRecord.tenant_id : "") ||
+    "";
+
+  const subscriptionId =
+    response.subscription ||
+    response.subscriptionId ||
+    (typeof responseRecord.subscription_id === "string" ? responseRecord.subscription_id : "") ||
+    "";
+
+  const paymentReference =
+    response.paymentReference ||
+    response.reference ||
+    response.referenceNumber ||
+    (typeof responseRecord.reference_number === "string" ? responseRecord.reference_number : "") ||
+    "";
+
+  const paymentRequestId =
+    (typeof responseRecord.paymentRequestId === "string" ? responseRecord.paymentRequestId : "") ||
+    (typeof responseRecord.payment_request_id === "string" ? responseRecord.payment_request_id : "") ||
+    "";
+
+  return {
+    ...response,
+    tenantId,
+    subscriptionId,
+    paymentReference,
+    paymentRequestId,
+  };
 };
 
 const Checkout = () => {
@@ -207,28 +244,55 @@ const Checkout = () => {
     setIsProcessing(true);
 
     try {
-      const response = await Payments.createCheckout(checkoutPayload);
+      const rawResponse = await Payments.createCheckout(checkoutPayload);
+      const response = normalizeCheckoutResponse(rawResponse);
 
       if (response.checkoutUrl) {
         window.location.assign(response.checkoutUrl);
         return;
       }
 
-      if (response.isHitpayBypassed) {
+      const shouldBypassHitpay =
+        Boolean(response.isHitpayBypassed) ||
+        (Boolean(response.success) && isFreePlanSelected && Boolean(response.tenantId || response.subscriptionId || response.paymentReference));
+
+      const shouldProceedToSetup =
+        Boolean(response.success) &&
+        !response.checkoutUrl &&
+        (isFreePlanSelected || shouldBypassHitpay);
+
+      if (shouldProceedToSetup) {
+        const setupContext = {
+          tenantId: response.tenantId || "",
+          subscriptionId: response.subscriptionId || "",
+          tenantEmail: response.tenantEmail || "",
+          reference: response.paymentReference || "",
+          paymentRequestId: response.paymentRequestId || "",
+        };
+        sessionStorage.setItem("checkoutSetupContext", JSON.stringify(setupContext));
+
         const query = new URLSearchParams();
-        if (response.tenant) {
-          query.set("tenantId", response.tenant);
+        if (setupContext.tenantId) {
+          query.set("tenantId", setupContext.tenantId);
         }
-        if (response.subscription) {
-          query.set("subscriptionId", response.subscription);
+        if (setupContext.subscriptionId) {
+          query.set("subscriptionId", setupContext.subscriptionId);
         }
-        if (response.tenantEmail) {
-          query.set("tenantEmail", response.tenantEmail);
+        if (setupContext.tenantEmail) {
+          query.set("tenantEmail", setupContext.tenantEmail);
         }
-        if (!response.tenant && !response.subscription && response.paymentReference) {
-          query.set("reference", response.paymentReference);
+        if (setupContext.reference) {
+          query.set("reference", setupContext.reference);
         }
-        navigate(`/setup?${query.toString()}`);
+        if (setupContext.paymentRequestId) {
+          query.set("paymentRequestId", setupContext.paymentRequestId);
+        }
+
+        const queryString = query.toString();
+        const setupUrl = queryString ? `/setup?${queryString}` : "/setup";
+
+        // Use hard navigation to avoid route blocking while mutation state is settling.
+        window.location.assign(setupUrl);
         return;
       }
 

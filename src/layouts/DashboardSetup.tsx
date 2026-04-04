@@ -13,6 +13,15 @@ const steps = [
 
 const MAX_POLL_ATTEMPTS = 50;
 const POLL_INTERVAL_MS = 2500;
+const CHECKOUT_SETUP_CONTEXT_KEY = "checkoutSetupContext";
+
+type CheckoutSetupContext = {
+  reference?: string;
+  paymentRequestId?: string;
+  tenantId?: string;
+  subscriptionId?: string;
+  tenantEmail?: string;
+};
 
 const DashboardSetup = () => {
   const [searchParams] = useSearchParams();
@@ -25,13 +34,27 @@ const DashboardSetup = () => {
   const [tenantEmail, setTenantEmail] = useState("");
   const [companyName, setCompanyName] = useState("");
 
+  const savedSetupContext = useMemo<CheckoutSetupContext>(() => {
+    try {
+      const raw = sessionStorage.getItem(CHECKOUT_SETUP_CONTEXT_KEY);
+      if (!raw) {
+        return {};
+      }
+      const parsed = JSON.parse(raw) as CheckoutSetupContext;
+      return parsed || {};
+    } catch (_error) {
+      return {};
+    }
+  }, []);
+
   const reference = useMemo(
     () =>
       searchParams.get("reference") ||
       searchParams.get("reference_number") ||
       searchParams.get("referenceNumber") ||
+      savedSetupContext.reference ||
       "",
-    [searchParams]
+    [savedSetupContext.reference, searchParams]
   );
 
   const paymentRequestId = useMemo(
@@ -39,23 +62,24 @@ const DashboardSetup = () => {
       searchParams.get("paymentRequestId") ||
       searchParams.get("payment_request_id") ||
       searchParams.get("payment_id") ||
+      savedSetupContext.paymentRequestId ||
       "",
-    [searchParams]
+    [savedSetupContext.paymentRequestId, searchParams]
   );
 
   const tenantId = useMemo(
-    () => searchParams.get("tenantId") || searchParams.get("tenant_id") || "",
-    [searchParams]
+    () => searchParams.get("tenantId") || searchParams.get("tenant_id") || savedSetupContext.tenantId || "",
+    [savedSetupContext.tenantId, searchParams]
   );
 
   const subscriptionId = useMemo(
-    () => searchParams.get("subscriptionId") || searchParams.get("subscription_id") || "",
-    [searchParams]
+    () => searchParams.get("subscriptionId") || searchParams.get("subscription_id") || savedSetupContext.subscriptionId || "",
+    [savedSetupContext.subscriptionId, searchParams]
   );
 
   const tenantEmailFromQuery = useMemo(
-    () => searchParams.get("tenantEmail") || searchParams.get("email") || "",
-    [searchParams]
+    () => searchParams.get("tenantEmail") || searchParams.get("email") || savedSetupContext.tenantEmail || "",
+    [savedSetupContext.tenantEmail, searchParams]
   );
 
   useEffect(() => {
@@ -88,6 +112,7 @@ const DashboardSetup = () => {
           setApiKey(status.apiKey || "");
           setTenantEmail(status.tenantEmail || tenantEmailFromQuery || "");
           setCompanyName(status.companyName || "");
+          sessionStorage.removeItem(CHECKOUT_SETUP_CONTEXT_KEY);
           setTimeout(() => {
             if (!isCancelled) {
               setIsComplete(true);

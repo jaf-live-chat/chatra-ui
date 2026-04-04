@@ -18,12 +18,16 @@ export type CreatePaymentCheckoutResponse = {
   success: boolean;
   message: string;
   paymentReference?: string;
+  reference?: string;
+  referenceNumber?: string;
   checkoutUrl?: string;
   amount?: number;
   planName?: string;
   isHitpayBypassed?: boolean;
   tenant?: string;
+  tenantId?: string;
   subscription?: string;
+  subscriptionId?: string;
   tenantEmail?: string;
   companyName?: string;
 };
