@@ -266,6 +266,12 @@ const Checkout = () => {
           tenantId: response.tenantId || "",
           subscriptionId: response.subscriptionId || "",
           tenantEmail: response.tenantEmail || "",
+          companyName: accountInfo.companyName || "",
+          welcomeName: accountInfo.fullName || "",
+          planName: response.planName || selectedPlan?.name || "",
+          planPrice: selectedPlanPrice || "",
+          billingPeriod: selectedPlanPeriod || "",
+          integrationName: "Web Chat Widget + REST API",
           reference: response.paymentReference || "",
           paymentRequestId: response.paymentRequestId || "",
         };
@@ -280,6 +286,24 @@ const Checkout = () => {
         }
         if (setupContext.tenantEmail) {
           query.set("tenantEmail", setupContext.tenantEmail);
+        }
+        if (setupContext.companyName) {
+          query.set("companyName", setupContext.companyName);
+        }
+        if (setupContext.welcomeName) {
+          query.set("welcomeName", setupContext.welcomeName);
+        }
+        if (setupContext.planName) {
+          query.set("planName", setupContext.planName);
+        }
+        if (setupContext.planPrice) {
+          query.set("planPrice", setupContext.planPrice);
+        }
+        if (setupContext.billingPeriod) {
+          query.set("billingPeriod", setupContext.billingPeriod);
+        }
+        if (setupContext.integrationName) {
+          query.set("integrationName", setupContext.integrationName);
         }
         if (setupContext.reference) {
           query.set("reference", setupContext.reference);

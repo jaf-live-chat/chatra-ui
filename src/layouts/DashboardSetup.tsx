@@ -1,9 +1,22 @@
 import { useState, useEffect, useMemo } from "react";
-import { CheckCircle2, Loader2, KeyRound, Server, UserPlus, Check, Copy, AlertCircle } from "lucide-react";
+import {
+  CheckCircle2,
+  Loader2,
+  KeyRound,
+  Server,
+  UserPlus,
+  Check,
+  Copy,
+  AlertCircle,
+  Sparkles,
+  Rocket,
+  PlugZap,
+} from "lucide-react";
 import { Link } from "react-router";
 import { useSearchParams } from "react-router";
 import { motion } from "motion/react";
 import Payments from "../services/paymentServices";
+import { API_BASE_URL } from "../constants/constants";
 
 const steps = [
   { id: "account", label: "Creating your account...", icon: UserPlus },
@@ -21,7 +34,25 @@ type CheckoutSetupContext = {
   tenantId?: string;
   subscriptionId?: string;
   tenantEmail?: string;
+  companyName?: string;
+  welcomeName?: string;
+  planName?: string;
+  planPrice?: string;
+  billingPeriod?: string;
+  integrationName?: string;
 };
+
+const integrationChecklist = [
+  "Paste your API key into your app environment",
+  "Embed the chat widget script on your website",
+  "Start receiving and managing conversations in real time",
+];
+
+const installationSteps = [
+  "Copy the installation code below.",
+  "Paste it before the closing </body> tag of your website.",
+  "Publish your website and verify the chat launcher appears.",
+];
 
 const DashboardSetup = () => {
   const [searchParams] = useSearchParams();
@@ -29,10 +60,16 @@ const DashboardSetup = () => {
   const [isComplete, setIsComplete] = useState(false);
   const [apiKey, setApiKey] = useState("");
   const [copied, setCopied] = useState(false);
+  const [scriptCopied, setScriptCopied] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [attempts, setAttempts] = useState(0);
   const [tenantEmail, setTenantEmail] = useState("");
   const [companyName, setCompanyName] = useState("");
+  const [planName, setPlanName] = useState("");
+  const [planPrice, setPlanPrice] = useState("");
+  const [billingPeriod, setBillingPeriod] = useState("");
+  const [integrationName, setIntegrationName] = useState("Web Chat Widget + REST API");
+  const [welcomeName, setWelcomeName] = useState("");
 
   const savedSetupContext = useMemo<CheckoutSetupContext>(() => {
     try {
@@ -82,6 +119,44 @@ const DashboardSetup = () => {
     [savedSetupContext.tenantEmail, searchParams]
   );
 
+  const companyNameFromQuery = useMemo(
+    () => searchParams.get("companyName") || savedSetupContext.companyName || "",
+    [savedSetupContext.companyName, searchParams]
+  );
+
+  const welcomeNameFromQuery = useMemo(
+    () => searchParams.get("welcomeName") || searchParams.get("fullName") || savedSetupContext.welcomeName || "",
+    [savedSetupContext.welcomeName, searchParams]
+  );
+
+  const planNameFromQuery = useMemo(
+    () => searchParams.get("planName") || searchParams.get("plan") || savedSetupContext.planName || "",
+    [savedSetupContext.planName, searchParams]
+  );
+
+  const planPriceFromQuery = useMemo(
+    () => searchParams.get("planPrice") || savedSetupContext.planPrice || "",
+    [savedSetupContext.planPrice, searchParams]
+  );
+
+  const billingPeriodFromQuery = useMemo(
+    () => searchParams.get("billingPeriod") || savedSetupContext.billingPeriod || "",
+    [savedSetupContext.billingPeriod, searchParams]
+  );
+
+  const integrationNameFromQuery = useMemo(
+    () => searchParams.get("integrationName") || savedSetupContext.integrationName || "",
+    [savedSetupContext.integrationName, searchParams]
+  );
+
+  const socketUrl = useMemo(() => API_BASE_URL.replace(/\/api\/v\d+\/?$/, ""), []);
+
+  const widgetInstallScript = useMemo(
+    () =>
+      `<!-- Live Chat Widget -->\n<script>\n  window.LiveChatConfig = {\n    apiUrl: '${API_BASE_URL}',\n    socketUrl: '${socketUrl}',\n    apiKey: '${apiKey || ""}'\n  };\n</script>\n<script src=\"https://timora-live-chat.vercel.app/widget/live-chat-widget.js\"></script>`,
+    [apiKey, socketUrl]
+  );
+
   useEffect(() => {
     if (!reference && !paymentRequestId && !(tenantId && subscriptionId)) {
       setErrorMessage("No active provisioning session found. Please start checkout first.");
@@ -108,10 +183,16 @@ const DashboardSetup = () => {
         }
 
         if (status.isProvisioned) {
+          const statusRecord = status as Record<string, string | boolean | undefined>;
           setCurrentStep(2);
           setApiKey(status.apiKey || "");
           setTenantEmail(status.tenantEmail || tenantEmailFromQuery || "");
-          setCompanyName(status.companyName || "");
+          setCompanyName(status.companyName || companyNameFromQuery || "");
+          setWelcomeName((statusRecord.welcomeName as string) || welcomeNameFromQuery || "");
+          setPlanName((statusRecord.planName as string) || planNameFromQuery || "");
+          setPlanPrice((statusRecord.planPrice as string) || planPriceFromQuery || "");
+          setBillingPeriod((statusRecord.billingPeriod as string) || billingPeriodFromQuery || "");
+          setIntegrationName((statusRecord.integrationName as string) || integrationNameFromQuery || "Web Chat Widget + REST API");
           sessionStorage.removeItem(CHECKOUT_SETUP_CONTEXT_KEY);
           setTimeout(() => {
             if (!isCancelled) {
@@ -139,7 +220,19 @@ const DashboardSetup = () => {
       isCancelled = true;
       window.clearInterval(timer);
     };
-  }, [paymentRequestId, reference, subscriptionId, tenantEmailFromQuery, tenantId]);
+  }, [
+    billingPeriodFromQuery,
+    companyNameFromQuery,
+    integrationNameFromQuery,
+    paymentRequestId,
+    planNameFromQuery,
+    planPriceFromQuery,
+    reference,
+    subscriptionId,
+    tenantEmailFromQuery,
+    tenantId,
+    welcomeNameFromQuery,
+  ]);
 
   useEffect(() => {
     if (tenantEmailFromQuery) {
@@ -148,26 +241,54 @@ const DashboardSetup = () => {
   }, [tenantEmailFromQuery]);
 
   useEffect(() => {
+    if (companyNameFromQuery) {
+      setCompanyName(companyNameFromQuery);
+    }
+    if (welcomeNameFromQuery) {
+      setWelcomeName(welcomeNameFromQuery);
+    }
+    if (planNameFromQuery) {
+      setPlanName(planNameFromQuery);
+    }
+    if (planPriceFromQuery) {
+      setPlanPrice(planPriceFromQuery);
+    }
+    if (billingPeriodFromQuery) {
+      setBillingPeriod(billingPeriodFromQuery);
+    }
+    if (integrationNameFromQuery) {
+      setIntegrationName(integrationNameFromQuery);
+    }
+  }, [
+    billingPeriodFromQuery,
+    companyNameFromQuery,
+    integrationNameFromQuery,
+    planNameFromQuery,
+    planPriceFromQuery,
+    welcomeNameFromQuery,
+  ]);
+
+  useEffect(() => {
     if (attempts >= MAX_POLL_ATTEMPTS && !isComplete) {
       setErrorMessage("Provisioning is taking longer than expected. You can retry checkout.");
     }
   }, [attempts, isComplete]);
 
-  const copyToClipboard = async () => {
-    if (!apiKey) {
+  const copyTextWithFallback = async (text: string) => {
+    if (!text) {
       return;
     }
 
     try {
       if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(apiKey);
+        await navigator.clipboard.writeText(text);
       } else {
         throw new Error("Clipboard API not available");
       }
-    } catch (err) {
+    } catch (_err) {
       // Fallback for environments with restrictive permissions policies (like iframes)
       const textArea = document.createElement("textarea");
-      textArea.value = apiKey;
+      textArea.value = text;
       textArea.style.position = "absolute";
       textArea.style.left = "-999999px";
       document.body.prepend(textArea);
@@ -180,37 +301,49 @@ const DashboardSetup = () => {
         textArea.remove();
       }
     }
+  };
+
+  const copyToClipboard = async () => {
+    if (!apiKey) {
+      return;
+    }
+
+    await copyTextWithFallback(apiKey);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const copyInstallScript = async () => {
+    await copyTextWithFallback(widgetInstallScript);
+    setScriptCopied(true);
+    setTimeout(() => setScriptCopied(false), 2000);
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col font-sans items-center justify-center p-4 sm:p-6">
-      <div className="max-w-xl w-full bg-white p-5 sm:p-8 md:p-12 rounded-[1.5rem] sm:rounded-[2rem] shadow-[0_8px_40px_-12px_#00000014] border border-gray-100/80 relative overflow-hidden">
-        {/* Subtle modern gradients */}
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-cyan-50/50 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none"></div>
-        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-gray-50/80 rounded-full blur-3xl translate-y-1/2 -translate-x-1/3 pointer-events-none"></div>
+    <div className="min-h-screen bg-[radial-gradient(circle_at_12%_10%,#ccfbf1_0,#ecfeff_28%,#f8fafc_58%,#f1f5f9_100%)] flex flex-col font-sans items-center justify-center p-4 sm:p-6">
+      <div className="max-w-4xl w-full bg-white/90 backdrop-blur p-5 sm:p-8 md:p-12 rounded-[1.5rem] sm:rounded-[2rem] shadow-[0_16px_70px_-30px_rgba(15,23,42,0.35)] border border-cyan-100/70 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-cyan-100/60 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none"></div>
+        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-sky-100/60 rounded-full blur-3xl translate-y-1/2 -translate-x-1/3 pointer-events-none"></div>
 
         <div className="relative z-10">
           {!isComplete ? (
             <div className="flex flex-col gap-8">
-              {/* Header & Percentage */}
               <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                  <p className="text-xs font-semibold tracking-widest text-cyan-600 uppercase mb-2">System Setup</p>
-                  <h2 className="text-2xl font-semibold text-gray-900 tracking-tight">Initializing Workspace</h2>
+                  <p className="text-xs font-semibold tracking-widest text-cyan-700 uppercase mb-2">System Setup</p>
+                  <h2 className="text-2xl sm:text-3xl font-semibold text-slate-900 tracking-tight">Launching Your Customer Messaging Hub</h2>
+                  <p className="mt-2 text-sm text-slate-500">Your environment is being provisioned with secure access and integration-ready credentials.</p>
                 </div>
-                <div className="text-5xl font-light text-gray-900 tracking-tighter tabular-nums flex items-baseline">
+                <div className="text-5xl font-light text-slate-900 tracking-tighter tabular-nums flex items-baseline">
                   {Math.round(((currentStep + 0.5) / steps.length) * 100)}
-                  <span className="text-2xl text-gray-400 ml-1">%</span>
+                  <span className="text-2xl text-slate-400 ml-1">%</span>
                 </div>
               </div>
 
-              {/* Sleek Progress Bar */}
-              <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+              <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
                 <motion.div
-                  className="h-full bg-cyan-600 rounded-full"
-                  initial={{ width: '0%' }}
+                  className="h-full bg-gradient-to-r from-cyan-500 to-sky-600 rounded-full"
+                  initial={{ width: "0%" }}
                   animate={{ width: `${((currentStep + 0.5) / steps.length) * 100}%` }}
                   transition={{ duration: 1.5, ease: "easeInOut" }}
                 />
@@ -223,7 +356,6 @@ const DashboardSetup = () => {
                 </div>
               )}
 
-              {/* Clean Steps List */}
               <div className="space-y-6 mt-2">
                 {steps.map((step, index) => {
                   const isActive = index === currentStep;
@@ -239,15 +371,15 @@ const DashboardSetup = () => {
                     >
                       <div className="w-6 h-6 flex items-center justify-center shrink-0">
                         {isDone ? (
-                          <CheckCircle2 className="w-5 h-5 text-gray-300 transition-colors group-hover:text-gray-400" />
+                          <CheckCircle2 className="w-5 h-5 text-cyan-500 transition-colors group-hover:text-cyan-600" />
                         ) : isActive ? (
                           <Loader2 className="w-5 h-5 text-cyan-600 animate-spin" />
                         ) : (
-                          <div className="w-1.5 h-1.5 rounded-full bg-gray-200" />
+                          <div className="w-1.5 h-1.5 rounded-full bg-slate-200" />
                         )}
                       </div>
                       <div className="flex-1">
-                        <span className={`text-[15px] transition-colors duration-300 ${isDone ? 'text-gray-400' : isActive ? 'text-gray-900 font-medium' : 'text-gray-300'
+                        <span className={`text-[15px] transition-colors duration-300 ${isDone ? "text-slate-500" : isActive ? "text-slate-900 font-medium" : "text-slate-300"
                           }`}>
                           {step.label}
                         </span>
@@ -262,21 +394,99 @@ const DashboardSetup = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, ease: "easeOut" }}
-              className="flex flex-col items-center text-center pt-4"
+              className="flex flex-col pt-2 sm:pt-4"
             >
-              <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-6 border border-gray-100 shadow-sm">
-                <CheckCircle2 className="w-8 h-8 text-gray-900" />
+              <div className="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-cyan-50 px-4 py-2 text-cyan-700 text-xs font-semibold tracking-wide uppercase mb-5 w-fit">
+                <Sparkles className="w-4 h-4" />
+                Go-Live Confirmed
               </div>
 
-              <h2 className="text-3xl font-semibold text-gray-900 mb-3 tracking-tight">Workspace Ready</h2>
-              <p className="text-gray-500 mb-3 text-[15px] max-w-md leading-relaxed">
-                Welcome{companyName ? ` to ${companyName}` : ""}! Your workspace has been provisioned and your integration details are ready.
-              </p>
-              <p className="text-gray-500 mb-10 text-[14px] max-w-md leading-relaxed">
-                An email has been sent{tenantEmail ? ` to ${tenantEmail}` : " to your newly registered tenant email"}.
+              <h2 className="text-3xl sm:text-4xl font-semibold text-slate-900 tracking-tight">
+                Welcome{welcomeName ? `, ${welcomeName}` : ""}. Your messaging engine is ready.
+              </h2>
+              <p className="text-slate-600 mt-3 text-[15px] sm:text-base max-w-2xl leading-relaxed">
+                {companyName ? `${companyName} is now set up` : "Your workspace is now set up"} with a live subscription, secure API credentials, and integration tooling to launch conversations faster.
               </p>
 
-              <div className="w-full bg-[#0A0A0A] rounded-2xl p-1.5 sm:pl-5 mb-10 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between shadow-xl shadow-gray-200/50 border border-gray-800/60 transition-transform hover:scale-[1.01] duration-300">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8 mb-8">
+                <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <div className="flex items-center gap-2 text-slate-500 text-xs uppercase tracking-wide mb-2">
+                    <Rocket className="w-4 h-4 text-cyan-600" />
+                    Subscription Plan
+                  </div>
+                  <p className="text-slate-900 text-lg font-semibold">{planName || "Active plan"}</p>
+                  <p className="text-slate-600 text-sm mt-1">
+                    {planPrice ? `${planPrice}${billingPeriod ? ` ${billingPeriod}` : ""}` : "Plan pricing available in your billing dashboard"}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <div className="flex items-center gap-2 text-slate-500 text-xs uppercase tracking-wide mb-2">
+                    <PlugZap className="w-4 h-4 text-cyan-600" />
+                    Integration
+                  </div>
+                  <p className="text-slate-900 text-lg font-semibold">{integrationName}</p>
+                  <p className="text-slate-600 text-sm mt-1">Installation-ready and configured with your generated credentials.</p>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <div className="flex items-center gap-2 text-slate-500 text-xs uppercase tracking-wide mb-2">
+                    <CheckCircle2 className="w-4 h-4 text-cyan-600" />
+                    Welcome Message
+                  </div>
+                  <p className="text-slate-900 text-lg font-semibold">You are in</p>
+                  <p className="text-slate-600 text-sm mt-1">
+                    Confirmation email sent{tenantEmail ? ` to ${tenantEmail}` : " to your registered workspace email"}.
+                  </p>
+                </div>
+              </div>
+
+              <div className="w-full rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 mb-6">
+                <h3 className="text-sm font-semibold text-slate-900 mb-3">Your go-live checklist</h3>
+                <div className="space-y-2">
+                  {integrationChecklist.map((item) => (
+                    <div key={item} className="flex items-start gap-2 text-sm text-slate-600">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
+                      <span>{item}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="w-full rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 mb-6">
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between mb-4">
+                  <h3 className="text-sm font-semibold text-slate-900">Widget Installation</h3>
+                  <button
+                    onClick={copyInstallScript}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors w-fit ${scriptCopied
+                      ? "bg-emerald-100 text-emerald-700"
+                      : "bg-slate-100 hover:bg-slate-200 text-slate-700"
+                      }`}
+                  >
+                    {scriptCopied ? <Check size={13} /> : <Copy size={13} />}
+                    {scriptCopied ? "Copied" : "Copy Script"}
+                  </button>
+                </div>
+
+                <div className="space-y-2 mb-4">
+                  {installationSteps.map((step, index) => (
+                    <div key={step} className="flex items-start gap-2 text-sm text-slate-600">
+                      <span className="w-5 h-5 rounded-full bg-cyan-100 text-cyan-700 text-xs font-semibold flex items-center justify-center shrink-0 mt-0.5">
+                        {index + 1}
+                      </span>
+                      <span>{step}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="rounded-xl overflow-hidden border border-slate-800">
+                  <div className="bg-[#06132A] text-slate-100 p-4 text-[12px] leading-relaxed font-mono whitespace-pre-wrap break-all">
+                    {widgetInstallScript}
+                  </div>
+                </div>
+              </div>
+
+              <div className="w-full bg-[#0A0A0A] rounded-2xl p-1.5 sm:pl-5 mb-8 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between shadow-xl shadow-slate-300/40 border border-gray-800/60 transition-transform hover:scale-[1.01] duration-300">
                 <div className="flex items-center gap-3 overflow-hidden flex-1">
                   <KeyRound className="w-4 h-4 text-gray-500 shrink-0" />
                   <input
@@ -310,11 +520,15 @@ const DashboardSetup = () => {
                 </button>
               </div>
 
+              <p className="text-xs text-slate-500 mb-6">
+                Launch note: add the API key to your app environment and pass it in the <span className="font-mono">x-api-key</span> header for authenticated requests.
+              </p>
+
               <Link
                 to="/login"
-                className="w-full flex items-center justify-center bg-cyan-600 hover:bg-cyan-700 text-white py-4 rounded-xl font-medium text-[15px] transition-all shadow-lg shadow-cyan-600/20 active:scale-[0.98]"
+                className="w-full sm:w-auto sm:self-start flex items-center justify-center bg-gradient-to-r from-cyan-600 to-sky-600 hover:from-cyan-700 hover:to-sky-700 text-white py-3.5 px-8 rounded-xl font-semibold text-[15px] transition-all shadow-lg shadow-cyan-600/20 active:scale-[0.98]"
               >
-                Go to Login
+                Continue to Login
               </Link>
             </motion.div>
           )}

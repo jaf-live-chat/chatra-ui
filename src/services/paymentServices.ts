@@ -22,6 +22,11 @@ type CheckoutStatusResponse = {
   apiKey?: string;
   tenantEmail?: string;
   companyName?: string;
+  planName?: string;
+  planPrice?: string;
+  billingPeriod?: string;
+  integrationName?: string;
+  welcomeName?: string;
 };
 
 const endpoints = {
