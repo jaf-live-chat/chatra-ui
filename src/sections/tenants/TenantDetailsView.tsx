@@ -22,6 +22,7 @@ import { useGetSingleTenant } from "../../services/tenantService";
 import tenantService from "../../services/tenantService";
 import useAuth from "../../hooks/useAuth";
 import { formatDate } from "../../utils/dateFormatter";
+import idLabel from "../../utils/idUtils";
 
 const EMPTY_LABEL = "-";
 
@@ -245,16 +246,16 @@ const TenantDetailsView = () => {
                   ) : (
                     <>
                       <Typography variant="h6" sx={{ fontWeight: 800, color: "grey.900", lineHeight: 1.2 }}>
-                        {tenant?.name || EMPTY_LABEL}
+                        {tenant?.name}
                       </Typography>
                       <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-                        Tenant ID: {tenant?.id || EMPTY_LABEL}
+                        Tenant ID: {idLabel(tenant?.id || "", "TENANT")}
                       </Typography>
                       <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-                        Company Code: {tenant?.companyCode || EMPTY_LABEL}
+                        Company Code: {tenant?.companyCode}
                       </Typography>
                       <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-                        Database: {tenant?.databaseName || EMPTY_LABEL}
+                        Database: {tenant?.databaseName}
                       </Typography>
                     </>
                   )}
@@ -309,7 +310,7 @@ const TenantDetailsView = () => {
                     <Skeleton width={140} height={26} />
                   ) : (
                     <Typography variant="body1" sx={{ color: "grey.900", fontWeight: 700 }}>
-                      {tenant?.subscription.planName || EMPTY_LABEL}
+                      {tenant?.subscription.planName}
                     </Typography>
                   )}
                 </Box>
@@ -348,7 +349,7 @@ const TenantDetailsView = () => {
                         Subscription ID
                       </Typography>
                       <Typography variant="body2" sx={{ color: "grey.900", fontWeight: 600 }}>
-                        {tenant?.subscription.id || EMPTY_LABEL}
+                        {idLabel(tenant?.subscription.id || "", "SUBSCRIPTION")}
                       </Typography>
                     </Box>
                     <Box sx={{ flex: 1 }}>

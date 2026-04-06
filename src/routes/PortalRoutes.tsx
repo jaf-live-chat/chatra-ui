@@ -239,7 +239,7 @@ const PortalRoutes: RouteObject[] = [
                     path: ':id',
                     element: (
                       <AuthGuard
-                        allowedRoles={[USER_ROLES.MASTER_ADMIN.value]}
+                        allowedRoles={[USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value]}
                       >
                         <TenantDetails />
                       </AuthGuard>

@@ -1,5 +1,5 @@
-const idLabel = (id: string, type: 'USER' | 'VISITOR' | 'TENANT' | 'SUBSCRIPTION'): string => {
-    const validTypes = ['USER', 'VISITOR', 'TENANT', 'SUBSCRIPTION'];
+const idLabel = (id: string, type: 'USER' | 'VISITOR' | 'TENANT' | 'SUBSCRIPTION' | 'PAYMENT'): string => {
+    const validTypes = ['USER', 'VISITOR', 'TENANT', 'SUBSCRIPTION', 'PAYMENT'];
 
     if (!validTypes.includes(type)) {
         throw new Error(`Invalid type: ${type}. Must be one of: ${validTypes.join(', ')}`);

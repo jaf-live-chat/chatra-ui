@@ -17,6 +17,9 @@ import type { Payment, PaymentStatus } from "../../models/PaymentModel";
 import { formatDate } from "../../utils/dateFormatter";
 import { useGetPayments } from "../../services/paymentServices";
 import formatAmount from "../../utils/amountFormatter";
+import Avatar from "@mui/material/Avatar";
+import getAvatarColor from "../../utils/getAvatarColor";
+import idLabel from "../../utils/idUtils";
 
 const statusStyles: Record<PaymentStatus, { label: string; bg: string; color: string }> = {
   COMPLETED: {
@@ -95,7 +98,29 @@ const PaymentsTable = () => {
         label: "Tenant",
         sortable: true,
         sortAccessor: (payment) => payment.tenantName,
-        renderCell: (payment) => payment.tenantName,
+        renderCell: (payment) => (
+          <Stack direction="row" alignItems="center" spacing={1.5}>
+            <Avatar
+              sx={{
+                width: 36,
+                height: 36,
+                bgcolor: getAvatarColor(),
+                fontSize: "0.875rem",
+                fontWeight: 700,
+              }}
+            >
+              {payment.tenantName.slice(0, 2).toUpperCase()}
+            </Avatar>
+            <Box>
+              <Typography variant="body2" sx={{ fontWeight: 600, color: "grey.900", lineHeight: 1.2 }}>
+                {payment.tenantName}
+              </Typography>
+              <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.7rem" }}>
+                {idLabel(payment.id, "PAYMENT")}
+              </Typography>
+            </Box>
+          </Stack>
+        ),
       },
       {
         id: "status",
