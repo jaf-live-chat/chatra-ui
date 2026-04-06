@@ -1,10 +1,11 @@
 import { Box, Container, Typography, Card, CardContent, Grid } from "@mui/material";
 import { Code, Key, CheckCircle2, Copy, Check, AlertTriangle, Info } from "lucide-react";
 import { Link } from "react-router";
-import { useState } from "react";
+import React, { useState } from "react";
 import Navbar from "../../../components/common/Navbar";
 import Footer from "../../../components/common/Footer";
 import LiveChatWidget from "../../../components/widgets/LiveChatWidget";
+import PageTitle from "../../../components/common/PageTitle";
 
 function CodeBlock({ lines, filename, onCopy, copied }: { lines: string[]; filename: string; onCopy: () => void; copied: boolean }) {
   return (
@@ -143,7 +144,13 @@ const ApiDocsPage = () => {
   ];
 
   return (
-    <>
+    <React.Fragment>
+         <PageTitle
+        title="API & Developers"
+        description="Build custom integrations, automate workflows, and extend JAF Chatra with our powerful REST API and Webhooks."
+        canonical="/portal/api-docs"
+
+      />
       <Navbar />
       <Box sx={{ pt: { xs: 12, md: 16 }, pb: 12, bgcolor: "#F8FAFCFF", minHeight: "100vh" }}>
         <Box sx={{ bgcolor: "#0A192FFF", color: "#FFFFFFFF", py: { xs: 8, md: 12 }, textAlign: "center", borderBottom: "1px solid #1E293BFF" }}>
@@ -307,7 +314,7 @@ const ApiDocsPage = () => {
       </Box>
       <Footer />
       <LiveChatWidget />
-    </>
+    </React.Fragment>
   );
 }
 

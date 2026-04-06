@@ -3,6 +3,8 @@ import { Clock, Star, Zap, Wrench } from "lucide-react";
 import Navbar from "../../../components/common/Navbar";
 import Footer from "../../../components/common/Footer";
 import LiveChatWidget from "../../../components/widgets/LiveChatWidget";
+import React from "react";
+import PageTitle from "../../../components/common/PageTitle";
 
 const ChangelogPage = () => {
   const updates = [
@@ -39,7 +41,13 @@ const ChangelogPage = () => {
   ];
 
   return (
-    <>
+    <React.Fragment>
+       <PageTitle
+        title="Changelog"
+        description="Discover the latest updates, features, and improvements in JAF Chatra. See what's new and what's coming next."
+        canonical="/portal/changelog"
+
+      />
       <Navbar />
       <Box sx={{ pt: { xs: 12, md: 16 }, pb: 12, bgcolor: "#F8FAFCFF", minHeight: "100vh" }}>
         <Box sx={{ bgcolor: "#0A192FFF", color: "#FFFFFFFF", py: { xs: 8, md: 12 }, textAlign: "center", borderBottom: "1px solid #1E293BFF" }}>
@@ -119,7 +127,7 @@ const ChangelogPage = () => {
       </Box>
       <Footer />
       <LiveChatWidget />
-    </>
+    </React.Fragment>
   );
 }
 

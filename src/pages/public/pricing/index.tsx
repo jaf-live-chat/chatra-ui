@@ -2,7 +2,8 @@ import Navbar from "../../../components/common/Navbar";
 import PricingSection from "../../../sections/homepage/PricingSection";
 import Footer from "../../../components/common/Footer";
 import LiveChatWidget from "../../../components/widgets/LiveChatWidget";
-import { useEffect } from "react";
+import React, { useEffect } from "react";
+import PageTitle from "../../../components/common/PageTitle";
 
 const PricingPage = () => {
   // Scroll to top when loading the page
@@ -11,6 +12,12 @@ const PricingPage = () => {
   }, []);
 
   return (
+    <React.Fragment>
+      <PageTitle
+        title="Pricing"
+        description="Choose the perfect plan for your team's needs."
+        canonical="/portal/pricing"
+      />
     <div className="min-h-screen" style={{ fontFamily: "Inter, sans-serif" }}>
       <Navbar />
       <main className="pt-16">
@@ -19,6 +26,8 @@ const PricingPage = () => {
       <Footer />
       <LiveChatWidget />
     </div>
+    </React.Fragment>
+
   );
 }
 

@@ -1,6 +1,7 @@
-﻿import { useState } from "react";
+﻿import React, { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { ArrowLeft, MessageCircle } from "lucide-react";
+import { PageTitle } from "../../../components/common/PageTitle";
 
 const FreeTrialPage = () => {
   const navigate = useNavigate();
@@ -25,11 +26,18 @@ const FreeTrialPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8" style={{ fontFamily: "Inter, sans-serif" }}>
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="flex justify-center items-center gap-3 mb-6">
-          <div className="w-10 h-10 bg-red-600 rounded-xl flex items-center justify-center shadow-lg shadow-red-600/20">
-            <MessageCircle className="w-5 h-5 text-white" />
+    <React.Fragment>
+       <PageTitle
+        title="Free Trial"
+        description="Start your 14-day free trial and experience the power of JAF Chatra."
+        canonical="/portal/free-trial"
+
+      />
+      <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8" style={{ fontFamily: "Inter, sans-serif" }}>
+        <div className="sm:mx-auto sm:w-full sm:max-w-md">
+          <div className="flex justify-center items-center gap-3 mb-6">
+            <div className="w-10 h-10 bg-red-600 rounded-xl flex items-center justify-center shadow-lg shadow-red-600/20">
+              <MessageCircle className="w-5 h-5 text-white" />
           </div>
           <span className="text-xl font-black tracking-tight text-slate-900">
             JAF Chatra
@@ -142,6 +150,7 @@ const FreeTrialPage = () => {
         </div>
       </div>
     </div>
+    </React.Fragment>
   );
 }
 

@@ -10,14 +10,23 @@ import CTASection from "../../../sections/homepage/CTASection";
 import Footer from "../../../components/common/Footer";
 import LiveChatWidget from "../../../components/widgets/LiveChatWidget";
 import HomepageFaqSection from "../../../sections/homepage/HomepageFaqSection";
+import React from "react";
+import { PageTitle } from "../../../components/common/PageTitle";
 
 const Home = () => {
   return (
-    <div className="min-h-screen" style={{ fontFamily: "Inter, sans-serif" }}>
-      <Navbar />
-      <main>
-        <HeroSection />
-        <TrustedBySection />
+    <React.Fragment>
+       <PageTitle
+        title="Home"
+        description="JAF Chatra - The Ultimate AI-Powered Customer Support Solution for Your Business"
+        canonical="/portal/home"
+
+      />
+      <div className="min-h-screen" style={{ fontFamily: "Inter, sans-serif" }}>
+        <Navbar />
+        <main>
+          <HeroSection />
+          <TrustedBySection />
         <ProductsSection />
         <HowItWorksSection />
         <DashboardPreviewSection />
@@ -28,6 +37,7 @@ const Home = () => {
       <Footer />
       <LiveChatWidget />
     </div>
+    </React.Fragment>
   );
 }
 

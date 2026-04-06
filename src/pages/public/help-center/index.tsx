@@ -4,6 +4,8 @@ import { Link } from "react-router";
 import Navbar from "../../../components/common/Navbar";
 import Footer from "../../../components/common/Footer";
 import LiveChatWidget from "../../../components/widgets/LiveChatWidget";
+import React from "react";
+import PageTitle from "../../../components/common/PageTitle";
 
 const HelpCenterPage = () => {
   const categories = [
@@ -22,7 +24,13 @@ const HelpCenterPage = () => {
   ];
 
   return (
-    <>
+    <React.Fragment>
+         <PageTitle
+        title="Help Center"
+        description="Find answers to common questions, access guides, and get support for JAF Chatra."
+        canonical="/portal/help-center"
+
+      />
       <Navbar />
       <Box sx={{ pt: { xs: 12, md: 16 }, pb: 12, bgcolor: "#F8FAFCFF", minHeight: "100vh" }}>
         {/* Hero Section */}
@@ -253,7 +261,7 @@ const HelpCenterPage = () => {
       </Box>
       <Footer />
       <LiveChatWidget />
-    </>
+    </React.Fragment>
   );
 }
 

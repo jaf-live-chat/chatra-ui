@@ -3,9 +3,10 @@ import Footer from "../../../components/common/Footer";
 import LiveChatWidget from "../../../components/widgets/LiveChatWidget";
 import { ArrowRight, AlertCircle } from "lucide-react";
 import { Link, useNavigate } from "react-router";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { AxiosError } from "axios";
 import useAuth from "../../../hooks/useAuth";
+import PageTitle from "../../../components/common/PageTitle";
 
 const LoginPage = () => {
   const [emailAddress, setEmailAddress] = useState("");
@@ -56,6 +57,13 @@ const LoginPage = () => {
   };
 
   return (
+    <React.Fragment>
+       <PageTitle
+        title="Login"  
+        description="Access your JAF Chatra dashboard to manage your customer interactions, view analytics, and configure your settings."
+        canonical="/portal/login"
+
+      />
     <div className="min-h-screen flex flex-col" style={{ fontFamily: "Inter, sans-serif" }}>
       <Navbar />
 
@@ -155,6 +163,7 @@ const LoginPage = () => {
       <Footer />
       <LiveChatWidget />
     </div>
+    </React.Fragment>
   );
 };
 
