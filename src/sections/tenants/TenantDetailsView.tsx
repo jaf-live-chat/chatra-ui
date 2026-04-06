@@ -160,14 +160,6 @@ const TenantDetailsView = () => {
     <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
       <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={2}>
         <Stack spacing={0.6}>
-          <Button
-            variant="text"
-            sx={{ px: 0, alignSelf: "flex-start" }}
-            startIcon={<ArrowLeft size={16} />}
-            onClick={() => navigate("/portal/tenants")}
-          >
-            Back to Tenants
-          </Button>
           <Typography variant="h5" sx={{ fontWeight: 800, color: "grey.900" }}>
             Tenant Details
           </Typography>

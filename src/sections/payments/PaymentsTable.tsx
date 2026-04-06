@@ -123,6 +123,20 @@ const PaymentsTable = () => {
         ),
       },
       {
+        id: "amount",
+        label: "Amount",
+        sortable: true,
+        sortAccessor: (payment) => payment.amount,
+        renderCell: (payment) => formatAmount(payment.amount),
+      },
+      {
+        id: "transactionDate",
+        label: "Transaction Date",
+        sortable: true,
+        sortAccessor: (payment) => new Date(payment.transactionDate),
+        renderCell: (payment) => formatTransactionDate(payment.transactionDate),
+      },
+      {
         id: "status",
         label: "Payment Status",
         sortable: true,
@@ -137,20 +151,6 @@ const PaymentsTable = () => {
             />
           );
         },
-      },
-      {
-        id: "transactionDate",
-        label: "Transaction Date",
-        sortable: true,
-        sortAccessor: (payment) => new Date(payment.transactionDate),
-        renderCell: (payment) => formatTransactionDate(payment.transactionDate),
-      },
-      {
-        id: "subscriptionType",
-        label: "Subscription",
-        sortable: true,
-        sortAccessor: (payment) => payment.subscriptionType,
-        renderCell: (payment) => payment.subscriptionType,
       },
       {
         id: "actions",
@@ -202,7 +202,7 @@ const PaymentsTable = () => {
         search={{
           placeholder: "Search by tenant, status, or subscription",
           by: (payment) =>
-            `${payment.tenantName} ${statusStyles[payment.status].label} ${payment.subscriptionType}`,
+            `${payment.tenantName} ${statusStyles[payment.status].label} ${payment.amount}`,
         }}
         loading={isLoading}
         loadingLabel="Loading payments..."
@@ -229,7 +229,7 @@ const PaymentsTable = () => {
                 Subscription
               </Typography>
               <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                {selectedPayment?.subscriptionType || "-"}
+                {selectedPayment?.amount || "-"}
               </Typography>
             </Box>
 
