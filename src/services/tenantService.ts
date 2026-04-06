@@ -6,6 +6,7 @@ import { fetcher } from "../utils/axios";
 import type { Tenant, TenantStatus } from "../models/TenantModel";
 
 interface TenantApiSubscription {
+  id?: string;
   planName?: string;
   startDate?: string | null;
   endDate?: string | null;
@@ -15,6 +16,8 @@ interface TenantApiSubscription {
 interface TenantApiItem {
   id?: string;
   name?: string;
+  companyCode?: string;
+  databaseName?: string;
   subscription?: TenantApiSubscription;
 }
 
@@ -35,6 +38,13 @@ interface TenantUpdateResponse {
   success: boolean;
   message: string;
   tenant: TenantApiItem;
+}
+
+type ManageSubscriptionAction = "DEACTIVATE" | "ADJUST_END_DATE";
+
+interface ManageTenantSubscriptionPayload {
+  action: ManageSubscriptionAction;
+  days?: number;
 }
 
 const endpoints = {
@@ -71,7 +81,10 @@ const normalizeTenant = (tenant: TenantApiItem): Tenant => {
   return {
     id: tenant.id || "",
     name: tenant.name || "-",
+    companyCode: tenant.companyCode || "-",
+    databaseName: tenant.databaseName || "-",
     subscription: {
+      id: tenant.subscription?.id || "",
       planName: tenant.subscription?.planName || "-",
       startDate: subscriptionStart,
       endDate: subscriptionEnd,
@@ -179,12 +192,21 @@ const deleteTenant = async (id: string): Promise<void> => {
   await axiosServices.delete(`/tenants/${id}`);
 };
 
+const manageTenantSubscription = async (
+  id: string,
+  payload: ManageTenantSubscriptionPayload,
+): Promise<Tenant> => {
+  const response = await axiosServices.patch<TenantUpdateResponse>(`/tenants/${id}/subscription`, payload);
+  return normalizeTenant(response.data.tenant);
+};
+
 const tenantService = {
   getTenants,
   getSingleTenant,
   useGetTenants,
   useGetSingleTenant,
   updateTenantStatus,
+  manageTenantSubscription,
   deleteTenant,
 };
 
@@ -194,6 +216,7 @@ export {
   useGetTenants,
   useGetSingleTenant,
   updateTenantStatus,
+  manageTenantSubscription,
   deleteTenant,
 };
 export default tenantService;

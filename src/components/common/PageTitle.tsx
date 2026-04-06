@@ -19,7 +19,7 @@ export function PageTitle({
 }: PageTitleProps) {
   return (
     <Helmet>
-      <title>{title}</title>
+      <title>JAF Chatra - {title}</title>
       {description && <meta name="description" content={description} />}
       {keywords && <meta name="keywords" content={keywords} />}
       {author && <meta name="author" content={author} />}
