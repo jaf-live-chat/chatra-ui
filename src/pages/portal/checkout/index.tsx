@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
@@ -34,6 +34,7 @@ import Payments from "../../../services/paymentServices";
 import { Button as AppButton } from "../../../components/Button";
 import { Alert, AlertDescription, AlertTitle } from "../../../components/Alert";
 import type { CreatePaymentCheckoutResponse } from "../../../models/PaymentModel";
+import PageTitle from "../../../components/common/PageTitle";
 
 type CheckoutPlan = {
   id: string;
@@ -333,6 +334,13 @@ const Checkout = () => {
   };
 
   return (
+    <React.Fragment>
+       <PageTitle
+        title="Checkout"
+        description="Complete your purchase and get started with JAF Chatra."
+        canonical="/portal/checkout"
+
+      />
     <div style={{ display: "contents" }}>
       <Box
         sx={{
@@ -982,6 +990,7 @@ const Checkout = () => {
         </Box>
       </Box>
     </div>
+    </React.Fragment>
   );
 };
 

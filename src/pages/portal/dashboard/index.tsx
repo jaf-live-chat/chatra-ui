@@ -16,6 +16,8 @@ import ReusableTable, {
   type ReusableTableColumn,
 } from "../../../components/ReusableTable";
 import useAuth from "../../../hooks/useAuth";
+import React from "react";
+import PageTitle from "../../../components/common/PageTitle";
 
 type ActiveSessionRow = {
   id: string;
@@ -125,7 +127,8 @@ const DashboardPage = () => {
     {
       id: "visitor",
       label: "VISITOR",
-      width: "55%",
+      headerSx: { width: "55%" },
+      sx: { width: "55%" },
       renderCell: (row) => (
         <div>
           <p className="text-[13px] font-bold text-slate-900">{row.visitor}</p>
@@ -138,7 +141,8 @@ const DashboardPage = () => {
     {
       id: "agentTime",
       label: "AGENT / TIME",
-      width: "45%",
+      headerSx: { width: "45%" },
+      sx: { width: "45%" },
       align: "right",
       headerAlign: "right",
       renderCell: (row) => (
@@ -156,7 +160,8 @@ const DashboardPage = () => {
     {
       id: "agent",
       label: "AGENT",
-      width: "70%",
+      headerSx: { width: "70%" },
+      sx: { width: "70%" },
       renderCell: (row, rowIndex) => {
         const colors = [
           "bg-teal-600",
@@ -183,7 +188,8 @@ const DashboardPage = () => {
     {
       id: "status",
       label: "STATUS",
-      width: "28%",
+      headerSx: { width: "28%" },
+      sx: { width: "28%" },
       align: "right",
       headerAlign: "right",
       renderCell: (row) => (
@@ -209,7 +215,8 @@ const DashboardPage = () => {
     {
       id: "visitor",
       label: "VISITOR",
-      width: "35%",
+      headerSx: { width: "35%" },
+      sx: { width: "35%" },
       renderCell: (row) => (
         <div>
           <p className="text-[13px] font-bold text-slate-900">{row.visitor}</p>
@@ -222,7 +229,8 @@ const DashboardPage = () => {
     {
       id: "message",
       label: "MESSAGE",
-      width: "35%",
+      headerSx: { width: "35%" },
+      sx: { width: "35%" },
       renderCell: (row) => (
         <p className="text-[13px] text-slate-600 truncate mr-2" title={row.message}>
           {row.message}
@@ -232,13 +240,15 @@ const DashboardPage = () => {
     {
       id: "wait",
       label: "WAIT",
-      width: "15%",
+      headerSx: { width: "15%" },
+      sx: { width: "15%" },
       renderCell: (row) => <span className="text-[13px] font-bold text-orange-500">{row.wait}</span>,
     },
     {
       id: "action",
       label: "ACTION",
-      width: "15%",
+      headerSx: { width: "15%" },
+      sx: { width: "15%" },
       align: "right",
       headerAlign: "right",
       renderCell: () => (
@@ -258,9 +268,8 @@ const DashboardPage = () => {
     {
       id: "id",
       label: "ID",
-      width: "20%",
-      headerSx: { display: { xs: "none", md: "table-cell" } },
-      sx: { display: { xs: "none", md: "table-cell" } },
+      headerSx: { width: "20%", display: { xs: "none", md: "table-cell" } },
+      sx: { width: "20%", display: { xs: "none", md: "table-cell" } },
       renderCell: (row) => (
         <div className="flex flex-col">
           <p className="text-sm text-slate-500 font-medium">{row.id}</p>
@@ -271,13 +280,15 @@ const DashboardPage = () => {
     {
       id: "agent",
       label: "AGENT",
-      width: "25%",
+      headerSx: { width: "25%" },
+      sx: { width: "25%" },
       renderCell: (row) => <p className="text-sm font-semibold text-slate-800">{row.agent}</p>,
     },
     {
       id: "rating",
       label: "RATING",
-      width: "20%",
+      headerSx: { width: "20%" },
+      sx: { width: "20%" },
       renderCell: (row) => (
         <div className="flex items-center gap-0.5">
           {Array.from({ length: row.rating }).map((_, idx) => (
@@ -289,14 +300,20 @@ const DashboardPage = () => {
     {
       id: "comment",
       label: "COMMENT",
-      width: "35%",
-      headerSx: { display: { xs: "none", sm: "table-cell" } },
-      sx: { display: { xs: "none", sm: "table-cell" } },
+      headerSx: { width: "35%", display: { xs: "none", sm: "table-cell" } },
+      sx: { width: "35%", display: { xs: "none", sm: "table-cell" } },
       renderCell: (row) => <p className="text-sm italic text-slate-500">{row.comment}</p>,
     },
   ];
 
   return (
+    <React.Fragment>
+        <PageTitle
+        title="Dashboard"
+        description="Get a quick overview of your support operations, including active chats, visitor activity, and agent performance."
+        canonical="/portal/dashboard"
+
+      />
     <div className="w-full">
       <div className="mb-6">
         <h1 className="text-3xl font-black text-slate-900 tracking-tight dark:text-slate-100">
@@ -451,6 +468,7 @@ const DashboardPage = () => {
         </div>
       </div>
     </div>
+    </React.Fragment>
   );
 };
 

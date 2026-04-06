@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Plus,
   Copy,
@@ -11,6 +11,7 @@ import {
   MessageSquareText,
   ChevronDown,
 } from "lucide-react";
+import PageTitle from "../../components/common/PageTitle";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -397,6 +398,13 @@ const QuickRepliesView = () => {
   };
 
   return (
+    <React.Fragment>
+       <PageTitle
+        title="Agent Quick Replies"
+        description="Manage quick replies for agent use."
+        canonical="/portal/agent-quick-replies"
+
+      />
     <div className="flex flex-col gap-6">
       {/* ── Page Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
@@ -520,6 +528,7 @@ const QuickRepliesView = () => {
         />
       )}
     </div>
+    </React.Fragment>
   );
 }
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Bot,
   Hand,
@@ -21,6 +21,7 @@ import FormControl from "@mui/material/FormControl";
 import RadioGroup from "@mui/material/RadioGroup";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Radio from "@mui/material/Radio";
+import PageTitle from "../../components/common/PageTitle";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -89,6 +90,13 @@ const QueueAssignmentSettingsPage = () => {
   }, []);
 
   return (
+    <React.Fragment>
+       <PageTitle
+        title="Queue Assignment Settings"
+        description="Configure how incoming visitors are assigned to support agents"
+        canonical="/portal/queue-assignment"
+
+      />
     <Box sx={{ display: "flex", flexDirection: "column" }}>
       {/* Page Header */}
       <Box sx={{ mb: 4 }}>
@@ -320,6 +328,7 @@ const QueueAssignmentSettingsPage = () => {
         </Paper>
       </Stack>
     </Box>
+    </React.Fragment>
   );
 }
 

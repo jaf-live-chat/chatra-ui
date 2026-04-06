@@ -15,6 +15,8 @@ import {
   Star,
   Quote
 } from "lucide-react";
+import React from "react";
+import PageTitle from "../../../components/common/PageTitle";
 
 const IntegrationsPage = () => {
   const partners = [
@@ -51,6 +53,12 @@ const IntegrationsPage = () => {
   ];
 
   return (
+    <React.Fragment>
+      <PageTitle
+        title="Integrations"
+        description="See how JAF Chatra integrates with your favorite tools and platforms."
+        canonical="/portal/integrations"
+      />
     <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column", bgcolor: "background.default", pt: 10 }}>
       <Navbar />
       
@@ -211,6 +219,8 @@ const IntegrationsPage = () => {
       <Footer />
       <LiveChatWidget />
     </Box>
+    </React.Fragment>
+
   );
 }
 

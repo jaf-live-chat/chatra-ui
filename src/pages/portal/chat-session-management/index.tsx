@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   MessagesSquare,
   Search,
@@ -22,6 +22,7 @@ import { Link, useSearchParams } from "react-router";
 import { getQueueDisplayId } from "../../../sections/chat/QueueView";
 import { useDarkMode } from "../../../providers/DarkModeContext";
 import { SEED_REPLIES } from "../../../sections/settings/QuickRepliesView";
+import PageTitle from "../../../components/common/PageTitle";
 
 type SubTab = "active-chats" | "chat-history";
 
@@ -540,626 +541,634 @@ const ChatSessionManagementPage = () => {
   };
 
   return (
-    <div className={`flex flex-col flex-1${isDark ? " dark" : ""}`}>
-      {/* Header */}
-      <div className="bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 shrink-0">
-        <div className="max-w-[1600px] mx-auto px-6 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="h-5 w-px bg-gray-200 dark:bg-slate-700" />
-            <h1 className="text-lg font-semibold text-gray-900 dark:text-slate-100">Chat Session Management</h1>
-          </div>
-          <div className="flex gap-1">
-            {subTabs.map((tab) => (
-              <button
-                key={tab.key}
-                onClick={() => {
-                  setActiveSubTab(tab.key);
-                  setSearchQuery("");
-                }}
-                className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors cursor-pointer ${activeSubTab === tab.key
-                  ? "bg-cyan-50 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-400"
-                  : "text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-700"
-                  }`}
-              >
-                {tab.icon}
-                <span className="hidden sm:inline">{tab.label}</span>
-                {tab.key === "active-chats" && activeChats.length > 0 && (
-                  <span className="ml-1 w-5 h-5 rounded-full bg-cyan-600 text-white text-[11px] flex items-center justify-center">
-                    {activeChats.length}
-                  </span>
-                )}
-              </button>
-            ))}
+    <React.Fragment>
+       <PageTitle
+        title="Chat Session Management"
+        description="Browse and review past chat conversations and their outcomes."
+        canonical="/portal/chat-sessions"
+
+      />
+      <div className={`flex flex-col flex-1${isDark ? " dark" : ""}`}>
+        {/* Header */}
+        <div className="bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 shrink-0">
+          <div className="max-w-[1600px] mx-auto px-6 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="h-5 w-px bg-gray-200 dark:bg-slate-700" />
+              <h1 className="text-lg font-semibold text-gray-900 dark:text-slate-100">Chat Session Management</h1>
+            </div>
+            <div className="flex gap-1">
+              {subTabs.map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => {
+                    setActiveSubTab(tab.key);
+                    setSearchQuery("");
+                  }}
+                  className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors cursor-pointer ${activeSubTab === tab.key
+                    ? "bg-cyan-50 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-400"
+                    : "text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-700"
+                    }`}
+                >
+                  {tab.icon}
+                  <span className="hidden sm:inline">{tab.label}</span>
+                  {tab.key === "active-chats" && activeChats.length > 0 && (
+                    <span className="ml-1 w-5 h-5 rounded-full bg-cyan-600 text-white text-[11px] flex items-center justify-center">
+                      {activeChats.length}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Content */}
-      <div className="flex-1 overflow-hidden">
-        {activeSubTab === "active-chats" ? (
-          <div className="h-[calc(100vh-65px-64px)] flex">
-            {/* Chat List Sidebar */}
-            <div className="w-80 bg-white dark:bg-slate-800 border-r border-gray-200 dark:border-slate-700 flex flex-col shrink-0">
-              <div className="p-3 border-b border-gray-100 dark:border-slate-700">
-                <div className="relative">
-                  <Search className="w-4 h-4 text-gray-400 dark:text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    placeholder="Search conversations..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-700/60 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-100 focus:border-cyan-400"
-                  />
-                </div>
-              </div>
-
-              <div className="flex-1 overflow-y-auto">
-                {activeChats.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-full text-center px-6">
-                    <MessagesSquare className="w-10 h-10 text-gray-300 dark:text-slate-600 mb-3" />
-                    <p className="text-sm text-gray-500 dark:text-slate-400 font-medium">No active chats</p>
-                    <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">
-                      Pick up a visitor from the{" "}
-                      <Link to="/portal/queue" className="text-cyan-600 dark:text-cyan-400 hover:underline">
-                        Queue
-                      </Link>{" "}
-                      to start chatting.
-                    </p>
+        {/* Content */}
+        <div className="flex-1 overflow-hidden">
+          {activeSubTab === "active-chats" ? (
+            <div className="h-[calc(100vh-65px-64px)] flex">
+              {/* Chat List Sidebar */}
+              <div className="w-80 bg-white dark:bg-slate-800 border-r border-gray-200 dark:border-slate-700 flex flex-col shrink-0">
+                <div className="p-3 border-b border-gray-100 dark:border-slate-700">
+                  <div className="relative">
+                    <Search className="w-4 h-4 text-gray-400 dark:text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      placeholder="Search conversations..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-700/60 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-100 focus:border-cyan-400"
+                    />
                   </div>
-                ) : (
-                  activeChats
-                    .filter((c) => c.visitor.toLowerCase().includes(searchQuery.toLowerCase()))
-                    .map((chat) => {
-                      const lastMsg = chat.messages[chat.messages.length - 1];
-                      const isSelected = chat.id === selectedChatId;
-                      return (
-                        <button
-                          key={chat.id}
-                          onClick={() => setSelectedChatId(chat.id)}
-                          className={`w-full text-left px-4 py-3.5 border-b border-gray-50 dark:border-slate-700/50 transition-colors cursor-pointer ${isSelected
-                            ? "bg-cyan-50 dark:bg-cyan-900/20 border-l-2 border-l-cyan-600"
-                            : "hover:bg-gray-50 dark:hover:bg-slate-700/40 border-l-2 border-l-transparent"
-                            }`}
-                        >
-                          <div className="flex items-start gap-3">
-                            <div
-                              className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-semibold shrink-0"
-                              style={{ backgroundColor: getAvatarColor(chat.visitor) }}
-                            >
-                              {chat.visitor.charAt(0)}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between">
-                                <p className="text-sm font-semibold text-gray-900 dark:text-slate-100 truncate">{chat.visitor}</p>
-                                <span className="text-[10px] text-gray-400 dark:text-slate-500 shrink-0 ml-2">{lastMsg?.timestamp}</span>
+                </div>
+
+                <div className="flex-1 overflow-y-auto">
+                  {activeChats.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-full text-center px-6">
+                      <MessagesSquare className="w-10 h-10 text-gray-300 dark:text-slate-600 mb-3" />
+                      <p className="text-sm text-gray-500 dark:text-slate-400 font-medium">No active chats</p>
+                      <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">
+                        Pick up a visitor from the{" "}
+                        <Link to="/portal/queue" className="text-cyan-600 dark:text-cyan-400 hover:underline">
+                          Queue
+                        </Link>{" "}
+                        to start chatting.
+                      </p>
+                    </div>
+                  ) : (
+                    activeChats
+                      .filter((c) => c.visitor.toLowerCase().includes(searchQuery.toLowerCase()))
+                      .map((chat) => {
+                        const lastMsg = chat.messages[chat.messages.length - 1];
+                        const isSelected = chat.id === selectedChatId;
+                        return (
+                          <button
+                            key={chat.id}
+                            onClick={() => setSelectedChatId(chat.id)}
+                            className={`w-full text-left px-4 py-3.5 border-b border-gray-50 dark:border-slate-700/50 transition-colors cursor-pointer ${isSelected
+                              ? "bg-cyan-50 dark:bg-cyan-900/20 border-l-2 border-l-cyan-600"
+                              : "hover:bg-gray-50 dark:hover:bg-slate-700/40 border-l-2 border-l-transparent"
+                              }`}
+                          >
+                            <div className="flex items-start gap-3">
+                              <div
+                                className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-semibold shrink-0"
+                                style={{ backgroundColor: getAvatarColor(chat.visitor) }}
+                              >
+                                {chat.visitor.charAt(0)}
                               </div>
-                              <p className="text-xs text-gray-500 dark:text-slate-400 truncate mt-0.5">
-                                {lastMsg?.sender === "agent" ? "You: " : ""}
-                                {lastMsg?.text}
-                              </p>
-                              <div className="flex items-center gap-2 mt-1.5">
-                                <span className="inline-flex items-center gap-1 text-[10px] font-medium text-green-600 dark:text-green-400">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                                  Active
-                                </span>
-                                {chat.timeInQueue && (
-                                  <span className="text-[10px] text-gray-400 dark:text-slate-500">
-                                    Queue: {chat.timeInQueue}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between">
+                                  <p className="text-sm font-semibold text-gray-900 dark:text-slate-100 truncate">{chat.visitor}</p>
+                                  <span className="text-[10px] text-gray-400 dark:text-slate-500 shrink-0 ml-2">{lastMsg?.timestamp}</span>
+                                </div>
+                                <p className="text-xs text-gray-500 dark:text-slate-400 truncate mt-0.5">
+                                  {lastMsg?.sender === "agent" ? "You: " : ""}
+                                  {lastMsg?.text}
+                                </p>
+                                <div className="flex items-center gap-2 mt-1.5">
+                                  <span className="inline-flex items-center gap-1 text-[10px] font-medium text-green-600 dark:text-green-400">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                                    Active
                                   </span>
-                                )}
+                                  {chat.timeInQueue && (
+                                    <span className="text-[10px] text-gray-400 dark:text-slate-500">
+                                      Queue: {chat.timeInQueue}
+                                    </span>
+                                  )}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        </button>
-                      );
-                    })
-                )}
-              </div>
-            </div>
-
-            {/* Main Chat Area */}
-            {selectedChat ? (
-              <div className="flex-1 flex flex-col min-w-0">
-                {/* Chat Header */}
-                <div className="h-16 bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between px-5 shrink-0">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-semibold"
-                      style={{ backgroundColor: getAvatarColor(selectedChat.visitor) }}
-                    >
-                      {selectedChat.visitor.charAt(0)}
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-gray-900 dark:text-slate-100">{selectedChat.visitor}</p>
-                      <div className="flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                        <span className="text-[11px] text-gray-500 dark:text-slate-400">Active now</span>
-                        {selectedChat.sessionId && (
-                          <span className="text-[10px] text-gray-400 dark:text-slate-500 font-mono ml-2">{selectedChat.sessionId}</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setShowInfo(!showInfo)}
-                      className={`p-2 rounded-lg transition-colors ${showInfo
-                        ? "bg-cyan-50 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400"
-                        : "text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700"
-                        }`}
-                    >
-                      <Info className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => setShowEndConfirm(true)}
-                      className="px-3 py-1.5 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-xs font-semibold rounded-lg hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors cursor-pointer"
-                    >
-                      End Chat
-                    </button>
-                  </div>
+                          </button>
+                        );
+                      })
+                  )}
                 </div>
+              </div>
 
-                <div className="flex-1 flex overflow-hidden">
-                  {/* Messages */}
-                  <div className="flex-1 flex flex-col min-w-0 bg-gray-50 dark:bg-slate-900/50">
-                    <div className="flex-1 overflow-y-auto px-5 py-4" style={{ scrollbarWidth: "thin" }}>
-                      <div className="text-center mb-6">
-                        <span className="text-[11px] bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-slate-400 px-3 py-1 rounded-full">
-                          Chat started from Queue
-                        </span>
+              {/* Main Chat Area */}
+              {selectedChat ? (
+                <div className="flex-1 flex flex-col min-w-0">
+                  {/* Chat Header */}
+                  <div className="h-16 bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between px-5 shrink-0">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-semibold"
+                        style={{ backgroundColor: getAvatarColor(selectedChat.visitor) }}
+                      >
+                        {selectedChat.visitor.charAt(0)}
                       </div>
+                      <div>
+                        <p className="text-sm font-semibold text-gray-900 dark:text-slate-100">{selectedChat.visitor}</p>
+                        <div className="flex items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                          <span className="text-[11px] text-gray-500 dark:text-slate-400">Active now</span>
+                          {selectedChat.sessionId && (
+                            <span className="text-[10px] text-gray-400 dark:text-slate-500 font-mono ml-2">{selectedChat.sessionId}</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setShowInfo(!showInfo)}
+                        className={`p-2 rounded-lg transition-colors ${showInfo
+                          ? "bg-cyan-50 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400"
+                          : "text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700"
+                          }`}
+                      >
+                        <Info className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => setShowEndConfirm(true)}
+                        className="px-3 py-1.5 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-xs font-semibold rounded-lg hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors cursor-pointer"
+                      >
+                        End Chat
+                      </button>
+                    </div>
+                  </div>
 
-                      <div className="space-y-3">
-                        {selectedChat.messages.map((msg) => (
-                          <div key={msg.id} className={`flex ${msg.sender === "agent" ? "justify-end" : "justify-start"}`}>
-                            <div className={`flex ${msg.sender === "agent" ? "flex-row-reverse" : "flex-row"} items-end gap-2 max-w-[65%]`}>
-                              {msg.sender === "visitor" ? (
+                  <div className="flex-1 flex overflow-hidden">
+                    {/* Messages */}
+                    <div className="flex-1 flex flex-col min-w-0 bg-gray-50 dark:bg-slate-900/50">
+                      <div className="flex-1 overflow-y-auto px-5 py-4" style={{ scrollbarWidth: "thin" }}>
+                        <div className="text-center mb-6">
+                          <span className="text-[11px] bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-slate-400 px-3 py-1 rounded-full">
+                            Chat started from Queue
+                          </span>
+                        </div>
+
+                        <div className="space-y-3">
+                          {selectedChat.messages.map((msg) => (
+                            <div key={msg.id} className={`flex ${msg.sender === "agent" ? "justify-end" : "justify-start"}`}>
+                              <div className={`flex ${msg.sender === "agent" ? "flex-row-reverse" : "flex-row"} items-end gap-2 max-w-[65%]`}>
+                                {msg.sender === "visitor" ? (
+                                  <div
+                                    className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[11px] font-semibold shrink-0"
+                                    style={{ backgroundColor: getAvatarColor(selectedChat.visitor) }}
+                                  >
+                                    {selectedChat.visitor.charAt(0)}
+                                  </div>
+                                ) : (
+                                  <div className="w-7 h-7 rounded-full bg-gray-800 dark:bg-slate-600 flex items-center justify-center text-white text-[10px] font-semibold shrink-0">
+                                    You
+                                  </div>
+                                )}
+                                <div className={`flex flex-col ${msg.sender === "agent" ? "items-end" : "items-start"}`}>
+                                  <span className="text-[10px] text-gray-400 dark:text-slate-500 mb-1 px-1">
+                                    {msg.sender === "visitor" ? selectedChat.visitor : "You"} &middot; {msg.timestamp}
+                                  </span>
+                                  {/* Image attachments */}
+                                  {msg.files && msg.files.filter(f => f.type?.startsWith("image/") && f.url).length > 0 && (
+                                    <div className="flex flex-wrap gap-1.5 mb-1">
+                                      {msg.files.filter(f => f.type?.startsWith("image/") && f.url).map((file, i) => (
+                                        <img
+                                          key={`img-${i}`}
+                                          src={file.url}
+                                          alt={file.name}
+                                          className="max-w-[200px] max-h-[180px] rounded-xl shadow-sm object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                                          onClick={() => window.open(file.url, "_blank")}
+                                        />
+                                      ))}
+                                    </div>
+                                  )}
+                                  {/* Non-image file attachments */}
+                                  {msg.files && msg.files.filter(f => !f.type?.startsWith("image/") || !f.url).length > 0 && (
+                                    <div className="flex flex-col gap-1 mb-1">
+                                      {msg.files.filter(f => !f.type?.startsWith("image/") || !f.url).map((file, i) => {
+                                        const Wrapper = file.url ? 'a' : 'div';
+                                        const linkProps = file.url ? { href: file.url, target: "_blank", rel: "noopener noreferrer" } : {};
+                                        return (
+                                          <Wrapper
+                                            key={`file-${i}`}
+                                            {...linkProps as any}
+                                            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 shadow-sm hover:bg-gray-50 dark:hover:bg-slate-600 transition-colors"
+                                          >
+                                            <FileText className="w-4 h-4 text-cyan-600 dark:text-cyan-400 shrink-0" />
+                                            <div className="min-w-0">
+                                              <p className="text-xs font-medium text-gray-700 dark:text-slate-300 truncate">{file.name}</p>
+                                              <p className="text-[10px] text-gray-400 dark:text-slate-500">{file.type?.startsWith("image/") ? "Image attachment" : "Attachment"}</p>
+                                            </div>
+                                          </Wrapper>
+                                        );
+                                      })}
+                                    </div>
+                                  )}
+                                  {/* Text bubble */}
+                                  {msg.text && !(msg.files?.length && msg.text.startsWith("📎")) && (
+                                    <div
+                                      className={`px-3.5 py-2 text-sm shadow-sm ${msg.sender === "visitor"
+                                        ? "bg-[#e5e7eb] dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-2xl rounded-bl-[4px]"
+                                        : "bg-cyan-600 text-white rounded-2xl rounded-br-[4px]"
+                                        }`}
+                                    >
+                                      {msg.text}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+
+                          {/* Visitor typing indicator */}
+                          {visitorTyping && (
+                            <div className="flex justify-start">
+                              <div className="flex items-end gap-2 max-w-[65%]">
                                 <div
                                   className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[11px] font-semibold shrink-0"
                                   style={{ backgroundColor: getAvatarColor(selectedChat.visitor) }}
                                 >
                                   {selectedChat.visitor.charAt(0)}
                                 </div>
-                              ) : (
-                                <div className="w-7 h-7 rounded-full bg-gray-800 dark:bg-slate-600 flex items-center justify-center text-white text-[10px] font-semibold shrink-0">
-                                  You
-                                </div>
-                              )}
-                              <div className={`flex flex-col ${msg.sender === "agent" ? "items-end" : "items-start"}`}>
-                                <span className="text-[10px] text-gray-400 dark:text-slate-500 mb-1 px-1">
-                                  {msg.sender === "visitor" ? selectedChat.visitor : "You"} &middot; {msg.timestamp}
-                                </span>
-                                {/* Image attachments */}
-                                {msg.files && msg.files.filter(f => f.type?.startsWith("image/") && f.url).length > 0 && (
-                                  <div className="flex flex-wrap gap-1.5 mb-1">
-                                    {msg.files.filter(f => f.type?.startsWith("image/") && f.url).map((file, i) => (
-                                      <img
-                                        key={`img-${i}`}
-                                        src={file.url}
-                                        alt={file.name}
-                                        className="max-w-[200px] max-h-[180px] rounded-xl shadow-sm object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                                        onClick={() => window.open(file.url, "_blank")}
-                                      />
-                                    ))}
+                                <div className="px-4 py-3 bg-[#e5e7eb] dark:bg-slate-700 rounded-2xl rounded-bl-[4px] shadow-sm">
+                                  <div className="flex items-center gap-[5px]">
+                                    <span className="w-[6px] h-[6px] rounded-full bg-gray-500 dark:bg-slate-400 animate-[typingBounce_1.4s_ease-in-out_infinite]" style={{ animationDelay: "0ms" }} />
+                                    <span className="w-[6px] h-[6px] rounded-full bg-gray-500 dark:bg-slate-400 animate-[typingBounce_1.4s_ease-in-out_infinite]" style={{ animationDelay: "200ms" }} />
+                                    <span className="w-[6px] h-[6px] rounded-full bg-gray-500 dark:bg-slate-400 animate-[typingBounce_1.4s_ease-in-out_infinite]" style={{ animationDelay: "400ms" }} />
                                   </div>
-                                )}
-                                {/* Non-image file attachments */}
-                                {msg.files && msg.files.filter(f => !f.type?.startsWith("image/") || !f.url).length > 0 && (
-                                  <div className="flex flex-col gap-1 mb-1">
-                                    {msg.files.filter(f => !f.type?.startsWith("image/") || !f.url).map((file, i) => {
-                                      const Wrapper = file.url ? 'a' : 'div';
-                                      const linkProps = file.url ? { href: file.url, target: "_blank", rel: "noopener noreferrer" } : {};
-                                      return (
-                                        <Wrapper
-                                          key={`file-${i}`}
-                                          {...linkProps as any}
-                                          className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 shadow-sm hover:bg-gray-50 dark:hover:bg-slate-600 transition-colors"
-                                        >
-                                          <FileText className="w-4 h-4 text-cyan-600 dark:text-cyan-400 shrink-0" />
-                                          <div className="min-w-0">
-                                            <p className="text-xs font-medium text-gray-700 dark:text-slate-300 truncate">{file.name}</p>
-                                            <p className="text-[10px] text-gray-400 dark:text-slate-500">{file.type?.startsWith("image/") ? "Image attachment" : "Attachment"}</p>
-                                          </div>
-                                        </Wrapper>
-                                      );
-                                    })}
-                                  </div>
-                                )}
-                                {/* Text bubble */}
-                                {msg.text && !(msg.files?.length && msg.text.startsWith("📎")) && (
-                                  <div
-                                    className={`px-3.5 py-2 text-sm shadow-sm ${msg.sender === "visitor"
-                                      ? "bg-[#e5e7eb] dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-2xl rounded-bl-[4px]"
-                                      : "bg-cyan-600 text-white rounded-2xl rounded-br-[4px]"
-                                      }`}
-                                  >
-                                    {msg.text}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-
-                        {/* Visitor typing indicator */}
-                        {visitorTyping && (
-                          <div className="flex justify-start">
-                            <div className="flex items-end gap-2 max-w-[65%]">
-                              <div
-                                className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[11px] font-semibold shrink-0"
-                                style={{ backgroundColor: getAvatarColor(selectedChat.visitor) }}
-                              >
-                                {selectedChat.visitor.charAt(0)}
-                              </div>
-                              <div className="px-4 py-3 bg-[#e5e7eb] dark:bg-slate-700 rounded-2xl rounded-bl-[4px] shadow-sm">
-                                <div className="flex items-center gap-[5px]">
-                                  <span className="w-[6px] h-[6px] rounded-full bg-gray-500 dark:bg-slate-400 animate-[typingBounce_1.4s_ease-in-out_infinite]" style={{ animationDelay: "0ms" }} />
-                                  <span className="w-[6px] h-[6px] rounded-full bg-gray-500 dark:bg-slate-400 animate-[typingBounce_1.4s_ease-in-out_infinite]" style={{ animationDelay: "200ms" }} />
-                                  <span className="w-[6px] h-[6px] rounded-full bg-gray-500 dark:bg-slate-400 animate-[typingBounce_1.4s_ease-in-out_infinite]" style={{ animationDelay: "400ms" }} />
                                 </div>
                               </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      <div ref={bottomRef} />
-                    </div>
-
-                    {/* Input */}
-                    <div className="px-4 py-3 bg-white dark:bg-slate-800 border-t border-gray-200 dark:border-slate-700 shrink-0">
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        className="hidden"
-                        onChange={handleFileChange}
-                        accept="image/*,.pdf,.doc,.docx,.txt,.csv,.xlsx,.zip"
-                        multiple
-                      />
-
-                      {/* Inline file previews */}
-                      {attachedFiles.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mb-2 p-2 bg-gray-50 dark:bg-slate-700/60 rounded-xl border border-gray-200 dark:border-slate-600">
-                          {attachedFiles.map((af, index) => (
-                            <div key={index} className="relative group">
-                              {af.file.type.startsWith("image/") ? (
-                                <img
-                                  src={af.previewUrl}
-                                  alt={af.file.name}
-                                  className="w-16 h-16 rounded-lg object-cover border border-gray-200 dark:border-slate-600"
-                                />
-                              ) : (
-                                <div className="w-16 h-16 rounded-lg bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 flex flex-col items-center justify-center p-1">
-                                  <FileText className="w-5 h-5 text-cyan-600 dark:text-cyan-400 mb-0.5" />
-                                  <p className="text-[8px] text-gray-500 dark:text-slate-400 truncate w-full text-center">{af.file.name}</p>
-                                </div>
-                              )}
-                              <button
-                                onClick={() => handleFileRemove(index)}
-                                className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                              >
-                                <X className="w-3 h-3" />
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      <div className="relative" ref={quickRepliesRef}>
-                        {/* Quick Replies Dropdown */}
-                        {showQuickReplies && (
-                          <div
-                            className="absolute bottom-full left-0 right-0 mb-2 bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-600 overflow-hidden z-30"
-                            style={{ borderColor: isDark ? '#475569' : '#e5e7eb', maxHeight: '340px' }}
-                          >
-                            {/* Header */}
-                            <div className="flex items-center justify-between px-3 py-2.5 border-b border-gray-100 dark:border-slate-700" style={{ borderColor: isDark ? '#334155' : '#f3f4f6' }}>
-                              <div className="flex items-center gap-2">
-                                <Zap className="w-4 h-4 text-cyan-500" />
-                                <span className="text-sm text-gray-800 dark:text-slate-200">Quick Replies</span>
-                                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-slate-400">{filteredQuickReplies.length}</span>
-                              </div>
-                              <button
-                                onClick={() => setShowQuickReplies(false)}
-                                className="p-1 text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
-                              >
-                                <X className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-
-                            {/* Search + Category filters */}
-                            <div className="px-3 pt-2 pb-1.5 space-y-2 border-b border-gray-100 dark:border-slate-700" style={{ borderColor: isDark ? '#334155' : '#f3f4f6' }}>
-                              <div className="relative">
-                                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 dark:text-slate-500" />
-                                <input
-                                  type="text"
-                                  placeholder="Search replies..."
-                                  value={qrSearchQuery}
-                                  onChange={(e) => setQrSearchQuery(e.target.value)}
-                                  className="w-full pl-8 pr-3 py-1.5 text-xs bg-gray-50 dark:bg-slate-700/60 border border-gray-200 dark:border-slate-600 rounded-lg text-gray-800 dark:text-slate-200 placeholder-gray-400 dark:placeholder-slate-500 outline-none focus:border-cyan-400 dark:focus:border-cyan-500 transition-colors"
-                                  style={{ borderColor: isDark ? '#475569' : '#e5e7eb' }}
-                                  autoFocus
-                                />
-                              </div>
-                              <div className="flex items-center gap-1 overflow-x-auto pb-0.5">
-                                {qrCategories.map((cat) => (
-                                  <button
-                                    key={cat}
-                                    onClick={() => setQrActiveCategory(cat)}
-                                    className={`text-[11px] px-2 py-0.5 rounded-full whitespace-nowrap transition-colors cursor-pointer ${qrActiveCategory === cat
-                                      ? "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300"
-                                      : "bg-gray-100 text-gray-500 dark:bg-slate-700 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-600"
-                                      }`}
-                                  >
-                                    {cat}
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-
-                            {/* Replies list */}
-                            <div className="overflow-y-auto" style={{ maxHeight: '200px' }}>
-                              {filteredQuickReplies.length === 0 ? (
-                                <div className="py-6 text-center text-xs text-gray-400 dark:text-slate-500">
-                                  No quick replies found
-                                </div>
-                              ) : (
-                                filteredQuickReplies.map((qr) => (
-                                  <button
-                                    key={qr.id}
-                                    onClick={() => handleInsertQuickReply(qr.message)}
-                                    className="w-full text-left px-3 py-2 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors group cursor-pointer border-b border-gray-50 dark:border-slate-700/50 last:border-b-0"
-                                    style={{ borderColor: isDark ? 'rgba(51,65,85,0.5)' : 'rgba(249,250,251,1)' }}
-                                  >
-                                    <div className="flex items-center gap-2 mb-0.5">
-                                      <span className="text-[11px] font-mono text-cyan-600 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-900/20 px-1.5 py-0.5 rounded">
-                                        {qr.shortcut}
-                                      </span>
-                                      <span className="text-xs text-gray-800 dark:text-slate-200 truncate flex-1">
-                                        {qr.title}
-                                      </span>
-                                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${qrCategoryColors[qr.category] || "bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-slate-300"}`}>
-                                        {qr.category}
-                                      </span>
-                                      <ChevronRight className="w-3 h-3 text-gray-300 dark:text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                    </div>
-                                    <p className="text-[11px] text-gray-500 dark:text-slate-400 line-clamp-1 leading-relaxed">
-                                      {qr.message}
-                                    </p>
-                                  </button>
-                                ))
-                              )}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Chat Input Bar */}
-                        <div className="flex items-end gap-2 bg-gray-50 dark:bg-slate-700/60 border border-gray-200 dark:border-slate-600 rounded-xl p-1.5" style={{ borderColor: isDark ? '#475569' : '#e5e7eb' }}>
-                          <div className="flex items-center gap-1 mb-0.5 ml-1">
-                            <button
-                              onClick={() => fileInputRef.current?.click()}
-                              className="p-1.5 text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors cursor-pointer"
-                              title="Attach file"
-                            >
-                              <Paperclip className="w-4 h-4" />
-                            </button>
-                            <button className="p-1.5 text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors cursor-pointer">
-                              <Smile className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => setShowQuickReplies((v) => !v)}
-                              className={`p-1.5 rounded-lg transition-colors cursor-pointer ${showQuickReplies
-                                ? "text-cyan-600 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-900/30"
-                                : "text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-600"
-                                }`}
-                              title="Quick Replies"
-                            >
-                              <Zap className="w-4 h-4" />
-                            </button>
-                          </div>
-                          <textarea
-                            placeholder="Type your reply... (or use quick replies ⚡)"
-                            value={chatMessage}
-                            onChange={(e) => {
-                              setChatMessage(e.target.value);
-                              if (e.target.value.trim()) broadcastAdminTyping();
-                            }}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter" && !e.shiftKey) {
-                                e.preventDefault();
-                                handleSendMessage();
-                              }
-                            }}
-                            rows={1}
-                            className="flex-1 py-2 px-2 text-sm bg-transparent outline-none resize-none min-h-[36px] max-h-[100px] text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500"
-                          />
-                          <button
-                            onClick={handleSendMessage}
-                            disabled={!chatMessage.trim() && attachedFiles.length === 0}
-                            className={`p-2 rounded-lg mb-0.5 mr-0.5 transition-colors cursor-pointer ${chatMessage.trim() || attachedFiles.length > 0
-                              ? "bg-cyan-600 text-white hover:bg-cyan-700"
-                              : "bg-gray-300 dark:bg-slate-600 text-white"
-                              }`}
-                          >
-                            <Send className="w-4 h-4" style={{ marginLeft: 1 }} />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Info Sidebar */}
-                  {showInfo && (
-                    <div className="w-72 bg-white dark:bg-slate-800 border-l border-gray-200 dark:border-slate-700 flex flex-col shrink-0 overflow-y-auto">
-                      <div className="p-4 border-b border-gray-100 dark:border-slate-700 text-center">
-                        <div
-                          className="w-14 h-14 rounded-full flex items-center justify-center text-white text-xl font-semibold mx-auto mb-2"
-                          style={{ backgroundColor: getAvatarColor(selectedChat.visitor) }}
-                        >
-                          {selectedChat.visitor.charAt(0)}
-                        </div>
-                        <p className="text-sm font-semibold text-gray-900 dark:text-slate-100">{selectedChat.visitor}</p>
-                        <div className="flex items-center gap-1 justify-center mt-1">
-                          <span className="w-2 h-2 rounded-full bg-green-500" />
-                          <span className="text-[11px] text-gray-500 dark:text-slate-400">Online</span>
-                        </div>
-                      </div>
-
-                      <div className="p-4">
-                        <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-3">Session Details</p>
-                        <div className="space-y-2.5">
-                          <div>
-                            <p className="text-[11px] text-gray-400 dark:text-slate-500">Session ID</p>
-                            <p className="text-xs font-semibold text-gray-700 dark:text-slate-300 font-mono">{getQueueDisplayId(selectedChat.id)}</p>
-                          </div>
-                          <div>
-                            <p className="text-[11px] text-gray-400 dark:text-slate-500">Status</p>
-                            <span className="inline-flex items-center gap-1 text-[11px] font-medium bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 px-2 py-0.5 rounded-full mt-0.5">
-                              <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                              Active
-                            </span>
-                          </div>
-                          {selectedChat.timeInQueue && (
-                            <div>
-                              <p className="text-[11px] text-gray-400 dark:text-slate-500">Time in Queue</p>
-                              <p className="text-xs font-semibold text-gray-700 dark:text-slate-300">{selectedChat.timeInQueue}</p>
                             </div>
                           )}
-                          <div>
-                            <p className="text-[11px] text-gray-400 dark:text-slate-500">Messages</p>
-                            <p className="text-xs font-semibold text-gray-700 dark:text-slate-300">{selectedChat.messages.length}</p>
+                        </div>
+
+                        <div ref={bottomRef} />
+                      </div>
+
+                      {/* Input */}
+                      <div className="px-4 py-3 bg-white dark:bg-slate-800 border-t border-gray-200 dark:border-slate-700 shrink-0">
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          className="hidden"
+                          onChange={handleFileChange}
+                          accept="image/*,.pdf,.doc,.docx,.txt,.csv,.xlsx,.zip"
+                          multiple
+                        />
+
+                        {/* Inline file previews */}
+                        {attachedFiles.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mb-2 p-2 bg-gray-50 dark:bg-slate-700/60 rounded-xl border border-gray-200 dark:border-slate-600">
+                            {attachedFiles.map((af, index) => (
+                              <div key={index} className="relative group">
+                                {af.file.type.startsWith("image/") ? (
+                                  <img
+                                    src={af.previewUrl}
+                                    alt={af.file.name}
+                                    className="w-16 h-16 rounded-lg object-cover border border-gray-200 dark:border-slate-600"
+                                  />
+                                ) : (
+                                  <div className="w-16 h-16 rounded-lg bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 flex flex-col items-center justify-center p-1">
+                                    <FileText className="w-5 h-5 text-cyan-600 dark:text-cyan-400 mb-0.5" />
+                                    <p className="text-[8px] text-gray-500 dark:text-slate-400 truncate w-full text-center">{af.file.name}</p>
+                                  </div>
+                                )}
+                                <button
+                                  onClick={() => handleFileRemove(index)}
+                                  className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        <div className="relative" ref={quickRepliesRef}>
+                          {/* Quick Replies Dropdown */}
+                          {showQuickReplies && (
+                            <div
+                              className="absolute bottom-full left-0 right-0 mb-2 bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-600 overflow-hidden z-30"
+                              style={{ borderColor: isDark ? '#475569' : '#e5e7eb', maxHeight: '340px' }}
+                            >
+                              {/* Header */}
+                              <div className="flex items-center justify-between px-3 py-2.5 border-b border-gray-100 dark:border-slate-700" style={{ borderColor: isDark ? '#334155' : '#f3f4f6' }}>
+                                <div className="flex items-center gap-2">
+                                  <Zap className="w-4 h-4 text-cyan-500" />
+                                  <span className="text-sm text-gray-800 dark:text-slate-200">Quick Replies</span>
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-slate-400">{filteredQuickReplies.length}</span>
+                                </div>
+                                <button
+                                  onClick={() => setShowQuickReplies(false)}
+                                  className="p-1 text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+
+                              {/* Search + Category filters */}
+                              <div className="px-3 pt-2 pb-1.5 space-y-2 border-b border-gray-100 dark:border-slate-700" style={{ borderColor: isDark ? '#334155' : '#f3f4f6' }}>
+                                <div className="relative">
+                                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 dark:text-slate-500" />
+                                  <input
+                                    type="text"
+                                    placeholder="Search replies..."
+                                    value={qrSearchQuery}
+                                    onChange={(e) => setQrSearchQuery(e.target.value)}
+                                    className="w-full pl-8 pr-3 py-1.5 text-xs bg-gray-50 dark:bg-slate-700/60 border border-gray-200 dark:border-slate-600 rounded-lg text-gray-800 dark:text-slate-200 placeholder-gray-400 dark:placeholder-slate-500 outline-none focus:border-cyan-400 dark:focus:border-cyan-500 transition-colors"
+                                    style={{ borderColor: isDark ? '#475569' : '#e5e7eb' }}
+                                    autoFocus
+                                  />
+                                </div>
+                                <div className="flex items-center gap-1 overflow-x-auto pb-0.5">
+                                  {qrCategories.map((cat) => (
+                                    <button
+                                      key={cat}
+                                      onClick={() => setQrActiveCategory(cat)}
+                                      className={`text-[11px] px-2 py-0.5 rounded-full whitespace-nowrap transition-colors cursor-pointer ${qrActiveCategory === cat
+                                        ? "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300"
+                                        : "bg-gray-100 text-gray-500 dark:bg-slate-700 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-600"
+                                        }`}
+                                    >
+                                      {cat}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+
+                              {/* Replies list */}
+                              <div className="overflow-y-auto" style={{ maxHeight: '200px' }}>
+                                {filteredQuickReplies.length === 0 ? (
+                                  <div className="py-6 text-center text-xs text-gray-400 dark:text-slate-500">
+                                    No quick replies found
+                                  </div>
+                                ) : (
+                                  filteredQuickReplies.map((qr) => (
+                                    <button
+                                      key={qr.id}
+                                      onClick={() => handleInsertQuickReply(qr.message)}
+                                      className="w-full text-left px-3 py-2 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors group cursor-pointer border-b border-gray-50 dark:border-slate-700/50 last:border-b-0"
+                                      style={{ borderColor: isDark ? 'rgba(51,65,85,0.5)' : 'rgba(249,250,251,1)' }}
+                                    >
+                                      <div className="flex items-center gap-2 mb-0.5">
+                                        <span className="text-[11px] font-mono text-cyan-600 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-900/20 px-1.5 py-0.5 rounded">
+                                          {qr.shortcut}
+                                        </span>
+                                        <span className="text-xs text-gray-800 dark:text-slate-200 truncate flex-1">
+                                          {qr.title}
+                                        </span>
+                                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${qrCategoryColors[qr.category] || "bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-slate-300"}`}>
+                                          {qr.category}
+                                        </span>
+                                        <ChevronRight className="w-3 h-3 text-gray-300 dark:text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                      </div>
+                                      <p className="text-[11px] text-gray-500 dark:text-slate-400 line-clamp-1 leading-relaxed">
+                                        {qr.message}
+                                      </p>
+                                    </button>
+                                  ))
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Chat Input Bar */}
+                          <div className="flex items-end gap-2 bg-gray-50 dark:bg-slate-700/60 border border-gray-200 dark:border-slate-600 rounded-xl p-1.5" style={{ borderColor: isDark ? '#475569' : '#e5e7eb' }}>
+                            <div className="flex items-center gap-1 mb-0.5 ml-1">
+                              <button
+                                onClick={() => fileInputRef.current?.click()}
+                                className="p-1.5 text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors cursor-pointer"
+                                title="Attach file"
+                              >
+                                <Paperclip className="w-4 h-4" />
+                              </button>
+                              <button className="p-1.5 text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors cursor-pointer">
+                                <Smile className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => setShowQuickReplies((v) => !v)}
+                                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${showQuickReplies
+                                  ? "text-cyan-600 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-900/30"
+                                  : "text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-600"
+                                  }`}
+                                title="Quick Replies"
+                              >
+                                <Zap className="w-4 h-4" />
+                              </button>
+                            </div>
+                            <textarea
+                              placeholder="Type your reply... (or use quick replies ⚡)"
+                              value={chatMessage}
+                              onChange={(e) => {
+                                setChatMessage(e.target.value);
+                                if (e.target.value.trim()) broadcastAdminTyping();
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" && !e.shiftKey) {
+                                  e.preventDefault();
+                                  handleSendMessage();
+                                }
+                              }}
+                              rows={1}
+                              className="flex-1 py-2 px-2 text-sm bg-transparent outline-none resize-none min-h-[36px] max-h-[100px] text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500"
+                            />
+                            <button
+                              onClick={handleSendMessage}
+                              disabled={!chatMessage.trim() && attachedFiles.length === 0}
+                              className={`p-2 rounded-lg mb-0.5 mr-0.5 transition-colors cursor-pointer ${chatMessage.trim() || attachedFiles.length > 0
+                                ? "bg-cyan-600 text-white hover:bg-cyan-700"
+                                : "bg-gray-300 dark:bg-slate-600 text-white"
+                                }`}
+                            >
+                              <Send className="w-4 h-4" style={{ marginLeft: 1 }} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Info Sidebar */}
+                    {showInfo && (
+                      <div className="w-72 bg-white dark:bg-slate-800 border-l border-gray-200 dark:border-slate-700 flex flex-col shrink-0 overflow-y-auto">
+                        <div className="p-4 border-b border-gray-100 dark:border-slate-700 text-center">
+                          <div
+                            className="w-14 h-14 rounded-full flex items-center justify-center text-white text-xl font-semibold mx-auto mb-2"
+                            style={{ backgroundColor: getAvatarColor(selectedChat.visitor) }}
+                          >
+                            {selectedChat.visitor.charAt(0)}
+                          </div>
+                          <p className="text-sm font-semibold text-gray-900 dark:text-slate-100">{selectedChat.visitor}</p>
+                          <div className="flex items-center gap-1 justify-center mt-1">
+                            <span className="w-2 h-2 rounded-full bg-green-500" />
+                            <span className="text-[11px] text-gray-500 dark:text-slate-400">Online</span>
                           </div>
                         </div>
 
-                        <div className="h-px bg-gray-100 dark:bg-slate-700 my-4" />
+                        <div className="p-4">
+                          <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-3">Session Details</p>
+                          <div className="space-y-2.5">
+                            <div>
+                              <p className="text-[11px] text-gray-400 dark:text-slate-500">Session ID</p>
+                              <p className="text-xs font-semibold text-gray-700 dark:text-slate-300 font-mono">{getQueueDisplayId(selectedChat.id)}</p>
+                            </div>
+                            <div>
+                              <p className="text-[11px] text-gray-400 dark:text-slate-500">Status</p>
+                              <span className="inline-flex items-center gap-1 text-[11px] font-medium bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 px-2 py-0.5 rounded-full mt-0.5">
+                                <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                                Active
+                              </span>
+                            </div>
+                            {selectedChat.timeInQueue && (
+                              <div>
+                                <p className="text-[11px] text-gray-400 dark:text-slate-500">Time in Queue</p>
+                                <p className="text-xs font-semibold text-gray-700 dark:text-slate-300">{selectedChat.timeInQueue}</p>
+                              </div>
+                            )}
+                            <div>
+                              <p className="text-[11px] text-gray-400 dark:text-slate-500">Messages</p>
+                              <p className="text-xs font-semibold text-gray-700 dark:text-slate-300">{selectedChat.messages.length}</p>
+                            </div>
+                          </div>
 
-                        <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-3">Visitor Metadata</p>
-                        <div className="space-y-2.5">
-                          <div className="flex items-start gap-2">
-                            <Globe className="w-3.5 h-3.5 text-gray-400 dark:text-slate-500 mt-0.5 shrink-0" />
-                            <div>
-                              <p className="text-[11px] text-gray-400 dark:text-slate-500">Browser</p>
-                              <p className="text-xs font-semibold text-gray-700 dark:text-slate-300">Chrome 122.0</p>
+                          <div className="h-px bg-gray-100 dark:bg-slate-700 my-4" />
+
+                          <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-3">Visitor Metadata</p>
+                          <div className="space-y-2.5">
+                            <div className="flex items-start gap-2">
+                              <Globe className="w-3.5 h-3.5 text-gray-400 dark:text-slate-500 mt-0.5 shrink-0" />
+                              <div>
+                                <p className="text-[11px] text-gray-400 dark:text-slate-500">Browser</p>
+                                <p className="text-xs font-semibold text-gray-700 dark:text-slate-300">Chrome 122.0</p>
+                              </div>
+                            </div>
+                            <div className="flex items-start gap-2">
+                              <Monitor className="w-3.5 h-3.5 text-gray-400 dark:text-slate-500 mt-0.5 shrink-0" />
+                              <div>
+                                <p className="text-[11px] text-gray-400 dark:text-slate-500">OS / Device</p>
+                                <p className="text-xs font-semibold text-gray-700 dark:text-slate-300">Windows 11 &middot; Desktop</p>
+                              </div>
+                            </div>
+                            <div className="flex items-start gap-2">
+                              <MapPin className="w-3.5 h-3.5 text-gray-400 dark:text-slate-500 mt-0.5 shrink-0" />
+                              <div>
+                                <p className="text-[11px] text-gray-400 dark:text-slate-500">Location</p>
+                                <p className="text-xs font-semibold text-gray-700 dark:text-slate-300">New York, NY, US</p>
+                              </div>
+                            </div>
+                            <div className="flex items-start gap-2">
+                              <Clock className="w-3.5 h-3.5 text-gray-400 dark:text-slate-500 mt-0.5 shrink-0" />
+                              <div>
+                                <p className="text-[11px] text-gray-400 dark:text-slate-500">Local Time</p>
+                                <p className="text-xs font-semibold text-gray-700 dark:text-slate-300">
+                                  {new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", timeZoneName: "short" })}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-start gap-2">
+                              <Globe className="w-3.5 h-3.5 text-gray-400 dark:text-slate-500 mt-0.5 shrink-0" />
+                              <div>
+                                <p className="text-[11px] text-gray-400 dark:text-slate-500">IP Address</p>
+                                <p className="text-xs font-semibold text-gray-700 dark:text-slate-300 font-mono">192.168.1.***</p>
+                              </div>
+                            </div>
+                            <div className="flex items-start gap-2">
+                              <LinkIcon className="w-3.5 h-3.5 text-gray-400 dark:text-slate-500 mt-0.5 shrink-0" />
+                              <div>
+                                <p className="text-[11px] text-gray-400 dark:text-slate-500">Current Page</p>
+                                <p className="text-xs font-semibold text-gray-700 dark:text-slate-300 break-all">/pricing</p>
+                              </div>
+                            </div>
+                            <div className="flex items-start gap-2">
+                              <LinkIcon className="w-3.5 h-3.5 text-gray-400 dark:text-slate-500 mt-0.5 shrink-0" />
+                              <div>
+                                <p className="text-[11px] text-gray-400 dark:text-slate-500">Referrer</p>
+                                <p className="text-xs font-semibold text-gray-700 dark:text-slate-300 break-all">google.com</p>
+                              </div>
                             </div>
                           </div>
-                          <div className="flex items-start gap-2">
-                            <Monitor className="w-3.5 h-3.5 text-gray-400 dark:text-slate-500 mt-0.5 shrink-0" />
-                            <div>
-                              <p className="text-[11px] text-gray-400 dark:text-slate-500">OS / Device</p>
-                              <p className="text-xs font-semibold text-gray-700 dark:text-slate-300">Windows 11 &middot; Desktop</p>
-                            </div>
-                          </div>
-                          <div className="flex items-start gap-2">
-                            <MapPin className="w-3.5 h-3.5 text-gray-400 dark:text-slate-500 mt-0.5 shrink-0" />
-                            <div>
-                              <p className="text-[11px] text-gray-400 dark:text-slate-500">Location</p>
-                              <p className="text-xs font-semibold text-gray-700 dark:text-slate-300">New York, NY, US</p>
-                            </div>
-                          </div>
-                          <div className="flex items-start gap-2">
-                            <Clock className="w-3.5 h-3.5 text-gray-400 dark:text-slate-500 mt-0.5 shrink-0" />
-                            <div>
-                              <p className="text-[11px] text-gray-400 dark:text-slate-500">Local Time</p>
-                              <p className="text-xs font-semibold text-gray-700 dark:text-slate-300">
-                                {new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", timeZoneName: "short" })}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-start gap-2">
-                            <Globe className="w-3.5 h-3.5 text-gray-400 dark:text-slate-500 mt-0.5 shrink-0" />
-                            <div>
-                              <p className="text-[11px] text-gray-400 dark:text-slate-500">IP Address</p>
-                              <p className="text-xs font-semibold text-gray-700 dark:text-slate-300 font-mono">192.168.1.***</p>
-                            </div>
-                          </div>
-                          <div className="flex items-start gap-2">
-                            <LinkIcon className="w-3.5 h-3.5 text-gray-400 dark:text-slate-500 mt-0.5 shrink-0" />
-                            <div>
-                              <p className="text-[11px] text-gray-400 dark:text-slate-500">Current Page</p>
-                              <p className="text-xs font-semibold text-gray-700 dark:text-slate-300 break-all">/pricing</p>
-                            </div>
-                          </div>
-                          <div className="flex items-start gap-2">
-                            <LinkIcon className="w-3.5 h-3.5 text-gray-400 dark:text-slate-500 mt-0.5 shrink-0" />
-                            <div>
-                              <p className="text-[11px] text-gray-400 dark:text-slate-500">Referrer</p>
-                              <p className="text-xs font-semibold text-gray-700 dark:text-slate-300 break-all">google.com</p>
-                            </div>
-                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* End Chat Confirmation */}
+                  {showEndConfirm && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 dark:bg-black/60">
+                      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl dark:shadow-slate-900/50 w-full max-w-sm mx-4 overflow-hidden">
+                        <div className="p-5">
+                          <h3 className="text-base font-semibold text-gray-900 dark:text-slate-100">End Chat</h3>
+                          <p className="text-sm text-gray-500 dark:text-slate-400 mt-2">
+                            Are you sure you want to end this chat with{" "}
+                            <span className="font-semibold text-gray-700 dark:text-slate-300">{selectedChat.visitor}</span>? This will mark the conversation as resolved.
+                          </p>
+                        </div>
+                        <div className="flex items-center justify-end gap-2 px-5 py-3 bg-gray-50 dark:bg-slate-700/50 border-t border-gray-100 dark:border-slate-700">
+                          <button
+                            onClick={() => setShowEndConfirm(false)}
+                            className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={handleEndChat}
+                            className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors cursor-pointer"
+                          >
+                            Confirm End Chat
+                          </button>
                         </div>
                       </div>
                     </div>
                   )}
                 </div>
-
-                {/* End Chat Confirmation */}
-                {showEndConfirm && (
-                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 dark:bg-black/60">
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl dark:shadow-slate-900/50 w-full max-w-sm mx-4 overflow-hidden">
-                      <div className="p-5">
-                        <h3 className="text-base font-semibold text-gray-900 dark:text-slate-100">End Chat</h3>
-                        <p className="text-sm text-gray-500 dark:text-slate-400 mt-2">
-                          Are you sure you want to end this chat with{" "}
-                          <span className="font-semibold text-gray-700 dark:text-slate-300">{selectedChat.visitor}</span>? This will mark the conversation as resolved.
-                        </p>
-                      </div>
-                      <div className="flex items-center justify-end gap-2 px-5 py-3 bg-gray-50 dark:bg-slate-700/50 border-t border-gray-100 dark:border-slate-700">
-                        <button
-                          onClick={() => setShowEndConfirm(false)}
-                          className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          onClick={handleEndChat}
-                          className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors cursor-pointer"
-                        >
-                          Confirm End Chat
-                        </button>
-                      </div>
-                    </div>
+              ) : (
+                /* No chat selected */
+                <div className="flex-1 flex flex-col items-center justify-center text-center bg-gray-50 dark:bg-slate-900/50">
+                  <div className="w-16 h-16 rounded-full bg-cyan-50 dark:bg-cyan-900/30 flex items-center justify-center mb-4">
+                    <MessagesSquare className="w-8 h-8 text-cyan-400" />
                   </div>
-                )}
-              </div>
-            ) : (
-              /* No chat selected */
-              <div className="flex-1 flex flex-col items-center justify-center text-center bg-gray-50 dark:bg-slate-900/50">
-                <div className="w-16 h-16 rounded-full bg-cyan-50 dark:bg-cyan-900/30 flex items-center justify-center mb-4">
-                  <MessagesSquare className="w-8 h-8 text-cyan-400" />
+                  <h3 className="text-base font-semibold text-gray-700 dark:text-slate-300">
+                    {activeChats.length === 0 ? "No active conversations" : "Select a conversation"}
+                  </h3>
+                  <p className="text-sm text-gray-400 dark:text-slate-500 mt-1 max-w-xs">
+                    {activeChats.length === 0
+                      ? "Head to the Queue to pick up a visitor and start chatting."
+                      : "Choose a chat from the list on the left to view the conversation."}
+                  </p>
+                  {activeChats.length === 0 && (
+                    <Link
+                      to="/portal/queue"
+                      className="mt-4 px-5 py-2 bg-cyan-600 text-white text-sm font-medium rounded-lg hover:bg-cyan-700 transition-colors"
+                    >
+                      Go to Queue
+                    </Link>
+                  )}
                 </div>
-                <h3 className="text-base font-semibold text-gray-700 dark:text-slate-300">
-                  {activeChats.length === 0 ? "No active conversations" : "Select a conversation"}
-                </h3>
-                <p className="text-sm text-gray-400 dark:text-slate-500 mt-1 max-w-xs">
-                  {activeChats.length === 0
-                    ? "Head to the Queue to pick up a visitor and start chatting."
-                    : "Choose a chat from the list on the left to view the conversation."}
-                </p>
-                {activeChats.length === 0 && (
-                  <Link
-                    to="/portal/queue"
-                    className="mt-4 px-5 py-2 bg-cyan-600 text-white text-sm font-medium rounded-lg hover:bg-cyan-700 transition-colors"
-                  >
-                    Go to Queue
-                  </Link>
-                )}
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="max-w-7xl mx-auto px-6 py-8">
-            {activeSubTab === "chat-history" && (
-              <ChatHistorySection
-                searchQuery={searchQuery}
-                setSearchQuery={setSearchQuery}
-                endedChats={endedChats}
-                endedTranscripts={endedTranscripts}
-              />
-            )}
-          </div>
-        )}
+              )}
+            </div>
+          ) : (
+            <div className="max-w-7xl mx-auto px-6 py-8">
+              {activeSubTab === "chat-history" && (
+                <ChatHistorySection
+                  searchQuery={searchQuery}
+                  setSearchQuery={setSearchQuery}
+                  endedChats={endedChats}
+                  endedTranscripts={endedTranscripts}
+                />
+              )}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </React.Fragment>
   );
 }
 
@@ -1194,6 +1203,8 @@ function ChatHistorySection({
   });
 
   return (
+
+
     <div className={isDark ? "dark" : ""}>
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -1401,6 +1412,7 @@ function ChatHistorySection({
         </div>
       )}
     </div>
+
   );
 }
 

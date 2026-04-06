@@ -4,6 +4,8 @@ import { Link } from "react-router";
 import Navbar from "../../../components/common/Navbar";
 import Footer from "../../../components/common/Footer";
 import LiveChatWidget from "../../../components/widgets/LiveChatWidget";
+import React from "react";
+import PageTitle from "../../../components/common/PageTitle";
 
 const imgDashboard = "https://images.unsplash.com/photo-1693045181288-87092e30f862?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxhZG1pbiUyMGRhc2hib2FyZCUyMG92ZXJ2aWV3JTIwYW5hbHl0aWNzJTIwY2FyZHN8ZW58MXx8fHwxNzczNzI2NDgwfDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral";
 const imgAnalytics = "https://images.unsplash.com/photo-1723987251277-18fc0a1effd0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkYXRhJTIwYW5hbHl0aWNzJTIwY2hhcnRzJTIwbWV0cmljc3xlbnwxfHx8fDE3NzM3MjY0ODF8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral";
@@ -118,7 +120,13 @@ const BlogPage = () => {
   ];
 
   return (
-    <>
+    <React.Fragment>
+       <PageTitle
+        title="Blog & Guides"
+        description="Insights, tutorials, and best practices for delivering exceptional customer experiences."
+        canonical="/portal/blog"
+
+      />
       <Navbar />
       <Box sx={{ pt: { xs: 12, md: 16 }, pb: 12, bgcolor: "#F8FAFCFF", minHeight: "100vh" }}>
         <Box sx={{ bgcolor: "#0A192FFF", color: "#FFFFFFFF", py: { xs: 8, md: 12 }, textAlign: "center", borderBottom: "1px solid #1E293B" }}>
@@ -400,7 +408,7 @@ const BlogPage = () => {
       </Box>
       <Footer />
       <LiveChatWidget />
-    </>
+    </React.Fragment>
   );
 }
 

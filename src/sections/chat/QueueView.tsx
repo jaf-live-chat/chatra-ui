@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback, type CSSProperties, type ReactNode } from "react";
+import React, { useState, useMemo, useEffect, useCallback, type CSSProperties, type ReactNode } from "react";
 import {
   Activity,
   Bot,
@@ -50,6 +50,7 @@ import TableRow from "@mui/material/TableRow";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import ReusableTable, { type ReusableTableColumn } from "../../components/ReusableTable";
+import PageTitle from "../../components/common/PageTitle";
 
 // ─── Mock Data ───────────────────────────────────────────────────────────────
 
@@ -1570,97 +1571,105 @@ const QueueView = ({ queue, onStartChat, isAgent = false, currentAgentId }: { qu
           language: d?.language || "en-US",
         };
         return (
-          <Dialog open={!!visitorDetail} onClose={() => setVisitorDetail(null)} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3, overflow: "hidden" } }}>
-            <Box sx={{
-              px: 3, py: 2.5, display: "flex", alignItems: "center", justifyContent: "space-between",
-              borderBottom: "1px solid", borderColor: "grey.200",
-              background: "linear-gradient(135deg, #0891b214 0%, #0891b205 100%)",
-            }}>
-              <Stack direction="row" alignItems="center" spacing={2}>
-                {visitorDetail && (
-                  <Avatar sx={{ width: 40, height: 40, bgcolor: getAvatarColor(visitorDetail.id), fontSize: "1rem", fontWeight: 700 }}>
-                    {visitorDetail.name.charAt(0).toUpperCase()}
-                  </Avatar>
-                )}
-                <Box>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 700, color: "grey.900", lineHeight: 1.2 }}>{visitorDetail?.name}</Typography>
-                  <Typography variant="caption" sx={{ color: "text.secondary", fontFamily: "monospace" }}>{detail.visitorId}</Typography>
-                </Box>
-              </Stack>
-              <IconButton onClick={() => setVisitorDetail(null)} size="small" sx={{ color: "grey.500" }}>
-                <X size={18} />
-              </IconButton>
-            </Box>
-            <DialogContent sx={{ p: 0 }}>
-              <Stack divider={<Divider />}>
-                {[
-                  {
-                    icon: <MapPin size={15} />, label: "Geo Location", value: (
-                      <Stack direction="row" alignItems="center" spacing={1}>
-                        <Typography sx={{ fontSize: "1rem", lineHeight: 1 }}>{detail.flag}</Typography>
+          <React.Fragment>
+            <PageTitle
+              title="Queue Management"
+              description="View and manage your live chat queue, visitor details, and agent assignments all in one place."
+              canonical="/portal/queue-management"
+
+            />
+            <Dialog open={!!visitorDetail} onClose={() => setVisitorDetail(null)} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3, overflow: "hidden" } }}>
+              <Box sx={{
+                px: 3, py: 2.5, display: "flex", alignItems: "center", justifyContent: "space-between",
+                borderBottom: "1px solid", borderColor: "grey.200",
+                background: "linear-gradient(135deg, #0891b214 0%, #0891b205 100%)",
+              }}>
+                <Stack direction="row" alignItems="center" spacing={2}>
+                  {visitorDetail && (
+                    <Avatar sx={{ width: 40, height: 40, bgcolor: getAvatarColor(visitorDetail.id), fontSize: "1rem", fontWeight: 700 }}>
+                      {visitorDetail.name.charAt(0).toUpperCase()}
+                    </Avatar>
+                  )}
+                  <Box>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 700, color: "grey.900", lineHeight: 1.2 }}>{visitorDetail?.name}</Typography>
+                    <Typography variant="caption" sx={{ color: "text.secondary", fontFamily: "monospace" }}>{detail.visitorId}</Typography>
+                  </Box>
+                </Stack>
+                <IconButton onClick={() => setVisitorDetail(null)} size="small" sx={{ color: "grey.500" }}>
+                  <X size={18} />
+                </IconButton>
+              </Box>
+              <DialogContent sx={{ p: 0 }}>
+                <Stack divider={<Divider />}>
+                  {[
+                    {
+                      icon: <MapPin size={15} />, label: "Geo Location", value: (
+                        <Stack direction="row" alignItems="center" spacing={1}>
+                          <Typography sx={{ fontSize: "1rem", lineHeight: 1 }}>{detail.flag}</Typography>
+                          <Box>
+                            <Typography variant="body2" sx={{ fontWeight: 500, color: "grey.900", lineHeight: 1.2 }}>{detail.location}</Typography>
+                            <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.68rem" }}>{detail.country}</Typography>
+                          </Box>
+                        </Stack>
+                      )
+                    },
+                    {
+                      icon: getDeviceIcon(detail.deviceType as string), label: "Device", value: (
                         <Box>
-                          <Typography variant="body2" sx={{ fontWeight: 500, color: "grey.900", lineHeight: 1.2 }}>{detail.location}</Typography>
-                          <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.68rem" }}>{detail.country}</Typography>
+                          <Typography variant="body2" sx={{ fontWeight: 500, color: "grey.900", lineHeight: 1.2 }}>{detail.device}</Typography>
+                          <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.68rem" }}>{detail.os}</Typography>
                         </Box>
+                      )
+                    },
+                    { icon: <Globe size={15} />, label: "Browser", value: detail.browser },
+                    {
+                      icon: <Eye size={15} />, label: "Current Page", value: (
+                        <Chip label={detail.currentPage} size="small" sx={{
+                          bgcolor: "#0891b214", color: "primary.dark",
+                          fontWeight: 500, fontFamily: "monospace", fontSize: "0.72rem", height: 24,
+                        }} />
+                      )
+                    },
+                    {
+                      icon: <Activity size={15} />, label: "Total Visits", value: (
+                        <Box sx={{
+                          width: 28, height: 28, borderRadius: "50%",
+                          bgcolor: detail.visits > 5 ? "#16a34a1a" : "grey.100",
+                          color: detail.visits > 5 ? "#15803d" : "grey.700",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          fontWeight: 700, fontSize: "0.8rem",
+                        }}>
+                          {detail.visits}
+                        </Box>
+                      )
+                    },
+                    { icon: <MessageSquare size={15} />, label: "Language", value: detail.language },
+                    { icon: <Wifi size={15} />, label: "Referrer", value: detail.referrer },
+                  ].map((row, i) => (
+                    <Stack key={i} direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 3, py: 1.75 }}>
+                      <Stack direction="row" alignItems="center" spacing={1.5} sx={{ color: "grey.500" }}>
+                        {row.icon}
+                        <Typography variant="body2" sx={{ color: "text.secondary", fontSize: "0.82rem" }}>{row.label}</Typography>
                       </Stack>
-                    )
-                  },
-                  {
-                    icon: getDeviceIcon(detail.deviceType as string), label: "Device", value: (
-                      <Box>
-                        <Typography variant="body2" sx={{ fontWeight: 500, color: "grey.900", lineHeight: 1.2 }}>{detail.device}</Typography>
-                        <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.68rem" }}>{detail.os}</Typography>
+                      <Box sx={{ textAlign: "right" }}>
+                        {typeof row.value === "string" ? (
+                          <Typography variant="body2" sx={{ fontWeight: 500, color: "grey.900", fontSize: "0.82rem" }}>{row.value}</Typography>
+                        ) : row.value}
                       </Box>
-                    )
-                  },
-                  { icon: <Globe size={15} />, label: "Browser", value: detail.browser },
-                  {
-                    icon: <Eye size={15} />, label: "Current Page", value: (
-                      <Chip label={detail.currentPage} size="small" sx={{
-                        bgcolor: "#0891b214", color: "primary.dark",
-                        fontWeight: 500, fontFamily: "monospace", fontSize: "0.72rem", height: 24,
-                      }} />
-                    )
-                  },
-                  {
-                    icon: <Activity size={15} />, label: "Total Visits", value: (
-                      <Box sx={{
-                        width: 28, height: 28, borderRadius: "50%",
-                        bgcolor: detail.visits > 5 ? "#16a34a1a" : "grey.100",
-                        color: detail.visits > 5 ? "#15803d" : "grey.700",
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        fontWeight: 700, fontSize: "0.8rem",
-                      }}>
-                        {detail.visits}
-                      </Box>
-                    )
-                  },
-                  { icon: <MessageSquare size={15} />, label: "Language", value: detail.language },
-                  { icon: <Wifi size={15} />, label: "Referrer", value: detail.referrer },
-                ].map((row, i) => (
-                  <Stack key={i} direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 3, py: 1.75 }}>
-                    <Stack direction="row" alignItems="center" spacing={1.5} sx={{ color: "grey.500" }}>
-                      {row.icon}
-                      <Typography variant="body2" sx={{ color: "text.secondary", fontSize: "0.82rem" }}>{row.label}</Typography>
                     </Stack>
-                    <Box sx={{ textAlign: "right" }}>
-                      {typeof row.value === "string" ? (
-                        <Typography variant="body2" sx={{ fontWeight: 500, color: "grey.900", fontSize: "0.82rem" }}>{row.value}</Typography>
-                      ) : row.value}
-                    </Box>
-                  </Stack>
-                ))}
-              </Stack>
-            </DialogContent>
-            <DialogActions sx={{ p: 2, bgcolor: "grey.50", borderTop: "1px solid", borderColor: "grey.200" }}>
-              <Button onClick={() => setVisitorDetail(null)} color="inherit" sx={{ fontWeight: 600 }}>Close</Button>
-              <Button
-                onClick={() => { if (visitorDetail) setChatToConfirm(visitorDetail); setVisitorDetail(null); }}
-                variant="contained" color="primary" startIcon={<MessageSquare size={16} />} sx={{ fontWeight: 600 }}>
-                Start Chat
-              </Button>
-            </DialogActions>
-          </Dialog>
+                  ))}
+                </Stack>
+              </DialogContent>
+              <DialogActions sx={{ p: 2, bgcolor: "grey.50", borderTop: "1px solid", borderColor: "grey.200" }}>
+                <Button onClick={() => setVisitorDetail(null)} color="inherit" sx={{ fontWeight: 600 }}>Close</Button>
+                <Button
+                  onClick={() => { if (visitorDetail) setChatToConfirm(visitorDetail); setVisitorDetail(null); }}
+                  variant="contained" color="primary" startIcon={<MessageSquare size={16} />} sx={{ fontWeight: 600 }}>
+                  Start Chat
+                </Button>
+              </DialogActions>
+            </Dialog>
+          </React.Fragment>
         );
       })()}
 

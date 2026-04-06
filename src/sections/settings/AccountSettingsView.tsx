@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   User,
   Mail,
@@ -18,6 +18,7 @@ import useAuth from "../../hooks/useAuth";
 import Agents from "../../services/agentServices";
 import AvatarUpload from "../../components/uploads/AvatarUpload";
 import { API_BASE_URL, USER_ROLES } from "../../constants/constants";
+import PageTitle from "../../components/common/PageTitle";
 
 const ACCOUNT_SETTINGS_UNLOCK_MS = 10 * 60 * 1000;
 
@@ -505,11 +506,17 @@ const AccountSettingsView = () => {
   const widgetScript = `<!-- Live Chat Widget -->\n<script>\n  window.LiveChatConfig = {\n    apiUrl: '${API_BASE_URL}',\n    socketUrl: '${socketUrl}',\n    apiKey: '${tenantApiKey || ""}'\n  };\n</script>\n<script src="https://timora-live-chat.vercel.app/widget/live-chat-widget.js"></script>`;
 
   return (
-    <div>
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Account Settings</h1>
-        <p className="text-gray-500 mt-1">
+    <React.Fragment>
+      <PageTitle
+        title="Account Settings"
+        description="Manage your profile, notifications, and security preferences."
+        canonical="/portal/account-settings"
+      />
+      <div>
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-gray-900">Account Settings</h1>
+          <p className="text-gray-500 mt-1">
           Manage your profile, notifications, and security preferences.
         </p>
       </div>
@@ -1101,8 +1108,10 @@ const AccountSettingsView = () => {
         </div>
       </div>
 
+
     </div>
-  );
+
+</React.Fragment>  );
 }
 
 export default AccountSettingsView;

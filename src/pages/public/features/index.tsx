@@ -2,7 +2,7 @@ import Navbar from "../../../components/common/Navbar";
 import Footer from "../../../components/common/Footer";
 import FeaturesSection from "../../../sections/homepage/FeaturesSection";
 import LiveChatWidget from "../../../components/widgets/LiveChatWidget";
-import { useState } from "react";
+import React, { useState } from "react";
 import {
   Shield,
   Globe,
@@ -13,6 +13,7 @@ import {
   Palette,
   Bell,
 } from "lucide-react";
+import PageTitle from "../../../components/common/PageTitle";
 
 const extendedFeatures = [
   {
@@ -105,10 +106,17 @@ const FeaturesPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white overflow-x-hidden">
-      <Navbar />
-      <div className="pt-16">
-        <FeaturesSection />
+    <React.Fragment>
+       <PageTitle
+        title="Features"
+        description="Explore the full set of tools that make JAF Live Chat the best choice for your support team."
+        canonical="/portal/features"
+
+      />
+      <div className="min-h-screen bg-white overflow-x-hidden">
+        <Navbar />
+        <div className="pt-16">
+          <FeaturesSection />
 
         {/* Extended Features */}
         <section className="py-24 bg-gray-50">
@@ -353,6 +361,7 @@ const FeaturesPage = () => {
       <Footer />
       <LiveChatWidget />
     </div>
+    </React.Fragment>
   );
 }
 
