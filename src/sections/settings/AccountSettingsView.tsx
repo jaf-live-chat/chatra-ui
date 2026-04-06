@@ -19,6 +19,8 @@ import Agents from "../../services/agentServices";
 import AvatarUpload from "../../components/uploads/AvatarUpload";
 import { API_BASE_URL, USER_ROLES } from "../../constants/constants";
 import PageTitle from "../../components/common/PageTitle";
+import TitleTag from "../../components/TitleTag"
+import { Box } from "@mui/material";
 
 const ACCOUNT_SETTINGS_UNLOCK_MS = 10 * 60 * 1000;
 
@@ -514,12 +516,13 @@ const AccountSettingsView = () => {
       />
       <div>
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">Account Settings</h1>
-          <p className="text-gray-500 mt-1">
-          Manage your profile, notifications, and security preferences.
-        </p>
-      </div>
+        <Box sx={{ mb: 4 }}>
+          <TitleTag
+            title="Account Settings"
+            subtitle="Manage your profile, notifications, and security preferences."
+            icon={<User className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />}
+          />
+        </Box>
 
       <div className="flex gap-6">
         {/* Sidebar Tabs */}

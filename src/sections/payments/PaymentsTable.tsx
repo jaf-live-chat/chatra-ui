@@ -10,7 +10,7 @@ import Chip from "@mui/material/Chip";
 import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import { Eye } from "lucide-react";
+import { DollarSign, Eye } from "lucide-react";
 
 import ReusableTable, { type ReusableTableColumn } from "../../components/ReusableTable";
 import type { Payment, PaymentStatus } from "../../models/PaymentModel";
@@ -20,6 +20,7 @@ import formatAmount from "../../utils/amountFormatter";
 import Avatar from "@mui/material/Avatar";
 import getAvatarColor from "../../utils/getAvatarColor";
 import idLabel from "../../utils/idUtils";
+import TitleTag from "../../components/TitleTag";
 
 const statusStyles: Record<PaymentStatus, { label: string; bg: string; color: string }> = {
   COMPLETED: {
@@ -177,14 +178,11 @@ const PaymentsTable = () => {
 
   return (
     <Stack spacing={3} sx={{ width: "100%" }}>
-      <Box>
-        <Typography variant="h5" sx={{ fontWeight: 700, color: "grey.900" }}>
-          Payments
-        </Typography>
-        <Typography variant="body2" sx={{ color: "grey.600", mt: 0.5 }}>
-          Tenant payments overview with status, transaction date, and subscription type.
-        </Typography>
-      </Box>
+      <TitleTag
+        title="Payments"
+        subtitle="Tenant payments overview with status, transaction date, and subscription type."
+        icon={<DollarSign className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />}
+      />
 
       {error && (
         <Alert severity="error" variant="outlined">

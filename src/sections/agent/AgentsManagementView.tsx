@@ -44,6 +44,7 @@ import AgentEditDialog, { type AgentEditDialogFormValues } from "./components/Ag
 import PageTitle from "../../components/common/PageTitle";
 import idLabel from "../../utils/idUtils";
 import getAvatarColor from "../../utils/getAvatarColor";
+import TitleTag from "../../components/TitleTag";
 
 interface Agent extends AuthAgent {
   id: string;
@@ -533,15 +534,18 @@ const AgentsManagementView = () => {
         title="Agents Management"
         description="Manage your support team, their statuses, and performance."
         canonical="/portal/agents"
-
       />
+
+
       <Box sx={{ display: "flex", flexDirection: "column", gap: 4 }}>
         {/* ── Page header ── */}
         <Stack direction={{ xs: "column", md: "row" }} alignItems={{ xs: "flex-start", md: "flex-end" }} justifyContent="space-between" spacing={2}>
-          <Box>
-            <Typography variant="h5" sx={{ fontWeight: 800, color: "grey.900" }}>Agents Management</Typography>
-            <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5 }}>Manage your support team, their statuses, and performance.</Typography>
-          </Box>
+          <TitleTag
+            title="Agents Management"
+            subtitle="Manage your support team, their statuses, and performance."
+            icon={<Users className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />}
+          />
+
           <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
 
             <Button

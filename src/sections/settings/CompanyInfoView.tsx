@@ -12,6 +12,7 @@ import {
   X,
 } from "lucide-react";
 import { useDarkMode } from "../../providers/DarkModeContext";
+import TitleTag from "../../components/TitleTag";
 
 interface CompanyInfo {
   name: string;
@@ -168,18 +169,11 @@ const CompanyInfoView = () => {
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1
-            className={`text-2xl font-bold flex items-center gap-2 ${isDark ? "text-slate-100" : "text-gray-900"
-              }`}
-          >
-            <Building2 className="w-6 h-6 text-cyan-500" />
-            Company Information
-          </h1>
-          <p className={`mt-1 text-sm ${isDark ? "text-slate-400" : "text-gray-500"}`}>
-            Manage your organization's profile and public details.
-          </p>
-        </div>
+        <TitleTag
+          title="Company Information"
+          subtitle="Manage your organization's profile and public details."
+          icon={<Building2 className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />}
+        />
         <div className="flex items-center gap-2">
           {editing ? (
             <>

@@ -12,6 +12,8 @@ import {
   PencilLine,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import PageTitle from "../../components/common/PageTitle";
+import TitleTag from "../../components/TitleTag";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -307,169 +309,168 @@ const FaqEditorView = () => {
   };
 
   return (
-    <div className="flex flex-col gap-6">
+    <>
+      <PageTitle
+        title="FAQ Editor"
+        description="Create and manage homepage frequently asked questions."
+        canonical="/portal/faq-editor"
+      />
+      <div className="flex flex-col gap-6">
 
-      {/* ── Toolbar ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-cyan-50 dark:bg-cyan-900/30 flex items-center justify-center shrink-0">
-            <HelpCircle className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-gray-900 dark:text-slate-100">
-              {faqs.length} FAQ{faqs.length !== 1 ? "s" : ""} on the Homepage
-            </p>
-            <p className="text-xs text-gray-500 dark:text-slate-400">
-              Changes save instantly to localStorage.
-            </p>
-          </div>
-        </div>
+        {/* ── Toolbar ── */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <TitleTag
+            title="FAQ Editor"
+            subtitle="Create and manage homepage frequently asked questions."
+            icon={<HelpCircle className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />}
+          />
 
-        <div className="flex items-center gap-2">
-          {/* Auto-save indicator */}
-          <AnimatePresence>
-            {saved && (
-              <motion.span
-                initial={{ opacity: 0, scale: 0.85 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0 }}
-                className="flex items-center gap-1.5 text-xs font-medium text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-2.5 py-1 rounded-full"
+
+
+          <div className="flex items-center gap-2">
+            {/* Auto-save indicator */}
+            <AnimatePresence>
+              {saved && (
+                <motion.span
+                  initial={{ opacity: 0, scale: 0.85 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="flex items-center gap-1.5 text-xs font-medium text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-2.5 py-1 rounded-full"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  Saved
+                </motion.span>
+              )}
+            </AnimatePresence>
+
+            {/* View toggle */}
+            <div className="flex items-center bg-gray-100 dark:bg-slate-700 rounded-lg p-1">
+              <button
+                onClick={() => setActiveView("editor")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${activeView === "editor"
+                    ? "bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 shadow-sm"
+                    : "text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300"
+                  }`}
               >
-                <Save className="w-3.5 h-3.5" />
-                Saved
-              </motion.span>
-            )}
-          </AnimatePresence>
+                <PencilLine className="w-3.5 h-3.5" />
+                Editor
+              </button>
+              <button
+                onClick={() => setActiveView("preview")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${activeView === "preview"
+                    ? "bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 shadow-sm"
+                    : "text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300"
+                  }`}
+              >
+                <Eye className="w-3.5 h-3.5" />
+                Preview
+              </button>
+            </div>
 
-          {/* View toggle */}
-          <div className="flex items-center bg-gray-100 dark:bg-slate-700 rounded-lg p-1">
             <button
-              onClick={() => setActiveView("editor")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                activeView === "editor"
-                  ? "bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 shadow-sm"
-                  : "text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300"
-              }`}
+              onClick={resetToDefaults}
+              title="Reset to defaults"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-600 transition-colors"
             >
-              <PencilLine className="w-3.5 h-3.5" />
-              Editor
+              <RotateCcw className="w-3.5 h-3.5" />
+              Reset
             </button>
+
             <button
-              onClick={() => setActiveView("preview")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                activeView === "preview"
-                  ? "bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 shadow-sm"
-                  : "text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300"
-              }`}
+              onClick={addFaq}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold bg-cyan-600 hover:bg-cyan-700 text-white transition-colors shadow-sm"
             >
-              <Eye className="w-3.5 h-3.5" />
-              Preview
+              <Plus className="w-4 h-4" />
+              Add FAQ
             </button>
           </div>
-
-          <button
-            onClick={resetToDefaults}
-            title="Reset to defaults"
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-600 transition-colors"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            Reset
-          </button>
-
-          <button
-            onClick={addFaq}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold bg-cyan-600 hover:bg-cyan-700 text-white transition-colors shadow-sm"
-          >
-            <Plus className="w-4 h-4" />
-            Add FAQ
-          </button>
         </div>
-      </div>
 
-      {/* ── Content ── */}
-      <AnimatePresence mode="wait">
-        {activeView === "editor" ? (
-          <motion.div
-            key="editor"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.18 }}
-            className="flex flex-col gap-3"
-          >
-            {faqs.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 border-2 border-dashed border-gray-200 dark:border-slate-700 rounded-xl text-center gap-3">
-                <HelpCircle className="w-10 h-10 text-gray-300 dark:text-slate-600" />
-                <p className="text-sm font-medium text-gray-500 dark:text-slate-400">No FAQs yet</p>
+        {/* ── Content ── */}
+        <AnimatePresence mode="wait">
+          {activeView === "editor" ? (
+            <motion.div
+              key="editor"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.18 }}
+              className="flex flex-col gap-3"
+            >
+              {faqs.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 border-2 border-dashed border-gray-200 dark:border-slate-700 rounded-xl text-center gap-3">
+                  <HelpCircle className="w-10 h-10 text-gray-300 dark:text-slate-600" />
+                  <p className="text-sm font-medium text-gray-500 dark:text-slate-400">No FAQs yet</p>
+                  <button
+                    onClick={addFaq}
+                    className="mt-1 flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold bg-cyan-600 hover:bg-cyan-700 text-white transition-colors"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Add your first FAQ
+                  </button>
+                </div>
+              ) : (
+                <AnimatePresence initial={false}>
+                  {faqs.map((faq, i) => (
+                    <FaqRow
+                      key={faq.id}
+                      faq={faq}
+                      index={i}
+                      total={faqs.length}
+                      onUpdate={(updated) => updateFaq(faq.id, updated)}
+                      onDelete={() => deleteFaq(faq.id)}
+                      onMoveUp={() => moveUp(i)}
+                      onMoveDown={() => moveDown(i)}
+                    />
+                  ))}
+                </AnimatePresence>
+              )}
+
+              {faqs.length > 0 && (
                 <button
                   onClick={addFaq}
-                  className="mt-1 flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold bg-cyan-600 hover:bg-cyan-700 text-white transition-colors"
+                  className="flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-gray-200 dark:border-slate-700 text-sm text-gray-400 dark:text-slate-500 hover:text-cyan-600 dark:hover:text-cyan-400 hover:border-cyan-300 dark:hover:border-cyan-700 transition-colors"
                 >
                   <Plus className="w-4 h-4" />
-                  Add your first FAQ
+                  Add another FAQ
                 </button>
+              )}
+            </motion.div>
+          ) : (
+            <motion.div
+              key="preview"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.18 }}
+            >
+              {/* Preview header */}
+              <div className="mb-5 p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+                <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
+                  <Eye className="w-3.5 h-3.5" />
+                  Homepage preview — this is how visitors will see your FAQs
+                </p>
               </div>
-            ) : (
-              <AnimatePresence initial={false}>
-                {faqs.map((faq, i) => (
-                  <FaqRow
-                    key={faq.id}
-                    faq={faq}
-                    index={i}
-                    total={faqs.length}
-                    onUpdate={(updated) => updateFaq(faq.id, updated)}
-                    onDelete={() => deleteFaq(faq.id)}
-                    onMoveUp={() => moveUp(i)}
-                    onMoveDown={() => moveDown(i)}
-                  />
-                ))}
-              </AnimatePresence>
-            )}
 
-            {faqs.length > 0 && (
-              <button
-                onClick={addFaq}
-                className="flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-gray-200 dark:border-slate-700 text-sm text-gray-400 dark:text-slate-500 hover:text-cyan-600 dark:hover:text-cyan-400 hover:border-cyan-300 dark:hover:border-cyan-700 transition-colors"
-              >
-                <Plus className="w-4 h-4" />
-                Add another FAQ
-              </button>
-            )}
-          </motion.div>
-        ) : (
-          <motion.div
-            key="preview"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.18 }}
-          >
-            {/* Preview header */}
-            <div className="mb-5 p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
-              <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
-                <Eye className="w-3.5 h-3.5" />
-                Homepage preview — this is how visitors will see your FAQs
-              </p>
-            </div>
-
-            {/* Simulated homepage FAQ section */}
-            <div className="bg-gray-50 dark:bg-slate-900 rounded-2xl p-8">
-              <div className="max-w-2xl mx-auto">
-                <div className="text-center mb-8">
-                  <h2 className="text-xl font-bold text-gray-900 dark:text-slate-100 mb-1">
-                    Frequently Asked Questions
-                  </h2>
-                  <p className="text-sm text-gray-500 dark:text-slate-400">
-                    Everything you need to know about JAF Chatra
-                  </p>
+              {/* Simulated homepage FAQ section */}
+              <div className="bg-gray-50 dark:bg-slate-900 rounded-2xl p-8">
+                <div className="max-w-2xl mx-auto">
+                  <div className="text-center mb-8">
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-slate-100 mb-1">
+                      Frequently Asked Questions
+                    </h2>
+                    <p className="text-sm text-gray-500 dark:text-slate-400">
+                      Everything you need to know about JAF Chatra
+                    </p>
+                  </div>
+                  <PreviewPanel faqs={faqs} />
                 </div>
-                <PreviewPanel faqs={faqs} />
               </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </>
   );
 }
 

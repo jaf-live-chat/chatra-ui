@@ -186,6 +186,7 @@ const TenantDetailsView = () => {
             <TitleTag
               title="Tenant Details"
               subtitle="Master admin subscription controls and tenant identity details."
+              icon={<Building2 className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />}
             />
           </Stack>
 

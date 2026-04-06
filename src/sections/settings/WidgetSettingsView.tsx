@@ -38,6 +38,7 @@ import InputLabel from "@mui/material/InputLabel";
 import Alert from "@mui/material/Alert";
 import Snackbar from "@mui/material/Snackbar";
 import Tooltip from "@mui/material/Tooltip";
+import TitleTag from "../../components/TitleTag";
 
 const themeOptions = [
   { key: "cyan", label: "Cyan", color: "#0891B2" },
@@ -162,15 +163,14 @@ const WidgetSettingsView = () => {
   );
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
       {/* Header */}
       <Stack direction={{ xs: "column", md: "row" }} alignItems={{ xs: "flex-start", md: "center" }} justifyContent="space-between" spacing={2}>
-        <Box>
-          <Typography variant="h5" sx={{ fontWeight: 800, color: "grey.900" }}>Widget Settings</Typography>
-          <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5 }}>
-            Customize the appearance and behavior of your live chat widget
-          </Typography>
-        </Box>
+        <TitleTag
+          title="Widget Settings"
+          subtitle="Customize the appearance and behavior of your live chat widget"
+          icon={<Monitor className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />}
+        />
         <Stack direction="row" spacing={1.5}>
           <Button
             onClick={handleSave}
