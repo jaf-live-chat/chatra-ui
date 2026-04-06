@@ -28,14 +28,13 @@ import {
 } from "../../components/AlertDialog";
 import { Alert, AlertDescription, AlertTitle } from "../../components/Alert";
 import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-} from "../../components/drawer";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "../../components/dialog";
 import {
   createSubscriptionPlan,
   deleteSubscriptionPlanById,
@@ -74,6 +73,12 @@ interface ToastState {
 interface ValidationResult {
   valid: boolean;
   message?: string;
+}
+
+interface MostPopularPendingState {
+  planId: string;
+  planName: string;
+  nextValue: boolean;
 }
 
 const toPeriod = (billingCycle: BillingCycle, interval: number) => {
@@ -161,6 +166,12 @@ const createDefaultPlanDraft = (): SubscriptionPlan => ({
   },
 });
 
+const clonePlan = (plan: SubscriptionPlan): SubscriptionPlan => ({
+  ...plan,
+  features: plan.features.map((feature) => ({ ...feature })),
+  limits: { ...plan.limits },
+});
+
 const validatePlanDraft = (plan: SubscriptionPlan): ValidationResult => {
   if (!plan.name.trim()) return { valid: false, message: "Plan name is required." };
   if (!plan.description.trim()) return { valid: false, message: "Plan description is required." };
@@ -194,9 +205,12 @@ const SubscriptionPlansView = () => {
   const [createFeatureText, setCreateFeatureText] = useState("");
   const [createValidationAlert, setCreateValidationAlert] = useState<string | null>(null);
   const [planPendingDelete, setPlanPendingDelete] = useState<SubscriptionPlan | null>(null);
+  const [mostPopularPending, setMostPopularPending] = useState<MostPopularPendingState | null>(null);
+  const [editSnapshots, setEditSnapshots] = useState<Record<string, SubscriptionPlan>>({});
 
   useEffect(() => {
     setPlans(fetchedPlans.map(mapApiPlanToView));
+    setEditSnapshots({});
   }, [fetchedPlans]);
 
   const showSaved = () => {
@@ -218,6 +232,32 @@ const SubscriptionPlansView = () => {
 
   const updatePlan = (planId: string, updates: Partial<SubscriptionPlan>) => {
     setPlans((prev) => prev.map((p) => (p.id === planId ? { ...p, ...updates } : p)));
+  };
+
+  const startEditPlan = (planId: string) => {
+    const plan = plans.find((p) => p.id === planId);
+    if (!plan) return;
+
+    setEditSnapshots((prev) => {
+      if (prev[planId]) return prev;
+      return { ...prev, [planId]: clonePlan(plan) };
+    });
+    setEditingPlan(planId);
+  };
+
+  const cancelEditPlan = (planId: string) => {
+    const snapshot = editSnapshots[planId];
+
+    if (snapshot) {
+      setPlans((prev) => prev.map((p) => (p.id === planId ? clonePlan(snapshot) : p)));
+      setEditSnapshots((prev) => {
+        const next = { ...prev };
+        delete next[planId];
+        return next;
+      });
+    }
+
+    setEditingPlan(null);
   };
 
   const toggleMostPopular = (planId: string, checked: boolean) => {
@@ -294,6 +334,11 @@ const SubscriptionPlansView = () => {
       }
 
       await mutate();
+      setEditSnapshots((prev) => {
+        const next = { ...prev };
+        delete next[plan.id];
+        return next;
+      });
       setEditingPlan(null);
       showSaved();
       showToast("success", `"${plan.name}" saved successfully.`);
@@ -328,6 +373,7 @@ const SubscriptionPlansView = () => {
         })
       );
       await mutate();
+      setEditSnapshots({});
       setEditingPlan(null);
       showSaved();
       showToast("success", "All plans saved successfully.");
@@ -423,14 +469,28 @@ const SubscriptionPlansView = () => {
     setPlanPendingDelete(plan);
   };
 
+  const requestToggleMostPopular = (planId: string, nextValue: boolean) => {
+    const plan = plans.find((p) => p.id === planId);
+    if (!plan) return;
+
+    setMostPopularPending({
+      planId,
+      planName: plan.name,
+      nextValue,
+    });
+  };
+
   const orderedPlans = useMemo(() => {
     const copy = [...plans];
     const popularIndex = copy.findIndex((p) => p.popular);
 
-    if (popularIndex <= 0 || copy.length < 3) return copy;
+    if (popularIndex < 0 || copy.length < 3) return copy;
+
+    const centerIndex = Math.floor(copy.length / 2);
+    if (popularIndex === centerIndex) return copy;
 
     const [popular] = copy.splice(popularIndex, 1);
-    copy.splice(1, 0, popular);
+    copy.splice(centerIndex, 0, popular);
     return copy;
   }, [plans]);
 
@@ -472,7 +532,7 @@ const SubscriptionPlansView = () => {
         </div>
       )}
 
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100 flex items-center gap-3">
             <div className="w-10 h-10 bg-cyan-50 dark:bg-cyan-900/30 rounded-xl flex items-center justify-center">
@@ -480,11 +540,11 @@ const SubscriptionPlansView = () => {
             </div>
             Subscription Plans
           </h1>
-          <p className="text-gray-500 dark:text-slate-400 mt-1 ml-[52px]">
+          <p className="text-gray-500 dark:text-slate-400 mt-1 sm:ml-[52px]">
             Manage and edit pricing plans displayed on your website.
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           {saved && (
             <span className="flex items-center gap-1.5 text-sm text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-3 py-1.5 rounded-lg border border-green-200 dark:border-green-800">
               <Check className="w-4 h-4" /> Saved
@@ -521,8 +581,8 @@ const SubscriptionPlansView = () => {
                   : "bg-gray-50 dark:bg-slate-700/50"
                   }`}
               >
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
+                <div className="flex items-start justify-between gap-2 mb-3">
+                  <div className="flex items-center gap-2 shrink-0">
                     <div
                       className={`w-8 h-8 rounded-lg flex items-center justify-center ${plan.popular
                         ? "bg-cyan-100 dark:bg-cyan-800/50 text-cyan-600 dark:text-cyan-400"
@@ -531,23 +591,31 @@ const SubscriptionPlansView = () => {
                     >
                       {getPlanIcon(plan.name)}
                     </div>
-                    {plan.popular && (
-                      <span className="text-xs font-semibold bg-cyan-600 text-white px-2 py-0.5 rounded-full">
-                        Most Popular
-                      </span>
-                    )}
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div className="flex flex-wrap items-center justify-end gap-2 w-full sm:w-auto">
+                    <button
+                      type="button"
+                      onClick={() => requestToggleMostPopular(plan.id, !plan.popular)}
+                      title={plan.popular ? "Remove Most Popular label" : "Set as Most Popular"}
+                      aria-label={plan.popular ? "Remove Most Popular label" : "Set as Most Popular"}
+                      className={`inline-flex items-center gap-1.5 px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-lg border transition-colors text-xs font-semibold whitespace-nowrap ${plan.popular
+                        ? "border-cyan-300 bg-cyan-100 text-cyan-700 dark:border-cyan-600 dark:bg-cyan-900/30 dark:text-cyan-300"
+                        : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600"
+                        }`}
+                    >
+                      <Star className={`w-3.5 h-3.5 ${plan.popular ? "fill-current" : ""}`} />
+                      Most Popular
+                    </button>
                     <button
                       onClick={async () => {
                         if (isEditing) {
                           await savePlan(plan);
                           return;
                         }
-                        setEditingPlan(plan.id);
+                        startEditPlan(plan.id);
                       }}
                       disabled={isSavingThis}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all duration-300 text-xs font-semibold disabled:opacity-50 ${isEditing
+                      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all duration-300 text-xs font-semibold whitespace-nowrap disabled:opacity-50 ${isEditing
                         ? "bg-cyan-100 dark:bg-cyan-800/50 text-cyan-700 dark:text-cyan-400"
                         : "bg-gray-100 dark:bg-slate-600 text-gray-600 dark:text-slate-300"
                         }`}
@@ -555,9 +623,19 @@ const SubscriptionPlansView = () => {
                       {isEditing ? <Save className="w-3.5 h-3.5" /> : <Pencil className="w-3.5 h-3.5" />}
                       {isEditing ? "Save" : "Edit"}
                     </button>
+                    {isEditing && (
+                      <button
+                        type="button"
+                        onClick={() => cancelEditPlan(plan.id)}
+                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all duration-300 text-xs font-semibold whitespace-nowrap bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600 dark:hover:bg-slate-600"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                        Cancel
+                      </button>
+                    )}
                     <button
                       onClick={() => requestDeletePlan(plan.id)}
-                      className="p-1.5 rounded-lg text-gray-400 dark:text-slate-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                      className="p-1.5 rounded-lg text-gray-400 dark:text-slate-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors shrink-0"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -646,19 +724,6 @@ const SubscriptionPlansView = () => {
                     </div>
 
                     <div className="flex items-center gap-4">
-                      <button
-                        type="button"
-                        onClick={() => toggleMostPopular(plan.id, !plan.popular)}
-                        title={plan.popular ? "Remove Most Popular label" : "Label as Most Popular"}
-                        aria-label={plan.popular ? "Remove Most Popular label" : "Label as Most Popular"}
-                        className={`inline-flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-sm transition-colors ${plan.popular
-                          ? "border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-600 dark:bg-amber-900/20 dark:text-amber-300"
-                          : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600"
-                          }`}
-                      >
-                        <Star className={`w-4 h-4 ${plan.popular ? "fill-current" : ""}`} />
-                        Most Popular
-                      </button>
                       <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-slate-400">
                         <input type="checkbox" checked={plan.active} onChange={(e) => updatePlan(plan.id, { active: e.target.checked })} />
                         Active
@@ -737,17 +802,17 @@ const SubscriptionPlansView = () => {
         </div>
       )}
 
-      <Drawer direction="right" open={isCreateDrawerOpen} onOpenChange={setIsCreateDrawerOpen}>
-        <DrawerContent className="w-full sm:max-w-xl">
-          <DrawerHeader>
-            <DrawerTitle>Create Subscription Plan</DrawerTitle>
-            <DrawerDescription>
+      <Dialog open={isCreateDrawerOpen} onOpenChange={setIsCreateDrawerOpen}>
+        <DialogContent className="w-full max-w-2xl p-0 overflow-hidden">
+          <DialogHeader className="px-6 pt-6">
+            <DialogTitle>Create Subscription Plan</DialogTitle>
+            <DialogDescription>
               Fill in plan details. A plan must include at least one feature.
-            </DrawerDescription>
-          </DrawerHeader>
+            </DialogDescription>
+          </DialogHeader>
 
-          <div className="px-4 pb-4 overflow-y-auto">
-            <div className="space-y-3">
+          <div className="px-6 pb-4 max-h-[65vh] overflow-y-auto">
+            <div className="space-y-3 pt-2">
               {createValidationAlert && (
                 <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />
@@ -909,25 +974,24 @@ const SubscriptionPlansView = () => {
             </div>
           </div>
 
-          <DrawerFooter className="border-t border-gray-200 dark:border-slate-700">
+          <DialogFooter className="px-6 py-4 border-t border-gray-200 dark:border-slate-700 sm:justify-start sm:gap-2">
             <button
               onClick={submitNewPlan}
               disabled={isCreatingPlan}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-cyan-600 text-white hover:bg-cyan-700 transition-colors text-sm font-medium disabled:opacity-50"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-cyan-600 text-white hover:bg-cyan-700 transition-colors text-sm font-medium disabled:opacity-50 sm:min-w-40"
             >
               <Save className="w-4 h-4" /> {isCreatingPlan ? "Creating..." : "Create Plan"}
             </button>
-            <DrawerClose asChild>
-              <button
-                type="button"
-                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors text-sm font-medium"
-              >
-                Cancel
-              </button>
-            </DrawerClose>
-          </DrawerFooter>
-        </DrawerContent>
-      </Drawer>
+            <button
+              type="button"
+              onClick={() => setIsCreateDrawerOpen(false)}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors text-sm font-medium sm:min-w-32"
+            >
+              Cancel
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog
         open={Boolean(planPendingDelete)}
@@ -955,6 +1019,38 @@ const SubscriptionPlansView = () => {
               }}
             >
               Delete Plan
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={Boolean(mostPopularPending)}
+        onOpenChange={(open) => {
+          if (!open) setMostPopularPending(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {mostPopularPending?.nextValue ? "Set as Most Popular?" : "Remove Most Popular?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {mostPopularPending?.nextValue
+                ? `"${mostPopularPending.planName}" will be marked as Most Popular and moved to the center.`
+                : `"${mostPopularPending?.planName}" will no longer be marked as Most Popular.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (!mostPopularPending) return;
+                toggleMostPopular(mostPopularPending.planId, mostPopularPending.nextValue);
+                setMostPopularPending(null);
+              }}
+            >
+              Confirm
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
