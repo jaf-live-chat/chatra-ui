@@ -1,4 +1,4 @@
-import { ArrowLeft, Building2, CalendarClock, Circle, CreditCard, Power, ReceiptText } from "lucide-react";
+import { ArrowLeft, Building2, CalendarClock, Circle, CreditCard, ReceiptText } from "lucide-react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -12,7 +12,6 @@ import Paper from "@mui/material/Paper";
 import Skeleton from "@mui/material/Skeleton";
 import Snackbar from "@mui/material/Snackbar";
 import Stack from "@mui/material/Stack";
-import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router";
@@ -25,6 +24,7 @@ import { formatDate } from "../../utils/dateFormatter";
 import idLabel from "../../utils/idUtils";
 import TitleTag from "../../components/TitleTag";
 import TenantSubscriptionPlanDrawer from "./TenantSubscriptionPlanDrawer";
+import TenantPlanChangeDrawer from "./TenantPlanChangeDrawer";
 
 const EMPTY_LABEL = "-";
 
@@ -90,6 +90,7 @@ const TenantDetailsView = () => {
   const isAdmin = user?.role === USER_ROLES.ADMIN.value;
   const [isDeactivateDialogOpen, setIsDeactivateDialogOpen] = useState(false);
   const [isSubscriptionDrawerOpen, setIsSubscriptionDrawerOpen] = useState(false);
+  const [isPlanChangeDrawerOpen, setIsPlanChangeDrawerOpen] = useState(false);
   const [isMutating, setIsMutating] = useState(false);
   const [adjustmentDays, setAdjustmentDays] = useState("7");
   const [feedback, setFeedback] = useState<FeedbackState>(defaultFeedbackState);
@@ -203,7 +204,7 @@ const TenantDetailsView = () => {
               <Button
                 variant="contained"
                 startIcon={<ReceiptText size={16} />}
-                onClick={() => navigate(`/portal/subscription-plans?tenantId=${tenant.id}`)}
+                onClick={() => setIsPlanChangeDrawerOpen(true)}
                 sx={{ borderRadius: 1, fontWeight: 700, px: 2 }}
               >
                 Change Plan
@@ -215,6 +216,12 @@ const TenantDetailsView = () => {
 
       {Boolean(error) && (
         <Alert severity="error">Failed to load tenant details. Please refresh and try again.</Alert>
+      )}
+
+      {!isLoading && tenant?.upcomingSubscription?.planName && (
+        <Alert severity="info">
+          Upcoming plan {tenant.upcomingSubscription.planName} is scheduled for {formatDate(tenant.upcomingSubscription.startDate, { isIncludeTime: true })}.
+        </Alert>
       )}
 
       {!isLoading && !error && !tenant && (
@@ -478,6 +485,12 @@ const TenantDetailsView = () => {
         open={isSubscriptionDrawerOpen}
         planId={tenant?.subscription.planId}
         onClose={() => setIsSubscriptionDrawerOpen(false)}
+      />
+
+      <TenantPlanChangeDrawer
+        open={isPlanChangeDrawerOpen}
+        tenant={tenant}
+        onClose={() => setIsPlanChangeDrawerOpen(false)}
       />
     </Box>
   );
