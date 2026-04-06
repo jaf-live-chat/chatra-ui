@@ -51,6 +51,7 @@ import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import ReusableTable, { type ReusableTableColumn } from "../../components/ReusableTable";
 import PageTitle from "../../components/common/PageTitle";
+import TitleTag from "../../components/TitleTag";
 
 // ─── Mock Data ───────────────────────────────────────────────────────────────
 
@@ -561,7 +562,13 @@ const QueueView = ({ queue, onStartChat, isAgent = false, currentAgentId }: { qu
   ];
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 3.5, overflowX: "hidden" }}>
+    <>
+      <PageTitle
+        title="Queue Management"
+        description="View and manage your live chat queue, visitor details, and agent assignments all in one place."
+        canonical="/portal/queue-management"
+      />
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 3.5, overflowX: "hidden" }}>
 
       {/* ── Agent notice banner ── */}
       {isAgent && (
@@ -581,12 +588,11 @@ const QueueView = ({ queue, onStartChat, isAgent = false, currentAgentId }: { qu
 
       {/* ── Header ── */}
       <Stack direction={{ xs: "column", md: "row" }} alignItems={{ xs: "flex-start", md: "center" }} justifyContent="space-between" spacing={2}>
-        <Box>
-          <Typography variant="h5" sx={{ fontWeight: 800, color: "grey.900" }}>{isAgent ? "Your Queue" : "Customer Queue"}</Typography>
-          <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5 }}>
-            {isAgent ? "Accept chats assigned to you by the admin to start a live session" : "Manage visitors waiting in queue and monitor active sessions"}
-          </Typography>
-        </Box>
+        <TitleTag
+          title={isAgent ? "Your Queue" : "Customer Queue"}
+          subtitle={isAgent ? "Accept chats assigned to you by the admin to start a live session" : "Manage visitors waiting in queue and monitor active sessions"}
+          icon={<MessageSquare className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />}
+        />
         <Stack direction="row" alignItems="center" spacing={1.25} sx={{ flexWrap: "wrap", justifyContent: "flex-end", width: { xs: "100%", md: "auto" } }}>
           <Stack direction="row" spacing={1}>
             <Chip icon={<Box sx={{ width: 7, height: 7, borderRadius: "50%", bgcolor: "warning.main", ml: 0.5 }} />}
@@ -1572,12 +1578,6 @@ const QueueView = ({ queue, onStartChat, isAgent = false, currentAgentId }: { qu
         };
         return (
           <React.Fragment>
-            <PageTitle
-              title="Queue Management"
-              description="View and manage your live chat queue, visitor details, and agent assignments all in one place."
-              canonical="/portal/queue-management"
-
-            />
             <Dialog open={!!visitorDetail} onClose={() => setVisitorDetail(null)} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3, overflow: "hidden" } }}>
               <Box sx={{
                 px: 3, py: 2.5, display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -1690,7 +1690,8 @@ const QueueView = ({ queue, onStartChat, isAgent = false, currentAgentId }: { qu
           {snackbarMsg}
         </Alert>
       </Snackbar>
-    </Box>
+      </Box>
+    </>
   );
 }
 

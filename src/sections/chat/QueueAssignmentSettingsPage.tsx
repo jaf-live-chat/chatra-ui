@@ -22,6 +22,7 @@ import RadioGroup from "@mui/material/RadioGroup";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Radio from "@mui/material/Radio";
 import PageTitle from "../../components/common/PageTitle";
+import TitleTag from "../../components/TitleTag";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -97,36 +98,20 @@ const QueueAssignmentSettingsPage = () => {
         canonical="/portal/queue-assignment"
 
       />
-    <Box sx={{ display: "flex", flexDirection: "column" }}>
+      <Box sx={{ display: "flex", flexDirection: "column" }}>
       {/* Page Header */}
       <Box sx={{ mb: 4 }}>
         <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 1.5 }}>
-          <Box
-            sx={{
-              width: 48,
-              height: 48,
-              borderRadius: 2.5,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              bgcolor: assignMode === "auto" ? "#0891b218" : "grey.100",
-              transition: "background 0.2s",
-            }}
-          >
-            <Settings2 size={24} color={assignMode === "auto" ? "#0891b2" : "#6b7280"} />
-          </Box>
-          <Box sx={{ flex: 1 }}>
-            <Typography variant="h5" sx={{ fontWeight: 700, color: "grey.900", mb: 0.5 }}>
-              Queue Assignment Settings
-            </Typography>
-            <Typography variant="body2" sx={{ color: "text.secondary" }}>
-              Configure how incoming visitors are assigned to support agents
-            </Typography>
-          </Box>
+          <TitleTag
+            title="Queue Assignment Settings"
+            subtitle="Configure how incoming visitors are assigned to support agents"
+            icon={<Settings2 className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />}
+          />
           <Chip
             label={assignMode === "auto" ? "Automatic" : "Manual"}
             size="medium"
             sx={{
+              alignSelf: "center",
               height: 32,
               fontSize: "0.8rem",
               fontWeight: 800,

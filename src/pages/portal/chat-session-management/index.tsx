@@ -23,6 +23,7 @@ import { getQueueDisplayId } from "../../../sections/chat/QueueView";
 import { useDarkMode } from "../../../providers/DarkModeContext";
 import { SEED_REPLIES } from "../../../sections/settings/QuickRepliesView";
 import PageTitle from "../../../components/common/PageTitle";
+import TitleTag from "../../../components/TitleTag";
 
 type SubTab = "active-chats" | "chat-history";
 
@@ -542,7 +543,7 @@ const ChatSessionManagementPage = () => {
 
   return (
     <React.Fragment>
-       <PageTitle
+      <PageTitle
         title="Chat Session Management"
         description="Browse and review past chat conversations and their outcomes."
         canonical="/portal/chat-sessions"
@@ -552,10 +553,11 @@ const ChatSessionManagementPage = () => {
         {/* Header */}
         <div className="bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 shrink-0">
           <div className="max-w-[1600px] mx-auto px-6 py-3 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="h-5 w-px bg-gray-200 dark:bg-slate-700" />
-              <h1 className="text-lg font-semibold text-gray-900 dark:text-slate-100">Chat Session Management</h1>
-            </div>
+            <TitleTag
+              title="Chat Session Management"
+              subtitle="Browse and review past chat conversations and their outcomes."
+              icon={<MessagesSquare className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />}
+            />
             <div className="flex gap-1">
               {subTabs.map((tab) => (
                 <button

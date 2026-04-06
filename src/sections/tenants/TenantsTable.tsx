@@ -11,7 +11,7 @@ import Snackbar from "@mui/material/Snackbar";
 import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import { Eye, Power } from "lucide-react";
+import { Building2, Eye, Power } from "lucide-react";
 import { useNavigate } from "react-router";
 
 import ReusableTable, { type ReusableTableColumn } from "../../components/ReusableTable";
@@ -22,6 +22,7 @@ import Avatar from "@mui/material/Avatar";
 import idLabel from "../../utils/idUtils";
 import Box from "@mui/material/Box";
 import getAvatarColor from "../../utils/getAvatarColor";
+import TitleTag from "../../components/TitleTag";
 
 const EMPTY_LABEL = "-";
 
@@ -295,14 +296,11 @@ const TenantsTable = () => {
 
   return (
     <div className="space-y-5">
-      <div>
-        <Typography variant="h5" sx={{ fontWeight: 700, color: "grey.900" }}>
-          Tenants Management
-        </Typography>
-        <Typography variant="body2" sx={{ color: "grey.600", mt: 0.5 }}>
-          View tenant subscriptions and status overview.
-        </Typography>
-      </div>
+      <TitleTag
+        title="Tenants Management"
+        subtitle="View tenant subscriptions and status overview."
+        icon={<Building2 className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />}
+      />
 
       <ReusableTable
         title="Tenants"

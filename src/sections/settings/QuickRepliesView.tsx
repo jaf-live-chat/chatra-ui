@@ -12,6 +12,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import PageTitle from "../../components/common/PageTitle";
+import TitleTag from "../../components/TitleTag";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -399,135 +400,129 @@ const QuickRepliesView = () => {
 
   return (
     <React.Fragment>
-       <PageTitle
+      <PageTitle
         title="Agent Quick Replies"
         description="Manage quick replies for agent use."
         canonical="/portal/agent-quick-replies"
 
       />
-    <div className="flex flex-col gap-6">
-      {/* ── Page Header ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <div className="flex items-center gap-3 mb-1">
-            <div className="w-9 h-9 rounded-xl bg-cyan-50 dark:bg-cyan-900/30 border border-cyan-100 dark:border-cyan-800 flex items-center justify-center">
-              <Zap className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
-            </div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">Quick Replies</h1>
-          </div>
-          <p className="text-gray-500 dark:text-slate-400 text-sm pl-12">
-            Save and reuse common responses to resolve chats faster.
-          </p>
-        </div>
-        <button
-          onClick={openAdd}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-semibold shadow-sm transition-colors shrink-0"
-        >
-          <Plus className="w-4 h-4" />
-          New Quick Reply
-        </button>
-      </div>
-
-      {/* ── Table ── */}
-      {replies.length > 0 ? (
-        <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/80">
-                  <th className="text-left px-4 py-3 font-semibold text-gray-500 dark:text-slate-400 text-xs uppercase tracking-wide">Title</th>
-                  <th className="text-left px-4 py-3 font-semibold text-gray-500 dark:text-slate-400 text-xs uppercase tracking-wide">Category</th>
-                  <th className="text-left px-4 py-3 font-semibold text-gray-500 dark:text-slate-400 text-xs uppercase tracking-wide">Message</th>
-                  <th className="text-right px-4 py-3 font-semibold text-gray-500 dark:text-slate-400 text-xs uppercase tracking-wide">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
-                {replies.map((reply) => (
-                  <tr key={reply.id} className="hover:bg-gray-50 dark:hover:bg-slate-700/40 transition-colors">
-                    <td className="px-4 py-3 font-medium text-gray-900 dark:text-slate-100 whitespace-nowrap">{reply.title}</td>
-                    <td className="px-4 py-3">
-                      <CategoryBadge category={reply.category} />
-                    </td>
-                    <td className="px-4 py-3 text-gray-500 dark:text-slate-400 max-w-xs truncate">{reply.message}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-1">
-                        <button
-                          onClick={() => handleCopy(reply)}
-                          title="Copy message"
-                          className={`p-1.5 rounded-lg transition-colors ${copiedId === reply.id
-                              ? "bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400"
-                              : "text-gray-400 dark:text-slate-500 hover:bg-gray-100 dark:hover:bg-slate-700 hover:text-gray-600 dark:hover:text-slate-300"
-                            }`}
-                        >
-                          {copiedId === reply.id ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                        </button>
-                        <button
-                          onClick={() => openEdit(reply)}
-                          title="Edit"
-                          className="p-1.5 rounded-lg text-gray-400 dark:text-slate-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => setDeletingReply(reply)}
-                          title="Delete"
-                          className="p-1.5 rounded-lg text-gray-400 dark:text-slate-500 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      ) : (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 flex items-center justify-center mb-4">
-            <MessageSquareText className="w-8 h-8 text-gray-400 dark:text-slate-500" />
-          </div>
-          <p className="font-semibold text-gray-900 dark:text-slate-100 mb-1">No quick replies yet</p>
-          <p className="text-sm text-gray-500 dark:text-slate-400 max-w-xs">
-            Create your first quick reply to speed up your chat responses.
-          </p>
+      <div className="flex flex-col gap-6">
+        {/* ── Page Header ── */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <TitleTag
+            title="Agent Quick Replies"
+            subtitle="Manage quick replies for agent use."
+            icon={<Zap className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />}
+          />
           <button
             onClick={openAdd}
-            className="mt-5 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-semibold transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-semibold shadow-sm transition-colors shrink-0"
           >
             <Plus className="w-4 h-4" />
-            Create First Quick Reply
+            New Quick Reply
           </button>
         </div>
-      )}
 
-      {/* ── Tip banner ── */}
-      {replies.length > 0 && (
-        <div className="mt-6 flex items-start gap-3 p-4 rounded-xl border border-cyan-100 dark:border-cyan-900 bg-cyan-50 dark:bg-cyan-900/20">
-          <Zap className="w-5 h-5 text-cyan-600 dark:text-cyan-400 shrink-0 mt-0.5" />
-          <p className="text-sm text-cyan-800 dark:text-cyan-300">
-            <span className="font-semibold">Pro tip:</span> During an active chat, type a shortcut (e.g. <span className="font-mono">/greeting</span>) to instantly paste the full reply into the message box.
-          </p>
-        </div>
-      )}
+        {/* ── Table ── */}
+        {replies.length > 0 ? (
+          <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/80">
+                    <th className="text-left px-4 py-3 font-semibold text-gray-500 dark:text-slate-400 text-xs uppercase tracking-wide">Title</th>
+                    <th className="text-left px-4 py-3 font-semibold text-gray-500 dark:text-slate-400 text-xs uppercase tracking-wide">Category</th>
+                    <th className="text-left px-4 py-3 font-semibold text-gray-500 dark:text-slate-400 text-xs uppercase tracking-wide">Message</th>
+                    <th className="text-right px-4 py-3 font-semibold text-gray-500 dark:text-slate-400 text-xs uppercase tracking-wide">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
+                  {replies.map((reply) => (
+                    <tr key={reply.id} className="hover:bg-gray-50 dark:hover:bg-slate-700/40 transition-colors">
+                      <td className="px-4 py-3 font-medium text-gray-900 dark:text-slate-100 whitespace-nowrap">{reply.title}</td>
+                      <td className="px-4 py-3">
+                        <CategoryBadge category={reply.category} />
+                      </td>
+                      <td className="px-4 py-3 text-gray-500 dark:text-slate-400 max-w-xs truncate">{reply.message}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            onClick={() => handleCopy(reply)}
+                            title="Copy message"
+                            className={`p-1.5 rounded-lg transition-colors ${copiedId === reply.id
+                              ? "bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400"
+                              : "text-gray-400 dark:text-slate-500 hover:bg-gray-100 dark:hover:bg-slate-700 hover:text-gray-600 dark:hover:text-slate-300"
+                              }`}
+                          >
+                            {copiedId === reply.id ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                          </button>
+                          <button
+                            onClick={() => openEdit(reply)}
+                            title="Edit"
+                            className="p-1.5 rounded-lg text-gray-400 dark:text-slate-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => setDeletingReply(reply)}
+                            title="Delete"
+                            className="p-1.5 rounded-lg text-gray-400 dark:text-slate-500 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 flex items-center justify-center mb-4">
+              <MessageSquareText className="w-8 h-8 text-gray-400 dark:text-slate-500" />
+            </div>
+            <p className="font-semibold text-gray-900 dark:text-slate-100 mb-1">No quick replies yet</p>
+            <p className="text-sm text-gray-500 dark:text-slate-400 max-w-xs">
+              Create your first quick reply to speed up your chat responses.
+            </p>
+            <button
+              onClick={openAdd}
+              className="mt-5 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-semibold transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Create First Quick Reply
+            </button>
+          </div>
+        )}
 
-      {/* ── Modals ── */}
-      {isModalOpen && (
-        <ReplyModal
-          editingReply={editingReply}
-          onSave={handleSave}
-          onClose={() => { setIsModalOpen(false); setEditingReply(null); }}
-        />
-      )}
-      {deletingReply && (
-        <ConfirmDeleteModal
-          reply={deletingReply}
-          onConfirm={handleDelete}
-          onCancel={() => setDeletingReply(null)}
-        />
-      )}
-    </div>
+        {/* ── Tip banner ── */}
+        {replies.length > 0 && (
+          <div className="mt-6 flex items-start gap-3 p-4 rounded-xl border border-cyan-100 dark:border-cyan-900 bg-cyan-50 dark:bg-cyan-900/20">
+            <Zap className="w-5 h-5 text-cyan-600 dark:text-cyan-400 shrink-0 mt-0.5" />
+            <p className="text-sm text-cyan-800 dark:text-cyan-300">
+              <span className="font-semibold">Pro tip:</span> During an active chat, type a shortcut (e.g. <span className="font-mono">/greeting</span>) to instantly paste the full reply into the message box.
+            </p>
+          </div>
+        )}
+
+        {/* ── Modals ── */}
+        {isModalOpen && (
+          <ReplyModal
+            editingReply={editingReply}
+            onSave={handleSave}
+            onClose={() => { setIsModalOpen(false); setEditingReply(null); }}
+          />
+        )}
+        {deletingReply && (
+          <ConfirmDeleteModal
+            reply={deletingReply}
+            onConfirm={handleDelete}
+            onCancel={() => setDeletingReply(null)}
+          />
+        )}
+      </div>
     </React.Fragment>
   );
 }

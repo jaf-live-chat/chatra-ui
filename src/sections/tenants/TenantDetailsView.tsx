@@ -160,12 +160,11 @@ const TenantDetailsView = () => {
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
       <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={2}>
-        <Stack spacing={0.6}>
-          <TitleTag
-            title="Tenant Details"
-            subtitle="Master admin subscription controls and tenant identity details."
-          />
-        </Stack>
+        <TitleTag
+          title="Tenant Details"
+          subtitle="Master admin subscription controls and tenant identity details."
+          icon={<Building2 className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />}
+        />
 
         {!isLoading && tenant && isMasterAdmin && (
           <Button
