@@ -533,6 +533,9 @@ const AgentsManagementView = () => {
     <React.Fragment>
       <PageTitle
         title="Agents Management"
+        description="Manage your support team, their statuses, and performance."
+        canonical="/portal/agents"
+
       />
       <Box sx={{ display: "flex", flexDirection: "column", gap: 4 }}>
         {/* ── Page header ── */}

@@ -8,7 +8,8 @@ import {
 } from "lucide-react";
 import { useDarkMode } from "../../providers/DarkModeContext";
 import { motion } from "motion/react";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
+import PageTitle from "../../components/common/PageTitle";
 
 // ── Data ─────────────────────────────────────────────────────────────────────
 
@@ -466,6 +467,13 @@ const AnalyticsView = () => {
   const strokeColor = isDark ? "#1e293b" : "#ffffff";
 
   return (
+    <React.Fragment>
+        <PageTitle
+        title="Analytics"
+        description="Performance overview for the last 7 days."
+        canonical="/portal/analytics"
+
+      />
     <div className={`space-y-8${isDark ? " dark" : ""}`}>
 
       {/* ── Header ── */}
@@ -637,6 +645,7 @@ const AnalyticsView = () => {
         </table>
       </motion.div>
     </div>
+    </React.Fragment>
   );
 }
 
