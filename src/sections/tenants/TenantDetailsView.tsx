@@ -23,6 +23,7 @@ import tenantService from "../../services/tenantService";
 import useAuth from "../../hooks/useAuth";
 import { formatDate } from "../../utils/dateFormatter";
 import idLabel from "../../utils/idUtils";
+import TitleTag from "../../components/TitleTag";
 
 const EMPTY_LABEL = "-";
 
@@ -160,12 +161,10 @@ const TenantDetailsView = () => {
     <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
       <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={2}>
         <Stack spacing={0.6}>
-          <Typography variant="h5" sx={{ fontWeight: 800, color: "grey.900" }}>
-            Tenant Details
-          </Typography>
-          <Typography variant="body2" sx={{ color: "text.secondary" }}>
-            Master admin subscription controls and tenant identity details.
-          </Typography>
+          <TitleTag
+            title="Tenant Details"
+            subtitle="Master admin subscription controls and tenant identity details."
+          />
         </Stack>
 
         {!isLoading && tenant && isMasterAdmin && (
