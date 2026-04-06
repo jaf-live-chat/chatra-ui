@@ -20,6 +20,7 @@ interface TenantApiItem {
   companyCode?: string;
   databaseName?: string;
   subscription?: TenantApiSubscription;
+  upcomingSubscription?: TenantApiSubscription | null;
 }
 
 interface TenantListResponse {
@@ -89,6 +90,7 @@ const toTenantStatus = (status?: string, subscriptionEnd?: string | null): Tenan
 const normalizeTenant = (tenant: TenantApiItem): Tenant => {
   const subscriptionStart = tenant.subscription?.startDate || "";
   const subscriptionEnd = tenant.subscription?.endDate || "";
+  const upcomingSubscription = tenant.upcomingSubscription || null;
 
   return {
     id: tenant.id || "",
@@ -103,6 +105,16 @@ const normalizeTenant = (tenant: TenantApiItem): Tenant => {
       endDate: subscriptionEnd,
       status: toTenantStatus(tenant.subscription?.status, subscriptionEnd),
     },
+    upcomingSubscription: upcomingSubscription
+      ? {
+        id: upcomingSubscription.id || "",
+        planId: upcomingSubscription.planId || "",
+        planName: upcomingSubscription.planName || "-",
+        startDate: upcomingSubscription.startDate || "",
+        endDate: upcomingSubscription.endDate || "",
+        status: String(upcomingSubscription.status || "SCHEDULED").toUpperCase(),
+      }
+      : null,
   };
 };
 

@@ -13,4 +13,12 @@ export interface Tenant {
     endDate: string;
     status: TenantStatus;
   };
+  upcomingSubscription?: {
+    id?: string;
+    planId?: string;
+    planName: string;
+    startDate: string;
+    endDate: string;
+    status: string;
+  } | null;
 }
