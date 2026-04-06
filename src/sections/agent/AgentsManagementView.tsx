@@ -42,6 +42,8 @@ import Tooltip from '@mui/material/Tooltip'
 import ReusableTable, { type ReusableTableColumn } from "../../components/ReusableTable";
 import AgentEditDialog, { type AgentEditDialogFormValues } from "./components/AgentEditDialog";
 import PageTitle from "../../components/common/PageTitle";
+import idLabel from "../../utils/idUtils";
+import getAvatarColor from "../../utils/getAvatarColor";
 
 interface Agent extends AuthAgent {
   id: string;
@@ -50,11 +52,6 @@ interface Agent extends AuthAgent {
   status: string;
   autoAssign: boolean;
   chatsHandled: number;
-}
-
-const avatarColor = "#0891b2";
-function getAvatarColor(_id: string) {
-  return avatarColor;
 }
 
 function mapAgentForView(agent: AuthAgent): Agent {
@@ -345,10 +342,11 @@ const AgentsManagementView = () => {
               sx={{
                 width: 36,
                 height: 36,
-                bgcolor: getAvatarColor(agent.id),
+                bgcolor: getAvatarColor(),
                 fontSize: "0.875rem",
                 fontWeight: 700,
               }}
+              src={agent.profilePicture || ''}
             >
               {agent.name.charAt(0)}
             </Avatar>
@@ -357,7 +355,7 @@ const AgentsManagementView = () => {
                 {agent.name}
               </Typography>
               <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.7rem" }}>
-                {agent.id}
+                {idLabel(agent.id, "USER")}
               </Typography>
             </Box>
           </Stack>

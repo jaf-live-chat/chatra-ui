@@ -25,6 +25,12 @@ interface TenantListResponse {
   success: boolean;
   count: number;
   tenants: TenantApiItem[];
+  pagination?: {
+    currentPage: number;
+    totalPages: number;
+    totalRecords: number;
+    limit: number;
+  };
 }
 
 interface SingleTenantHookResponse {
@@ -126,12 +132,15 @@ const getSingleTenant = async (tenantId: string): Promise<Tenant | null> => {
   return normalizeTenant(tenants[0]);
 };
 
-const useGetTenants = () => {
+const useGetTenants = (page = 1, limit = 10) => {
   const getTenantList = (url: string) =>
     fetcher<TenantListResponse>(url, true) as Promise<TenantListResponse>;
 
+  const paginationParams = new URLSearchParams({ page: String(page), limit: String(limit) });
+  const urlWithPagination = `${endpoints.key}?${paginationParams.toString()}`;
+
   const { data, isLoading, error, mutate } = useSWR<TenantListResponse>(
-    endpoints.key,
+    urlWithPagination,
     getTenantList,
     SWR_OPTIONS,
   );
@@ -144,6 +153,7 @@ const useGetTenants = () => {
       isLoading,
       mutate,
       error,
+      pagination: data?.pagination,
     }),
     [data, isLoading, mutate, error],
   );

@@ -18,6 +18,10 @@ import ReusableTable, { type ReusableTableColumn } from "../../components/Reusab
 import type { Tenant, TenantStatus } from "../../models/TenantModel";
 import tenantService, { useGetTenants } from "../../services/tenantService";
 import { formatDate } from "../../utils/dateFormatter";
+import Avatar from "@mui/material/Avatar";
+import idLabel from "../../utils/idUtils";
+import Box from "@mui/material/Box";
+import getAvatarColor from "../../utils/getAvatarColor";
 
 const EMPTY_LABEL = "-";
 
@@ -79,7 +83,10 @@ const getStatusChipStyles = (status: TenantStatus) => {
 
 const TenantsTable = () => {
   const navigate = useNavigate();
-  const { tenants, isLoading, mutate: mutateTenants } = useGetTenants();
+  const [currentPage, setCurrentPage] = useState(1);
+  const ROWS_PER_PAGE = 5;
+
+  const { tenants, isLoading, mutate: mutateTenants, pagination } = useGetTenants(currentPage, ROWS_PER_PAGE);
   const [processingTenantId, setProcessingTenantId] = useState<string>("");
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>(defaultDialogState);
   const [snackbar, setSnackbar] = useState<SnackbarState>({ open: false, message: "", severity: "success" });
@@ -166,7 +173,29 @@ const TenantsTable = () => {
       label: "Tenant Name",
       sortable: true,
       sortAccessor: (tenant) => tenant.name,
-      renderCell: (tenant) => tenant.name || EMPTY_LABEL,
+      renderCell: (tenant) => (
+        <Stack direction="row" alignItems="center" spacing={1.5}>
+          <Avatar
+            sx={{
+              width: 36,
+              height: 36,
+              bgcolor: getAvatarColor(),
+              fontSize: "0.875rem",
+              fontWeight: 700,
+            }}
+          >
+            {tenant.name.slice(0, 2).toUpperCase()}
+          </Avatar>
+          <Box>
+            <Typography variant="body2" sx={{ fontWeight: 600, color: "grey.900", lineHeight: 1.2 }}>
+              {tenant.name}
+            </Typography>
+            <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.7rem" }}>
+              {idLabel(tenant.id, "TENANT")}
+            </Typography>
+          </Box>
+        </Stack>
+      )
     },
     {
       id: "plan",
@@ -289,7 +318,12 @@ const TenantsTable = () => {
           placeholder: "Search tenants, plans, or status",
           by: (tenant) => `${tenant.name} ${tenant.subscription.planName} ${tenant.subscription.status}`,
         }}
-        pagination={{ rowsPerPage: 5 }}
+        pagination={{
+          rowsPerPage: ROWS_PER_PAGE,
+          page: currentPage,
+          onPageChange: setCurrentPage,
+          totalRows: pagination?.totalRecords,
+        }}
         tableMinWidth={1150}
         totalLabel="tenants"
       />
