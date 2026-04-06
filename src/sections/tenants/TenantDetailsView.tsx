@@ -24,6 +24,7 @@ import useAuth from "../../hooks/useAuth";
 import { formatDate } from "../../utils/dateFormatter";
 import idLabel from "../../utils/idUtils";
 import TitleTag from "../../components/TitleTag";
+import TenantSubscriptionPlanDrawer from "./TenantSubscriptionPlanDrawer";
 
 const EMPTY_LABEL = "-";
 
@@ -86,7 +87,9 @@ const TenantDetailsView = () => {
   const { tenant, isLoading, error, mutate } = useGetSingleTenant(id);
 
   const isMasterAdmin = user?.role === USER_ROLES.MASTER_ADMIN.value;
+  const isAdmin = user?.role === USER_ROLES.ADMIN.value;
   const [isDeactivateDialogOpen, setIsDeactivateDialogOpen] = useState(false);
+  const [isSubscriptionDrawerOpen, setIsSubscriptionDrawerOpen] = useState(false);
   const [isMutating, setIsMutating] = useState(false);
   const [adjustmentDays, setAdjustmentDays] = useState("7");
   const [feedback, setFeedback] = useState<FeedbackState>(defaultFeedbackState);
@@ -185,15 +188,27 @@ const TenantDetailsView = () => {
             />
           </Stack>
 
-          {!isLoading && tenant && isMasterAdmin && (
-            <Button
-              variant="contained"
-              startIcon={<ReceiptText size={16} />}
-              onClick={() => navigate(`/portal/subscription-plans?tenantId=${tenant.id}`)}
-              sx={{ borderRadius: 1, fontWeight: 700, px: 2 }}
-            >
-              Change Plan
-            </Button>
+          {!isLoading && tenant && (isMasterAdmin || isAdmin) && (
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={1.2}>
+              <Button
+                variant="outlined"
+                startIcon={<CreditCard size={16} />}
+                onClick={() => setIsSubscriptionDrawerOpen(true)}
+                disabled={!tenant.subscription.planId}
+                sx={{ borderRadius: 1, fontWeight: 700, px: 2 }}
+              >
+                View Subscription
+              </Button>
+
+              <Button
+                variant="contained"
+                startIcon={<ReceiptText size={16} />}
+                onClick={() => navigate(`/portal/subscription-plans?tenantId=${tenant.id}`)}
+                sx={{ borderRadius: 1, fontWeight: 700, px: 2 }}
+              >
+                Change Plan
+              </Button>
+            </Stack>
           )}
         </Stack>
       </Stack>
@@ -428,62 +443,6 @@ const TenantDetailsView = () => {
               </Box>
             </Box>
           </Paper>
-
-          {isMasterAdmin && !isLoading && tenant && (
-            <Paper
-              elevation={0}
-              sx={{
-                p: 2.5,
-                border: "1px solid",
-                borderColor: "grey.200",
-                borderRadius: 1,
-              }}
-            >
-              <Typography variant="body2" sx={{ fontWeight: 700, color: "grey.900", mb: 0.5 }}>
-                Manage Subscription
-              </Typography>
-              <Typography variant="body2" sx={{ color: "text.secondary", mb: 2 }}>
-                Master admin controls: deactivate the tenant subscription or adjust the end date by days.
-              </Typography>
-
-              <Stack direction={{ xs: "column", lg: "row" }} spacing={2} alignItems={{ xs: "stretch", lg: "flex-end" }}>
-                <TextField
-                  label="Adjust End Date (Days)"
-                  type="number"
-                  value={adjustmentDays}
-                  onChange={(event) => setAdjustmentDays(event.target.value)}
-                  size="small"
-                  sx={{ minWidth: { xs: "100%", sm: 260 } }}
-                  helperText={
-                    tenant.subscription.endDate
-                      ? "Use positive number to extend, negative number to shorten."
-                      : "No end date available to adjust for this subscription."
-                  }
-                  disabled={isMutating}
-                />
-
-                <Button
-                  variant="contained"
-                  onClick={handleAdjustEndDate}
-                  disabled={isMutating || isAdjustActionDisabled}
-                  sx={{ borderRadius: 1, fontWeight: 700, minWidth: 160 }}
-                >
-                  {isMutating ? <CircularProgress size={16} color="inherit" /> : "Apply Day Adjustment"}
-                </Button>
-
-                <Button
-                  variant="outlined"
-                  color="error"
-                  startIcon={<Power size={16} />}
-                  onClick={() => setIsDeactivateDialogOpen(true)}
-                  disabled={isMutating}
-                  sx={{ borderRadius: 1, fontWeight: 700, minWidth: 145 }}
-                >
-                  Deactivate
-                </Button>
-              </Stack>
-            </Paper>
-          )}
         </>
       )}
 
@@ -514,6 +473,12 @@ const TenantDetailsView = () => {
           {feedback.message}
         </Alert>
       </Snackbar>
+
+      <TenantSubscriptionPlanDrawer
+        open={isSubscriptionDrawerOpen}
+        planId={tenant?.subscription.planId}
+        onClose={() => setIsSubscriptionDrawerOpen(false)}
+      />
     </Box>
   );
 };

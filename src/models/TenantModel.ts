@@ -7,6 +7,7 @@ export interface Tenant {
   databaseName?: string;
   subscription: {
     id?: string;
+    planId?: string;
     planName: string;
     startDate: string;
     endDate: string;

@@ -7,6 +7,7 @@ import type { Tenant, TenantStatus } from "../models/TenantModel";
 
 interface TenantApiSubscription {
   id?: string;
+  planId?: string;
   planName?: string;
   startDate?: string | null;
   endDate?: string | null;
@@ -96,6 +97,7 @@ const normalizeTenant = (tenant: TenantApiItem): Tenant => {
     databaseName: tenant.databaseName || "-",
     subscription: {
       id: tenant.subscription?.id || "",
+      planId: tenant.subscription?.planId || "",
       planName: tenant.subscription?.planName || "-",
       startDate: subscriptionStart,
       endDate: subscriptionEnd,
