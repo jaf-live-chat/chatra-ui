@@ -8,7 +8,7 @@ import {
   Menu,
 } from "lucide-react";
 import { Link, Outlet, useNavigate, useLocation } from "react-router";
-import { Button, Chip, Stack, Tooltip, Typography } from "@mui/material";
+import { Button, Chip, Stack, Typography } from "@mui/material";
 import { DarkModeProvider, useDarkMode } from "../providers/DarkModeContext";
 import { APP_LOGO } from "../constants/constants";
 import useAuth from "../hooks/useAuth";
@@ -27,6 +27,8 @@ function DashboardLayoutInner() {
   const isMobile = useIsMobile();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isPlanPopupOpen, setIsPlanPopupOpen] = useState(false);
+  const [timeTick, setTimeTick] = useState(() => Date.now());
   const [agentStatus, setAgentStatus] = useState(() => {
     try { return localStorage.getItem("jaf_agent_status") || "Online"; } catch { return "Online"; }
   });
@@ -43,6 +45,16 @@ function DashboardLayoutInner() {
   useEffect(() => {
     setIsSidebarOpen(!isMobile);
   }, [isMobile]);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setTimeTick(Date.now());
+    }, 60000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, []);
 
   const [isStatusOpen, setIsStatusOpen] = useState(false);
 
@@ -115,6 +127,85 @@ function DashboardLayoutInner() {
       : null;
   const subscriptionStartDate = authUser?.subscription.startDate || subscription?.startDate;
   const subscriptionEndDate = authUser?.subscription.endDate || subscription?.endDate;
+
+  const subscriptionStatus = (() => {
+    if (!subscriptionEndDate) {
+      return {
+        label: "Unlimited Plan",
+        detail: "No expiration date",
+        tone: "info" as const,
+      };
+    }
+
+    const parseAsLocalCalendarDate = (value: string | Date) => {
+      if (value instanceof Date) {
+        return new Date(value.getFullYear(), value.getMonth(), value.getDate());
+      }
+
+      const trimmedValue = String(value).trim();
+      const dateOnlyMatch = /^(\d{4})-(\d{2})-(\d{2})/.exec(trimmedValue);
+
+      if (dateOnlyMatch) {
+        const year = Number(dateOnlyMatch[1]);
+        const monthIndex = Number(dateOnlyMatch[2]) - 1;
+        const day = Number(dateOnlyMatch[3]);
+        return new Date(year, monthIndex, day);
+      }
+
+      const parsed = new Date(trimmedValue);
+      if (Number.isNaN(parsed.getTime())) {
+        return null;
+      }
+
+      return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+    };
+
+    const end = parseAsLocalCalendarDate(subscriptionEndDate);
+    if (!end || Number.isNaN(end.getTime())) {
+      return {
+        label: "Unknown",
+        detail: "Unable to calculate remaining days",
+        tone: "neutral" as const,
+      };
+    }
+
+    const now = new Date(timeTick);
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    const msPerDay = 1000 * 60 * 60 * 24;
+    const dayDiff = Math.floor((end.getTime() - today.getTime()) / msPerDay);
+
+    if (dayDiff < 0) {
+      const daysAgo = Math.abs(dayDiff);
+      return {
+        label: "Expired",
+        detail: `Expired ${daysAgo} day${daysAgo === 1 ? "" : "s"} ago`,
+        tone: "danger" as const,
+      };
+    }
+
+    if (dayDiff === 0) {
+      return {
+        label: "Expires Today",
+        detail: "1 day remaining",
+        tone: "warning" as const,
+      };
+    }
+
+    if (dayDiff <= 7) {
+      return {
+        label: "Expires Soon",
+        detail: `${dayDiff} day${dayDiff === 1 ? "" : "s"} remaining`,
+        tone: "warning" as const,
+      };
+    }
+
+    return {
+      label: "Active",
+      detail: `${dayDiff} day${dayDiff === 1 ? "" : "s"} remaining`,
+      tone: "success" as const,
+    };
+  })();
 
   const activeNavCls = "bg-cyan-50 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400";
   const inactiveNavCls =
@@ -235,30 +326,10 @@ function DashboardLayoutInner() {
               >
                 {companyName}
               </Typography>
-              <Tooltip
-                arrow
-                placement="bottom"
-                title={
-                  <div className="py-1">
-                    <Typography variant="caption" sx={{ display: "block", color: "#E2E8F0" }}>
-                      Plan: {planName}
-                    </Typography>
-                    <Typography variant="caption" sx={{ display: "block", color: "#E2E8F0" }}>
-                      Start: {subscriptionStartDate
-                        ? formatDate(subscriptionStartDate)
-                        : "-"}
-                    </Typography>
-                    <Typography variant="caption" sx={{ display: "block", color: "#E2E8F0" }}>
-                      End: {subscriptionEndDate
-                        ? formatDate(subscriptionEndDate)
-                        : "Unlimited for Internal Plan"}
-                    </Typography>
-
-                    <Stack direction='row' justifyContent='center'>
-                      <Button fullWidth variant="outlined"> View your Subscription  </Button>
-                    </Stack>
-                  </div>
-                }
+              <div
+                className="relative"
+                onMouseEnter={() => setIsPlanPopupOpen(true)}
+                onMouseLeave={() => setIsPlanPopupOpen(false)}
               >
                 <Chip
                   label={planName}
@@ -266,6 +337,7 @@ function DashboardLayoutInner() {
                   variant="outlined"
                   sx={{
                     height: 24,
+                    marginRight: 1,
                     borderColor: isDark ? "#334155" : "#CBD5E1",
                     color: isDark ? "#E2E8F0" : "#334155",
                     backgroundColor: isDark ? "rgba(30,41,59,0.35)" : "#F8FAFC",
@@ -275,7 +347,105 @@ function DashboardLayoutInner() {
                     },
                   }}
                 />
-              </Tooltip>
+                <Chip
+                  label={subscriptionStatus.detail}
+                  size="small"
+                  sx={{
+                    height: 24,
+                    border: "none",
+                    fontWeight: 700,
+                    color:
+                      subscriptionStatus.tone === "danger"
+                        ? "#B91C1C"
+                        : subscriptionStatus.tone === "warning"
+                          ? "#92400E"
+                          : subscriptionStatus.tone === "success"
+                            ? "#166534"
+                            : isDark
+                              ? "#E2E8F0"
+                              : "#334155",
+                    backgroundColor:
+                      subscriptionStatus.tone === "danger"
+                        ? "#FEE2E2"
+                        : subscriptionStatus.tone === "warning"
+                          ? "#FEF3C7"
+                          : subscriptionStatus.tone === "success"
+                            ? "#DCFCE7"
+                            : isDark
+                              ? "rgba(30,41,59,0.55)"
+                              : "#F1F5F9",
+                    "& .MuiChip-label": {
+                      px: 1.2,
+                    },
+                  }}
+                />
+
+                <div
+                  className={`absolute left-1/2 top-full z-30 mt-3 w-[22rem] -translate-x-1/2 rounded-2xl border border-gray-200 bg-white p-4 shadow-2xl shadow-slate-900/10 transition-all duration-200 dark:border-slate-700 dark:bg-slate-800 dark:shadow-slate-950/40 ${isPlanPopupOpen ? "visible translate-y-0 opacity-100" : "invisible translate-y-1 opacity-0"}`}
+                >
+                  <div className="mb-4 flex items-start gap-3">
+                    <span className="mt-2 h-3 w-3 flex-shrink-0 rounded-full bg-sky-500" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                        {planName}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div
+                      className={`rounded-xl px-3 py-2 ${subscriptionStatus.tone === "danger"
+                        ? "bg-red-50 text-red-700 dark:bg-red-900/25 dark:text-red-300"
+                        : subscriptionStatus.tone === "warning"
+                          ? "bg-amber-50 text-amber-700 dark:bg-amber-900/25 dark:text-amber-300"
+                          : subscriptionStatus.tone === "success"
+                            ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/25 dark:text-emerald-300"
+                            : "bg-slate-100 text-slate-700 dark:bg-slate-700/50 dark:text-slate-200"
+                        }`}
+                    >
+                      <Typography variant="caption" sx={{ color: "inherit", opacity: 0.9 }}>
+                        Subscription Status
+                      </Typography>
+                      <Typography variant="body2" sx={{ color: "inherit", fontWeight: 700, lineHeight: 1.2 }}>
+                        {subscriptionStatus.label}
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: "inherit", opacity: 0.95 }}>
+                        {subscriptionStatus.detail}
+                      </Typography>
+                    </div>
+                    <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-3 dark:border-slate-700/80">
+                      <Typography variant="caption" sx={{ color: isDark ? "#94A3B8" : "#64748B" }}>
+                        Plan Name
+                      </Typography>
+                      <Typography variant="body2" sx={{ color: isDark ? "#E2E8F0" : "#334155", fontWeight: 600 }}>
+                        {planName}
+                      </Typography>
+                    </div>
+                    <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-3 dark:border-slate-700/80">
+                      <Typography variant="caption" sx={{ color: isDark ? "#94A3B8" : "#64748B" }}>
+                        Start Date
+                      </Typography>
+                      <Typography variant="body2" sx={{ color: isDark ? "#E2E8F0" : "#334155", fontWeight: 600 }}>
+                        {subscriptionStartDate ? formatDate(subscriptionStartDate) : "-"}
+                      </Typography>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <Typography variant="caption" sx={{ color: isDark ? "#94A3B8" : "#64748B" }}>
+                        Expiration Date
+                      </Typography>
+                      <Typography variant="body2" sx={{ color: isDark ? "#E2E8F0" : "#334155", fontWeight: 600, textAlign: "right" }}>
+                        {subscriptionEndDate ? formatDate(subscriptionEndDate) : "Unlimited for Internal Plan"}
+                      </Typography>
+                    </div>
+                  </div>
+
+                  <Stack direction="row" justifyContent="center" className="mt-4">
+                    <Button fullWidth variant="outlined" onClick={() => navigate(`/portal/tenants/${tenant?.id}`)}>
+                      View your Subscription
+                    </Button>
+                  </Stack>
+                </div>
+              </div>
             </div>
           </div>
 

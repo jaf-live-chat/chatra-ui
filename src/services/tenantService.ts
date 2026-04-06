@@ -37,7 +37,12 @@ interface SingleTenantHookResponse {
   tenant: Tenant | null;
   isLoading: boolean;
   error: unknown;
-  mutate: () => Promise<TenantListResponse | undefined>;
+  mutate: () => Promise<SingleTenantResponse | undefined>;
+}
+
+interface SingleTenantResponse {
+  success: boolean;
+  tenant: TenantApiItem;
 }
 
 interface TenantUpdateResponse {
@@ -120,16 +125,13 @@ const getTenants = async (): Promise<Tenant[]> => {
 const getSingleTenant = async (tenantId: string): Promise<Tenant | null> => {
   if (!tenantId) return null;
 
-  const response = await axiosServices.get<TenantListResponse>("/tenants", {
-    params: { _id: tenantId },
-  });
+  const response = await axiosServices.get<SingleTenantResponse>(`/tenants/${tenantId}`);
 
-  const tenants = Array.isArray(response.data?.tenants) ? response.data.tenants : [];
-  if (tenants.length === 0) {
+  if (!response.data?.tenant) {
     return null;
   }
 
-  return normalizeTenant(tenants[0]);
+  return normalizeTenant(response.data.tenant);
 };
 
 const useGetTenants = (page = 1, limit = 10) => {
@@ -163,23 +165,23 @@ const useGetTenants = (page = 1, limit = 10) => {
 
 const useGetSingleTenant = (tenantId?: string): SingleTenantHookResponse => {
   const shouldFetch = Boolean(tenantId);
-  const requestUrl = shouldFetch ? `${endpoints.key}?_id=${encodeURIComponent(tenantId || "")}` : null;
+  const requestUrl = shouldFetch ? `${endpoints.key}/${encodeURIComponent(tenantId || "")}` : null;
 
   const getTenant = (url: string) =>
-    fetcher<TenantListResponse>(url, true) as Promise<TenantListResponse>;
+    fetcher<SingleTenantResponse>(url, true) as Promise<SingleTenantResponse>;
 
-  const { data, isLoading, error, mutate } = useSWR<TenantListResponse>(
+  const { data, isLoading, error, mutate } = useSWR<SingleTenantResponse>(
     requestUrl,
     getTenant,
     SWR_OPTIONS,
   );
 
   const tenant = useMemo(() => {
-    if (!Array.isArray(data?.tenants) || data.tenants.length === 0) {
+    if (!data?.tenant) {
       return null;
     }
 
-    return normalizeTenant(data.tenants[0]);
+    return normalizeTenant(data.tenant);
   }, [data]);
 
   return {

@@ -41,8 +41,29 @@ type AuthProviderProps = {
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [session, setSession] = useState<AuthSession | null>(readStoredSession);
 
-  const isPrivilegedRole =
-    session?.agent?.role === "MASTER_ADMIN" || session?.agent?.role === "ADMIN";
+  const refreshSession = useCallback(async () => {
+    if (!session?.accessToken) {
+      return;
+    }
+
+    try {
+      const meResponse = await Agents.getMe();
+
+      setSession((prevSession) => {
+        if (!prevSession) {
+          return prevSession;
+        }
+
+        return {
+          ...prevSession,
+          tenant: meResponse.tenant,
+          agent: meResponse.agent,
+        };
+      });
+    } catch {
+      // Keep existing session if refresh fails.
+    }
+  }, [session?.accessToken]);
 
   useEffect(() => {
     if (!session) {
@@ -56,48 +77,35 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   }, [session]);
 
   useEffect(() => {
-    const shouldHydrateSession = Boolean(
-      session?.accessToken &&
-      session?.tenant &&
-      (!session?.tenant?.subscription || (isPrivilegedRole && !session?.tenant?.apiKey))
-    );
-
-    if (!shouldHydrateSession) {
+    if (!session?.accessToken) {
       return;
     }
 
-    let isMounted = true;
+    refreshSession();
 
-    const hydrateSession = async () => {
-      try {
-        const meResponse = await Agents.getMe();
+    const intervalId = window.setInterval(() => {
+      refreshSession();
+    }, 60000);
 
-        if (!isMounted) {
-          return;
-        }
+    const handleWindowFocus = () => {
+      refreshSession();
+    };
 
-        setSession((prevSession) => {
-          if (!prevSession) {
-            return prevSession;
-          }
-
-          return {
-            ...prevSession,
-            tenant: meResponse.tenant,
-            agent: meResponse.agent,
-          };
-        });
-      } catch {
-        // Keep existing session if hydration fails.
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        refreshSession();
       }
     };
 
-    hydrateSession();
+    window.addEventListener("focus", handleWindowFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
-      isMounted = false;
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", handleWindowFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [isPrivilegedRole, session?.accessToken, session?.tenant]);
+  }, [refreshSession, session?.accessToken]);
 
   const login = useCallback(async (loginData: LoginData): Promise<AgentLoginResponse> => {
     const response = await Agents.login(loginData);
@@ -141,8 +149,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       login,
       logout,
       updateUser,
+      refreshSession,
     }),
-    [session, login, logout, updateUser]
+    [session, login, logout, updateUser, refreshSession]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
