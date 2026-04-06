@@ -10,6 +10,16 @@ export interface Subscription {
   endDate: string;
 }
 
+export interface SubscriptionData {
+  id: string;
+  tenantId: string;
+  subscriptionPlanId: string;
+  planName: string;
+  startDate: string;
+  endDate: string;
+  status: string;
+}
+
 export type UserRole = "MASTER_ADMIN" | "ADMIN" | "SUPPORT_AGENT" | "VISITOR";
 
 export interface AuthUser {
@@ -34,6 +44,7 @@ export type AuthTenant = {
   companyCode: string;
   apiKey?: string | null;
   subscription?: Subscription | null;
+  subscriptionData?: SubscriptionData | null;
 };
 
 export type AgentLoginResponse = {
@@ -69,6 +80,7 @@ export type AuthContextValue = {
   login: (loginData: LoginData) => Promise<AgentLoginResponse>;
   logout: () => void;
   updateUser: (agent: AuthAgent) => void;
+  refreshSession: () => Promise<void>;
 };
 
 // Agent CRUD Operations

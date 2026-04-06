@@ -7,6 +7,7 @@ import type { Tenant, TenantStatus } from "../models/TenantModel";
 
 interface TenantApiSubscription {
   id?: string;
+  planId?: string;
   planName?: string;
   startDate?: string | null;
   endDate?: string | null;
@@ -19,6 +20,7 @@ interface TenantApiItem {
   companyCode?: string;
   databaseName?: string;
   subscription?: TenantApiSubscription;
+  upcomingSubscription?: TenantApiSubscription | null;
 }
 
 interface TenantListResponse {
@@ -37,7 +39,12 @@ interface SingleTenantHookResponse {
   tenant: Tenant | null;
   isLoading: boolean;
   error: unknown;
-  mutate: () => Promise<TenantListResponse | undefined>;
+  mutate: () => Promise<SingleTenantResponse | undefined>;
+}
+
+interface SingleTenantResponse {
+  success: boolean;
+  tenant: TenantApiItem;
 }
 
 interface TenantUpdateResponse {
@@ -83,6 +90,7 @@ const toTenantStatus = (status?: string, subscriptionEnd?: string | null): Tenan
 const normalizeTenant = (tenant: TenantApiItem): Tenant => {
   const subscriptionStart = tenant.subscription?.startDate || "";
   const subscriptionEnd = tenant.subscription?.endDate || "";
+  const upcomingSubscription = tenant.upcomingSubscription || null;
 
   return {
     id: tenant.id || "",
@@ -91,11 +99,22 @@ const normalizeTenant = (tenant: TenantApiItem): Tenant => {
     databaseName: tenant.databaseName || "-",
     subscription: {
       id: tenant.subscription?.id || "",
+      planId: tenant.subscription?.planId || "",
       planName: tenant.subscription?.planName || "-",
       startDate: subscriptionStart,
       endDate: subscriptionEnd,
       status: toTenantStatus(tenant.subscription?.status, subscriptionEnd),
     },
+    upcomingSubscription: upcomingSubscription
+      ? {
+        id: upcomingSubscription.id || "",
+        planId: upcomingSubscription.planId || "",
+        planName: upcomingSubscription.planName || "-",
+        startDate: upcomingSubscription.startDate || "",
+        endDate: upcomingSubscription.endDate || "",
+        status: String(upcomingSubscription.status || "SCHEDULED").toUpperCase(),
+      }
+      : null,
   };
 };
 
@@ -120,16 +139,13 @@ const getTenants = async (): Promise<Tenant[]> => {
 const getSingleTenant = async (tenantId: string): Promise<Tenant | null> => {
   if (!tenantId) return null;
 
-  const response = await axiosServices.get<TenantListResponse>("/tenants", {
-    params: { _id: tenantId },
-  });
+  const response = await axiosServices.get<SingleTenantResponse>(`/tenants/${tenantId}`);
 
-  const tenants = Array.isArray(response.data?.tenants) ? response.data.tenants : [];
-  if (tenants.length === 0) {
+  if (!response.data?.tenant) {
     return null;
   }
 
-  return normalizeTenant(tenants[0]);
+  return normalizeTenant(response.data.tenant);
 };
 
 const useGetTenants = (page = 1, limit = 10) => {
@@ -163,23 +179,23 @@ const useGetTenants = (page = 1, limit = 10) => {
 
 const useGetSingleTenant = (tenantId?: string): SingleTenantHookResponse => {
   const shouldFetch = Boolean(tenantId);
-  const requestUrl = shouldFetch ? `${endpoints.key}?_id=${encodeURIComponent(tenantId || "")}` : null;
+  const requestUrl = shouldFetch ? `${endpoints.key}/${encodeURIComponent(tenantId || "")}` : null;
 
   const getTenant = (url: string) =>
-    fetcher<TenantListResponse>(url, true) as Promise<TenantListResponse>;
+    fetcher<SingleTenantResponse>(url, true) as Promise<SingleTenantResponse>;
 
-  const { data, isLoading, error, mutate } = useSWR<TenantListResponse>(
+  const { data, isLoading, error, mutate } = useSWR<SingleTenantResponse>(
     requestUrl,
     getTenant,
     SWR_OPTIONS,
   );
 
   const tenant = useMemo(() => {
-    if (!Array.isArray(data?.tenants) || data.tenants.length === 0) {
+    if (!data?.tenant) {
       return null;
     }
 
-    return normalizeTenant(data.tenants[0]);
+    return normalizeTenant(data.tenant);
   }, [data]);
 
   return {

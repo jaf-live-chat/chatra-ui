@@ -25,6 +25,14 @@ type CheckoutStatusResponse = {
   planName?: string;
   planPrice?: string;
   billingPeriod?: string;
+  previousPlanName?: string;
+  previousPlanPrice?: string;
+  previousBillingPeriod?: string;
+  newPlanFeatures?: string[];
+  previousPlanFeatures?: string[];
+  addedFeatures?: string[];
+  removedFeatures?: string[];
+  unchangedFeatures?: string[];
   integrationName?: string;
   welcomeName?: string;
 };
