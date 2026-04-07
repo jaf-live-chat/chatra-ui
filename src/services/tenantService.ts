@@ -66,14 +66,16 @@ const endpoints = {
 
 const STATUS_PRIORITY: Record<TenantStatus, number> = {
   ACTIVE: 1,
-  INACTIVE: 2,
-  EXPIRED: 3,
+  DEACTIVATED: 2,
+  INACTIVE: 3,
+  EXPIRED: 4,
 };
 
 const toTenantStatus = (status?: string, subscriptionEnd?: string | null): TenantStatus => {
   const normalizedStatus = String(status || "").toUpperCase();
 
   if (normalizedStatus === "ACTIVE") return "ACTIVE";
+  if (normalizedStatus === "DEACTIVATED") return "DEACTIVATED";
   if (normalizedStatus === "INACTIVE") return "INACTIVE";
   if (normalizedStatus === "EXPIRED") return "EXPIRED";
 

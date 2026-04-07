@@ -64,6 +64,7 @@ const statusMeta: Record<TenantStatus, { label: string; bg: string; color: strin
   ACTIVE: { label: "Active", bg: "#dcfce7", color: "#15803d" },
   INACTIVE: { label: "Inactive", bg: "#fef3c7", color: "#b45309" },
   EXPIRED: { label: "Expired", bg: "#fee2e2", color: "#b91c1c" },
+  DEACTIVATED: { label: "Deactivated", bg: "#ffedd5", color: "#c2410c" },
 };
 
 type SnackbarSeverity = "success" | "error";
@@ -89,6 +90,11 @@ interface DrawerSubscriptionMeta {
   status?: string;
 }
 
+const safeIdLabel = (rawId: string | undefined, prefix: Parameters<typeof idLabel>[1]): string => {
+  if (!rawId || !rawId.trim()) return EMPTY_LABEL;
+  return idLabel(rawId, prefix);
+};
+
 const TenantDetailsView = () => {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -111,6 +117,8 @@ const TenantDetailsView = () => {
     if (!tenant) return statusMeta.INACTIVE;
     return statusMeta[tenant.subscription.status] || statusMeta.INACTIVE;
   }, [tenant]);
+
+  const planActionLabel = tenant?.subscription.status === "EXPIRED" ? "Renew Plan" : "Change Plan";
 
   const isAdjustActionDisabled = useMemo(() => {
     if (!tenant?.subscription.endDate) {
@@ -217,7 +225,7 @@ const TenantDetailsView = () => {
                 onClick={() => setIsPlanChangeDrawerOpen(true)}
                 sx={{ borderRadius: 1, fontWeight: 700, px: 2 }}
               >
-                Change Plan
+                {planActionLabel}
               </Button>
             </Stack>
           )}
@@ -367,7 +375,7 @@ const TenantDetailsView = () => {
                           <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 500 }}>
                             <Stack component="span" direction="row" spacing={0.5} alignItems="center">
                               <Hash size={12} />
-                              <span>ID: {idLabel(tenant?.id || "", "TENANT")}</span>
+                              <span>ID: {safeIdLabel(tenant?.id, "TENANT")}</span>
                             </Stack>
                           </Typography>
                           <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 500 }}>
@@ -433,7 +441,7 @@ const TenantDetailsView = () => {
                             SUBSCRIPTION ID
                           </Typography>
                           <Typography variant="subtitle2" sx={{ mt: 0.45, color: "text.primary", fontWeight: 700 }}>
-                            {idLabel(tenant?.subscription.id || "", "SUBSCRIPTION")}
+                            {safeIdLabel(tenant?.subscription?.id, "SUBSCRIPTION")}
                           </Typography>
                         </Box>
 
@@ -504,7 +512,7 @@ const TenantDetailsView = () => {
                           </Typography>
                           <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ mt: 1.2 }}>
                             <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                              Subscription ID: <Box component="span" sx={{ color: "text.primary", fontWeight: 600 }}>{idLabel(tenant.upcomingSubscription.id || "", "SUBSCRIPTION")}</Box>
+                              Subscription ID: <Box component="span" sx={{ color: "text.primary", fontWeight: 600 }}>{safeIdLabel(tenant?.upcomingSubscription.id, "SUBSCRIPTION")}</Box>
                             </Typography>
                             <Typography variant="body2" sx={{ color: "text.secondary" }}>
                               Starts: <Box component="span" sx={{ color: "text.primary", fontWeight: 600 }}>{formatDate(tenant.upcomingSubscription.startDate || "", { isIncludeTime: true })}</Box>

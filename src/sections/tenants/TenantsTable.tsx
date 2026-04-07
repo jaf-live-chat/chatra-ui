@@ -72,6 +72,17 @@ const getStatusChipStyles = (status: TenantStatus) => {
     };
   }
 
+  if (status === "DEACTIVATED") {
+    return {
+      label: "DEACTIVATED",
+      sx: {
+        bgcolor: "#ea580c1a",
+        color: "#c2410c",
+        fontWeight: 700,
+      },
+    };
+  }
+
   return {
     label: "INACTIVE",
     sx: {
