@@ -1,16 +1,13 @@
 import { useMemo, useState, type CSSProperties } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import Dialog from "@mui/material/Dialog";
-import DialogActions from "@mui/material/DialogActions";
-import DialogContent from "@mui/material/DialogContent";
-import DialogTitle from "@mui/material/DialogTitle";
 import Alert from "@mui/material/Alert";
 import Chip from "@mui/material/Chip";
+import Divider from "@mui/material/Divider";
+import Drawer from "@mui/material/Drawer";
 import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
-import Typography from "@mui/material/Typography";
-import { DollarSign, Eye } from "lucide-react";
+import { DollarSign, Eye, FileText } from "lucide-react";
 
 import ReusableTable, { type ReusableTableColumn } from "../../components/ReusableTable";
 import type { Payment, PaymentStatus } from "../../models/PaymentModel";
@@ -53,6 +50,15 @@ const formatTransactionDate = (dateString: string) => {
   return formatDate(parsedDate.toISOString(), { format: "long", isIncludeTime: false });
 };
 
+const formatBillingPeriod = (dateString?: string) => {
+  if (!dateString) return "-";
+
+  const parsedDate = new Date(dateString);
+  if (Number.isNaN(parsedDate.getTime())) return "-";
+
+  return parsedDate.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+};
+
 const PaymentsTable = () => {
   const { payments, isLoading, error } = useGetPayments();
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
@@ -92,6 +98,8 @@ const PaymentsTable = () => {
     "&:hover": { bgcolor: "grey.50", borderColor: "grey.400" },
   };
 
+  const selectedStatusStyle = selectedPayment ? statusStyles[selectedPayment.status] : null;
+
   const paymentColumns = useMemo<ReusableTableColumn<Payment>[]>(
     () => [
       {
@@ -113,12 +121,12 @@ const PaymentsTable = () => {
               {payment.tenantName.slice(0, 2).toUpperCase()}
             </Avatar>
             <Box>
-              <Typography variant="body2" sx={{ fontWeight: 600, color: "grey.900", lineHeight: 1.2 }}>
+              <Box component="p" sx={{ m: 0, fontSize: "0.875rem", fontWeight: 600, color: "grey.900", lineHeight: 1.2 }}>
                 {payment.tenantName}
-              </Typography>
-              <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.7rem" }}>
+              </Box>
+              <Box component="p" sx={{ m: 0, color: "text.secondary", fontSize: "0.7rem" }}>
                 {idLabel(payment.id, "PAYMENT")}
-              </Typography>
+              </Box>
             </Box>
           </Stack>
         ),
@@ -209,82 +217,169 @@ const PaymentsTable = () => {
         totalLabel="payments"
       />
 
-      <Dialog open={detailsOpen} onClose={closeDetails} fullWidth maxWidth="sm">
-        <DialogTitle>Payment Details</DialogTitle>
-        <DialogContent>
-          <Stack spacing={1.25} sx={{ pt: 0.5 }}>
-            <Box>
-              <Typography variant="caption" color="text.secondary">
-                Tenant
-              </Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                {selectedPayment?.tenantName || "-"}
-              </Typography>
-            </Box>
-
-            <Box>
-              <Typography variant="caption" color="text.secondary">
-                Subscription
-              </Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                {selectedPayment?.amount || "-"}
-              </Typography>
-            </Box>
-
-            <Box>
-              <Typography variant="caption" color="text.secondary">
-                Status
-              </Typography>
-              <Box>
-                {selectedPayment ? (
-                  <Chip
-                    label={statusStyles[selectedPayment.status].label}
-                    size="small"
-                    sx={{
-                      bgcolor: statusStyles[selectedPayment.status].bg,
-                      color: statusStyles[selectedPayment.status].color,
-                      fontWeight: 700,
-                      mt: 0.5,
-                    }}
-                  />
-                ) : (
-                  <Typography variant="body2">-</Typography>
-                )}
-              </Box>
-            </Box>
-
-            <Box>
-              <Typography variant="caption" color="text.secondary">
-                Transaction Date
-              </Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                {selectedPayment ? formatTransactionDate(selectedPayment.transactionDate) : "-"}
-              </Typography>
-            </Box>
-
-            <Box>
-              <Typography variant="caption" color="text.secondary">
-                Reference Number
-              </Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                {selectedPayment?.referenceNumber || "-"}
-              </Typography>
-            </Box>
-
-            <Box>
-              <Typography variant="caption" color="text.secondary">
-                Amount
-              </Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                {formatAmount(selectedPayment?.amount)}
-              </Typography>
+      <Drawer
+        anchor="right"
+        open={detailsOpen}
+        onClose={closeDetails}
+        PaperProps={{
+          sx: {
+            width: { xs: "100%", sm: 460 },
+            display: "flex",
+            flexDirection: "column",
+          },
+        }}
+      >
+        <Box sx={{ p: 3, pb: 2.5 }}>
+          <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2.2 }}>
+            <FileText size={18} color="#0284c7" />
+            <Box component="h2" sx={{ m: 0, fontWeight: 800, color: "#0f172a", fontSize: "1.05rem", lineHeight: 1.2 }}>
+              Transaction Details
             </Box>
           </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={closeDetails}>Close</Button>
-        </DialogActions>
-      </Dialog>
+
+          <Divider sx={{ mb: 3 }} />
+
+          <Stack direction="row" alignItems="center" spacing={1.4} sx={{ mb: 2.6 }}>
+            <Avatar
+              sx={{
+                width: 56,
+                height: 56,
+                bgcolor: "#0ea5e9",
+                fontWeight: 800,
+                fontSize: "1.85rem",
+                letterSpacing: "-0.02em",
+              }}
+            >
+              {(selectedPayment?.tenantName || "-").slice(0, 2).toUpperCase()}
+            </Avatar>
+            <Box>
+              <Box component="p" sx={{ m: 0, fontSize: "0.95rem", fontWeight: 800, color: "#0f172a", lineHeight: 1.2 }}>
+                {selectedPayment?.tenantName || "-"}
+              </Box>
+              <Box component="p" sx={{ m: 0, fontSize: "0.75rem", color: "#64748b", fontWeight: 500 }}>
+                ID: {selectedPayment ? idLabel(selectedPayment.id, "PAYMENT") : "-"}
+              </Box>
+            </Box>
+          </Stack>
+
+          <Box
+            sx={{
+              borderRadius: 2,
+              backgroundColor: "#f8fafc",
+              border: "1px solid",
+              borderColor: "#e2e8f0",
+              p: 2.4,
+              mb: 3,
+            }}
+          >
+            <Box component="p" sx={{ m: 0, fontSize: "0.78rem", color: "#64748b", fontWeight: 700, mb: 0.9 }}>
+              Total Amount
+            </Box>
+            <Box component="p" sx={{ m: 0, color: "#0f172a", fontSize: "1.55rem", fontWeight: 900, lineHeight: 1.05 }}>
+              {formatAmount(selectedPayment?.amount)}
+            </Box>
+
+            {selectedStatusStyle && (
+              <Chip
+                label={`• ${selectedStatusStyle.label}`}
+                size="small"
+                sx={{
+                  mt: 1.5,
+                  bgcolor: "#ecfdf3",
+                  color: "#047857",
+                  fontWeight: 700,
+                  border: "1px solid #a7f3d0",
+                  borderRadius: "8px",
+                }}
+              />
+            )}
+          </Box>
+
+          <Box component="p" sx={{ m: 0, color: "#94a3b8", fontSize: "0.78rem", fontWeight: 800, mb: 1.1, letterSpacing: "0.02em" }}>
+            PAYMENT INFORMATION
+          </Box>
+
+          <Stack spacing={0} sx={{ mb: 2.4 }}>
+            <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ py: 1.15 }}>
+              <Box component="p" sx={{ m: 0, fontSize: "0.85rem", color: "#64748b" }}>
+                Date
+              </Box>
+              <Box component="p" sx={{ m: 0, fontSize: "0.85rem", color: "#0f172a", fontWeight: 700 }}>
+                {selectedPayment ? formatTransactionDate(selectedPayment.transactionDate) : "-"}
+              </Box>
+            </Stack>
+            <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ py: 1.15 }}>
+              <Box component="p" sx={{ m: 0, fontSize: "0.85rem", color: "#64748b" }}>
+                Method
+              </Box>
+              <Box
+                component="p"
+                sx={{
+                  m: 0,
+                  fontSize: "0.85rem",
+                  color: "#0f172a",
+                  fontWeight: 700,
+                  textAlign: "right",
+                  maxWidth: "72%",
+                  overflowWrap: "anywhere",
+                }}
+              >
+                {selectedPayment?.referenceNumber || "-"}
+              </Box>
+            </Stack>
+          </Stack>
+
+          <Box component="p" sx={{ m: 0, color: "#94a3b8", fontSize: "0.78rem", fontWeight: 800, mb: 1.1, letterSpacing: "0.02em" }}>
+            SUBSCRIPTION DETAILS
+          </Box>
+
+          <Stack spacing={0}>
+            <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ py: 1.15 }}>
+              <Box component="p" sx={{ m: 0, fontSize: "0.85rem", color: "#64748b" }}>
+                Plan
+              </Box>
+              <Box component="p" sx={{ m: 0, fontSize: "0.85rem", color: "#0f172a", fontWeight: 700 }}>
+                {selectedPayment?.subscriptionType || "-"}
+              </Box>
+            </Stack>
+            <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ py: 1.15 }}>
+              <Box component="p" sx={{ m: 0, fontSize: "0.85rem", color: "#64748b" }}>
+                Billing Period
+              </Box>
+              <Box component="p" sx={{ m: 0, fontSize: "0.85rem", color: "#0f172a", fontWeight: 700 }}>
+                {formatBillingPeriod(selectedPayment?.transactionDate)}
+              </Box>
+            </Stack>
+          </Stack>
+        </Box>
+
+        <Box
+          sx={{
+            mt: "auto",
+            p: 2,
+            borderTop: "1px solid",
+            borderColor: "divider",
+            backgroundColor: "#f8fafc",
+          }}
+        >
+          <Button
+            onClick={closeDetails}
+            fullWidth
+            variant="outlined"
+            sx={{
+              height: 48,
+              borderRadius: 2,
+              borderColor: "#cbd5e1",
+              color: "#0f172a",
+              fontWeight: 700,
+              textTransform: "none",
+              "&:hover": { borderColor: "#94a3b8", backgroundColor: "#f1f5f9" },
+            }}
+          >
+            Close Details
+          </Button>
+        </Box>
+      </Drawer>
     </Stack>
   );
 };
