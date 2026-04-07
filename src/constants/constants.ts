@@ -36,11 +36,40 @@ const SWR_OPTIONS = {
   onSuccess: (data: any, key: string, config: any) => data
 };
 
-const ENVIRONMENT_MODE = import.meta.env.MODE;
-const API_BASE_URL =
-  ENVIRONMENT_MODE === "PRODUCTION"
-    ? import.meta.env.VITE_API_PROD_URL
-    : import.meta.env.VITE_APP_API_URL_LOCAL;
+type EnvironmentMode = "LOCAL" | "DEVELOPMENT" | "PRODUCTION";
+
+const ENV = (import.meta as ImportMeta & {
+  env: Record<string, string | undefined>;
+}).env;
+
+const getEnvironmentMode = (): EnvironmentMode => {
+  const customMode = (ENV.VITE_MODE || "").toUpperCase();
+  if (customMode === "LOCAL" || customMode === "DEVELOPMENT" || customMode === "PRODUCTION") {
+    return customMode;
+  }
+
+  const viteMode = (ENV.MODE || "").toUpperCase();
+  if (viteMode === "PRODUCTION") return "PRODUCTION";
+  if (viteMode === "DEVELOPMENT") return "DEVELOPMENT";
+
+  return "LOCAL";
+};
+
+const ENVIRONMENT_MODE = getEnvironmentMode();
+
+const getAPIBaseURL = () => {
+  switch (ENVIRONMENT_MODE) {
+    case "PRODUCTION":
+      return ENV.VITE_API_PROD_URL || ENV.VITE_API_URL_LOCAL;
+    case "DEVELOPMENT":
+      return ENV.VITE_API_DEVELOPMENT_URL || ENV.VITE_API_URL_LOCAL;
+    case "LOCAL":
+    default:
+      return ENV.VITE_API_URL_LOCAL;
+  }
+};
+
+const API_BASE_URL = getAPIBaseURL();
 
 export {
   APP_NAME,
