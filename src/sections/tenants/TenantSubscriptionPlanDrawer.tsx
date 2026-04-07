@@ -12,11 +12,23 @@ import CloseIcon from "@mui/icons-material/Close";
 import { useMemo } from "react";
 import { useGetSinglePlan } from "../../services/subscriptionPlanServices";
 import formatAmount from "../../utils/amountFormatter";
+import { formatDate } from "../../utils/dateFormatter";
 import idLabel from "../../utils/idUtils";
+
+interface SubscriptionMeta {
+  id?: string;
+  planId?: string;
+  planName?: string;
+  startDate?: string;
+  endDate?: string;
+  status?: string;
+}
 
 interface TenantSubscriptionPlanDrawerProps {
   open: boolean;
   planId?: string;
+  subscriptionMeta?: SubscriptionMeta | null;
+  contextLabel?: string;
   onClose: () => void;
 }
 
@@ -46,7 +58,13 @@ const formatLimitValue = (value?: number) => {
   return String(parsed);
 };
 
-const TenantSubscriptionPlanDrawer = ({ open, planId, onClose }: TenantSubscriptionPlanDrawerProps) => {
+const TenantSubscriptionPlanDrawer = ({
+  open,
+  planId,
+  subscriptionMeta,
+  contextLabel,
+  onClose,
+}: TenantSubscriptionPlanDrawerProps) => {
   const { plan, isLoading, error } = useGetSinglePlan(planId);
 
   const orderedFeatures = useMemo(() => {
@@ -62,7 +80,7 @@ const TenantSubscriptionPlanDrawer = ({ open, planId, onClose }: TenantSubscript
               Subscription Plan Details
             </Typography>
             <Typography variant="body2" sx={{ color: "text.secondary" }}>
-              Snapshot of the assigned plan for this tenant.
+              Snapshot of the {contextLabel || "selected"} plan and subscription metadata.
             </Typography>
           </Stack>
 
@@ -92,6 +110,47 @@ const TenantSubscriptionPlanDrawer = ({ open, planId, onClose }: TenantSubscript
 
         {Boolean(planId) && !isLoading && !error && plan && (
           <Stack spacing={2.4} sx={{ overflowY: "auto", pr: 0.5 }}>
+            {subscriptionMeta && (
+              <Box sx={{ p: 2, border: "1px solid", borderColor: "divider", borderRadius: 1, bgcolor: "grey.50" }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "text.primary", mb: 1.2 }}>
+                  Subscription Metadata
+                </Typography>
+
+                <Stack spacing={0.8}>
+                  <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                    Subscription ID:{" "}
+                    <Box component="span" sx={{ color: "text.primary", fontWeight: 600 }}>
+                      {idLabel(subscriptionMeta.id || "", "SUBSCRIPTION")}
+                    </Box>
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                    Status:{" "}
+                    <Box component="span" sx={{ color: "text.primary", fontWeight: 600 }}>
+                      {subscriptionMeta.status || "-"}
+                    </Box>
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                    Plan Name:{" "}
+                    <Box component="span" sx={{ color: "text.primary", fontWeight: 600 }}>
+                      {subscriptionMeta.planName || "-"}
+                    </Box>
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                    Start Date:{" "}
+                    <Box component="span" sx={{ color: "text.primary", fontWeight: 600 }}>
+                      {formatDate(subscriptionMeta.startDate || "", { isIncludeTime: true })}
+                    </Box>
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                    End Date:{" "}
+                    <Box component="span" sx={{ color: "text.primary", fontWeight: 600 }}>
+                      {formatDate(subscriptionMeta.endDate || "", { isIncludeTime: true })}
+                    </Box>
+                  </Typography>
+                </Stack>
+              </Box>
+            )}
+
             <Box>
               <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.6 }}>
                 <CreditCard size={16} />

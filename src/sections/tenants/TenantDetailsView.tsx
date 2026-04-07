@@ -1,4 +1,4 @@
-import { ArrowLeft, Building2, CalendarClock, Circle, CreditCard, ReceiptText } from "lucide-react";
+import { Activity, ArrowLeft, ArrowRight, Building2, CalendarDays, Circle, CreditCard, Hash, ReceiptText } from "lucide-react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -57,7 +57,7 @@ const getDaysRemaining = (rawDate: string): string => {
 
   if (dayDiff < 0) return `${Math.abs(dayDiff)} days overdue`;
   if (dayDiff === 0) return "Ends today";
-  return `${dayDiff} days remaining`;
+  return `${dayDiff} days left`;
 };
 
 const statusMeta: Record<TenantStatus, { label: string; bg: string; color: string }> = {
@@ -80,6 +80,15 @@ const defaultFeedbackState: FeedbackState = {
   severity: "success",
 };
 
+interface DrawerSubscriptionMeta {
+  id?: string;
+  planId?: string;
+  planName?: string;
+  startDate?: string;
+  endDate?: string;
+  status?: string;
+}
+
 const TenantDetailsView = () => {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -90,6 +99,9 @@ const TenantDetailsView = () => {
   const isAdmin = user?.role === USER_ROLES.ADMIN.value;
   const [isDeactivateDialogOpen, setIsDeactivateDialogOpen] = useState(false);
   const [isSubscriptionDrawerOpen, setIsSubscriptionDrawerOpen] = useState(false);
+  const [drawerPlanId, setDrawerPlanId] = useState("");
+  const [drawerPlanLabel, setDrawerPlanLabel] = useState("Current Subscription");
+  const [drawerSubscriptionMeta, setDrawerSubscriptionMeta] = useState<DrawerSubscriptionMeta | null>(null);
   const [isPlanChangeDrawerOpen, setIsPlanChangeDrawerOpen] = useState(false);
   const [isMutating, setIsMutating] = useState(false);
   const [adjustmentDays, setAdjustmentDays] = useState("7");
@@ -119,6 +131,13 @@ const TenantDetailsView = () => {
 
   const refreshTenant = async () => {
     await mutate();
+  };
+
+  const openPlanDrawer = (meta: DrawerSubscriptionMeta, label: string) => {
+    setDrawerPlanId(meta.planId || "");
+    setDrawerSubscriptionMeta(meta);
+    setDrawerPlanLabel(label);
+    setIsSubscriptionDrawerOpen(true);
   };
 
   const handleAdjustEndDate = async () => {
@@ -193,16 +212,6 @@ const TenantDetailsView = () => {
           {!isLoading && tenant && (isMasterAdmin || isAdmin) && (
             <Stack direction={{ xs: "column", sm: "row" }} spacing={1.2}>
               <Button
-                variant="outlined"
-                startIcon={<CreditCard size={16} />}
-                onClick={() => setIsSubscriptionDrawerOpen(true)}
-                disabled={!tenant.subscription.planId}
-                sx={{ borderRadius: 1, fontWeight: 700, px: 2 }}
-              >
-                View Subscription
-              </Button>
-
-              <Button
                 variant="contained"
                 startIcon={<ReceiptText size={16} />}
                 onClick={() => setIsPlanChangeDrawerOpen(true)}
@@ -220,9 +229,56 @@ const TenantDetailsView = () => {
       )}
 
       {!isLoading && tenant?.upcomingSubscription?.planName && (
-        <Alert severity="info">
-          Upcoming plan {tenant.upcomingSubscription.planName} is scheduled for {formatDate(tenant.upcomingSubscription.startDate, { isIncludeTime: true })}.
-        </Alert>
+        <Paper
+          elevation={0}
+          sx={{
+            p: { xs: 2, md: 2.5 },
+            border: "1px solid",
+            borderColor: "divider",
+            borderRadius: 3,
+            background: "linear-gradient(135deg, #f8fafc 0%, #eef2ff 100%)",
+          }}
+        >
+          <Stack spacing={1.5}>
+            <Chip
+              label="Upcoming Plan Scheduled"
+              size="small"
+              sx={{ width: "fit-content", fontWeight: 700, bgcolor: "primary.50", color: "primary.main" }}
+            />
+            <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" spacing={2} alignItems={{ md: "center" }}>
+              <Box>
+                <Typography variant="subtitle1" sx={{ fontWeight: 700, color: "text.primary" }}>
+                  {tenant.upcomingSubscription.planName}
+                </Typography>
+                <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.4 }}>
+                  Activates on {formatDate(tenant.upcomingSubscription.startDate, { isIncludeTime: true })}
+                </Typography>
+              </Box>
+
+              <Button
+                variant="contained"
+                endIcon={<ArrowRight size={14} />}
+                onClick={() =>
+                  openPlanDrawer(
+                    {
+                      id: tenant.upcomingSubscription?.id,
+                      planId: tenant.upcomingSubscription?.planId,
+                      planName: tenant.upcomingSubscription?.planName,
+                      startDate: tenant.upcomingSubscription?.startDate,
+                      endDate: tenant.upcomingSubscription?.endDate,
+                      status: tenant.upcomingSubscription?.status,
+                    },
+                    "Upcoming Subscription"
+                  )
+                }
+                disabled={!tenant.upcomingSubscription?.planId}
+                sx={{ borderRadius: 2, fontWeight: 700, px: 2.5, py: 1.1, minWidth: { md: 220 } }}
+              >
+                View
+              </Button>
+            </Stack>
+          </Stack>
+        </Paper>
       )}
 
       {!isLoading && !error && !tenant && (
@@ -266,8 +322,8 @@ const TenantDetailsView = () => {
                 <Stack direction="row" spacing={1.8} alignItems="center">
                   <Box
                     sx={{
-                      width: 62,
-                      height: 62,
+                      width: 66,
+                      height: 66,
                       borderRadius: 1,
                       bgcolor: "action.hover",
                       color: "primary.main",
@@ -284,12 +340,12 @@ const TenantDetailsView = () => {
                     {isLoading ? (
                       <>
                         <Skeleton width={220} height={34} />
-                        <Skeleton width={360} height={20} />
+                        <Skeleton width={390} height={20} />
                       </>
                     ) : (
                       <>
                         <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
-                          <Typography variant="h5" sx={{ fontWeight: 600, color: "text.primary" }}>
+                          <Typography variant="h6" sx={{ fontWeight: 700, color: "text.primary" }}>
                             {tenant?.name}
                           </Typography>
                           <Chip
@@ -307,12 +363,18 @@ const TenantDetailsView = () => {
                             }}
                           />
                         </Stack>
-                        <Stack direction={{ xs: "column", md: "row" }} spacing={{ xs: 0.2, md: 1.8 }} sx={{ mt: 0.35 }}>
+                        <Stack direction={{ xs: "column", md: "row" }} spacing={{ xs: 1.2, md: 1.8 }} sx={{ mt: 0.5 }}>
                           <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 500 }}>
-                            ID: {idLabel(tenant?.id || "", "TENANT")}
+                            <Stack component="span" direction="row" spacing={0.5} alignItems="center">
+                              <Hash size={12} />
+                              <span>ID: {idLabel(tenant?.id || "", "TENANT")}</span>
+                            </Stack>
                           </Typography>
                           <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 500 }}>
-                            Code: {tenant?.companyCode}
+                            <Stack component="span" direction="row" spacing={0.5} alignItems="center">
+                              <Building2 size={12} />
+                              <span>Code: {tenant?.companyCode}</span>
+                            </Stack>
                           </Typography>
                           <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 500 }}>
                             DB: {tenant?.databaseName}
@@ -348,44 +410,108 @@ const TenantDetailsView = () => {
                       <Skeleton width="82%" height={28} />
                     </Stack>
                   ) : (
-                    <Stack spacing={2.1}>
-                      <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-                        <Box sx={{ flex: 1 }}>
-                          <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, letterSpacing: "0.04em" }}>
+                    <Stack spacing={2}>
+                      <Box
+                        sx={{
+                          display: "grid",
+                          gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+                          gap: { xs: 2, sm: 3 },
+                          pr: { md: 2 },
+                        }}
+                      >
+                        <Box>
+                          <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700, letterSpacing: "0.04em" }}>
                             CURRENT PLAN
                           </Typography>
-                          <Typography variant="body2" sx={{ mt: 0.2, color: "text.primary", fontWeight: 600 }}>
+                          <Typography variant="subtitle2" sx={{ mt: 0.45, color: "text.primary", fontWeight: 700 }}>
                             {tenant?.subscription.planName || EMPTY_LABEL}
                           </Typography>
                         </Box>
-                        <Box sx={{ flex: 1 }}>
-                          <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, letterSpacing: "0.04em" }}>
+
+                        <Box>
+                          <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700, letterSpacing: "0.04em" }}>
                             SUBSCRIPTION ID
                           </Typography>
-                          <Typography variant="body2" sx={{ mt: 0.45, color: "text.primary", fontWeight: 600 }}>
+                          <Typography variant="subtitle2" sx={{ mt: 0.45, color: "text.primary", fontWeight: 700 }}>
                             {idLabel(tenant?.subscription.id || "", "SUBSCRIPTION")}
                           </Typography>
                         </Box>
-                      </Stack>
 
-                      <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-                        <Box sx={{ flex: 1 }}>
-                          <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, letterSpacing: "0.04em" }}>
+                        <Box>
+                          <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700, letterSpacing: "0.04em" }}>
                             START DATE
                           </Typography>
-                          <Typography variant="body2" sx={{ mt: 0.4, color: "text.primary", fontWeight: 600 }}>
-                            {formatDate(tenant?.subscription.startDate || "", { isIncludeTime: true })}
-                          </Typography>
+                          <Stack direction="row" spacing={0.8} alignItems="center" sx={{ mt: 0.5 }}>
+                            <CalendarDays size={16} color="#94a3b8" />
+                            <Typography variant="subtitle2" sx={{ color: "text.primary", fontWeight: 700 }}>
+                              {formatDate(tenant?.subscription.startDate || "", { isIncludeTime: true })}
+                            </Typography>
+                          </Stack>
                         </Box>
-                        <Box sx={{ flex: 1 }}>
-                          <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, letterSpacing: "0.04em" }}>
+
+                        <Box>
+                          <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700, letterSpacing: "0.04em" }}>
                             END DATE
                           </Typography>
-                          <Typography variant="body2" sx={{ mt: 0.4, color: "text.primary", fontWeight: 600 }}>
-                            {formatDate(tenant?.subscription.endDate || "", { isIncludeTime: true })}
-                          </Typography>
+                          <Stack direction="row" spacing={0.8} alignItems="center" sx={{ mt: 0.5 }}>
+                            <CalendarDays size={16} color="#94a3b8" />
+                            <Typography variant="subtitle2" sx={{ color: "text.primary", fontWeight: 700 }}>
+                              {formatDate(tenant?.subscription.endDate || "", { isIncludeTime: true })}
+                            </Typography>
+                          </Stack>
                         </Box>
+                      </Box>
+
+                      <Stack direction="row" spacing={1.2}>
+                        <Button
+                          variant="text"
+                          startIcon={<CreditCard size={14} />}
+                          onClick={() =>
+                            openPlanDrawer(
+                              {
+                                id: tenant?.subscription.id,
+                                planId: tenant?.subscription.planId,
+                                planName: tenant?.subscription.planName,
+                                startDate: tenant?.subscription.startDate,
+                                endDate: tenant?.subscription.endDate,
+                                status: tenant?.subscription.status,
+                              },
+                              "Current Subscription"
+                            )
+                          }
+                          disabled={!tenant?.subscription.planId}
+                          sx={{ px: 0, fontWeight: 700 }}
+                        >
+                          View subscription
+                        </Button>
                       </Stack>
+
+                      {tenant?.upcomingSubscription?.planName && (
+                        <Box
+                          sx={{
+                            p: 2,
+                            border: "1px solid",
+                            borderColor: "primary.light",
+                            borderRadius: 2,
+                            bgcolor: "primary.50",
+                          }}
+                        >
+                          <Typography variant="caption" sx={{ color: "primary.main", fontWeight: 700, letterSpacing: "0.04em" }}>
+                            UPCOMING PLAN
+                          </Typography>
+                          <Typography variant="h6" sx={{ mt: 0.3, color: "text.primary", fontWeight: 700 }}>
+                            {tenant.upcomingSubscription.planName}
+                          </Typography>
+                          <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ mt: 1.2 }}>
+                            <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                              Subscription ID: <Box component="span" sx={{ color: "text.primary", fontWeight: 600 }}>{idLabel(tenant.upcomingSubscription.id || "", "SUBSCRIPTION")}</Box>
+                            </Typography>
+                            <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                              Starts: <Box component="span" sx={{ color: "text.primary", fontWeight: 600 }}>{formatDate(tenant.upcomingSubscription.startDate || "", { isIncludeTime: true })}</Box>
+                            </Typography>
+                          </Stack>
+                        </Box>
+                      )}
                     </Stack>
                   )}
                 </Box>
@@ -394,11 +520,11 @@ const TenantDetailsView = () => {
                   sx={{
                     borderLeft: { xs: "none", md: "1px solid" },
                     borderColor: { xs: "transparent", md: "divider" },
-                    pl: { xs: 0, md: 3 },
+                    pl: { xs: 0, md: 4 },
                   }}
                 >
                   <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
-                    <CalendarClock size={16} color="currentColor" />
+                    <Activity size={16} color="currentColor" />
                     <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "primary.main", letterSpacing: "0.06em" }}>
                       LIFECYCLE SNAPSHOT
                     </Typography>
@@ -426,9 +552,12 @@ const TenantDetailsView = () => {
                         <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, letterSpacing: "0.04em" }}>
                           TIME REMAINING
                         </Typography>
-                        <Typography variant="body2" sx={{ color: "primary.main", fontWeight: 600 }}>
-                          {getDaysRemaining(tenant?.subscription.endDate || "")}
-                        </Typography>
+                        <Stack direction="row" spacing={0.8} alignItems="center" sx={{ mt: 0.2 }}>
+                          <CalendarDays size={16} color="#0ea5e9" />
+                          <Typography variant="subtitle1" sx={{ color: "primary.main", fontWeight: 700 }}>
+                            {getDaysRemaining(tenant?.subscription.endDate || "")}
+                          </Typography>
+                        </Stack>
                       </Box>
 
                       <Box sx={{ bgcolor: "grey.50", border: "1px solid", borderColor: "divider", borderRadius: 1, p: 2 }}>
@@ -436,13 +565,13 @@ const TenantDetailsView = () => {
                           ACTIVE WINDOW
                         </Typography>
                         <Typography variant="body2" sx={{ mt: 0.4, color: "text.primary", fontWeight: 600 }}>
-                          {formatDate(tenant?.subscription.startDate || "", { isIncludeTime: true })}
+                          {formatDate(tenant?.subscription.startDate || "")}
                         </Typography>
                         <Typography variant="body2" sx={{ color: "text.secondary", fontWeight: 600 }}>
                           to
                         </Typography>
                         <Typography variant="body2" sx={{ color: "text.primary", fontWeight: 600 }}>
-                          {formatDate(tenant?.subscription.endDate || "", { isIncludeTime: true })}
+                          {formatDate(tenant?.subscription.endDate || "")}
                         </Typography>
                       </Box>
                     </Stack>
@@ -484,8 +613,15 @@ const TenantDetailsView = () => {
 
       <TenantSubscriptionPlanDrawer
         open={isSubscriptionDrawerOpen}
-        planId={tenant?.subscription.planId}
-        onClose={() => setIsSubscriptionDrawerOpen(false)}
+        planId={drawerPlanId}
+        subscriptionMeta={drawerSubscriptionMeta}
+        contextLabel={drawerPlanLabel}
+        onClose={() => {
+          setIsSubscriptionDrawerOpen(false);
+          setDrawerPlanId("");
+          setDrawerSubscriptionMeta(null);
+          setDrawerPlanLabel("Current Subscription");
+        }}
       />
 
       <TenantPlanChangeDrawer

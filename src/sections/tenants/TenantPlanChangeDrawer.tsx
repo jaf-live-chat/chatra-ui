@@ -127,7 +127,7 @@ const TenantPlanChangeDrawer = ({ open, tenant, onClose }: TenantPlanChangeDrawe
         return;
       }
 
-      setFeedback(response.message || "The plan change was queued successfully.");
+      setFeedback(response.message || "The plan change was applied successfully.");
     } catch (requestError) {
       const errorMessage = requestError instanceof Error ? requestError.message : "Unable to start checkout.";
       setFeedback(errorMessage);
@@ -142,7 +142,7 @@ const TenantPlanChangeDrawer = ({ open, tenant, onClose }: TenantPlanChangeDrawe
       anchor="right"
       open={open}
       onClose={onClose}
-      PaperProps={{ sx: { width: { xs: "100%", sm: 520 } } }}
+      PaperProps={{ sx: { width: { xs: "100%", sm: 550 } } }}
     >
       <Box sx={{ p: 2.5, display: "flex", flexDirection: "column", height: "100%" }}>
         <Stack direction="row" alignItems="flex-start" justifyContent="space-between" spacing={2} sx={{ mb: 2 }}>
@@ -151,7 +151,7 @@ const TenantPlanChangeDrawer = ({ open, tenant, onClose }: TenantPlanChangeDrawe
               Change subscription plan
             </Typography>
             <Typography variant="body2" sx={{ color: "text.secondary" }}>
-              Buy the new plan now. It will activate after the current plan ends.
+              Pay for the new plan and activate it immediately.
             </Typography>
           </Stack>
 
@@ -270,7 +270,7 @@ const TenantPlanChangeDrawer = ({ open, tenant, onClose }: TenantPlanChangeDrawe
 
         <Box sx={{ pt: 2.5 }}>
           <Alert severity="warning" icon={<CalendarClock size={16} />}>
-            The new plan will not overlap with the current plan. It activates automatically on the effective date.
+            After successful payment, the current plan will be replaced immediately.
           </Alert>
         </Box>
 
@@ -310,7 +310,7 @@ const TenantPlanChangeDrawer = ({ open, tenant, onClose }: TenantPlanChangeDrawe
               )}
 
               <Alert severity="info">
-                Your current plan stays active until its end date. This purchase only schedules the new plan to begin afterward.
+                This payment activates the selected plan right away and replaces the current subscription.
               </Alert>
             </Stack>
           </DialogContent>
@@ -328,7 +328,7 @@ const TenantPlanChangeDrawer = ({ open, tenant, onClose }: TenantPlanChangeDrawe
           <DialogTitle sx={{ fontWeight: 800 }}>Confirm payment</DialogTitle>
           <DialogContent>
             <Typography variant="body2" sx={{ color: "text.secondary" }}>
-              Continue to payment for {selectedPlan?.name || "this plan"}? The new subscription will be queued and activated after the current plan ends.
+              Continue to payment for {selectedPlan?.name || "this plan"}? The current subscription will be replaced immediately after payment success.
             </Typography>
           </DialogContent>
           <DialogActions sx={{ p: 2.5 }}>
