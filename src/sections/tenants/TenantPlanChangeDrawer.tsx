@@ -60,6 +60,21 @@ const toPriceLabel = (price?: number) => {
 
 const isPaidPlan = (price?: number) => Number(price || 0) > 0;
 
+const limitLabels: Record<string, string> = {
+  maxAgents: "Max agents",
+  maxWebsites: "Max websites",
+};
+
+const toLimitLabel = (limitKey: string) => {
+  if (limitLabels[limitKey]) {
+    return limitLabels[limitKey];
+  }
+
+  return limitKey
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/^./, (char) => char.toUpperCase());
+};
+
 const TenantPlanChangeDrawer = ({ open, tenant, onClose }: TenantPlanChangeDrawerProps) => {
   const { plans, isLoading, error } = useGetSubscriptionPlans();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -81,6 +96,13 @@ const TenantPlanChangeDrawer = ({ open, tenant, onClose }: TenantPlanChangeDrawe
   const selectedPlanFeatureList = useMemo(
     () => (selectedPlan?.features || []).filter(Boolean),
     [selectedPlan?.features],
+  );
+  const selectedPlanLimitList = useMemo(
+    () =>
+      Object.entries(selectedPlan?.limits || {})
+        .map(([key, value]) => ({ key, value }))
+        .filter((item) => Number.isFinite(Number(item.value))),
+    [selectedPlan?.limits],
   );
 
   const openPlanPreview = (plan: SubscriptionPlanApiModel) => {
@@ -293,6 +315,21 @@ const TenantPlanChangeDrawer = ({ open, tenant, onClose }: TenantPlanChangeDrawe
                 <Chip label={selectedPlanPriceLabel} color="primary" variant="outlined" sx={{ borderRadius: 1, fontWeight: 700 }} />
                 <Chip label={selectedPlan ? toBillingLabel(selectedPlan.billingCycle, selectedPlan.interval) : ""} sx={{ borderRadius: 1, fontWeight: 600 }} />
               </Stack>
+
+              {selectedPlanLimitList.length > 0 && (
+                <Box sx={{ p: 2, borderRadius: 2, bgcolor: "grey.50", border: "1px solid", borderColor: "divider" }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
+                    Plan limits
+                  </Typography>
+                  <Stack spacing={0.9}>
+                    {selectedPlanLimitList.map((item) => (
+                      <Typography key={item.key} variant="body2" sx={{ color: "text.primary" }}>
+                        • {toLimitLabel(item.key)}: {Number(item.value)}
+                      </Typography>
+                    ))}
+                  </Stack>
+                </Box>
+              )}
 
               {selectedPlanFeatureList.length > 0 && (
                 <Box sx={{ p: 2, borderRadius: 2, bgcolor: "grey.50", border: "1px solid", borderColor: "divider" }}>
