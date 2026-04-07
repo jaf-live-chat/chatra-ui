@@ -310,7 +310,7 @@ const PaymentsTable = () => {
             </Stack>
             <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ py: 1.15 }}>
               <Box component="p" sx={{ m: 0, fontSize: "0.85rem", color: "#64748b" }}>
-                Method
+                Reference Number
               </Box>
               <Box
                 component="p"
