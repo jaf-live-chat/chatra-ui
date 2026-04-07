@@ -22,6 +22,8 @@ import type {
 const endpoints = {
   key: `${API_BASE_URL}/agents`,
   me: `${API_BASE_URL}/agents/me`,
+  logout: `${API_BASE_URL}/agents/logout`,
+  status: `${API_BASE_URL}/agents/status`,
   profile: `${API_BASE_URL}/agents/profile`,
   verifyPassword: `${API_BASE_URL}/agents/verify-password`,
   uploadSingle: `${API_BASE_URL}/agents/upload/single`,
@@ -109,6 +111,16 @@ const Agents = {
 
   getMe: async (): Promise<AgentMeResponse> => {
     const response = await axiosServices.get(endpoints.me);
+    return response.data;
+  },
+
+  logout: async (): Promise<{ success: boolean; message: string }> => {
+    const response = await axiosServices.post(endpoints.logout);
+    return response.data;
+  },
+
+  updateMyStatus: async (status: string): Promise<UpdateAgentResponse> => {
+    const response = await axiosServices.patch(endpoints.status, { status });
     return response.data;
   },
 

@@ -69,6 +69,13 @@ const getAPIBaseURL = () => {
   }
 };
 
+const USER_STATUS = {
+  AVAILABLE: "AVAILABLE",
+  BUSY: "BUSY",
+  OFFLINE: "OFFLINE",
+  AWAY: "AWAY",
+};
+
 const API_BASE_URL = getAPIBaseURL();
 
 export {
@@ -77,5 +84,6 @@ export {
   APP_LOGO,
   USER_ROLES,
   SWR_OPTIONS,
-  API_BASE_URL
+  API_BASE_URL,
+  USER_STATUS
 }

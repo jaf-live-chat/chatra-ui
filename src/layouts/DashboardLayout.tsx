@@ -7,12 +7,13 @@ import {
   Sun,
   Menu,
 } from "lucide-react";
-import { Link, Outlet, useNavigate, useLocation } from "react-router";
+import { Outlet, useNavigate, useLocation } from "react-router";
 import { Avatar, Button, Chip, Stack, Typography } from "@mui/material";
 import { DarkModeProvider, useDarkMode } from "../providers/DarkModeContext";
-import { APP_LOGO } from "../constants/constants";
+import { APP_LOGO, USER_STATUS } from "../constants/constants";
 import useAuth from "../hooks/useAuth";
 import useIsMobile from "../hooks/useMobile";
+import Agents from "../services/agentServices";
 import { MODULE_GROUPS } from "../constants/modules";
 import filterModulesByRole from "../utils/filterModules";
 import { formatDate } from "../utils/dateFormatter";
@@ -29,19 +30,8 @@ function DashboardLayoutInner() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isPlanPopupOpen, setIsPlanPopupOpen] = useState(false);
+  const [isStatusOpen, setIsStatusOpen] = useState(false);
   const [timeTick, setTimeTick] = useState(() => Date.now());
-  const [agentStatus, setAgentStatus] = useState(() => {
-    try { return localStorage.getItem("jaf_agent_status") || "Online"; } catch { return "Online"; }
-  });
-
-  useEffect(() => {
-    const handleStatusChange = (e: Event) => {
-      const detail = (e as CustomEvent).detail;
-      if (detail?.status) setAgentStatus(detail.status);
-    };
-    window.addEventListener("jaf_agent_status_changed", handleStatusChange);
-    return () => window.removeEventListener("jaf_agent_status_changed", handleStatusChange);
-  }, []);
 
   useEffect(() => {
     setIsSidebarOpen(!isMobile);
@@ -57,10 +47,8 @@ function DashboardLayoutInner() {
     };
   }, []);
 
-  const [isStatusOpen, setIsStatusOpen] = useState(false);
-
   const { isDark, toggleDark } = useDarkMode();
-  const { user, tenant, logout } = useAuth();
+  const { user, tenant, logout, updateUser } = useAuth();
   const roleFilteredGroups = filterModulesByRole(MODULE_GROUPS, user?.role);
   const sidebarGroups = roleFilteredGroups
     .map((group) => ({
@@ -92,8 +80,8 @@ function DashboardLayoutInner() {
     return true;
   };
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate("/login", { replace: true });
   };
 
@@ -101,6 +89,15 @@ function DashboardLayoutInner() {
     navigate(path);
     if (isMobile) {
       setIsSidebarOpen(false);
+    }
+  };
+
+  const handleStatusChange = async (status: string) => {
+    try {
+      const response = await Agents.updateMyStatus(status);
+      updateUser(response.agent);
+    } finally {
+      setIsStatusOpen(false);
     }
   };
 
@@ -113,6 +110,21 @@ function DashboardLayoutInner() {
   const userRole = (user?.role || "-") as UserRole | "-";
   const subscription = tenant?.subscription ?? null;
   const planName = subscription?.planName || "No Plan";
+  const currentAgentStatus = user?.status || USER_STATUS.OFFLINE;
+
+  const statusBadge = (() => {
+    switch (currentAgentStatus) {
+      case USER_STATUS.AVAILABLE:
+        return { label: "Available", color: "bg-green-500" };
+      case USER_STATUS.BUSY:
+        return { label: "Busy", color: "bg-amber-500" };
+      case USER_STATUS.AWAY:
+        return { label: "Away", color: "bg-yellow-500" };
+      case USER_STATUS.OFFLINE:
+      default:
+        return { label: "Offline", color: "bg-gray-400" };
+    }
+  })();
 
   const authUser: AuthUser | null =
     tenant?.companyName && user?.role && subscription?.planName && subscription?.startDate && subscription?.endDate
@@ -454,23 +466,15 @@ function DashboardLayoutInner() {
             {/* Agent Status */}
             <div className="relative">
               <button
-                onClick={() => setIsStatusOpen(!isStatusOpen)}
-                className="flex items-center gap-2 bg-gray-50 dark:bg-slate-700/60 border border-gray-200 dark:border-slate-600 px-2 sm:px-3 py-1.5 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+                type="button"
+                onClick={() => setIsStatusOpen((prev) => !prev)}
+                className="flex items-center gap-2 bg-gray-50 dark:bg-slate-700/60 border border-gray-200 dark:border-slate-600 px-2 sm:px-3 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
               >
-                <span
-                  className={`w-2 h-2 rounded-full ${agentStatus === "Online"
-                    ? "bg-green-500"
-                    : agentStatus === "Busy"
-                      ? "bg-yellow-500"
-                      : agentStatus === "Do not Disturb"
-                        ? "bg-red-500"
-                        : "bg-gray-400"
-                    }`}
-                ></span>
+                <span className={`w-2 h-2 rounded-full ${statusBadge.color}`}></span>
                 <span className="hidden sm:inline text-sm font-medium text-gray-700 dark:text-slate-300">
-                  {agentStatus}
+                  {statusBadge.label}
                 </span>
-                <ChevronDown className="w-4 h-4 text-gray-400 dark:text-slate-500 ml-1" />
+                <ChevronDown className="w-4 h-4 text-gray-400 dark:text-slate-500" />
               </button>
 
               {isStatusOpen && (
@@ -478,20 +482,19 @@ function DashboardLayoutInner() {
                   <div className="fixed inset-0 z-40" onClick={() => setIsStatusOpen(false)}></div>
                   <div className="absolute right-0 top-full mt-2 w-40 sm:w-48 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl shadow-lg dark:shadow-slate-900/50 z-50 py-1 -right-2 sm:right-0">
                     {[
-                      { label: "Online", color: "bg-green-500", value: "Online" },
-                      { label: "Busy", color: "bg-yellow-500", value: "Busy" },
-                      { label: "Away", color: "bg-gray-400", value: "Away" },
+                      { label: "Available", color: "bg-green-500", value: USER_STATUS.AVAILABLE },
+                      { label: "Away", color: "bg-yellow-500", value: USER_STATUS.AWAY },
                     ].map(({ label, color, value }) => (
                       <button
                         key={value}
+                        type="button"
                         onClick={() => {
-                          setAgentStatus(value);
-                          setIsStatusOpen(false);
-                          try { localStorage.setItem("jaf_agent_status", value); } catch { /* ignore */ }
+                          void handleStatusChange(value);
                         }}
                         className="w-full text-left px-3 sm:px-4 py-2 text-xs sm:text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700/60 flex items-center gap-3 transition-colors"
                       >
-                        <span className={`w-2 h-2 rounded-full flex-shrink-0 ${color}`}></span> <span className="truncate">{label}</span>
+                        <span className={`w-2 h-2 rounded-full flex-shrink-0 ${color}`}></span>
+                        <span className="truncate">{label}</span>
                       </button>
                     ))}
                   </div>
@@ -577,13 +580,15 @@ function DashboardLayoutInner() {
                       <Settings2 className="w-4 h-4 flex-shrink-0" /> <span className="truncate">Account Settings</span>
                     </button>
                     <div className="h-px bg-gray-100 dark:bg-slate-700 my-1"></div>
-                    <Link
-                      to="/login"
-                      onClick={handleLogout}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void handleLogout();
+                      }}
                       className="w-full text-left px-3 sm:px-4 py-2 text-xs sm:text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center gap-2"
                     >
                       <LogOut className="w-4 h-4 flex-shrink-0" /> <span className="truncate">Log out</span>
-                    </Link>
+                    </button>
                   </div>
                 </>
               )}

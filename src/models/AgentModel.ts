@@ -78,7 +78,7 @@ export type AuthContextValue = {
   accessToken: string | null;
   isLoggedIn: boolean;
   login: (loginData: LoginData) => Promise<AgentLoginResponse>;
-  logout: () => void;
+  logout: () => Promise<void>;
   updateUser: (agent: AuthAgent) => void;
   refreshSession: () => Promise<void>;
 };

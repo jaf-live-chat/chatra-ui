@@ -1,5 +1,6 @@
 import { createContext, useCallback, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
+import axios from "axios";
 import type {
   AgentLoginResponse,
   AuthAgent,
@@ -11,6 +12,7 @@ import Agents from "../services/agentServices";
 
 const AUTH_STORAGE_KEY = "jaf_auth_session";
 const TOKEN_STORAGE_KEY = "serviceToken";
+const AUTH_UNAUTHORIZED_EVENT = "jaf_auth_unauthorized";
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
@@ -41,6 +43,10 @@ type AuthProviderProps = {
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [session, setSession] = useState<AuthSession | null>(readStoredSession);
 
+  const clearSession = useCallback(() => {
+    setSession(null);
+  }, []);
+
   const refreshSession = useCallback(async () => {
     if (!session?.accessToken) {
       return;
@@ -60,10 +66,15 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           agent: meResponse.agent,
         };
       });
-    } catch {
-      // Keep existing session if refresh fails.
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 401) {
+        clearSession();
+        return;
+      }
+
+      // Keep existing session for transient refresh failures.
     }
-  }, [session?.accessToken]);
+  }, [clearSession, session?.accessToken]);
 
   useEffect(() => {
     if (!session) {
@@ -123,9 +134,29 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     return response;
   }, []);
 
-  const logout = useCallback(() => {
-    setSession(null);
-  }, []);
+  const logout = useCallback(async () => {
+    try {
+      if (session?.accessToken) {
+        await Agents.logout();
+      }
+    } catch {
+      // Always clear local session even if API logout fails.
+    } finally {
+      clearSession();
+    }
+  }, [clearSession, session?.accessToken]);
+
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      clearSession();
+    };
+
+    window.addEventListener(AUTH_UNAUTHORIZED_EVENT, handleUnauthorized);
+
+    return () => {
+      window.removeEventListener(AUTH_UNAUTHORIZED_EVENT, handleUnauthorized);
+    };
+  }, [clearSession]);
 
   const updateUser = useCallback((agent: AuthAgent) => {
     setSession((prevSession) => {
