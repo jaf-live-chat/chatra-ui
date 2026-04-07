@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   ChevronDown,
   LogOut,
@@ -20,6 +20,10 @@ import { formatDate } from "../utils/dateFormatter";
 import type { AuthUser, UserRole } from "../models/AgentModel";
 import toTitleCase from "../utils/toTitleCase";
 import getAvatarColor from "../utils/getAvatarColor";
+import AutoLogoutModal from "../components/common/AutoLogoutModal";
+
+const INACTIVITY_LIMIT_MS = 2 * 60 * 1000;
+const AUTO_LOGOUT_WARNING_SECONDS = 30;
 
 // ── Inner layout (consumes dark-mode context) ──────────────────────────────────
 
@@ -32,6 +36,10 @@ function DashboardLayoutInner() {
   const [isPlanPopupOpen, setIsPlanPopupOpen] = useState(false);
   const [isStatusOpen, setIsStatusOpen] = useState(false);
   const [timeTick, setTimeTick] = useState(() => Date.now());
+  const [isAutoLogoutOpen, setIsAutoLogoutOpen] = useState(false);
+  const [autoLogoutSecondsLeft, setAutoLogoutSecondsLeft] = useState(AUTO_LOGOUT_WARNING_SECONDS);
+  const inactivityTimeoutRef = useRef<number | null>(null);
+  const countdownIntervalRef = useRef<number | null>(null);
 
   useEffect(() => {
     setIsSidebarOpen(!isMobile);
@@ -49,6 +57,35 @@ function DashboardLayoutInner() {
 
   const { isDark, toggleDark } = useDarkMode();
   const { user, tenant, logout, updateUser } = useAuth();
+
+  const clearInactivityTimeout = useCallback(() => {
+    if (inactivityTimeoutRef.current) {
+      window.clearTimeout(inactivityTimeoutRef.current);
+      inactivityTimeoutRef.current = null;
+    }
+  }, []);
+
+  const clearCountdownInterval = useCallback(() => {
+    if (countdownIntervalRef.current) {
+      window.clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = null;
+    }
+  }, []);
+
+  const handleLogout = useCallback(async () => {
+    clearInactivityTimeout();
+    clearCountdownInterval();
+    await logout();
+    navigate("/login", { replace: true });
+  }, [clearCountdownInterval, clearInactivityTimeout, logout, navigate]);
+
+  const startInactivityTimer = useCallback(() => {
+    clearInactivityTimeout();
+    inactivityTimeoutRef.current = window.setTimeout(() => {
+      setAutoLogoutSecondsLeft(AUTO_LOGOUT_WARNING_SECONDS);
+      setIsAutoLogoutOpen(true);
+    }, INACTIVITY_LIMIT_MS);
+  }, [clearInactivityTimeout]);
   const roleFilteredGroups = filterModulesByRole(MODULE_GROUPS, user?.role);
   const sidebarGroups = roleFilteredGroups
     .map((group) => ({
@@ -80,11 +117,6 @@ function DashboardLayoutInner() {
     return true;
   };
 
-  const handleLogout = async () => {
-    await logout();
-    navigate("/login", { replace: true });
-  };
-
   const handleModuleNavigation = (path: string) => {
     navigate(path);
     if (isMobile) {
@@ -100,6 +132,74 @@ function DashboardLayoutInner() {
       setIsStatusOpen(false);
     }
   };
+
+  const handleStaySignedIn = useCallback(() => {
+    setIsAutoLogoutOpen(false);
+    setAutoLogoutSecondsLeft(AUTO_LOGOUT_WARNING_SECONDS);
+    startInactivityTimer();
+  }, [startInactivityTimer]);
+
+  useEffect(() => {
+    if (isAutoLogoutOpen) {
+      clearCountdownInterval();
+      countdownIntervalRef.current = window.setInterval(() => {
+        setAutoLogoutSecondsLeft((prev) => {
+          if (prev <= 1) {
+            clearCountdownInterval();
+            void handleLogout();
+            return 0;
+          }
+
+          return prev - 1;
+        });
+      }, 1000);
+
+      return () => {
+        clearCountdownInterval();
+      };
+    }
+
+    clearCountdownInterval();
+    return undefined;
+  }, [clearCountdownInterval, handleLogout, isAutoLogoutOpen]);
+
+  useEffect(() => {
+    if (isAutoLogoutOpen) {
+      return;
+    }
+
+    const activityEvents: Array<keyof WindowEventMap> = [
+      "mousemove",
+      "mousedown",
+      "keydown",
+      "scroll",
+      "touchstart",
+    ];
+
+    const handleUserActivity = () => {
+      startInactivityTimer();
+    };
+
+    activityEvents.forEach((eventName) => {
+      window.addEventListener(eventName, handleUserActivity, { passive: true });
+    });
+
+    startInactivityTimer();
+
+    return () => {
+      activityEvents.forEach((eventName) => {
+        window.removeEventListener(eventName, handleUserActivity);
+      });
+      clearInactivityTimeout();
+    };
+  }, [clearInactivityTimeout, isAutoLogoutOpen, startInactivityTimer]);
+
+  useEffect(() => {
+    return () => {
+      clearInactivityTimeout();
+      clearCountdownInterval();
+    };
+  }, [clearCountdownInterval, clearInactivityTimeout]);
 
   const userInitial = user?.fullName?.slice(0, 2)?.toUpperCase() || "U";
   const userName = user?.fullName || "User";
@@ -601,6 +701,15 @@ function DashboardLayoutInner() {
           <Outlet />
         </div>
       </main>
+
+      <AutoLogoutModal
+        open={isAutoLogoutOpen}
+        secondsLeft={autoLogoutSecondsLeft}
+        onStaySignedIn={handleStaySignedIn}
+        onLogoutNow={() => {
+          void handleLogout();
+        }}
+      />
     </div>
   );
 }
