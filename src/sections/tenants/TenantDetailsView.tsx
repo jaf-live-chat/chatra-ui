@@ -571,7 +571,7 @@ const TenantDetailsView = () => {
                           to
                         </Typography>
                         <Typography variant="body2" sx={{ color: "text.primary", fontWeight: 600 }}>
-                          {formatDate(tenant?.subscription.endDate || "")}
+                          {tenant?.subscription.endDate ? formatDate(tenant.subscription.endDate) : "No expiration date"}
                         </Typography>
                       </Box>
                     </Stack>
