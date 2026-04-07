@@ -8,7 +8,7 @@ import {
   Menu,
 } from "lucide-react";
 import { Link, Outlet, useNavigate, useLocation } from "react-router";
-import { Button, Chip, Stack, Typography } from "@mui/material";
+import { Avatar, Button, Chip, Stack, Typography } from "@mui/material";
 import { DarkModeProvider, useDarkMode } from "../providers/DarkModeContext";
 import { APP_LOGO } from "../constants/constants";
 import useAuth from "../hooks/useAuth";
@@ -18,6 +18,7 @@ import filterModulesByRole from "../utils/filterModules";
 import { formatDate } from "../utils/dateFormatter";
 import type { AuthUser, UserRole } from "../models/AgentModel";
 import toTitleCase from "../utils/toTitleCase";
+import getAvatarColor from "../utils/getAvatarColor";
 
 // ── Inner layout (consumes dark-mode context) ──────────────────────────────────
 
@@ -103,7 +104,7 @@ function DashboardLayoutInner() {
     }
   };
 
-  const userInitial = user?.fullName?.charAt(0)?.toUpperCase() || "U";
+  const userInitial = user?.fullName?.slice(0, 2)?.toUpperCase() || "U";
   const userName = user?.fullName || "User";
   const userEmail = user?.emailAddress || "";
   const userProfilePicture = user?.profilePicture || "";
@@ -515,18 +516,18 @@ function DashboardLayoutInner() {
                 className="flex items-center gap-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700/60 p-1.5 pr-3 rounded-lg transition-colors border border-transparent hover:border-gray-200 dark:hover:border-slate-600 ml-1"
                 onClick={() => setIsProfileOpen(!isProfileOpen)}
               >
-                {userProfilePicture && !profileImageFailed ? (
-                  <img
-                    src={userProfilePicture}
-                    alt={userName}
-                    onError={() => setProfileImageFailed(true)}
-                    className="w-8 h-8 rounded-full object-cover border border-gray-200 dark:border-slate-600"
-                  />
-                ) : (
-                  <div className="w-8 h-8 bg-gray-900 dark:bg-cyan-700 rounded-full flex items-center justify-center text-white font-medium text-sm">
-                    {userInitial}
-                  </div>
-                )}
+                <Avatar
+                  sx={{
+                    width: 36,
+                    height: 36,
+                    bgcolor: getAvatarColor(),
+                    fontSize: "0.875rem",
+                    fontWeight: 700,
+                  }}
+                  src={user?.profilePicture || ''}
+                >
+                  {userInitial}
+                </Avatar>
                 <div className="hidden lg:block text-left">
                   <p className="text-sm font-semibold text-gray-900 dark:text-slate-100 leading-none">
                     {userName}
@@ -541,18 +542,18 @@ function DashboardLayoutInner() {
                   <div className="fixed inset-0 z-40" onClick={() => setIsProfileOpen(false)}></div>
                   <div className="absolute right-0 top-full mt-2 w-48 sm:w-56 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl shadow-lg dark:shadow-slate-900/50 z-50 py-2 max-h-96 overflow-y-auto -right-2 sm:right-0">
                     <div className="px-3 sm:px-4 py-2 border-b border-gray-100 dark:border-slate-700 mb-1 flex items-center gap-2.5 min-w-0">
-                      {userProfilePicture && !profileImageFailed ? (
-                        <img
-                          src={userProfilePicture}
-                          alt={userName}
-                          onError={() => setProfileImageFailed(true)}
-                          className="w-8 h-8 rounded-full object-cover border border-gray-200 dark:border-slate-600 flex-shrink-0"
-                        />
-                      ) : (
-                        <div className="w-8 h-8 bg-gray-900 dark:bg-cyan-700 rounded-full flex items-center justify-center text-white font-medium text-xs flex-shrink-0">
-                          {userInitial}
-                        </div>
-                      )}
+                      <Avatar
+                        sx={{
+                          width: 36,
+                          height: 36,
+                          bgcolor: getAvatarColor(),
+                          fontSize: "0.875rem",
+                          fontWeight: 700,
+                        }}
+                        src={user?.phoneNumber || ''}
+                      >
+                        {userInitial}
+                      </Avatar>
                       <div className="min-w-0">
                         <p className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-slate-100 truncate">{userName}</p>
                         <p className="text-xs text-gray-500 dark:text-slate-400 truncate">{userEmail}</p>

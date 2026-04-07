@@ -169,6 +169,8 @@ const AccountSettingsView = () => {
   const [pendingAvatarFile, setPendingAvatarFile] = useState<File | null>(null);
   const [pendingAvatarPreviewUrl, setPendingAvatarPreviewUrl] = useState<string | null>(null);
   const [clearAvatarRequested, setClearAvatarRequested] = useState(false);
+  const pendingAvatarPreviewUrlRef = React.useRef<string | null>(null);
+  const hasPendingAvatarChangesRef = React.useRef(false);
 
   // Notification preferences
   const [notifications, setNotifications] = useState({
@@ -260,6 +262,12 @@ const AccountSettingsView = () => {
   };
 
   useEffect(() => {
+    hasPendingAvatarChangesRef.current = Boolean(
+      pendingAvatarFile || pendingAvatarPreviewUrl || clearAvatarRequested
+    );
+  }, [pendingAvatarFile, pendingAvatarPreviewUrl, clearAvatarRequested]);
+
+  useEffect(() => {
     if (!user) {
       return;
     }
@@ -274,10 +282,9 @@ const AccountSettingsView = () => {
       phone: formatPhilippinePhone(user.phoneNumber || ""),
       role: formatRoleLabel(user.role),
     }));
-    setAvatarUrl(user.profilePicture || null);
-    setPendingAvatarFile(null);
-    setPendingAvatarPreviewUrl(null);
-    setClearAvatarRequested(false);
+    if (!hasPendingAvatarChangesRef.current) {
+      setAvatarUrl(user.profilePicture || null);
+    }
   }, [user]);
 
   useEffect(() => {
@@ -302,10 +309,9 @@ const AccountSettingsView = () => {
           phone: formatPhilippinePhone(me.agent?.phoneNumber || ""),
           role: formatRoleLabel(me.agent?.role),
         }));
-        setAvatarUrl(me.agent?.profilePicture || null);
-        setPendingAvatarFile(null);
-        setPendingAvatarPreviewUrl(null);
-        setClearAvatarRequested(false);
+        if (!hasPendingAvatarChangesRef.current) {
+          setAvatarUrl(me.agent?.profilePicture || null);
+        }
         setProfileError("");
       } catch (error) {
         if (!isMounted) {
@@ -328,12 +334,16 @@ const AccountSettingsView = () => {
   }, []);
 
   useEffect(() => {
+    pendingAvatarPreviewUrlRef.current = pendingAvatarPreviewUrl;
+  }, [pendingAvatarPreviewUrl]);
+
+  useEffect(() => {
     return () => {
-      if (pendingAvatarPreviewUrl) {
-        URL.revokeObjectURL(pendingAvatarPreviewUrl);
+      if (pendingAvatarPreviewUrlRef.current) {
+        URL.revokeObjectURL(pendingAvatarPreviewUrlRef.current);
       }
     };
-  }, [pendingAvatarPreviewUrl]);
+  }, []);
 
   const canViewTenantApiKey = [
     USER_ROLES.MASTER_ADMIN.value,
@@ -414,11 +424,13 @@ const AccountSettingsView = () => {
       if (response?.agent) {
         updateUser(response.agent);
         setAvatarUrl(response.agent.profilePicture || null);
-        if (pendingAvatarPreviewUrl) {
-          URL.revokeObjectURL(pendingAvatarPreviewUrl);
-        }
         setPendingAvatarFile(null);
-        setPendingAvatarPreviewUrl(null);
+        setPendingAvatarPreviewUrl((prev) => {
+          if (prev) {
+            URL.revokeObjectURL(prev);
+          }
+          return null;
+        });
         setClearAvatarRequested(false);
       }
 
@@ -432,23 +444,25 @@ const AccountSettingsView = () => {
   };
 
   const handleAvatarSelected = (file: File, previewUrl: string) => {
-    if (pendingAvatarPreviewUrl) {
-      URL.revokeObjectURL(pendingAvatarPreviewUrl);
-    }
-
     setPendingAvatarFile(file);
-    setPendingAvatarPreviewUrl(previewUrl);
+    setPendingAvatarPreviewUrl((prev) => {
+      if (prev) {
+        URL.revokeObjectURL(prev);
+      }
+      return previewUrl;
+    });
     setClearAvatarRequested(false);
     setProfileError("");
   };
 
   const handleAvatarClear = () => {
-    if (pendingAvatarPreviewUrl) {
-      URL.revokeObjectURL(pendingAvatarPreviewUrl);
-    }
-
     setPendingAvatarFile(null);
-    setPendingAvatarPreviewUrl(null);
+    setPendingAvatarPreviewUrl((prev) => {
+      if (prev) {
+        URL.revokeObjectURL(prev);
+      }
+      return null;
+    });
     setClearAvatarRequested(true);
     setProfileError("");
   };
@@ -524,597 +538,597 @@ const AccountSettingsView = () => {
           />
         </Box>
 
-      <div className="flex gap-6">
-        {/* Sidebar Tabs */}
-        <div className="w-56 shrink-0">
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-            {sections.map((section) => {
-              const Icon = section.icon;
-              return (
-                <button
-                  key={section.id}
-                  onClick={() => setActiveSection(section.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors text-left ${activeSection === section.id
-                    ? "bg-cyan-50 text-cyan-700 border-l-[3px] border-cyan-600"
-                    : "text-gray-600 hover:bg-gray-50 border-l-[3px] border-transparent"
-                    }`}
-                >
-                  <Icon className="w-4 h-4 shrink-0" />
-                  {section.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Content */}
-        <div className="flex-1">
-          {/* Profile Section */}
-          {activeSection === "profile" && (
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-              {/* Avatar Area */}
-              <div className="p-6 border-b border-gray-100 flex items-center gap-5">
-                <AvatarUpload
-                  imageUrl={clearAvatarRequested ? null : pendingAvatarPreviewUrl || avatarUrl}
-                  fullName={`${profile.firstName} ${profile.lastName}`}
-                  onFileSelected={handleAvatarSelected}
-                  onClear={handleAvatarClear}
-                  onError={(message) => setProfileError(message)}
-                  disabled={isProfileLoading || isProfileSaving}
-                />
-                <div>
-                  <p className="text-lg font-semibold text-gray-900">
-                    {profile.firstName} {profile.lastName}
-                  </p>
-                  <p className="text-sm text-gray-500">{profile.email}</p>
-                  <span
-                    className="inline-block mt-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full"
-                    style={{
-                      backgroundColor: "#0891B21A",
-                      color: "#0891b2",
-                    }}
-                  >
-                    {profile.role}
-                  </span>
-                </div>
-              </div>
-
-              {/* Form Fields */}
-              <div className="p-6 space-y-5">
-                {profileError && (
-                  <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-                    {profileError}
-                  </div>
-                )}
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                      First Name
-                    </label>
-                    <input
-                      type="text"
-                      value={profile.firstName}
-                      onChange={(e) =>
-                        setProfile({ ...profile, firstName: e.target.value })
-                      }
-                      className={`w-full px-3.5 py-2.5 border rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 transition-colors ${profileFieldErrors.firstName
-                        ? "border-red-300 focus:ring-red-100 focus:border-red-400"
-                        : "border-gray-200 focus:ring-cyan-100 focus:border-cyan-400"
-                        }`}
-                      placeholder="First name"
-                      disabled={isProfileLoading}
-                    />
-                    {profileFieldErrors.firstName && (
-                      <p className="mt-1 text-xs text-red-600">{profileFieldErrors.firstName}</p>
-                    )}
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                      Last Name
-                    </label>
-                    <input
-                      type="text"
-                      value={profile.lastName}
-                      onChange={(e) =>
-                        setProfile({ ...profile, lastName: e.target.value })
-                      }
-                      className={`w-full px-3.5 py-2.5 border rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 transition-colors ${profileFieldErrors.lastName
-                        ? "border-red-300 focus:ring-red-100 focus:border-red-400"
-                        : "border-gray-200 focus:ring-cyan-100 focus:border-cyan-400"
-                        }`}
-                      placeholder="Last name"
-                      disabled={isProfileLoading}
-                    />
-                    {profileFieldErrors.lastName && (
-                      <p className="mt-1 text-xs text-red-600">{profileFieldErrors.lastName}</p>
-                    )}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Email Address
-                  </label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <input
-                      type="email"
-                      value={profile.email}
-                      onChange={(e) =>
-                        setProfile({ ...profile, email: e.target.value })
-                      }
-                      className={`w-full pl-10 pr-3.5 py-2.5 border rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 transition-colors ${profileFieldErrors.email
-                        ? "border-red-300 focus:ring-red-100 focus:border-red-400"
-                        : "border-gray-200 focus:ring-cyan-100 focus:border-cyan-400"
-                        }`}
-                      placeholder="name@example.com"
-                      disabled={isProfileLoading}
-                    />
-                  </div>
-                  {profileFieldErrors.email && (
-                    <p className="mt-1 text-xs text-red-600">{profileFieldErrors.email}</p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Phone Number
-                  </label>
-                  <input
-                    type="tel"
-                    value={profile.phone}
-                    onChange={(e) =>
-                      setProfile({ ...profile, phone: formatPhilippinePhone(e.target.value) })
-                    }
-                    className={`w-full px-3.5 py-2.5 border rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 transition-colors ${profileFieldErrors.phone
-                      ? "border-red-300 focus:ring-red-100 focus:border-red-400"
-                      : "border-gray-200 focus:ring-cyan-100 focus:border-cyan-400"
+        <div className="flex gap-6">
+          {/* Sidebar Tabs */}
+          <div className="w-56 shrink-0">
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              {sections.map((section) => {
+                const Icon = section.icon;
+                return (
+                  <button
+                    key={section.id}
+                    onClick={() => setActiveSection(section.id)}
+                    className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors text-left ${activeSection === section.id
+                      ? "bg-cyan-50 text-cyan-700 border-l-[3px] border-cyan-600"
+                      : "text-gray-600 hover:bg-gray-50 border-l-[3px] border-transparent"
                       }`}
-                    placeholder="0917 123 4567"
-                    disabled={isProfileLoading}
+                  >
+                    <Icon className="w-4 h-4 shrink-0" />
+                    {section.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="flex-1">
+            {/* Profile Section */}
+            {activeSection === "profile" && (
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+                {/* Avatar Area */}
+                <div className="p-6 border-b border-gray-100 flex items-center gap-5">
+                  <AvatarUpload
+                    imageUrl={clearAvatarRequested ? null : pendingAvatarPreviewUrl || avatarUrl}
+                    fullName={`${profile.firstName} ${profile.lastName}`}
+                    onFileSelected={handleAvatarSelected}
+                    onClear={handleAvatarClear}
+                    onError={(message) => setProfileError(message)}
+                    disabled={isProfileLoading || isProfileSaving}
                   />
-                  {profileFieldErrors.phone && (
-                    <p className="mt-1 text-xs text-red-600">{profileFieldErrors.phone}</p>
-                  )}
-                </div>
-
-              </div>
-
-              {/* Save Button */}
-              <div className="px-6 py-4 border-t border-gray-100 flex justify-end">
-                <button
-                  onClick={handleProfileSave}
-                  disabled={isProfileLoading || isProfileSaving}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg text-sm font-semibold transition-colors cursor-pointer"
-                >
-                  {isProfileSaving ? (
-                    <>
-                      <Save className="w-4 h-4" /> Saving...
-                    </>
-                  ) : profileSaved ? (
-                    <>
-                      <Check className="w-4 h-4" /> Saved
-                    </>
-                  ) : (
-                    <>
-                      <Save className="w-4 h-4" /> Save Changes
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Notifications Section */}
-          {activeSection === "notifications" && (
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-              <div className="p-6 border-b border-gray-100">
-                <h2 className="text-lg font-semibold text-gray-900">
-                  Notification Preferences
-                </h2>
-                <p className="text-sm text-gray-500 mt-1">
-                  Choose how and when you want to be notified.
-                </p>
-              </div>
-
-              <div className="p-6 space-y-6">
-                {/* Email Notifications */}
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                    <Mail className="w-4 h-4 text-gray-400" /> Email
-                    Notifications
-                  </h3>
-                  <div className="space-y-3">
-                    {[
-                      {
-                        key: "emailNewChat" as const,
-                        label: "New chat started",
-                        desc: "Get notified when a visitor starts a new chat",
-                      },
-                      {
-                        key: "emailMissedChat" as const,
-                        label: "Missed chats",
-                        desc: "Alert when a chat goes unanswered",
-                      },
-                      {
-                        key: "emailWeeklyReport" as const,
-                        label: "Weekly report",
-                        desc: "Summary of chat activity every Monday",
-                      },
-                    ].map((item) => (
-                      <div
-                        key={item.key}
-                        className="flex items-center justify-between py-2.5 px-3 rounded-lg hover:bg-gray-50 transition-colors"
-                      >
-                        <div>
-                          <p className="text-sm font-medium text-gray-800">
-                            {item.label}
-                          </p>
-                          <p className="text-xs text-gray-400">{item.desc}</p>
-                        </div>
-                        <button
-                          onClick={() =>
-                            setNotifications({
-                              ...notifications,
-                              [item.key]: !notifications[item.key],
-                            })
-                          }
-                          className={`relative w-10 h-[22px] rounded-full transition-colors duration-200 cursor-pointer ${notifications[item.key]
-                            ? "bg-green-500"
-                            : "bg-gray-300"
-                            }`}
-                        >
-                          <span
-                            className={`absolute top-[3px] left-[3px] w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-200 ${notifications[item.key]
-                              ? "translate-x-[18px]"
-                              : "translate-x-0"
-                              }`}
-                          />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="h-px bg-gray-100" />
-
-                {/* Push Notifications */}
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                    <Bell className="w-4 h-4 text-gray-400" /> Push
-                    Notifications
-                  </h3>
-                  <div className="space-y-3">
-                    {[
-                      {
-                        key: "pushNewMessage" as const,
-                        label: "New messages",
-                        desc: "Browser push for incoming messages",
-                      },
-                      {
-                        key: "pushAgentOffline" as const,
-                        label: "Agent goes offline",
-                        desc: "Alert when a team member disconnects",
-                      },
-                      {
-                        key: "pushQueueAlert" as const,
-                        label: "Queue overload",
-                        desc: "Notify when queue exceeds 10 visitors",
-                      },
-                    ].map((item) => (
-                      <div
-                        key={item.key}
-                        className="flex items-center justify-between py-2.5 px-3 rounded-lg hover:bg-gray-50 transition-colors"
-                      >
-                        <div>
-                          <p className="text-sm font-medium text-gray-800">
-                            {item.label}
-                          </p>
-                          <p className="text-xs text-gray-400">{item.desc}</p>
-                        </div>
-                        <button
-                          onClick={() =>
-                            setNotifications({
-                              ...notifications,
-                              [item.key]: !notifications[item.key],
-                            })
-                          }
-                          className={`relative w-10 h-[22px] rounded-full transition-colors duration-200 cursor-pointer ${notifications[item.key]
-                            ? "bg-green-500"
-                            : "bg-gray-300"
-                            }`}
-                        >
-                          <span
-                            className={`absolute top-[3px] left-[3px] w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-200 ${notifications[item.key]
-                              ? "translate-x-[18px]"
-                              : "translate-x-0"
-                              }`}
-                          />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Save */}
-              <div className="px-6 py-4 border-t border-gray-100 flex justify-end">
-                <button
-                  onClick={handleSave}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg text-sm font-semibold transition-colors cursor-pointer"
-                >
-                  {saved ? (
-                    <>
-                      <Check className="w-4 h-4" /> Saved
-                    </>
-                  ) : (
-                    <>
-                      <Save className="w-4 h-4" /> Save Preferences
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Security Section */}
-          {activeSection === "security" && (
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-              <div className="p-6 border-b border-gray-100">
-                <h2 className="text-lg font-semibold text-gray-900">
-                  Security
-                </h2>
-                <p className="text-sm text-gray-500 mt-1">
-                  Update your password and manage two-factor authentication.
-                </p>
-              </div>
-
-              <div className="p-6 space-y-6">
-                {securityError && (
-                  <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-                    {securityError}
-                  </div>
-                )}
-
-                {/* Change Password */}
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                    <Lock className="w-4 h-4 text-gray-400" /> Change Password
-                  </h3>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                        Current Password
-                      </label>
-                      <div className="relative">
-                        <input
-                          type={showCurrentPassword ? "text" : "password"}
-                          value={security.currentPassword}
-                          onChange={(e) =>
-                            setSecurity({
-                              ...security,
-                              currentPassword: e.target.value,
-                            })
-                          }
-                          placeholder="Enter current password"
-                          className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-cyan-100 focus:border-cyan-400 transition-colors pr-10"
-                        />
-                        <button
-                          onClick={() =>
-                            setShowCurrentPassword(!showCurrentPassword)
-                          }
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
-                        >
-                          {showCurrentPassword ? (
-                            <EyeOff className="w-4 h-4" />
-                          ) : (
-                            <Eye className="w-4 h-4" />
-                          )}
-                        </button>
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                        New Password
-                      </label>
-                      <div className="relative">
-                        <input
-                          type={showNewPassword ? "text" : "password"}
-                          value={security.newPassword}
-                          onChange={(e) =>
-                            setSecurity({
-                              ...security,
-                              newPassword: e.target.value,
-                            })
-                          }
-                          placeholder="Enter new password"
-                          className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-cyan-100 focus:border-cyan-400 transition-colors pr-10"
-                        />
-                        <button
-                          onClick={() => setShowNewPassword(!showNewPassword)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
-                        >
-                          {showNewPassword ? (
-                            <EyeOff className="w-4 h-4" />
-                          ) : (
-                            <Eye className="w-4 h-4" />
-                          )}
-                        </button>
-                      </div>
-                      <p className="text-xs text-gray-400 mt-1.5">
-                        Must be at least 8 characters with a number and special
-                        character.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Save */}
-              <div className="px-6 py-4 border-t border-gray-100 flex justify-end">
-                <button
-                  onClick={handleSecuritySave}
-                  disabled={isSecuritySaving}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg text-sm font-semibold transition-colors cursor-pointer"
-                >
-                  {isSecuritySaving ? (
-                    <>
-                      <Save className="w-4 h-4" /> Updating...
-                    </>
-                  ) : securitySaved ? (
-                    <>
-                      <Check className="w-4 h-4" /> Saved
-                    </>
-                  ) : (
-                    <>
-                      <Save className="w-4 h-4" /> Update Security
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Integration Section */}
-          {activeSection === "integration" && canViewTenantApiKey && (
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-              <div className="p-6 border-b border-gray-100">
-                <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-lg font-semibold text-gray-900">
-                      Integration
-                    </h2>
-                    <p className="text-sm text-gray-500 mt-1">
-                      Your API key and live chat widget installation code.
+                    <p className="text-lg font-semibold text-gray-900">
+                      {profile.firstName} {profile.lastName}
                     </p>
+                    <p className="text-sm text-gray-500">{profile.email}</p>
+                    <span
+                      className="inline-block mt-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full"
+                      style={{
+                        backgroundColor: "#0891B21A",
+                        color: "#0891b2",
+                      }}
+                    >
+                      {profile.role}
+                    </span>
                   </div>
+                </div>
+
+                {/* Form Fields */}
+                <div className="p-6 space-y-5">
+                  {profileError && (
+                    <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                      {profileError}
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                        First Name
+                      </label>
+                      <input
+                        type="text"
+                        value={profile.firstName}
+                        onChange={(e) =>
+                          setProfile({ ...profile, firstName: e.target.value })
+                        }
+                        className={`w-full px-3.5 py-2.5 border rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 transition-colors ${profileFieldErrors.firstName
+                          ? "border-red-300 focus:ring-red-100 focus:border-red-400"
+                          : "border-gray-200 focus:ring-cyan-100 focus:border-cyan-400"
+                          }`}
+                        placeholder="First name"
+                        disabled={isProfileLoading}
+                      />
+                      {profileFieldErrors.firstName && (
+                        <p className="mt-1 text-xs text-red-600">{profileFieldErrors.firstName}</p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                        Last Name
+                      </label>
+                      <input
+                        type="text"
+                        value={profile.lastName}
+                        onChange={(e) =>
+                          setProfile({ ...profile, lastName: e.target.value })
+                        }
+                        className={`w-full px-3.5 py-2.5 border rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 transition-colors ${profileFieldErrors.lastName
+                          ? "border-red-300 focus:ring-red-100 focus:border-red-400"
+                          : "border-gray-200 focus:ring-cyan-100 focus:border-cyan-400"
+                          }`}
+                        placeholder="Last name"
+                        disabled={isProfileLoading}
+                      />
+                      {profileFieldErrors.lastName && (
+                        <p className="mt-1 text-xs text-red-600">{profileFieldErrors.lastName}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                      Email Address
+                    </label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <input
+                        type="email"
+                        value={profile.email}
+                        onChange={(e) =>
+                          setProfile({ ...profile, email: e.target.value })
+                        }
+                        className={`w-full pl-10 pr-3.5 py-2.5 border rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 transition-colors ${profileFieldErrors.email
+                          ? "border-red-300 focus:ring-red-100 focus:border-red-400"
+                          : "border-gray-200 focus:ring-cyan-100 focus:border-cyan-400"
+                          }`}
+                        placeholder="name@example.com"
+                        disabled={isProfileLoading}
+                      />
+                    </div>
+                    {profileFieldErrors.email && (
+                      <p className="mt-1 text-xs text-red-600">{profileFieldErrors.email}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                      Phone Number
+                    </label>
+                    <input
+                      type="tel"
+                      value={profile.phone}
+                      onChange={(e) =>
+                        setProfile({ ...profile, phone: formatPhilippinePhone(e.target.value) })
+                      }
+                      className={`w-full px-3.5 py-2.5 border rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 transition-colors ${profileFieldErrors.phone
+                        ? "border-red-300 focus:ring-red-100 focus:border-red-400"
+                        : "border-gray-200 focus:ring-cyan-100 focus:border-cyan-400"
+                        }`}
+                      placeholder="0917 123 4567"
+                      disabled={isProfileLoading}
+                    />
+                    {profileFieldErrors.phone && (
+                      <p className="mt-1 text-xs text-red-600">{profileFieldErrors.phone}</p>
+                    )}
+                  </div>
+
+                </div>
+
+                {/* Save Button */}
+                <div className="px-6 py-4 border-t border-gray-100 flex justify-end">
+                  <button
+                    onClick={handleProfileSave}
+                    disabled={isProfileLoading || isProfileSaving}
+                    className="flex items-center gap-2 px-5 py-2.5 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg text-sm font-semibold transition-colors cursor-pointer"
+                  >
+                    {isProfileSaving ? (
+                      <>
+                        <Save className="w-4 h-4" /> Saving...
+                      </>
+                    ) : profileSaved ? (
+                      <>
+                        <Check className="w-4 h-4" /> Saved
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-4 h-4" /> Save Changes
+                      </>
+                    )}
+                  </button>
                 </div>
               </div>
+            )}
 
-              {!isUnlocked ? (
-                <div className="p-6">
-                  <div className="max-w-lg mx-auto bg-white border border-gray-200 rounded-xl shadow-sm p-6">
-                    <h2 className="text-xl font-bold text-gray-900">Verify To Continue</h2>
-                    <p className="text-sm text-gray-600 mt-2">
-                      For security, enter your current password to access Integration settings. Access expires after 10 minutes.
-                    </p>
-
-                    <div className="mt-4 relative">
-                      <input
-                        type={showUnlockPassword ? "text" : "password"}
-                        value={unlockPassword}
-                        onChange={(event) => {
-                          setUnlockPassword(event.target.value);
-                          setUnlockError("");
-                        }}
-                        onKeyDown={(event) => {
-                          if (event.key === "Enter") {
-                            handleUnlockPage();
-                          }
-                        }}
-                        placeholder="Enter your password"
-                        className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-cyan-100 focus:border-cyan-400 pr-10"
-                        autoFocus
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowUnlockPassword((prev) => !prev)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                      >
-                        {showUnlockPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-
-                    {unlockError && <p className="mt-2 text-xs text-red-600">{unlockError}</p>}
-
-                    <div className="mt-4 flex justify-end">
-                      <button
-                        type="button"
-                        onClick={handleUnlockPage}
-                        disabled={isUnlocking}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg text-sm font-semibold disabled:opacity-70"
-                      >
-                        {isUnlocking ? "Verifying..." : "Verify Password"}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="p-6 space-y-6">
-                  <p className="text-xs text-cyan-700">
-                    Verified session expires in {formatCountdown(remainingUnlockMs)}. You will be asked for your password again when it expires.
+            {/* Notifications Section */}
+            {activeSection === "notifications" && (
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+                <div className="p-6 border-b border-gray-100">
+                  <h2 className="text-lg font-semibold text-gray-900">
+                    Notification Preferences
+                  </h2>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Choose how and when you want to be notified.
                   </p>
+                </div>
 
-                  {/* API Key */}
+                <div className="p-6 space-y-6">
+                  {/* Email Notifications */}
                   <div>
                     <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                      <Shield className="w-4 h-4 text-gray-400" /> API Key
+                      <Mail className="w-4 h-4 text-gray-400" /> Email
+                      Notifications
                     </h3>
-                    {!canViewTenantApiKey ? (
-                      <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-                        API key access is available only for Admin and Master Admin accounts.
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-3">
-                        <code className="flex-1 px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800 font-mono select-all break-all">
-                          {tenantApiKey || "No API key available"}
-                        </code>
-                        <button
-                          onClick={() => handleCopy(tenantApiKey || "", "apiKey")}
-                          disabled={!tenantApiKey}
-                          className="flex items-center gap-1.5 px-3 py-2.5 bg-cyan-50 text-cyan-700 hover:bg-cyan-100 rounded-lg text-sm font-medium transition-colors cursor-pointer disabled:opacity-60"
+                    <div className="space-y-3">
+                      {[
+                        {
+                          key: "emailNewChat" as const,
+                          label: "New chat started",
+                          desc: "Get notified when a visitor starts a new chat",
+                        },
+                        {
+                          key: "emailMissedChat" as const,
+                          label: "Missed chats",
+                          desc: "Alert when a chat goes unanswered",
+                        },
+                        {
+                          key: "emailWeeklyReport" as const,
+                          label: "Weekly report",
+                          desc: "Summary of chat activity every Monday",
+                        },
+                      ].map((item) => (
+                        <div
+                          key={item.key}
+                          className="flex items-center justify-between py-2.5 px-3 rounded-lg hover:bg-gray-50 transition-colors"
                         >
-                          {copied === "apiKey" ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                          {copied === "apiKey" ? "Copied!" : "Copy"}
-                        </button>
-                      </div>
-                    )}
+                          <div>
+                            <p className="text-sm font-medium text-gray-800">
+                              {item.label}
+                            </p>
+                            <p className="text-xs text-gray-400">{item.desc}</p>
+                          </div>
+                          <button
+                            onClick={() =>
+                              setNotifications({
+                                ...notifications,
+                                [item.key]: !notifications[item.key],
+                              })
+                            }
+                            className={`relative w-10 h-[22px] rounded-full transition-colors duration-200 cursor-pointer ${notifications[item.key]
+                              ? "bg-green-500"
+                              : "bg-gray-300"
+                              }`}
+                          >
+                            <span
+                              className={`absolute top-[3px] left-[3px] w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-200 ${notifications[item.key]
+                                ? "translate-x-[18px]"
+                                : "translate-x-0"
+                                }`}
+                            />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
                   </div>
 
                   <div className="h-px bg-gray-100" />
 
-                  {/* Widget Script */}
+                  {/* Push Notifications */}
                   <div>
                     <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                      <Code className="w-4 h-4 text-gray-400" /> Widget Installation
+                      <Bell className="w-4 h-4 text-gray-400" /> Push
+                      Notifications
                     </h3>
-                    <p className="text-xs text-gray-500 mb-3">
-                      Paste this snippet before the closing <code className="text-cyan-600">&lt;/body&gt;</code> tag of your website.
-                    </p>
-                    <div className="relative">
-                      <pre className="px-4 py-3.5 bg-gray-900 text-gray-100 rounded-lg text-xs font-mono overflow-x-auto whitespace-pre-wrap">
-                        {widgetScript}
-                      </pre>
-                      <motion.button
-                        whileTap={{ scale: 0.93 }}
-                        whileHover={{ scale: 1.05 }}
-                        onClick={() => handleCopy(widgetScript, "widget")}
-                        className="absolute top-2.5 right-2.5 flex items-center gap-1.5 px-2.5 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-md text-xs font-medium transition-colors cursor-pointer"
-                      >
-                        {copied === "widget" ? (
-                          <span className="flex items-center gap-1.5 text-green-400">
-                            <Check className="w-3.5 h-3.5" /> Copied!
-                          </span>
-                        ) : (
-                          <span className="flex items-center gap-1.5">
-                            <Copy className="w-3.5 h-3.5" /> Copy
-                          </span>
-                        )}
-                      </motion.button>
+                    <div className="space-y-3">
+                      {[
+                        {
+                          key: "pushNewMessage" as const,
+                          label: "New messages",
+                          desc: "Browser push for incoming messages",
+                        },
+                        {
+                          key: "pushAgentOffline" as const,
+                          label: "Agent goes offline",
+                          desc: "Alert when a team member disconnects",
+                        },
+                        {
+                          key: "pushQueueAlert" as const,
+                          label: "Queue overload",
+                          desc: "Notify when queue exceeds 10 visitors",
+                        },
+                      ].map((item) => (
+                        <div
+                          key={item.key}
+                          className="flex items-center justify-between py-2.5 px-3 rounded-lg hover:bg-gray-50 transition-colors"
+                        >
+                          <div>
+                            <p className="text-sm font-medium text-gray-800">
+                              {item.label}
+                            </p>
+                            <p className="text-xs text-gray-400">{item.desc}</p>
+                          </div>
+                          <button
+                            onClick={() =>
+                              setNotifications({
+                                ...notifications,
+                                [item.key]: !notifications[item.key],
+                              })
+                            }
+                            className={`relative w-10 h-[22px] rounded-full transition-colors duration-200 cursor-pointer ${notifications[item.key]
+                              ? "bg-green-500"
+                              : "bg-gray-300"
+                              }`}
+                          >
+                            <span
+                              className={`absolute top-[3px] left-[3px] w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-200 ${notifications[item.key]
+                                ? "translate-x-[18px]"
+                                : "translate-x-0"
+                                }`}
+                            />
+                          </button>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>
-              )}
-            </div>
-          )}
+
+                {/* Save */}
+                <div className="px-6 py-4 border-t border-gray-100 flex justify-end">
+                  <button
+                    onClick={handleSave}
+                    className="flex items-center gap-2 px-5 py-2.5 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg text-sm font-semibold transition-colors cursor-pointer"
+                  >
+                    {saved ? (
+                      <>
+                        <Check className="w-4 h-4" /> Saved
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-4 h-4" /> Save Preferences
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Security Section */}
+            {activeSection === "security" && (
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+                <div className="p-6 border-b border-gray-100">
+                  <h2 className="text-lg font-semibold text-gray-900">
+                    Security
+                  </h2>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Update your password and manage two-factor authentication.
+                  </p>
+                </div>
+
+                <div className="p-6 space-y-6">
+                  {securityError && (
+                    <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                      {securityError}
+                    </div>
+                  )}
+
+                  {/* Change Password */}
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                      <Lock className="w-4 h-4 text-gray-400" /> Change Password
+                    </h3>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                          Current Password
+                        </label>
+                        <div className="relative">
+                          <input
+                            type={showCurrentPassword ? "text" : "password"}
+                            value={security.currentPassword}
+                            onChange={(e) =>
+                              setSecurity({
+                                ...security,
+                                currentPassword: e.target.value,
+                              })
+                            }
+                            placeholder="Enter current password"
+                            className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-cyan-100 focus:border-cyan-400 transition-colors pr-10"
+                          />
+                          <button
+                            onClick={() =>
+                              setShowCurrentPassword(!showCurrentPassword)
+                            }
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
+                          >
+                            {showCurrentPassword ? (
+                              <EyeOff className="w-4 h-4" />
+                            ) : (
+                              <Eye className="w-4 h-4" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                          New Password
+                        </label>
+                        <div className="relative">
+                          <input
+                            type={showNewPassword ? "text" : "password"}
+                            value={security.newPassword}
+                            onChange={(e) =>
+                              setSecurity({
+                                ...security,
+                                newPassword: e.target.value,
+                              })
+                            }
+                            placeholder="Enter new password"
+                            className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-cyan-100 focus:border-cyan-400 transition-colors pr-10"
+                          />
+                          <button
+                            onClick={() => setShowNewPassword(!showNewPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
+                          >
+                            {showNewPassword ? (
+                              <EyeOff className="w-4 h-4" />
+                            ) : (
+                              <Eye className="w-4 h-4" />
+                            )}
+                          </button>
+                        </div>
+                        <p className="text-xs text-gray-400 mt-1.5">
+                          Must be at least 8 characters with a number and special
+                          character.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Save */}
+                <div className="px-6 py-4 border-t border-gray-100 flex justify-end">
+                  <button
+                    onClick={handleSecuritySave}
+                    disabled={isSecuritySaving}
+                    className="flex items-center gap-2 px-5 py-2.5 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg text-sm font-semibold transition-colors cursor-pointer"
+                  >
+                    {isSecuritySaving ? (
+                      <>
+                        <Save className="w-4 h-4" /> Updating...
+                      </>
+                    ) : securitySaved ? (
+                      <>
+                        <Check className="w-4 h-4" /> Saved
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-4 h-4" /> Update Security
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Integration Section */}
+            {activeSection === "integration" && canViewTenantApiKey && (
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+                <div className="p-6 border-b border-gray-100">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-lg font-semibold text-gray-900">
+                        Integration
+                      </h2>
+                      <p className="text-sm text-gray-500 mt-1">
+                        Your API key and live chat widget installation code.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {!isUnlocked ? (
+                  <div className="p-6">
+                    <div className="max-w-lg mx-auto bg-white border border-gray-200 rounded-xl shadow-sm p-6">
+                      <h2 className="text-xl font-bold text-gray-900">Verify To Continue</h2>
+                      <p className="text-sm text-gray-600 mt-2">
+                        For security, enter your current password to access Integration settings. Access expires after 10 minutes.
+                      </p>
+
+                      <div className="mt-4 relative">
+                        <input
+                          type={showUnlockPassword ? "text" : "password"}
+                          value={unlockPassword}
+                          onChange={(event) => {
+                            setUnlockPassword(event.target.value);
+                            setUnlockError("");
+                          }}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter") {
+                              handleUnlockPage();
+                            }
+                          }}
+                          placeholder="Enter your password"
+                          className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-cyan-100 focus:border-cyan-400 pr-10"
+                          autoFocus
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowUnlockPassword((prev) => !prev)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        >
+                          {showUnlockPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+
+                      {unlockError && <p className="mt-2 text-xs text-red-600">{unlockError}</p>}
+
+                      <div className="mt-4 flex justify-end">
+                        <button
+                          type="button"
+                          onClick={handleUnlockPage}
+                          disabled={isUnlocking}
+                          className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg text-sm font-semibold disabled:opacity-70"
+                        >
+                          {isUnlocking ? "Verifying..." : "Verify Password"}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-6 space-y-6">
+                    <p className="text-xs text-cyan-700">
+                      Verified session expires in {formatCountdown(remainingUnlockMs)}. You will be asked for your password again when it expires.
+                    </p>
+
+                    {/* API Key */}
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                        <Shield className="w-4 h-4 text-gray-400" /> API Key
+                      </h3>
+                      {!canViewTenantApiKey ? (
+                        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                          API key access is available only for Admin and Master Admin accounts.
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-3">
+                          <code className="flex-1 px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800 font-mono select-all break-all">
+                            {tenantApiKey || "No API key available"}
+                          </code>
+                          <button
+                            onClick={() => handleCopy(tenantApiKey || "", "apiKey")}
+                            disabled={!tenantApiKey}
+                            className="flex items-center gap-1.5 px-3 py-2.5 bg-cyan-50 text-cyan-700 hover:bg-cyan-100 rounded-lg text-sm font-medium transition-colors cursor-pointer disabled:opacity-60"
+                          >
+                            {copied === "apiKey" ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                            {copied === "apiKey" ? "Copied!" : "Copy"}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="h-px bg-gray-100" />
+
+                    {/* Widget Script */}
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                        <Code className="w-4 h-4 text-gray-400" /> Widget Installation
+                      </h3>
+                      <p className="text-xs text-gray-500 mb-3">
+                        Paste this snippet before the closing <code className="text-cyan-600">&lt;/body&gt;</code> tag of your website.
+                      </p>
+                      <div className="relative">
+                        <pre className="px-4 py-3.5 bg-gray-900 text-gray-100 rounded-lg text-xs font-mono overflow-x-auto whitespace-pre-wrap">
+                          {widgetScript}
+                        </pre>
+                        <motion.button
+                          whileTap={{ scale: 0.93 }}
+                          whileHover={{ scale: 1.05 }}
+                          onClick={() => handleCopy(widgetScript, "widget")}
+                          className="absolute top-2.5 right-2.5 flex items-center gap-1.5 px-2.5 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-md text-xs font-medium transition-colors cursor-pointer"
+                        >
+                          {copied === "widget" ? (
+                            <span className="flex items-center gap-1.5 text-green-400">
+                              <Check className="w-3.5 h-3.5" /> Copied!
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-1.5">
+                              <Copy className="w-3.5 h-3.5" /> Copy
+                            </span>
+                          )}
+                        </motion.button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
+
+
       </div>
 
-
-    </div>
-
-</React.Fragment>  );
+    </React.Fragment>);
 }
 
 export default AccountSettingsView;
