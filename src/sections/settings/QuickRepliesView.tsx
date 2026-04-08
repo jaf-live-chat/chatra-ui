@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
 import {
+  AlertCircle,
   Plus,
   Copy,
   Check,
+  CheckCircle2,
   Pencil,
   Trash2,
   X,
@@ -10,8 +12,11 @@ import {
   Tag,
   MessageSquareText,
   ChevronDown,
+  Loader2,
 } from "lucide-react";
 import PageTitle from "../../components/common/PageTitle";
+import quickRepliesServices, { useGetQuickReplies } from "../../services/quickRepliesServices";
+import type { QuickReplyRecord } from "../../models/QuickReplyModel";
 import TitleTag from "../../components/TitleTag";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -192,9 +197,11 @@ interface ReplyModalProps {
   editingReply: QuickReply | null;
   onSave: (data: Omit<QuickReply, "id" | "createdAt">) => void;
   onClose: () => void;
+  isSubmitting?: boolean;
+  categories: string[];
 }
 
-function ReplyModal({ editingReply, onSave, onClose }: ReplyModalProps) {
+function ReplyModal({ editingReply, onSave, onClose, isSubmitting = false, categories }: ReplyModalProps) {
   const [form, setForm] = useState<Omit<QuickReply, "id" | "createdAt">>(
     editingReply
       ? { shortcut: editingReply.shortcut, title: editingReply.title, message: editingReply.message, category: editingReply.category }
@@ -202,6 +209,8 @@ function ReplyModal({ editingReply, onSave, onClose }: ReplyModalProps) {
   );
   const [errors, setErrors] = useState<Partial<Record<keyof typeof form, string>>>({});
   const [isCatOpen, setIsCatOpen] = useState(false);
+  const [newCategory, setNewCategory] = useState("");
+  const [customCategories, setCustomCategories] = useState<string[]>([]);
 
   const validate = () => {
     const e: typeof errors = {};
@@ -221,11 +230,45 @@ function ReplyModal({ editingReply, onSave, onClose }: ReplyModalProps) {
   const field = (key: keyof typeof form, value: string) =>
     setForm((f) => ({ ...f, [key]: value }));
 
-  const availableCategories = CATEGORIES.filter((c) => c !== "All");
+  const availableCategories = Array.from(
+    new Set([...categories.filter((c) => c !== "All"), ...customCategories])
+  );
+
+  const selectCategory = (value: string) => {
+    field("category", value);
+    setIsCatOpen(false);
+  };
+
+  const handleAddCategory = () => {
+    const trimmed = newCategory.trim();
+
+    if (!trimmed) {
+      return;
+    }
+
+    const exists = availableCategories.some(
+      (cat) => cat.toLowerCase() === trimmed.toLowerCase()
+    );
+
+    if (!exists) {
+      setCustomCategories((prev) => [...prev, trimmed]);
+    }
+
+    field("category", trimmed);
+    setNewCategory("");
+    setIsCatOpen(false);
+  };
+
+  const handleNewCategoryKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      handleAddCategory();
+    }
+  };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-700 w-full max-w-lg">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm overflow-y-auto">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-700 w-full max-w-lg my-6">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-slate-700">
           <div className="flex items-center gap-3">
@@ -246,48 +289,85 @@ function ReplyModal({ editingReply, onSave, onClose }: ReplyModalProps) {
 
         {/* Body */}
         <div className="px-6 py-5 space-y-4">
-          {/* Title */}
-          <div>
-            <label className="block text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wide mb-1.5">
-              Title
-            </label>
-            <input
-              value={form.title}
-              onChange={(e) => field("title", e.target.value)}
-              placeholder="e.g. Welcome Greeting"
-              className={`w-full px-3 py-2.5 rounded-lg border ${errors.title ? "border-red-400 dark:border-red-500" : "border-gray-200 dark:border-slate-600"} bg-white dark:bg-slate-700/60 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 text-sm outline-none focus:ring-2 focus:ring-cyan-300 dark:focus:ring-cyan-700 transition`}
-            />
-            {errors.title && <p className="text-xs text-red-500 mt-1">{errors.title}</p>}
-          </div>
+          {/* Title + Category row */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex-1">
+              <label className="block text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wide mb-1.5">
+                Title
+              </label>
+              <input
+                value={form.title}
+                onChange={(e) => field("title", e.target.value)}
+                placeholder="e.g. Welcome Greeting"
+                className={`w-full px-3 py-2.5 rounded-lg border ${errors.title ? "border-red-400 dark:border-red-500" : "border-gray-200 dark:border-slate-600"} bg-white dark:bg-slate-700/60 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 text-sm outline-none focus:ring-2 focus:ring-cyan-300 dark:focus:ring-cyan-700 transition`}
+              />
+              {errors.title && <p className="text-xs text-red-500 mt-1">{errors.title}</p>}
+            </div>
 
-          {/* Shortcut + Category row */}
-          <div className="flex gap-3">
-            <div className="w-40">
+            <div className="sm:w-48">
               <label className="block text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wide mb-1.5">
                 Category
               </label>
               <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setIsCatOpen(!isCatOpen)}
-                  className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-700/60 text-sm text-gray-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-cyan-300 dark:focus:ring-cyan-700 transition"
-                >
-                  {form.category}
-                  <ChevronDown className="w-4 h-4 text-gray-400 dark:text-slate-500 ml-1" />
-                </button>
+                <div className="w-full flex items-center rounded-lg border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-700/60 pr-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsCatOpen((prev) => !prev)}
+                    className="w-full text-left px-3 py-2.5 rounded-lg bg-transparent text-sm text-gray-900 dark:text-slate-100 outline-none"
+                  >
+                    {form.category || "Select category"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsCatOpen((prev) => !prev)}
+                    className="p-1 rounded text-gray-400 dark:text-slate-500"
+                  >
+                    <ChevronDown className="w-4 h-4" />
+                  </button>
+                </div>
                 {isCatOpen && (
                   <>
                     <div className="fixed inset-0 z-40" onClick={() => setIsCatOpen(false)} />
-                    <div className="absolute left-0 right-0 mt-1 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl shadow-lg z-50 py-1">
-                      {availableCategories.map((cat) => (
-                        <button
-                          key={cat}
-                          onClick={() => { field("category", cat); setIsCatOpen(false); }}
-                          className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700/60 transition-colors"
-                        >
-                          {cat}
-                        </button>
-                      ))}
+                    <div className="absolute left-0 right-0 mt-1 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl shadow-lg z-50 max-h-64 overflow-hidden">
+                      <div className="max-h-36 overflow-y-auto py-1">
+                        {availableCategories.map((cat) => (
+                          <button
+                            key={cat}
+                            onClick={() => selectCategory(cat)}
+                            className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700/60 transition-colors"
+                          >
+                            {cat}
+                          </button>
+                        ))}
+                        {!availableCategories.length && (
+                          <div className="px-4 py-2 text-xs text-gray-500 dark:text-slate-400">
+                            No category found
+                          </div>
+                        )}
+                      </div>
+                      <div className="border-t border-gray-100 dark:border-slate-700 px-3 pt-2 pb-1 bg-white dark:bg-slate-800">
+
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={newCategory}
+                            onChange={(e) => setNewCategory(e.target.value)}
+                            onKeyDown={handleNewCategoryKeyDown}
+                            placeholder="New category"
+                            className="w-full min-w-0 px-2.5 py-2 rounded-lg border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-700/60 text-sm text-gray-900 dark:text-slate-100 outline-none focus:border-cyan-400 dark:focus:border-cyan-500"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleAddCategory}
+                            aria-label="Add category"
+                            className="h-9 w-9 shrink-0 rounded-lg bg-cyan-600 hover:bg-cyan-700 text-white flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled={!newCategory.trim()}
+                          >
+                            <Plus className="w-4 h-4" />
+                          </button>
+                        </div>
+                        <p className="mt-1 text-[11px] text-center text-gray-400 dark:text-slate-500">Press Enter or click + to add</p>
+                      </div>
                     </div>
                   </>
                 )}
@@ -327,9 +407,10 @@ function ReplyModal({ editingReply, onSave, onClose }: ReplyModalProps) {
           </button>
           <button
             onClick={handleSubmit}
+            disabled={isSubmitting}
             className="flex-1 px-4 py-2.5 rounded-lg bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-semibold transition-colors"
           >
-            {editingReply ? "Save Changes" : "Add Quick Reply"}
+            {isSubmitting ? "Saving..." : editingReply ? "Save Changes" : "Add Quick Reply"}
           </button>
         </div>
       </div>
@@ -341,46 +422,145 @@ function ReplyModal({ editingReply, onSave, onClose }: ReplyModalProps) {
 
 const STORAGE_KEY = "jaf_quick_replies";
 
+const buildShortcut = (title: string) => {
+  return `/${String(title || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, "")
+    .replace(/\s+/g, "")
+    .slice(0, 20)}`;
+};
+
+const mapQuickReplyFromApi = (reply: QuickReplyRecord): QuickReply => ({
+  id: String(reply._id),
+  shortcut: buildShortcut(reply.title),
+  title: reply.title,
+  message: reply.message,
+  category: reply.category,
+  createdAt: reply.createdAt ? String(reply.createdAt).slice(0, 10) : "",
+});
+
+const getApiErrorMessage = (error: unknown, fallbackMessage: string) => {
+  if (
+    error &&
+    typeof error === "object" &&
+    "response" in error &&
+    error.response &&
+    typeof error.response === "object" &&
+    "data" in error.response &&
+    error.response.data &&
+    typeof error.response.data === "object" &&
+    "message" in error.response.data &&
+    typeof error.response.data.message === "string"
+  ) {
+    return error.response.data.message;
+  }
+
+  return fallbackMessage;
+};
+
 const QuickRepliesView = () => {
-  const [replies, setReplies] = useState<QuickReply[]>(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) return JSON.parse(stored);
-    } catch { /* silently fail */ }
-    return SEED_REPLIES;
+  const { quickReplies: quickRepliesApi, isLoading, error, mutate } = useGetQuickReplies({
+    page: 1,
+    limit: 100,
   });
+  const [replies, setReplies] = useState<QuickReply[]>([]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingReply, setEditingReply] = useState<QuickReply | null>(null);
   const [deletingReply, setDeletingReply] = useState<QuickReply | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [requestError, setRequestError] = useState("");
+  const [actionAlert, setActionAlert] = useState("");
+  const [actionAlertType, setActionAlertType] = useState<"success" | "delete">("success");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const categoryOptions = Array.from(
+    new Set([
+      ...CATEGORIES,
+      ...replies.map((reply) => reply.category).filter(Boolean),
+    ])
+  );
 
-  // Persist to localStorage whenever replies change
+  useEffect(() => {
+    if (Array.isArray(quickRepliesApi)) {
+      setReplies(quickRepliesApi.map(mapQuickReplyFromApi));
+    }
+  }, [quickRepliesApi]);
+
+  useEffect(() => {
+    if (error) {
+      setRequestError("Failed to load quick replies. Please try again.");
+    }
+  }, [error]);
+
+  useEffect(() => {
+    if (!actionAlert) return;
+
+    const timeoutId = window.setTimeout(() => {
+      setActionAlert("");
+    }, 2500);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [actionAlert]);
+
+  // Keep localStorage in sync for existing chat screens that still read this cache.
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(replies));
+      window.dispatchEvent(new Event("jaf_quick_replies_updated"));
     } catch { /* silently fail */ }
   }, [replies]);
 
-  const handleSave = (data: Omit<QuickReply, "id" | "createdAt">) => {
-    if (editingReply) {
-      setReplies((prev) => prev.map((r) => r.id === editingReply.id ? { ...r, ...data } : r));
-    } else {
-      const newReply: QuickReply = {
-        ...data,
-        id: `qr-${Date.now()}`,
-        createdAt: new Date().toISOString().slice(0, 10),
+  const handleSave = async (data: Omit<QuickReply, "id" | "createdAt">) => {
+    setRequestError("");
+    setActionAlert("");
+    setIsSubmitting(true);
+
+    try {
+      const isEditAction = Boolean(editingReply);
+      const payload = {
+        title: data.title,
+        category: data.category,
+        message: data.message,
       };
-      setReplies((prev) => [newReply, ...prev]);
+
+      if (editingReply) {
+        await quickRepliesServices.updateQuickReply(editingReply.id, payload);
+      } else {
+        await quickRepliesServices.createQuickReply(payload);
+      }
+
+      await mutate();
+      setActionAlertType("success");
+      setActionAlert(isEditAction ? "Quick reply updated successfully." : "Quick reply added successfully.");
+      setIsModalOpen(false);
+      setEditingReply(null);
+    } catch (saveError: unknown) {
+      setRequestError(getApiErrorMessage(saveError, "Failed to save quick reply. Please try again."));
+    } finally {
+      setIsSubmitting(false);
     }
-    setIsModalOpen(false);
-    setEditingReply(null);
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!deletingReply) return;
-    setReplies((prev) => prev.filter((r) => r.id !== deletingReply.id));
-    setDeletingReply(null);
+
+    setRequestError("");
+    setActionAlert("");
+    setIsSubmitting(true);
+
+    try {
+      const deletedTitle = deletingReply.title;
+      await quickRepliesServices.deleteQuickReply(deletingReply.id);
+      await mutate();
+      setActionAlertType("delete");
+      setActionAlert(`Quick reply "${deletedTitle}" deleted successfully.`);
+      setDeletingReply(null);
+    } catch (deleteError: unknown) {
+      setRequestError(getApiErrorMessage(deleteError, "Failed to delete quick reply. Please try again."));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const openAdd = () => { setEditingReply(null); setIsModalOpen(true); };
@@ -406,14 +586,42 @@ const QuickRepliesView = () => {
         canonical="/portal/agent-quick-replies"
 
       />
+      {
+        (requestError || actionAlert) && (
+          <div className="fixed top-6 right-6 z-[90] w-[min(88vw,340px)]">
+            {requestError ? (
+              <div className="flex items-start gap-2 rounded-xl border border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-900/20 px-3 py-2.5 text-sm text-green-700 dark:text-green-300 shadow-lg">
+                <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                <span>{requestError}</span>
+              </div>
+            ) : actionAlertType === "delete" ? (
+              <div className="flex items-start gap-2 rounded-xl border border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-900/20 px-3 py-2.5 text-sm text-green-700 dark:text-green-300 shadow-lg">
+                <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" />
+                <span>{actionAlert}</span>
+              </div>
+            ) : (
+              <div className="flex items-start gap-2 rounded-xl border border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-900/20 px-3 py-2.5 text-sm text-green-700 dark:text-green-300 shadow-lg">
+                <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" />
+                <span>{actionAlert}</span>
+              </div>
+            )}
+          </div>
+        )
+      }
       <div className="flex flex-col gap-6">
         {/* ── Page Header ── */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-          <TitleTag
-            title="Agent Quick Replies"
-            subtitle="Manage quick replies for agent use."
-            icon={<Zap className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />}
-          />
+          <div>
+            <div className="flex items-center gap-3 mb-1">
+              <div className="w-9 h-9 rounded-xl bg-cyan-50 dark:bg-cyan-900/30 border border-cyan-100 dark:border-cyan-800 flex items-center justify-center">
+                <Zap className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
+              </div>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">Quick Replies</h1>
+            </div>
+            <p className="text-gray-500 dark:text-slate-400 text-sm pl-12">
+              Save and reuse common responses to resolve chats faster.
+            </p>
+          </div>
           <button
             onClick={openAdd}
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-semibold shadow-sm transition-colors shrink-0"
@@ -423,8 +631,15 @@ const QuickRepliesView = () => {
           </button>
         </div>
 
+        {isLoading && (
+          <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-slate-400">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            Loading quick replies...
+          </div>
+        )}
+
         {/* ── Table ── */}
-        {replies.length > 0 ? (
+        {!isLoading && replies.length > 0 ? (
           <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -489,21 +704,11 @@ const QuickRepliesView = () => {
             </p>
             <button
               onClick={openAdd}
-              className="mt-5 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-semibold transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-semibold shadow-sm transition-colors shrink-0"
             >
               <Plus className="w-4 h-4" />
-              Create First Quick Reply
+              New Quick Reply
             </button>
-          </div>
-        )}
-
-        {/* ── Tip banner ── */}
-        {replies.length > 0 && (
-          <div className="mt-6 flex items-start gap-3 p-4 rounded-xl border border-cyan-100 dark:border-cyan-900 bg-cyan-50 dark:bg-cyan-900/20">
-            <Zap className="w-5 h-5 text-cyan-600 dark:text-cyan-400 shrink-0 mt-0.5" />
-            <p className="text-sm text-cyan-800 dark:text-cyan-300">
-              <span className="font-semibold">Pro tip:</span> During an active chat, type a shortcut (e.g. <span className="font-mono">/greeting</span>) to instantly paste the full reply into the message box.
-            </p>
           </div>
         )}
 
@@ -512,7 +717,12 @@ const QuickRepliesView = () => {
           <ReplyModal
             editingReply={editingReply}
             onSave={handleSave}
-            onClose={() => { setIsModalOpen(false); setEditingReply(null); }}
+            isSubmitting={isSubmitting}
+            categories={categoryOptions}
+            onClose={() => {
+              setIsModalOpen(false);
+              setEditingReply(null);
+            }}
           />
         )}
         {deletingReply && (
