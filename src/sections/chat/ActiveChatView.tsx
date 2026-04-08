@@ -397,7 +397,16 @@ const ActiveChatView = ({ visitor, onEndChat }: ActiveChatViewProps) => {
                 <Box>
                   <Typography variant="caption" color="text.secondary" fontWeight={500}>Status</Typography>
                   <Box sx={{ mt: 0.5 }}>
-                    <Chip label={visitor.status || "Active"} size="small" sx={{ bgcolor: "#ecfdf5", color: "#065f46", fontWeight: 600, fontSize: "0.7rem" }} />
+                    <Chip
+                      label={visitor.status || "Active"}
+                      size="small"
+                      sx={{
+                        bgcolor: (theme) => (theme.palette.mode === "dark" ? "#166534" : "#ecfdf5"),
+                        color: (theme) => (theme.palette.mode === "dark" ? "#ffffff" : "#065f46"),
+                        fontWeight: 600,
+                        fontSize: "0.7rem",
+                      }}
+                    />
                   </Box>
                 </Box>
                 {visitor.timeInQueue && (

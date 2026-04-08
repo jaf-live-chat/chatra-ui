@@ -187,7 +187,15 @@ const ConversationsView = () => {
 
         <Box sx={{ flex: 1, overflowY: "auto", p: 3, bgcolor: "grey.50", display: "flex", flexDirection: "column", gap: 2 }}>
           <Box sx={{ textAlign: "center", my: 2 }}>
-            <Chip label="Today, 10:30 AM" size="small" sx={{ bgcolor: "grey.200", color: "text.secondary", fontWeight: 600 }} />
+            <Chip
+              label="Today, 10:30 AM"
+              size="small"
+              sx={{
+                bgcolor: (theme) => (theme.palette.mode === "dark" ? "#334155" : theme.palette.grey[200]),
+                color: (theme) => (theme.palette.mode === "dark" ? "#ffffff" : "#111111"),
+                fontWeight: 600,
+              }}
+            />
           </Box>
           
           {MESSAGES.map((message) => (

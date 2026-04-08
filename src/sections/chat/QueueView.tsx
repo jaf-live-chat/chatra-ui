@@ -597,13 +597,28 @@ const QueueView = ({ queue, onStartChat, isAgent = false, currentAgentId }: { qu
           <Stack direction="row" spacing={1}>
             <Chip icon={<Box sx={{ width: 7, height: 7, borderRadius: "50%", bgcolor: "warning.main", ml: 0.5 }} />}
               label={`${waitingCount} Waiting`} size="small"
-              sx={{ bgcolor: "#eab30814", color: "#7a5d00", fontWeight: 600, "& .MuiChip-icon": { ml: 0.5 } }} />
+              sx={{
+                bgcolor: (theme) => (theme.palette.mode === "dark" ? "#854d0e" : "#eab30814"),
+                color: (theme) => (theme.palette.mode === "dark" ? "#ffffff" : "#7a5d00"),
+                fontWeight: 600,
+                "& .MuiChip-icon": { ml: 0.5 },
+              }} />
             <Chip icon={<Box sx={{ width: 7, height: 7, borderRadius: "50%", bgcolor: "primary.main", ml: 0.5 }} />}
               label={`${servedCount} Active`} size="small"
-              sx={{ bgcolor: "#dc262619", color: "primary.dark", fontWeight: 600, "& .MuiChip-icon": { ml: 0.5 } }} />
+              sx={{
+                bgcolor: (theme) => (theme.palette.mode === "dark" ? "#991b1b" : "#dc262619"),
+                color: (theme) => (theme.palette.mode === "dark" ? "#ffffff" : theme.palette.primary.dark),
+                fontWeight: 600,
+                "& .MuiChip-icon": { ml: 0.5 },
+              }} />
             <Chip icon={<Box sx={{ width: 7, height: 7, borderRadius: "50%", bgcolor: "grey.400", ml: 0.5 }} />}
               label={`${queue.length} Total`} size="small"
-              sx={{ bgcolor: "grey.100", color: "grey.700", fontWeight: 600, "& .MuiChip-icon": { ml: 0.5 } }} />
+              sx={{
+                bgcolor: (theme) => (theme.palette.mode === "dark" ? "#334155" : theme.palette.grey[100]),
+                color: (theme) => (theme.palette.mode === "dark" ? "#ffffff" : theme.palette.grey[700]),
+                fontWeight: 600,
+                "& .MuiChip-icon": { ml: 0.5 },
+              }} />
           </Stack>
           <Box sx={{ position: "relative", width: { xs: "100%", md: 240 } }}>
             <Box sx={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "text.secondary", display: "flex" }}>

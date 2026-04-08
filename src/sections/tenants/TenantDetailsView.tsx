@@ -81,6 +81,11 @@ const defaultFeedbackState: FeedbackState = {
   severity: "success",
 };
 
+const LIGHT_SURFACE_TEXT_PRIMARY = "#0f172a";
+const LIGHT_SURFACE_TEXT_SECONDARY = "#64748b";
+const HEADER_TEXT_PRIMARY = "#ffffff";
+const HEADER_TEXT_SECONDARY = "#cbd5e1";
+
 interface DrawerSubscriptionMeta {
   id?: string;
   planId?: string;
@@ -251,14 +256,14 @@ const TenantDetailsView = () => {
             <Chip
               label="Upcoming Plan Scheduled"
               size="small"
-              sx={{ width: "fit-content", fontWeight: 700, bgcolor: "primary.50", color: "primary.main" }}
+              sx={{ width: "fit-content", fontWeight: 700, bgcolor: "#dbeafe", color: "#1d4ed8" }}
             />
             <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" spacing={2} alignItems={{ md: "center" }}>
               <Box>
-                <Typography variant="subtitle1" sx={{ fontWeight: 700, color: "text.primary" }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 700, color: LIGHT_SURFACE_TEXT_PRIMARY }}>
                   {tenant.upcomingSubscription.planName}
                 </Typography>
-                <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.4 }}>
+                <Typography variant="body2" sx={{ color: LIGHT_SURFACE_TEXT_SECONDARY, mt: 0.4 }}>
                   Activates on {formatDate(tenant.upcomingSubscription.startDate, { isIncludeTime: true })}
                 </Typography>
               </Box>
@@ -322,8 +327,8 @@ const TenantDetailsView = () => {
                 px: { xs: 2, md: 3 },
                 py: 2.5,
                 borderBottom: "1px solid",
-                borderColor: "grey.200",
-                background: "linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)",
+                borderColor: "#334155",
+                background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
               }}
             >
               <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" spacing={2}>
@@ -333,10 +338,10 @@ const TenantDetailsView = () => {
                       width: 66,
                       height: 66,
                       borderRadius: 1,
-                      bgcolor: "action.hover",
-                      color: "primary.main",
+                      bgcolor: "#1e293b",
+                      color: "#22d3ee",
                       border: "1px solid",
-                      borderColor: "divider",
+                      borderColor: "#475569",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
@@ -353,7 +358,7 @@ const TenantDetailsView = () => {
                     ) : (
                       <>
                         <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
-                          <Typography variant="h6" sx={{ fontWeight: 700, color: "text.primary" }}>
+                          <Typography variant="h6" sx={{ fontWeight: 700, color: HEADER_TEXT_PRIMARY }}>
                             {tenant?.name}
                           </Typography>
                           <Chip
@@ -372,19 +377,19 @@ const TenantDetailsView = () => {
                           />
                         </Stack>
                         <Stack direction={{ xs: "column", md: "row" }} spacing={{ xs: 1.2, md: 1.8 }} sx={{ mt: 0.5 }}>
-                          <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 500 }}>
+                          <Typography variant="caption" sx={{ color: HEADER_TEXT_SECONDARY, fontWeight: 500 }}>
                             <Stack component="span" direction="row" spacing={0.5} alignItems="center">
                               <Hash size={12} />
                               <span>ID: {safeIdLabel(tenant?.id, "TENANT")}</span>
                             </Stack>
                           </Typography>
-                          <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 500 }}>
+                          <Typography variant="caption" sx={{ color: HEADER_TEXT_SECONDARY, fontWeight: 500 }}>
                             <Stack component="span" direction="row" spacing={0.5} alignItems="center">
                               <Building2 size={12} />
                               <span>Code: {tenant?.companyCode}</span>
                             </Stack>
                           </Typography>
-                          <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 500 }}>
+                          <Typography variant="caption" sx={{ color: HEADER_TEXT_SECONDARY, fontWeight: 500 }}>
                             DB: {tenant?.databaseName}
                           </Typography>
                         </Stack>
