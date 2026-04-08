@@ -255,6 +255,11 @@ const manageTenantSubscription = async (
   return normalizeTenant(response.data.tenant);
 };
 
+const cancelTenantSubscription = async (id: string): Promise<Tenant> => {
+  const response = await axiosServices.patch<TenantUpdateResponse>(`/tenants/${id}/subscription/cancel`);
+  return normalizeTenant(response.data.tenant);
+};
+
 const sendSubscriptionReminder = async (id: string): Promise<TenantSubscriptionReminderResponse> => {
   const response = await axiosServices.post<TenantSubscriptionReminderResponse>(
     `/subscriptions/notification-reminders/${id}`,
@@ -270,6 +275,7 @@ const tenantService = {
   useGetSingleTenant,
   updateTenantStatus,
   manageTenantSubscription,
+  cancelTenantSubscription,
   sendSubscriptionReminder,
   deleteTenant,
 };
@@ -281,6 +287,7 @@ export {
   useGetSingleTenant,
   updateTenantStatus,
   manageTenantSubscription,
+  cancelTenantSubscription,
   sendSubscriptionReminder,
   deleteTenant,
 };

@@ -28,7 +28,9 @@ import { toast } from "sonner";
 
 const EMPTY_LABEL = "-";
 
-const getDaysRemaining = (rawDate: string): string => {
+const getDaysRemaining = (rawDate: string, status?: TenantStatus): string => {
+  if (status === "EXPIRED" || status === "DEACTIVATED") return "0";
+  if (status !== "ACTIVE") return EMPTY_LABEL;
   if (!rawDate) return EMPTY_LABEL;
 
   const parseAsLocalCalendarDate = (value: string) => {
@@ -55,9 +57,8 @@ const getDaysRemaining = (rawDate: string): string => {
   const msPerDay = 1000 * 60 * 60 * 24;
   const dayDiff = Math.floor((endDate.getTime() - today.getTime()) / msPerDay);
 
-  if (dayDiff < 0) return `${Math.abs(dayDiff)} days overdue`;
-  if (dayDiff === 0) return "Ends today";
-  return `${dayDiff} days left`;
+  if (dayDiff <= 0) return "0";
+  return `${dayDiff}`;
 };
 
 const statusMeta: Record<TenantStatus, { label: string; bg: string; color: string }> = {
@@ -91,7 +92,7 @@ const TenantDetailsView = () => {
   const { id } = useParams();
   const { isAdmin, isMasterAdmin } = useGetRole();
   const { tenant, isLoading, error, mutate } = useGetSingleTenant(id);
-  const [isDeactivateDialogOpen, setIsDeactivateDialogOpen] = useState(false);
+  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
   const [isSubscriptionDrawerOpen, setIsSubscriptionDrawerOpen] = useState(false);
   const [isManageSubscriptionDrawerOpen, setIsManageSubscriptionDrawerOpen] = useState(false);
   const [drawerPlanId, setDrawerPlanId] = useState("");
@@ -108,6 +109,9 @@ const TenantDetailsView = () => {
   }, [tenant]);
 
   const planActionLabel = tenant?.subscription.status === "EXPIRED" ? "Renew Plan" : "Change Plan";
+  const canCancelSubscription = Boolean(
+    tenant?.subscription.id && tenant?.subscription.status === "ACTIVE",
+  );
   const masterAdminActionLabel = "Manage Subscription";
 
   const refreshTenant = async () => {
@@ -146,20 +150,18 @@ const TenantDetailsView = () => {
     }
   };
 
-  const handleDeactivateSubscription = async () => {
+  const handleCancelSubscription = async () => {
     if (!tenant || !id) return;
 
     setIsMutating(true);
     try {
-      await tenantService.manageTenantSubscription(id, {
-        action: "DEACTIVATE",
-      });
+      await tenantService.cancelTenantSubscription(id);
       await refreshTenant();
-      toast.success("Tenant subscription deactivated successfully.");
-      setIsDeactivateDialogOpen(false);
+      toast.success("Subscription cancelled successfully.");
+      setIsCancelDialogOpen(false);
     } catch (actionError) {
-      console.error("Failed to deactivate tenant subscription", actionError);
-      toast.error("Failed to deactivate tenant subscription.");
+      console.error("Failed to cancel tenant subscription", actionError);
+      toast.error("Failed to cancel subscription.");
     } finally {
       setIsMutating(false);
     }
@@ -237,6 +239,16 @@ const TenantDetailsView = () => {
                 sx={{ borderRadius: 1, fontWeight: 700, px: 2 }}
               >
                 {planActionLabel}
+              </Button>
+
+              <Button
+                variant="outlined"
+                color="error"
+                onClick={() => setIsCancelDialogOpen(true)}
+                disabled={!canCancelSubscription || isMutating}
+                sx={{ borderRadius: 1, fontWeight: 700, px: 2 }}
+              >
+                Cancel Subscription
               </Button>
             </Stack>
           )}
@@ -584,7 +596,7 @@ const TenantDetailsView = () => {
                         <Stack direction="row" spacing={0.8} alignItems="center" sx={{ mt: 0.2 }}>
                           <CalendarDays size={16} color="#0ea5e9" />
                           <Typography variant="subtitle1" sx={{ color: "primary.main", fontWeight: 700 }}>
-                            {tenant?.subscription.endDate ? getDaysRemaining(tenant.subscription.endDate) : "No expiration date"}
+                            {getDaysRemaining(tenant?.subscription.endDate || "", tenant?.subscription.status)}
                           </Typography>
                         </Stack>
                       </Box>
@@ -612,19 +624,24 @@ const TenantDetailsView = () => {
         </>
       )}
 
-      <Dialog open={isDeactivateDialogOpen} onClose={() => setIsDeactivateDialogOpen(false)} fullWidth maxWidth="xs">
-        <DialogTitle>Deactivate subscription</DialogTitle>
+      <Dialog open={isCancelDialogOpen} onClose={() => setIsCancelDialogOpen(false)} fullWidth maxWidth="sm">
+        <DialogTitle>Cancel subscription</DialogTitle>
         <DialogContent>
-          <Typography variant="body2" color="text.secondary">
-            This will mark the latest subscription as inactive for this tenant. Continue?
-          </Typography>
+          <Stack spacing={2} sx={{ pt: 0.5 }}>
+            <Typography variant="body2" color="text.secondary">
+              You are about to cancel plan <Box component="span" sx={{ color: "text.primary", fontWeight: 700 }}>{tenant?.subscription.planName || EMPTY_LABEL}</Box> for this tenant.
+            </Typography>
+            <Alert severity="warning">
+              This cancellation is effective immediately and tenant access under this subscription will end right away.
+            </Alert>
+          </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setIsDeactivateDialogOpen(false)} disabled={isMutating}>
+          <Button onClick={() => setIsCancelDialogOpen(false)} disabled={isMutating}>
             Cancel
           </Button>
-          <Button variant="contained" color="error" onClick={handleDeactivateSubscription} disabled={isMutating}>
-            {isMutating ? <CircularProgress size={16} color="inherit" /> : "Deactivate"}
+          <Button variant="contained" color="error" onClick={handleCancelSubscription} disabled={isMutating}>
+            {isMutating ? <CircularProgress size={16} color="inherit" /> : "Confirm cancellation"}
           </Button>
         </DialogActions>
       </Dialog>

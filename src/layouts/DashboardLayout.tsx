@@ -58,7 +58,7 @@ function DashboardLayoutInner() {
 
   const { isDark, toggleDark } = useDarkMode();
   const { user, tenant, logout, updateUser } = useAuth();
-  const { isMasterAdmin } = useGetRole();
+  const { isAdmin } = useGetRole();
 
   const clearInactivityTimeout = useCallback(() => {
     if (inactivityTimeoutRef.current) {
@@ -212,6 +212,7 @@ function DashboardLayoutInner() {
   const userRole = user?.role || USER_ROLES.VISITOR.value;
   const subscription = tenant?.subscription ?? null;
   const planName = subscription?.planName || "No Plan";
+  const subscriptionLifecycleStatus = String(tenant?.subscriptionData?.status || "").toUpperCase();
   const currentAgentStatus = user?.status || USER_STATUS.OFFLINE;
 
   const statusBadge = (() => {
@@ -244,9 +245,33 @@ function DashboardLayoutInner() {
   const subscriptionEndDate = authUser?.subscription.endDate || subscription?.endDate;
 
   const subscriptionStatus = (() => {
+    if (subscriptionLifecycleStatus === "DEACTIVATED") {
+      return {
+        label: "Deactivated",
+        detail: "No days left",
+        tone: "danger" as const,
+      };
+    }
+
+    if (subscriptionLifecycleStatus === "EXPIRED") {
+      return {
+        label: "Expired",
+        detail: "No days left",
+        tone: "danger" as const,
+      };
+    }
+
+    if (subscriptionLifecycleStatus && subscriptionLifecycleStatus !== "ACTIVE") {
+      return {
+        label: "Inactive",
+        detail: "Not active",
+        tone: "neutral" as const,
+      };
+    }
+
     if (!subscriptionEndDate) {
       return {
-        label: "Unlimited Plan",
+        label: "Unlimited",
         detail: "No expiration date",
         tone: "info" as const,
       };
@@ -279,7 +304,7 @@ function DashboardLayoutInner() {
     if (!end || Number.isNaN(end.getTime())) {
       return {
         label: "Unknown",
-        detail: "Unable to calculate remaining days",
+        detail: "Unable to determine expiration",
         tone: "neutral" as const,
       };
     }
@@ -291,10 +316,9 @@ function DashboardLayoutInner() {
     const dayDiff = Math.floor((end.getTime() - today.getTime()) / msPerDay);
 
     if (dayDiff < 0) {
-      const daysAgo = Math.abs(dayDiff);
       return {
         label: "Expired",
-        detail: `Expired ${daysAgo} day${daysAgo === 1 ? "" : "s"} ago`,
+        detail: "No days left",
         tone: "danger" as const,
       };
     }
@@ -302,7 +326,7 @@ function DashboardLayoutInner() {
     if (dayDiff === 0) {
       return {
         label: "Expires Today",
-        detail: "1 day remaining",
+        detail: "Last active day",
         tone: "warning" as const,
       };
     }
@@ -310,14 +334,14 @@ function DashboardLayoutInner() {
     if (dayDiff <= 7) {
       return {
         label: "Expires Soon",
-        detail: `${dayDiff} day${dayDiff === 1 ? "" : "s"} remaining`,
+        detail: `${dayDiff} day${dayDiff === 1 ? "" : "s"} left`,
         tone: "warning" as const,
       };
     }
 
     return {
       label: "Active",
-      detail: `${dayDiff} day${dayDiff === 1 ? "" : "s"} remaining`,
+      detail: `${dayDiff} day${dayDiff === 1 ? "" : "s"} left`,
       tone: "success" as const,
     };
   })();
@@ -445,7 +469,7 @@ function DashboardLayoutInner() {
               >
                 {companyName}
               </Typography>
-              {!isMasterAdmin && (
+              {isAdmin && (
                 <div
                   className="relative"
                   onMouseEnter={() => setIsPlanPopupOpen(true)}
@@ -506,6 +530,9 @@ function DashboardLayoutInner() {
                     <div className="mb-4 flex items-start gap-3">
                       <span className="mt-2 h-3 w-3 flex-shrink-0 rounded-full bg-sky-500" />
                       <div className="min-w-0">
+                        <p className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                          Subscription
+                        </p>
                         <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                           {planName}
                         </p>
@@ -524,7 +551,7 @@ function DashboardLayoutInner() {
                           }`}
                       >
                         <Typography variant="caption" sx={{ color: "inherit", opacity: 0.9 }}>
-                          Subscription Status
+                          Status
                         </Typography>
                         <Typography variant="body2" sx={{ color: "inherit", fontWeight: 700, lineHeight: 1.2 }}>
                           {subscriptionStatus.label}
@@ -535,7 +562,7 @@ function DashboardLayoutInner() {
                       </div>
                       <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-3 dark:border-slate-700/80">
                         <Typography variant="caption" sx={{ color: isDark ? "#94A3B8" : "#64748B" }}>
-                          Plan Name
+                          Plan
                         </Typography>
                         <Typography variant="body2" sx={{ color: isDark ? "#E2E8F0" : "#334155", fontWeight: 600 }}>
                           {planName}
@@ -543,7 +570,7 @@ function DashboardLayoutInner() {
                       </div>
                       <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-3 dark:border-slate-700/80">
                         <Typography variant="caption" sx={{ color: isDark ? "#94A3B8" : "#64748B" }}>
-                          Start Date
+                          Started
                         </Typography>
                         <Typography variant="body2" sx={{ color: isDark ? "#E2E8F0" : "#334155", fontWeight: 600 }}>
                           {subscriptionStartDate ? formatDate(subscriptionStartDate) : "-"}
@@ -551,7 +578,7 @@ function DashboardLayoutInner() {
                       </div>
                       <div className="flex items-center justify-between gap-3">
                         <Typography variant="caption" sx={{ color: isDark ? "#94A3B8" : "#64748B" }}>
-                          Expiration Date
+                          Expires
                         </Typography>
                         <Typography variant="body2" sx={{ color: isDark ? "#E2E8F0" : "#334155", fontWeight: 600, textAlign: "right" }}>
                           {subscriptionEndDate ? formatDate(subscriptionEndDate) : "Unlimited for Internal Plan"}
@@ -561,7 +588,7 @@ function DashboardLayoutInner() {
 
                     <Stack direction="row" justifyContent="center" className="mt-4">
                       <Button fullWidth variant="outlined" onClick={() => navigate(`/portal/tenants/${tenant?.id}`)}>
-                        View your Subscription
+                        View subscription details
                       </Button>
                     </Stack>
                   </div>
