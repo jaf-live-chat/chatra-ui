@@ -1,4 +1,4 @@
-import { Activity, ArrowLeft, ArrowRight, Building2, CalendarDays, Circle, CreditCard, Hash, ReceiptText } from "lucide-react";
+import { Activity, ArrowLeft, ArrowRight, Building2, CalendarDays, Circle, CreditCard, Hash, ReceiptText, Send, Settings2, UserRound } from "lucide-react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -25,6 +25,7 @@ import idLabel from "../../utils/idUtils";
 import TitleTag from "../../components/TitleTag";
 import TenantSubscriptionPlanDrawer from "./TenantSubscriptionPlanDrawer";
 import TenantPlanChangeDrawer from "./TenantPlanChangeDrawer";
+import TenantManageSubscriptionDrawer from "./TenantManageSubscriptionDrawer";
 
 const EMPTY_LABEL = "-";
 
@@ -105,11 +106,13 @@ const TenantDetailsView = () => {
   const isAdmin = user?.role === USER_ROLES.ADMIN.value;
   const [isDeactivateDialogOpen, setIsDeactivateDialogOpen] = useState(false);
   const [isSubscriptionDrawerOpen, setIsSubscriptionDrawerOpen] = useState(false);
+  const [isManageSubscriptionDrawerOpen, setIsManageSubscriptionDrawerOpen] = useState(false);
   const [drawerPlanId, setDrawerPlanId] = useState("");
   const [drawerPlanLabel, setDrawerPlanLabel] = useState("Current Subscription");
   const [drawerSubscriptionMeta, setDrawerSubscriptionMeta] = useState<DrawerSubscriptionMeta | null>(null);
   const [isPlanChangeDrawerOpen, setIsPlanChangeDrawerOpen] = useState(false);
   const [isMutating, setIsMutating] = useState(false);
+  const [isReminderSending, setIsReminderSending] = useState(false);
   const [adjustmentDays, setAdjustmentDays] = useState("7");
   const [feedback, setFeedback] = useState<FeedbackState>(defaultFeedbackState);
 
@@ -119,15 +122,7 @@ const TenantDetailsView = () => {
   }, [tenant]);
 
   const planActionLabel = tenant?.subscription.status === "EXPIRED" ? "Renew Plan" : "Change Plan";
-
-  const isAdjustActionDisabled = useMemo(() => {
-    if (!tenant?.subscription.endDate) {
-      return true;
-    }
-
-    const parsedDays = Number(adjustmentDays);
-    return !Number.isInteger(parsedDays) || parsedDays === 0;
-  }, [adjustmentDays, tenant?.subscription.endDate]);
+  const masterAdminActionLabel = "Manage Subscription";
 
   const showFeedback = (message: string, severity: SnackbarSeverity) => {
     setFeedback({ open: true, message, severity });
@@ -192,6 +187,21 @@ const TenantDetailsView = () => {
     }
   };
 
+  const handleSendReminder = async () => {
+    if (!tenant || !id) return;
+
+    setIsReminderSending(true);
+    try {
+      const response = await tenantService.sendSubscriptionReminder(id);
+      showFeedback(response.message || "Subscription reminder sent successfully.", "success");
+    } catch (actionError) {
+      console.error("Failed to send tenant subscription reminder", actionError);
+      showFeedback("Failed to send subscription reminder.", "error");
+    } finally {
+      setIsReminderSending(false);
+    }
+  };
+
   if (!id) {
     return (
       <Paper elevation={0} sx={{ p: 3, borderRadius: 1, border: "1px solid", borderColor: "grey.200" }}>
@@ -217,7 +227,30 @@ const TenantDetailsView = () => {
             />
           </Stack>
 
-          {!isLoading && tenant && (isMasterAdmin || isAdmin) && (
+          {!isLoading && tenant && isMasterAdmin && (
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={1.2}>
+              <Button
+                variant="contained"
+                startIcon={<Settings2 size={16} />}
+                onClick={() => setIsManageSubscriptionDrawerOpen(true)}
+                sx={{ borderRadius: 1, fontWeight: 700, px: 2 }}
+              >
+                {masterAdminActionLabel}
+              </Button>
+
+              <Button
+                variant="outlined"
+                startIcon={isReminderSending ? <CircularProgress size={16} color="inherit" /> : <Send size={16} />}
+                onClick={handleSendReminder}
+                disabled={isReminderSending}
+                sx={{ borderRadius: 1, fontWeight: 700, px: 2 }}
+              >
+                Send Reminder
+              </Button>
+            </Stack>
+          )}
+
+          {!isLoading && tenant && !isMasterAdmin && isAdmin && (
             <Stack direction={{ xs: "column", sm: "row" }} spacing={1.2}>
               <Button
                 variant="contained"
@@ -418,109 +451,119 @@ const TenantDetailsView = () => {
                       <Skeleton width="82%" height={28} />
                     </Stack>
                   ) : (
-                    <Stack spacing={2}>
-                      <Box
-                        sx={{
-                          display: "grid",
-                          gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
-                          gap: { xs: 2, sm: 3 },
-                          pr: { md: 2 },
-                        }}
-                      >
-                        <Box>
-                          <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700, letterSpacing: "0.04em" }}>
-                            CURRENT PLAN
-                          </Typography>
-                          <Typography variant="subtitle2" sx={{ mt: 0.45, color: "text.primary", fontWeight: 700 }}>
-                            {tenant?.subscription.planName || EMPTY_LABEL}
-                          </Typography>
-                        </Box>
-
-                        <Box>
-                          <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700, letterSpacing: "0.04em" }}>
-                            SUBSCRIPTION ID
-                          </Typography>
-                          <Typography variant="subtitle2" sx={{ mt: 0.45, color: "text.primary", fontWeight: 700 }}>
-                            {safeIdLabel(tenant?.subscription?.id, "SUBSCRIPTION")}
-                          </Typography>
-                        </Box>
-
-                        <Box>
-                          <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700, letterSpacing: "0.04em" }}>
-                            START DATE
-                          </Typography>
-                          <Stack direction="row" spacing={0.8} alignItems="center" sx={{ mt: 0.5 }}>
-                            <CalendarDays size={16} color="#94a3b8" />
-                            <Typography variant="subtitle2" sx={{ color: "text.primary", fontWeight: 700 }}>
-                              {formatDate(tenant?.subscription.startDate || "", { isIncludeTime: true })}
-                            </Typography>
-                          </Stack>
-                        </Box>
-
-                        <Box>
-                          <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700, letterSpacing: "0.04em" }}>
-                            END DATE
-                          </Typography>
-                          <Stack direction="row" spacing={0.8} alignItems="center" sx={{ mt: 0.5 }}>
-                            <CalendarDays size={16} color="#94a3b8" />
-                            <Typography variant="subtitle2" sx={{ color: "text.primary", fontWeight: 700 }}>
-                              {formatDate(tenant?.subscription.endDate || "", { isIncludeTime: true })}
-                            </Typography>
-                          </Stack>
-                        </Box>
+                    <Box>
+                      <Box sx={{ mb: 3 }}>
+                        <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700, letterSpacing: "0.04em" }}>
+                          OWNER
+                        </Typography>
+                        <Typography variant="subtitle2" sx={{ mt: 0.45, color: "text.primary", fontWeight: 700 }}>
+                          {tenant?.owner?.name || EMPTY_LABEL} ({tenant?.owner?.email || EMPTY_LABEL})
+                        </Typography>
                       </Box>
-
-                      <Stack direction="row" spacing={1.2}>
-                        <Button
-                          variant="text"
-                          startIcon={<CreditCard size={14} />}
-                          onClick={() =>
-                            openPlanDrawer(
-                              {
-                                id: tenant?.subscription.id,
-                                planId: tenant?.subscription.planId,
-                                planName: tenant?.subscription.planName,
-                                startDate: tenant?.subscription.startDate,
-                                endDate: tenant?.subscription.endDate,
-                                status: tenant?.subscription.status,
-                              },
-                              "Current Subscription"
-                            )
-                          }
-                          disabled={!tenant?.subscription.planId}
-                          sx={{ px: 0, fontWeight: 700 }}
-                        >
-                          View subscription
-                        </Button>
-                      </Stack>
-
-                      {tenant?.upcomingSubscription?.planName && (
+                      <Stack spacing={2}>
                         <Box
                           sx={{
-                            p: 2,
-                            border: "1px solid",
-                            borderColor: "primary.light",
-                            borderRadius: 2,
-                            bgcolor: "primary.50",
+                            display: "grid",
+                            gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+                            gap: { xs: 2, sm: 3 },
+                            pr: { md: 2 },
                           }}
                         >
-                          <Typography variant="caption" sx={{ color: "primary.main", fontWeight: 700, letterSpacing: "0.04em" }}>
-                            UPCOMING PLAN
-                          </Typography>
-                          <Typography variant="h6" sx={{ mt: 0.3, color: "text.primary", fontWeight: 700 }}>
-                            {tenant.upcomingSubscription.planName}
-                          </Typography>
-                          <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ mt: 1.2 }}>
-                            <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                              Subscription ID: <Box component="span" sx={{ color: "text.primary", fontWeight: 600 }}>{safeIdLabel(tenant?.upcomingSubscription.id, "SUBSCRIPTION")}</Box>
+                          <Box>
+                            <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700, letterSpacing: "0.04em" }}>
+                              CURRENT PLAN
                             </Typography>
-                            <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                              Starts: <Box component="span" sx={{ color: "text.primary", fontWeight: 600 }}>{formatDate(tenant.upcomingSubscription.startDate || "", { isIncludeTime: true })}</Box>
+                            <Typography variant="subtitle2" sx={{ mt: 0.45, color: "text.primary", fontWeight: 700 }}>
+                              {tenant?.subscription.planName || EMPTY_LABEL}
                             </Typography>
-                          </Stack>
+                          </Box>
+
+                          <Box>
+                            <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700, letterSpacing: "0.04em" }}>
+                              SUBSCRIPTION ID
+                            </Typography>
+                            <Typography variant="subtitle2" sx={{ mt: 0.45, color: "text.primary", fontWeight: 700 }}>
+                              {safeIdLabel(tenant?.subscription?.id, "SUBSCRIPTION")}
+                            </Typography>
+                          </Box>
+
+                          <Box>
+                            <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700, letterSpacing: "0.04em" }}>
+                              START DATE
+                            </Typography>
+                            <Stack direction="row" spacing={0.8} alignItems="center" sx={{ mt: 0.5 }}>
+                              <CalendarDays size={16} color="#94a3b8" />
+                              <Typography variant="subtitle2" sx={{ color: "text.primary", fontWeight: 700 }}>
+                                {formatDate(tenant?.subscription.startDate || "", { isIncludeTime: true })}
+                              </Typography>
+                            </Stack>
+                          </Box>
+
+                          <Box>
+                            <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700, letterSpacing: "0.04em" }}>
+                              END DATE
+                            </Typography>
+                            <Stack direction="row" spacing={0.8} alignItems="center" sx={{ mt: 0.5 }}>
+                              <CalendarDays size={16} color="#94a3b8" />
+                              <Typography variant="subtitle2" sx={{ color: "text.primary", fontWeight: 700 }}>
+                                {formatDate(tenant?.subscription.endDate || "", { isIncludeTime: true })}
+                              </Typography>
+                            </Stack>
+                          </Box>
                         </Box>
-                      )}
-                    </Stack>
+
+                        <Stack direction="row" spacing={1.2}>
+                          <Button
+                            variant="text"
+                            startIcon={<CreditCard size={14} />}
+                            onClick={() =>
+                              openPlanDrawer(
+                                {
+                                  id: tenant?.subscription.id,
+                                  planId: tenant?.subscription.planId,
+                                  planName: tenant?.subscription.planName,
+                                  startDate: tenant?.subscription.startDate,
+                                  endDate: tenant?.subscription.endDate,
+                                  status: tenant?.subscription.status,
+                                },
+                                "Current Subscription"
+                              )
+                            }
+                            disabled={!tenant?.subscription.planId}
+                            sx={{ px: 0, fontWeight: 700 }}
+                          >
+                            View subscription
+                          </Button>
+                        </Stack>
+
+                        {tenant?.upcomingSubscription?.planName && (
+                          <Box
+                            sx={{
+                              p: 2,
+                              border: "1px solid",
+                              borderColor: "primary.light",
+                              borderRadius: 2,
+                              bgcolor: "primary.50",
+                            }}
+                          >
+                            <Typography variant="caption" sx={{ color: "primary.main", fontWeight: 700, letterSpacing: "0.04em" }}>
+                              UPCOMING PLAN
+                            </Typography>
+                            <Typography variant="h6" sx={{ mt: 0.3, color: "text.primary", fontWeight: 700 }}>
+                              {tenant.upcomingSubscription.planName}
+                            </Typography>
+                            <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ mt: 1.2 }}>
+                              <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                                Subscription ID: <Box component="span" sx={{ color: "text.primary", fontWeight: 600 }}>{safeIdLabel(tenant?.upcomingSubscription.id, "SUBSCRIPTION")}</Box>
+                              </Typography>
+                              <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                                Starts: <Box component="span" sx={{ color: "text.primary", fontWeight: 600 }}>{formatDate(tenant.upcomingSubscription.startDate || "", { isIncludeTime: true })}</Box>
+                              </Typography>
+                            </Stack>
+                          </Box>
+                        )}
+                      </Stack>
+                    </Box>
                   )}
                 </Box>
 
@@ -636,6 +679,13 @@ const TenantDetailsView = () => {
         open={isPlanChangeDrawerOpen}
         tenant={tenant}
         onClose={() => setIsPlanChangeDrawerOpen(false)}
+      />
+
+      <TenantManageSubscriptionDrawer
+        open={isManageSubscriptionDrawerOpen}
+        tenant={tenant}
+        onClose={() => setIsManageSubscriptionDrawerOpen(false)}
+        onSaved={refreshTenant}
       />
     </Box>
   );

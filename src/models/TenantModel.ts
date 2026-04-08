@@ -5,6 +5,10 @@ export interface Tenant {
   name: string;
   companyCode?: string;
   databaseName?: string;
+  owner?: {
+    name: string;
+    email: string;
+  } | null;
   subscription: {
     id?: string;
     planId?: string;
