@@ -7,6 +7,7 @@ import PricingPage from "../pages/public/pricing";
 import LoginPage from "../pages/public/login";
 import Checkout from "../pages/portal/checkout/index";
 import DashboardSetup from "../layouts/DashboardSetup";
+import DashboardRenewal from "../layouts/DashboardRenewal";
 import HelpCenterPage from "../pages/public/help-center";
 import ApiDocsPage from "../pages/public/api-docs";
 import ChangelogPage from "../pages/public/changelog";
@@ -22,6 +23,7 @@ const PublicRoutes: RouteObject[] = [
   { path: "login", element: <LoginPage /> },
   { path: "checkout/:planId", element: <Checkout /> },
   { path: "setup", element: <DashboardSetup /> },
+  { path: "renewal", element: <DashboardRenewal /> },
   {
     path: "resources/help-center",
     element: <HelpCenterPage />,

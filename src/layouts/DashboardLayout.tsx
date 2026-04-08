@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   ChevronDown,
   LogOut,
@@ -7,17 +7,23 @@ import {
   Sun,
   Menu,
 } from "lucide-react";
-import { Link, Outlet, useNavigate, useLocation } from "react-router";
-import { Button, Chip, Stack, Tooltip, Typography } from "@mui/material";
+import { Outlet, useNavigate, useLocation } from "react-router";
+import { Avatar, Button, Chip, Stack, Typography } from "@mui/material";
 import { DarkModeProvider, useDarkMode } from "../providers/DarkModeContext";
-import { APP_LOGO } from "../constants/constants";
+import { APP_LOGO, USER_STATUS } from "../constants/constants";
 import useAuth from "../hooks/useAuth";
 import useIsMobile from "../hooks/useMobile";
+import Agents from "../services/agentServices";
 import { MODULE_GROUPS } from "../constants/modules";
 import filterModulesByRole from "../utils/filterModules";
 import { formatDate } from "../utils/dateFormatter";
 import type { AuthUser, UserRole } from "../models/AgentModel";
 import toTitleCase from "../utils/toTitleCase";
+import getAvatarColor from "../utils/getAvatarColor";
+import AutoLogoutModal from "../components/common/AutoLogoutModal";
+
+const INACTIVITY_LIMIT_MS = 2 * 60 * 1000;
+const AUTO_LOGOUT_WARNING_SECONDS = 30;
 
 // ── Inner layout (consumes dark-mode context) ──────────────────────────────────
 
@@ -27,27 +33,59 @@ function DashboardLayoutInner() {
   const isMobile = useIsMobile();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [agentStatus, setAgentStatus] = useState(() => {
-    try { return localStorage.getItem("jaf_agent_status") || "Online"; } catch { return "Online"; }
-  });
-
-  useEffect(() => {
-    const handleStatusChange = (e: Event) => {
-      const detail = (e as CustomEvent).detail;
-      if (detail?.status) setAgentStatus(detail.status);
-    };
-    window.addEventListener("jaf_agent_status_changed", handleStatusChange);
-    return () => window.removeEventListener("jaf_agent_status_changed", handleStatusChange);
-  }, []);
+  const [isPlanPopupOpen, setIsPlanPopupOpen] = useState(false);
+  const [isStatusOpen, setIsStatusOpen] = useState(false);
+  const [timeTick, setTimeTick] = useState(() => Date.now());
+  const [isAutoLogoutOpen, setIsAutoLogoutOpen] = useState(false);
+  const [autoLogoutSecondsLeft, setAutoLogoutSecondsLeft] = useState(AUTO_LOGOUT_WARNING_SECONDS);
+  const inactivityTimeoutRef = useRef<number | null>(null);
+  const countdownIntervalRef = useRef<number | null>(null);
 
   useEffect(() => {
     setIsSidebarOpen(!isMobile);
   }, [isMobile]);
 
-  const [isStatusOpen, setIsStatusOpen] = useState(false);
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setTimeTick(Date.now());
+    }, 60000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, []);
 
   const { isDark, toggleDark } = useDarkMode();
-  const { user, tenant, logout } = useAuth();
+  const { user, tenant, logout, updateUser } = useAuth();
+
+  const clearInactivityTimeout = useCallback(() => {
+    if (inactivityTimeoutRef.current) {
+      window.clearTimeout(inactivityTimeoutRef.current);
+      inactivityTimeoutRef.current = null;
+    }
+  }, []);
+
+  const clearCountdownInterval = useCallback(() => {
+    if (countdownIntervalRef.current) {
+      window.clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = null;
+    }
+  }, []);
+
+  const handleLogout = useCallback(async () => {
+    clearInactivityTimeout();
+    clearCountdownInterval();
+    await logout();
+    navigate("/login", { replace: true });
+  }, [clearCountdownInterval, clearInactivityTimeout, logout, navigate]);
+
+  const startInactivityTimer = useCallback(() => {
+    clearInactivityTimeout();
+    inactivityTimeoutRef.current = window.setTimeout(() => {
+      setAutoLogoutSecondsLeft(AUTO_LOGOUT_WARNING_SECONDS);
+      setIsAutoLogoutOpen(true);
+    }, INACTIVITY_LIMIT_MS);
+  }, [clearInactivityTimeout]);
   const roleFilteredGroups = filterModulesByRole(MODULE_GROUPS, user?.role);
   const sidebarGroups = roleFilteredGroups
     .map((group) => ({
@@ -79,11 +117,6 @@ function DashboardLayoutInner() {
     return true;
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate("/login", { replace: true });
-  };
-
   const handleModuleNavigation = (path: string) => {
     navigate(path);
     if (isMobile) {
@@ -91,7 +124,84 @@ function DashboardLayoutInner() {
     }
   };
 
-  const userInitial = user?.fullName?.charAt(0)?.toUpperCase() || "U";
+  const handleStatusChange = async (status: string) => {
+    try {
+      const response = await Agents.updateMyStatus(status);
+      updateUser(response.agent);
+    } finally {
+      setIsStatusOpen(false);
+    }
+  };
+
+  const handleStaySignedIn = useCallback(() => {
+    setIsAutoLogoutOpen(false);
+    setAutoLogoutSecondsLeft(AUTO_LOGOUT_WARNING_SECONDS);
+    startInactivityTimer();
+  }, [startInactivityTimer]);
+
+  useEffect(() => {
+    if (isAutoLogoutOpen) {
+      clearCountdownInterval();
+      countdownIntervalRef.current = window.setInterval(() => {
+        setAutoLogoutSecondsLeft((prev) => {
+          if (prev <= 1) {
+            clearCountdownInterval();
+            void handleLogout();
+            return 0;
+          }
+
+          return prev - 1;
+        });
+      }, 1000);
+
+      return () => {
+        clearCountdownInterval();
+      };
+    }
+
+    clearCountdownInterval();
+    return undefined;
+  }, [clearCountdownInterval, handleLogout, isAutoLogoutOpen]);
+
+  useEffect(() => {
+    if (isAutoLogoutOpen) {
+      return;
+    }
+
+    const activityEvents: Array<keyof WindowEventMap> = [
+      "mousemove",
+      "mousedown",
+      "keydown",
+      "scroll",
+      "touchstart",
+    ];
+
+    const handleUserActivity = () => {
+      startInactivityTimer();
+    };
+
+    activityEvents.forEach((eventName) => {
+      window.addEventListener(eventName, handleUserActivity, { passive: true });
+    });
+
+    startInactivityTimer();
+
+    return () => {
+      activityEvents.forEach((eventName) => {
+        window.removeEventListener(eventName, handleUserActivity);
+      });
+      clearInactivityTimeout();
+    };
+  }, [clearInactivityTimeout, isAutoLogoutOpen, startInactivityTimer]);
+
+  useEffect(() => {
+    return () => {
+      clearInactivityTimeout();
+      clearCountdownInterval();
+    };
+  }, [clearCountdownInterval, clearInactivityTimeout]);
+
+  const userInitial = user?.fullName?.slice(0, 2)?.toUpperCase() || "U";
   const userName = user?.fullName || "User";
   const userEmail = user?.emailAddress || "";
   const userProfilePicture = user?.profilePicture || "";
@@ -100,6 +210,21 @@ function DashboardLayoutInner() {
   const userRole = (user?.role || "-") as UserRole | "-";
   const subscription = tenant?.subscription ?? null;
   const planName = subscription?.planName || "No Plan";
+  const currentAgentStatus = user?.status || USER_STATUS.OFFLINE;
+
+  const statusBadge = (() => {
+    switch (currentAgentStatus) {
+      case USER_STATUS.AVAILABLE:
+        return { label: "Available", color: "bg-green-500" };
+      case USER_STATUS.BUSY:
+        return { label: "Busy", color: "bg-amber-500" };
+      case USER_STATUS.AWAY:
+        return { label: "Away", color: "bg-yellow-500" };
+      case USER_STATUS.OFFLINE:
+      default:
+        return { label: "Offline", color: "bg-gray-400" };
+    }
+  })();
 
   const authUser: AuthUser | null =
     tenant?.companyName && user?.role && subscription?.planName && subscription?.startDate && subscription?.endDate
@@ -115,6 +240,85 @@ function DashboardLayoutInner() {
       : null;
   const subscriptionStartDate = authUser?.subscription.startDate || subscription?.startDate;
   const subscriptionEndDate = authUser?.subscription.endDate || subscription?.endDate;
+
+  const subscriptionStatus = (() => {
+    if (!subscriptionEndDate) {
+      return {
+        label: "Unlimited Plan",
+        detail: "No expiration date",
+        tone: "info" as const,
+      };
+    }
+
+    const parseAsLocalCalendarDate = (value: string | Date) => {
+      if (value instanceof Date) {
+        return new Date(value.getFullYear(), value.getMonth(), value.getDate());
+      }
+
+      const trimmedValue = String(value).trim();
+      const dateOnlyMatch = /^(\d{4})-(\d{2})-(\d{2})/.exec(trimmedValue);
+
+      if (dateOnlyMatch) {
+        const year = Number(dateOnlyMatch[1]);
+        const monthIndex = Number(dateOnlyMatch[2]) - 1;
+        const day = Number(dateOnlyMatch[3]);
+        return new Date(year, monthIndex, day);
+      }
+
+      const parsed = new Date(trimmedValue);
+      if (Number.isNaN(parsed.getTime())) {
+        return null;
+      }
+
+      return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+    };
+
+    const end = parseAsLocalCalendarDate(subscriptionEndDate);
+    if (!end || Number.isNaN(end.getTime())) {
+      return {
+        label: "Unknown",
+        detail: "Unable to calculate remaining days",
+        tone: "neutral" as const,
+      };
+    }
+
+    const now = new Date(timeTick);
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    const msPerDay = 1000 * 60 * 60 * 24;
+    const dayDiff = Math.floor((end.getTime() - today.getTime()) / msPerDay);
+
+    if (dayDiff < 0) {
+      const daysAgo = Math.abs(dayDiff);
+      return {
+        label: "Expired",
+        detail: `Expired ${daysAgo} day${daysAgo === 1 ? "" : "s"} ago`,
+        tone: "danger" as const,
+      };
+    }
+
+    if (dayDiff === 0) {
+      return {
+        label: "Expires Today",
+        detail: "1 day remaining",
+        tone: "warning" as const,
+      };
+    }
+
+    if (dayDiff <= 7) {
+      return {
+        label: "Expires Soon",
+        detail: `${dayDiff} day${dayDiff === 1 ? "" : "s"} remaining`,
+        tone: "warning" as const,
+      };
+    }
+
+    return {
+      label: "Active",
+      detail: `${dayDiff} day${dayDiff === 1 ? "" : "s"} remaining`,
+      tone: "success" as const,
+    };
+  })();
 
   const activeNavCls = "bg-cyan-50 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400";
   const inactiveNavCls =
@@ -235,30 +439,10 @@ function DashboardLayoutInner() {
               >
                 {companyName}
               </Typography>
-              <Tooltip
-                arrow
-                placement="bottom"
-                title={
-                  <div className="py-1">
-                    <Typography variant="caption" sx={{ display: "block", color: "#E2E8F0" }}>
-                      Plan: {planName}
-                    </Typography>
-                    <Typography variant="caption" sx={{ display: "block", color: "#E2E8F0" }}>
-                      Start: {subscriptionStartDate
-                        ? formatDate(subscriptionStartDate)
-                        : "-"}
-                    </Typography>
-                    <Typography variant="caption" sx={{ display: "block", color: "#E2E8F0" }}>
-                      End: {subscriptionEndDate
-                        ? formatDate(subscriptionEndDate)
-                        : "Unlimited for Internal Plan"}
-                    </Typography>
-
-                    <Stack direction='row' justifyContent='center'>
-                      <Button fullWidth variant="outlined"> View your Subscription  </Button>
-                    </Stack>
-                  </div>
-                }
+              <div
+                className="relative"
+                onMouseEnter={() => setIsPlanPopupOpen(true)}
+                onMouseLeave={() => setIsPlanPopupOpen(false)}
               >
                 <Chip
                   label={planName}
@@ -266,6 +450,7 @@ function DashboardLayoutInner() {
                   variant="outlined"
                   sx={{
                     height: 24,
+                    marginRight: 1,
                     borderColor: isDark ? "#334155" : "#CBD5E1",
                     color: isDark ? "#E2E8F0" : "#334155",
                     backgroundColor: isDark ? "rgba(30,41,59,0.35)" : "#F8FAFC",
@@ -275,7 +460,105 @@ function DashboardLayoutInner() {
                     },
                   }}
                 />
-              </Tooltip>
+                <Chip
+                  label={subscriptionStatus.detail}
+                  size="small"
+                  sx={{
+                    height: 24,
+                    border: "none",
+                    fontWeight: 700,
+                    color:
+                      subscriptionStatus.tone === "danger"
+                        ? "#B91C1C"
+                        : subscriptionStatus.tone === "warning"
+                          ? "#92400E"
+                          : subscriptionStatus.tone === "success"
+                            ? "#166534"
+                            : isDark
+                              ? "#E2E8F0"
+                              : "#334155",
+                    backgroundColor:
+                      subscriptionStatus.tone === "danger"
+                        ? "#FEE2E2"
+                        : subscriptionStatus.tone === "warning"
+                          ? "#FEF3C7"
+                          : subscriptionStatus.tone === "success"
+                            ? "#DCFCE7"
+                            : isDark
+                              ? "rgba(30,41,59,0.55)"
+                              : "#F1F5F9",
+                    "& .MuiChip-label": {
+                      px: 1.2,
+                    },
+                  }}
+                />
+
+                <div
+                  className={`absolute left-1/2 top-full z-30 mt-3 w-[22rem] -translate-x-1/2 rounded-2xl border border-gray-200 bg-white p-4 shadow-2xl shadow-slate-900/10 transition-all duration-200 dark:border-slate-700 dark:bg-slate-800 dark:shadow-slate-950/40 ${isPlanPopupOpen ? "visible translate-y-0 opacity-100" : "invisible translate-y-1 opacity-0"}`}
+                >
+                  <div className="mb-4 flex items-start gap-3">
+                    <span className="mt-2 h-3 w-3 flex-shrink-0 rounded-full bg-sky-500" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                        {planName}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div
+                      className={`rounded-xl px-3 py-2 ${subscriptionStatus.tone === "danger"
+                        ? "bg-red-50 text-red-700 dark:bg-red-900/25 dark:text-red-300"
+                        : subscriptionStatus.tone === "warning"
+                          ? "bg-amber-50 text-amber-700 dark:bg-amber-900/25 dark:text-amber-300"
+                          : subscriptionStatus.tone === "success"
+                            ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/25 dark:text-emerald-300"
+                            : "bg-slate-100 text-slate-700 dark:bg-slate-700/50 dark:text-slate-200"
+                        }`}
+                    >
+                      <Typography variant="caption" sx={{ color: "inherit", opacity: 0.9 }}>
+                        Subscription Status
+                      </Typography>
+                      <Typography variant="body2" sx={{ color: "inherit", fontWeight: 700, lineHeight: 1.2 }}>
+                        {subscriptionStatus.label}
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: "inherit", opacity: 0.95 }}>
+                        {subscriptionStatus.detail}
+                      </Typography>
+                    </div>
+                    <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-3 dark:border-slate-700/80">
+                      <Typography variant="caption" sx={{ color: isDark ? "#94A3B8" : "#64748B" }}>
+                        Plan Name
+                      </Typography>
+                      <Typography variant="body2" sx={{ color: isDark ? "#E2E8F0" : "#334155", fontWeight: 600 }}>
+                        {planName}
+                      </Typography>
+                    </div>
+                    <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-3 dark:border-slate-700/80">
+                      <Typography variant="caption" sx={{ color: isDark ? "#94A3B8" : "#64748B" }}>
+                        Start Date
+                      </Typography>
+                      <Typography variant="body2" sx={{ color: isDark ? "#E2E8F0" : "#334155", fontWeight: 600 }}>
+                        {subscriptionStartDate ? formatDate(subscriptionStartDate) : "-"}
+                      </Typography>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <Typography variant="caption" sx={{ color: isDark ? "#94A3B8" : "#64748B" }}>
+                        Expiration Date
+                      </Typography>
+                      <Typography variant="body2" sx={{ color: isDark ? "#E2E8F0" : "#334155", fontWeight: 600, textAlign: "right" }}>
+                        {subscriptionEndDate ? formatDate(subscriptionEndDate) : "Unlimited for Internal Plan"}
+                      </Typography>
+                    </div>
+                  </div>
+
+                  <Stack direction="row" justifyContent="center" className="mt-4">
+                    <Button fullWidth variant="outlined" onClick={() => navigate(`/portal/tenants/${tenant?.id}`)}>
+                      View your Subscription
+                    </Button>
+                  </Stack>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -283,23 +566,15 @@ function DashboardLayoutInner() {
             {/* Agent Status */}
             <div className="relative">
               <button
-                onClick={() => setIsStatusOpen(!isStatusOpen)}
-                className="flex items-center gap-2 bg-gray-50 dark:bg-slate-700/60 border border-gray-200 dark:border-slate-600 px-2 sm:px-3 py-1.5 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+                type="button"
+                onClick={() => setIsStatusOpen((prev) => !prev)}
+                className="flex items-center gap-2 bg-gray-50 dark:bg-slate-700/60 border border-gray-200 dark:border-slate-600 px-2 sm:px-3 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
               >
-                <span
-                  className={`w-2 h-2 rounded-full ${agentStatus === "Online"
-                    ? "bg-green-500"
-                    : agentStatus === "Busy"
-                      ? "bg-yellow-500"
-                      : agentStatus === "Do not Disturb"
-                        ? "bg-red-500"
-                        : "bg-gray-400"
-                    }`}
-                ></span>
+                <span className={`w-2 h-2 rounded-full ${statusBadge.color}`}></span>
                 <span className="hidden sm:inline text-sm font-medium text-gray-700 dark:text-slate-300">
-                  {agentStatus}
+                  {statusBadge.label}
                 </span>
-                <ChevronDown className="w-4 h-4 text-gray-400 dark:text-slate-500 ml-1" />
+                <ChevronDown className="w-4 h-4 text-gray-400 dark:text-slate-500" />
               </button>
 
               {isStatusOpen && (
@@ -307,20 +582,19 @@ function DashboardLayoutInner() {
                   <div className="fixed inset-0 z-40" onClick={() => setIsStatusOpen(false)}></div>
                   <div className="absolute right-0 top-full mt-2 w-40 sm:w-48 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl shadow-lg dark:shadow-slate-900/50 z-50 py-1 -right-2 sm:right-0">
                     {[
-                      { label: "Online", color: "bg-green-500", value: "Online" },
-                      { label: "Busy", color: "bg-yellow-500", value: "Busy" },
-                      { label: "Away", color: "bg-gray-400", value: "Away" },
+                      { label: "Available", color: "bg-green-500", value: USER_STATUS.AVAILABLE },
+                      { label: "Away", color: "bg-yellow-500", value: USER_STATUS.AWAY },
                     ].map(({ label, color, value }) => (
                       <button
                         key={value}
+                        type="button"
                         onClick={() => {
-                          setAgentStatus(value);
-                          setIsStatusOpen(false);
-                          try { localStorage.setItem("jaf_agent_status", value); } catch { /* ignore */ }
+                          void handleStatusChange(value);
                         }}
                         className="w-full text-left px-3 sm:px-4 py-2 text-xs sm:text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700/60 flex items-center gap-3 transition-colors"
                       >
-                        <span className={`w-2 h-2 rounded-full flex-shrink-0 ${color}`}></span> <span className="truncate">{label}</span>
+                        <span className={`w-2 h-2 rounded-full flex-shrink-0 ${color}`}></span>
+                        <span className="truncate">{label}</span>
                       </button>
                     ))}
                   </div>
@@ -345,18 +619,18 @@ function DashboardLayoutInner() {
                 className="flex items-center gap-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700/60 p-1.5 pr-3 rounded-lg transition-colors border border-transparent hover:border-gray-200 dark:hover:border-slate-600 ml-1"
                 onClick={() => setIsProfileOpen(!isProfileOpen)}
               >
-                {userProfilePicture && !profileImageFailed ? (
-                  <img
-                    src={userProfilePicture}
-                    alt={userName}
-                    onError={() => setProfileImageFailed(true)}
-                    className="w-8 h-8 rounded-full object-cover border border-gray-200 dark:border-slate-600"
-                  />
-                ) : (
-                  <div className="w-8 h-8 bg-gray-900 dark:bg-cyan-700 rounded-full flex items-center justify-center text-white font-medium text-sm">
-                    {userInitial}
-                  </div>
-                )}
+                <Avatar
+                  sx={{
+                    width: 36,
+                    height: 36,
+                    bgcolor: getAvatarColor(),
+                    fontSize: "0.875rem",
+                    fontWeight: 700,
+                  }}
+                  src={user?.profilePicture || ''}
+                >
+                  {userInitial}
+                </Avatar>
                 <div className="hidden lg:block text-left">
                   <p className="text-sm font-semibold text-gray-900 dark:text-slate-100 leading-none">
                     {userName}
@@ -371,18 +645,18 @@ function DashboardLayoutInner() {
                   <div className="fixed inset-0 z-40" onClick={() => setIsProfileOpen(false)}></div>
                   <div className="absolute right-0 top-full mt-2 w-48 sm:w-56 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl shadow-lg dark:shadow-slate-900/50 z-50 py-2 max-h-96 overflow-y-auto -right-2 sm:right-0">
                     <div className="px-3 sm:px-4 py-2 border-b border-gray-100 dark:border-slate-700 mb-1 flex items-center gap-2.5 min-w-0">
-                      {userProfilePicture && !profileImageFailed ? (
-                        <img
-                          src={userProfilePicture}
-                          alt={userName}
-                          onError={() => setProfileImageFailed(true)}
-                          className="w-8 h-8 rounded-full object-cover border border-gray-200 dark:border-slate-600 flex-shrink-0"
-                        />
-                      ) : (
-                        <div className="w-8 h-8 bg-gray-900 dark:bg-cyan-700 rounded-full flex items-center justify-center text-white font-medium text-xs flex-shrink-0">
-                          {userInitial}
-                        </div>
-                      )}
+                      <Avatar
+                        sx={{
+                          width: 36,
+                          height: 36,
+                          bgcolor: getAvatarColor(),
+                          fontSize: "0.875rem",
+                          fontWeight: 700,
+                        }}
+                        src={user?.phoneNumber || ''}
+                      >
+                        {userInitial}
+                      </Avatar>
                       <div className="min-w-0">
                         <p className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-slate-100 truncate">{userName}</p>
                         <p className="text-xs text-gray-500 dark:text-slate-400 truncate">{userEmail}</p>
@@ -406,13 +680,15 @@ function DashboardLayoutInner() {
                       <Settings2 className="w-4 h-4 flex-shrink-0" /> <span className="truncate">Account Settings</span>
                     </button>
                     <div className="h-px bg-gray-100 dark:bg-slate-700 my-1"></div>
-                    <Link
-                      to="/login"
-                      onClick={handleLogout}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void handleLogout();
+                      }}
                       className="w-full text-left px-3 sm:px-4 py-2 text-xs sm:text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center gap-2"
                     >
                       <LogOut className="w-4 h-4 flex-shrink-0" /> <span className="truncate">Log out</span>
-                    </Link>
+                    </button>
                   </div>
                 </>
               )}
@@ -425,6 +701,15 @@ function DashboardLayoutInner() {
           <Outlet />
         </div>
       </main>
+
+      <AutoLogoutModal
+        open={isAutoLogoutOpen}
+        secondsLeft={autoLogoutSecondsLeft}
+        onStaySignedIn={handleStaySignedIn}
+        onLogoutNow={() => {
+          void handleLogout();
+        }}
+      />
     </div>
   );
 }

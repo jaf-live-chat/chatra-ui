@@ -10,6 +10,7 @@ import { useDarkMode } from "../../providers/DarkModeContext";
 import { motion } from "motion/react";
 import React, { useState, useEffect } from "react";
 import PageTitle from "../../components/common/PageTitle";
+import TitleTag from "../../components/TitleTag";
 
 // ── Data ─────────────────────────────────────────────────────────────────────
 
@@ -467,24 +468,20 @@ const AnalyticsView = () => {
   const strokeColor = isDark ? "#1e293b" : "#ffffff";
 
   return (
-    <React.Fragment>
-        <PageTitle
+    <>
+      <PageTitle
         title="Analytics"
         description="Performance overview for the last 7 days."
         canonical="/portal/analytics"
-
       />
-    <div className={`space-y-8${isDark ? " dark" : ""}`}>
+      <div className={`space-y-8${isDark ? " dark" : ""}`}>
 
       {/* ── Header ── */}
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35, ease: "easeOut" }}
-      >
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">Analytics</h1>
-        <p className="text-gray-500 dark:text-slate-400 mt-1">Performance overview for the last 7 days.</p>
-      </motion.div>
+      <TitleTag
+        title="Analytics"
+        subtitle="Performance overview for the last 7 days."
+        icon={<TrendingUp className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />}
+      />
 
       {/* ── Stat Cards — staggered ── */}
       <motion.div
@@ -644,8 +641,8 @@ const AnalyticsView = () => {
           </motion.tbody>
         </table>
       </motion.div>
-    </div>
-    </React.Fragment>
+      </div>
+    </>
   );
 }
 

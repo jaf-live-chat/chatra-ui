@@ -183,16 +183,15 @@ const DashboardSetup = () => {
         }
 
         if (status.isProvisioned) {
-          const statusRecord = status as Record<string, string | boolean | undefined>;
           setCurrentStep(2);
           setApiKey(status.apiKey || "");
           setTenantEmail(status.tenantEmail || tenantEmailFromQuery || "");
           setCompanyName(status.companyName || companyNameFromQuery || "");
-          setWelcomeName((statusRecord.welcomeName as string) || welcomeNameFromQuery || "");
-          setPlanName((statusRecord.planName as string) || planNameFromQuery || "");
-          setPlanPrice((statusRecord.planPrice as string) || planPriceFromQuery || "");
-          setBillingPeriod((statusRecord.billingPeriod as string) || billingPeriodFromQuery || "");
-          setIntegrationName((statusRecord.integrationName as string) || integrationNameFromQuery || "Web Chat Widget + REST API");
+          setWelcomeName(status.welcomeName || welcomeNameFromQuery || "");
+          setPlanName(status.planName || planNameFromQuery || "");
+          setPlanPrice(status.planPrice || planPriceFromQuery || "");
+          setBillingPeriod(status.billingPeriod || billingPeriodFromQuery || "");
+          setIntegrationName(status.integrationName || integrationNameFromQuery || "Web Chat Widget + REST API");
           sessionStorage.removeItem(CHECKOUT_SETUP_CONTEXT_KEY);
           setTimeout(() => {
             if (!isCancelled) {

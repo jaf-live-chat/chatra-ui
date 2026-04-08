@@ -1,7 +1,13 @@
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { motion } from "motion/react";
-import { loadFaqs, FAQ_STORAGE_KEY, type FaqItem } from "../settings/FaqEditorView";
+import { useGetFaqs } from "../../services/faqServices";
+
+type FaqItem = {
+  id: string;
+  q: string;
+  a: string;
+};
 
 // ── Accordion item ────────────────────────────────────────────────────────────
 
@@ -92,23 +98,20 @@ function FaqAccordionItem({
 // ── Section ───────────────────────────────────────────────────────────────────
 
 const HomepageFaqSection = () => {
-  const [faqs, setFaqs] = useState<FaqItem[]>(loadFaqs);
+  const { faqs: apiFaqs, isLoading } = useGetFaqs();
+  const [faqs, setFaqs] = useState<FaqItem[]>([]);
 
-  // Stay in sync when admin edits FAQs in the same session
   useEffect(() => {
-    const onUpdate = () => setFaqs(loadFaqs());
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === FAQ_STORAGE_KEY) setFaqs(loadFaqs());
-    };
-    window.addEventListener("jaf_faqs_updated", onUpdate);
-    window.addEventListener("storage", onStorage);
-    return () => {
-      window.removeEventListener("jaf_faqs_updated", onUpdate);
-      window.removeEventListener("storage", onStorage);
-    };
-  }, []);
+    setFaqs(
+      (apiFaqs || []).map((faq) => ({
+        id: faq._id,
+        q: faq.question,
+        a: faq.answer,
+      }))
+    );
+  }, [apiFaqs]);
 
-  if (faqs.length === 0) return null;
+  if (!isLoading && faqs.length === 0) return null;
 
   return (
     <section className="py-24 bg-gray-50">

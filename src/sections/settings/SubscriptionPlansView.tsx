@@ -42,6 +42,7 @@ import {
   useGetSubscriptionPlans,
   type SubscriptionPlanApiModel,
 } from "../../services/subscriptionPlanServices";
+import TitleTag from "../../components/TitleTag";
 
 type BillingCycle = "daily" | "weekly" | "monthly" | "yearly";
 
@@ -533,17 +534,11 @@ const SubscriptionPlansView = () => {
       )}
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100 flex items-center gap-3">
-            <div className="w-10 h-10 bg-cyan-50 dark:bg-cyan-900/30 rounded-xl flex items-center justify-center">
-              <Crown className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
-            </div>
-            Subscription Plans
-          </h1>
-          <p className="text-gray-500 dark:text-slate-400 mt-1 sm:ml-[52px]">
-            Manage and edit pricing plans displayed on your website.
-          </p>
-        </div>
+        <TitleTag
+          title="Subscription Plans"
+          subtitle="Manage and edit pricing plans displayed on your website."
+          icon={<Crown className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />}
+        />
         <div className="flex flex-wrap items-center gap-3">
           {saved && (
             <span className="flex items-center gap-1.5 text-sm text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-3 py-1.5 rounded-lg border border-green-200 dark:border-green-800">
@@ -746,7 +741,7 @@ const SubscriptionPlansView = () => {
                           <input
                             value={feature.text}
                             onChange={(e) => updateFeature(plan.id, feature.id, e.target.value)}
-                            className="flex-1 px-2 py-1 border border-gray-200 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700"
+                            className="flex-1 px-2 py-1 border border-gray-200 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500"
                           />
                           <button onClick={() => removeFeature(plan.id, feature.id)} className="p-1 text-red-500">
                             <X className="w-3.5 h-3.5" />
@@ -776,7 +771,7 @@ const SubscriptionPlansView = () => {
                         if (e.key === "Enter") addFeature(plan.id);
                       }}
                       placeholder="Add feature (e.g. Priority Support)"
-                      className="flex-1 px-3 py-2 border border-gray-200 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700"
+                      className="flex-1 px-3 py-2 border border-gray-200 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500"
                     />
                     <button onClick={() => addFeature(plan.id)} className="px-3 py-2 rounded-lg bg-cyan-600 text-white text-sm">
                       <Plus className="w-4 h-4" />
@@ -946,7 +941,7 @@ const SubscriptionPlansView = () => {
                         <input
                           value={feature.text}
                           onChange={(e) => updateDraftFeature(feature.id, e.target.value)}
-                          className="flex-1 px-2 py-1 border border-gray-200 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700"
+                          className="flex-1 px-2 py-1 border border-gray-200 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500"
                         />
                         <button onClick={() => removeDraftFeature(feature.id)} className="p-1 text-red-500" type="button">
                           <X className="w-3.5 h-3.5" />
@@ -964,7 +959,7 @@ const SubscriptionPlansView = () => {
                       if (e.key === "Enter") addFeatureToDraft();
                     }}
                     placeholder="Add feature (e.g. Priority Support)"
-                    className="flex-1 px-3 py-2 border border-gray-200 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700"
+                    className="flex-1 px-3 py-2 border border-gray-200 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500"
                   />
                   <button onClick={addFeatureToDraft} className="px-3 py-2 rounded-lg bg-cyan-600 text-white text-sm" type="button">
                     <Plus className="w-4 h-4" />

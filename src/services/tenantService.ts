@@ -7,6 +7,7 @@ import type { Tenant, TenantStatus } from "../models/TenantModel";
 
 interface TenantApiSubscription {
   id?: string;
+  planId?: string;
   planName?: string;
   startDate?: string | null;
   endDate?: string | null;
@@ -18,7 +19,12 @@ interface TenantApiItem {
   name?: string;
   companyCode?: string;
   databaseName?: string;
+  owner?: {
+    name?: string;
+    email?: string;
+  } | null;
   subscription?: TenantApiSubscription;
+  upcomingSubscription?: TenantApiSubscription | null;
 }
 
 interface TenantListResponse {
@@ -37,7 +43,12 @@ interface SingleTenantHookResponse {
   tenant: Tenant | null;
   isLoading: boolean;
   error: unknown;
-  mutate: () => Promise<TenantListResponse | undefined>;
+  mutate: () => Promise<SingleTenantResponse | undefined>;
+}
+
+interface SingleTenantResponse {
+  success: boolean;
+  tenant: TenantApiItem;
 }
 
 interface TenantUpdateResponse {
@@ -46,11 +57,28 @@ interface TenantUpdateResponse {
   tenant: TenantApiItem;
 }
 
-type ManageSubscriptionAction = "DEACTIVATE" | "ADJUST_END_DATE";
+type ManageSubscriptionAction = "DEACTIVATE" | "ADJUST_END_DATE" | "SET_END_DATE" | "CHANGE_PLAN";
 
 interface ManageTenantSubscriptionPayload {
   action: ManageSubscriptionAction;
   days?: number;
+  endDate?: string;
+  subscriptionPlanId?: string;
+}
+
+interface TenantSubscriptionReminderResult {
+  tenantId: string;
+  companyName: string;
+  subscriptionId: string;
+  remainingDays: number;
+  status: string;
+  reason: string | null;
+}
+
+interface TenantSubscriptionReminderResponse {
+  success: boolean;
+  message: string;
+  result: TenantSubscriptionReminderResult;
 }
 
 const endpoints = {
@@ -59,14 +87,16 @@ const endpoints = {
 
 const STATUS_PRIORITY: Record<TenantStatus, number> = {
   ACTIVE: 1,
-  INACTIVE: 2,
-  EXPIRED: 3,
+  DEACTIVATED: 2,
+  INACTIVE: 3,
+  EXPIRED: 4,
 };
 
 const toTenantStatus = (status?: string, subscriptionEnd?: string | null): TenantStatus => {
   const normalizedStatus = String(status || "").toUpperCase();
 
   if (normalizedStatus === "ACTIVE") return "ACTIVE";
+  if (normalizedStatus === "DEACTIVATED") return "DEACTIVATED";
   if (normalizedStatus === "INACTIVE") return "INACTIVE";
   if (normalizedStatus === "EXPIRED") return "EXPIRED";
 
@@ -83,19 +113,37 @@ const toTenantStatus = (status?: string, subscriptionEnd?: string | null): Tenan
 const normalizeTenant = (tenant: TenantApiItem): Tenant => {
   const subscriptionStart = tenant.subscription?.startDate || "";
   const subscriptionEnd = tenant.subscription?.endDate || "";
+  const upcomingSubscription = tenant.upcomingSubscription || null;
 
   return {
     id: tenant.id || "",
     name: tenant.name || "-",
     companyCode: tenant.companyCode || "-",
     databaseName: tenant.databaseName || "-",
+    owner: tenant.owner
+      ? {
+        name: tenant.owner.name || "-",
+        email: tenant.owner.email || "-",
+      }
+      : null,
     subscription: {
       id: tenant.subscription?.id || "",
+      planId: tenant.subscription?.planId || "",
       planName: tenant.subscription?.planName || "-",
       startDate: subscriptionStart,
       endDate: subscriptionEnd,
       status: toTenantStatus(tenant.subscription?.status, subscriptionEnd),
     },
+    upcomingSubscription: upcomingSubscription
+      ? {
+        id: upcomingSubscription.id || "",
+        planId: upcomingSubscription.planId || "",
+        planName: upcomingSubscription.planName || "-",
+        startDate: upcomingSubscription.startDate || "",
+        endDate: upcomingSubscription.endDate || "",
+        status: String(upcomingSubscription.status || "SCHEDULED").toUpperCase(),
+      }
+      : null,
   };
 };
 
@@ -120,16 +168,13 @@ const getTenants = async (): Promise<Tenant[]> => {
 const getSingleTenant = async (tenantId: string): Promise<Tenant | null> => {
   if (!tenantId) return null;
 
-  const response = await axiosServices.get<TenantListResponse>("/tenants", {
-    params: { _id: tenantId },
-  });
+  const response = await axiosServices.get<SingleTenantResponse>(`/tenants/${tenantId}`);
 
-  const tenants = Array.isArray(response.data?.tenants) ? response.data.tenants : [];
-  if (tenants.length === 0) {
+  if (!response.data?.tenant) {
     return null;
   }
 
-  return normalizeTenant(tenants[0]);
+  return normalizeTenant(response.data.tenant);
 };
 
 const useGetTenants = (page = 1, limit = 10) => {
@@ -163,23 +208,23 @@ const useGetTenants = (page = 1, limit = 10) => {
 
 const useGetSingleTenant = (tenantId?: string): SingleTenantHookResponse => {
   const shouldFetch = Boolean(tenantId);
-  const requestUrl = shouldFetch ? `${endpoints.key}?_id=${encodeURIComponent(tenantId || "")}` : null;
+  const requestUrl = shouldFetch ? `${endpoints.key}/${encodeURIComponent(tenantId || "")}` : null;
 
   const getTenant = (url: string) =>
-    fetcher<TenantListResponse>(url, true) as Promise<TenantListResponse>;
+    fetcher<SingleTenantResponse>(url, true) as Promise<SingleTenantResponse>;
 
-  const { data, isLoading, error, mutate } = useSWR<TenantListResponse>(
+  const { data, isLoading, error, mutate } = useSWR<SingleTenantResponse>(
     requestUrl,
     getTenant,
     SWR_OPTIONS,
   );
 
   const tenant = useMemo(() => {
-    if (!Array.isArray(data?.tenants) || data.tenants.length === 0) {
+    if (!data?.tenant) {
       return null;
     }
 
-    return normalizeTenant(data.tenants[0]);
+    return normalizeTenant(data.tenant);
   }, [data]);
 
   return {
@@ -210,6 +255,14 @@ const manageTenantSubscription = async (
   return normalizeTenant(response.data.tenant);
 };
 
+const sendSubscriptionReminder = async (id: string): Promise<TenantSubscriptionReminderResponse> => {
+  const response = await axiosServices.post<TenantSubscriptionReminderResponse>(
+    `/subscriptions/notification-reminders/${id}`,
+  );
+
+  return response.data;
+};
+
 const tenantService = {
   getTenants,
   getSingleTenant,
@@ -217,6 +270,7 @@ const tenantService = {
   useGetSingleTenant,
   updateTenantStatus,
   manageTenantSubscription,
+  sendSubscriptionReminder,
   deleteTenant,
 };
 
@@ -227,6 +281,7 @@ export {
   useGetSingleTenant,
   updateTenantStatus,
   manageTenantSubscription,
+  sendSubscriptionReminder,
   deleteTenant,
 };
 export default tenantService;

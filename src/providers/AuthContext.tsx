@@ -1,5 +1,6 @@
 import { createContext, useCallback, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
+import axios from "axios";
 import type {
   AgentLoginResponse,
   AuthAgent,
@@ -11,6 +12,7 @@ import Agents from "../services/agentServices";
 
 const AUTH_STORAGE_KEY = "jaf_auth_session";
 const TOKEN_STORAGE_KEY = "serviceToken";
+const AUTH_UNAUTHORIZED_EVENT = "jaf_auth_unauthorized";
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
@@ -41,8 +43,38 @@ type AuthProviderProps = {
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [session, setSession] = useState<AuthSession | null>(readStoredSession);
 
-  const isPrivilegedRole =
-    session?.agent?.role === "MASTER_ADMIN" || session?.agent?.role === "ADMIN";
+  const clearSession = useCallback(() => {
+    setSession(null);
+  }, []);
+
+  const refreshSession = useCallback(async () => {
+    if (!session?.accessToken) {
+      return;
+    }
+
+    try {
+      const meResponse = await Agents.getMe();
+
+      setSession((prevSession) => {
+        if (!prevSession) {
+          return prevSession;
+        }
+
+        return {
+          ...prevSession,
+          tenant: meResponse.tenant,
+          agent: meResponse.agent,
+        };
+      });
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 401) {
+        clearSession();
+        return;
+      }
+
+      // Keep existing session for transient refresh failures.
+    }
+  }, [clearSession, session?.accessToken]);
 
   useEffect(() => {
     if (!session) {
@@ -56,48 +88,35 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   }, [session]);
 
   useEffect(() => {
-    const shouldHydrateSession = Boolean(
-      session?.accessToken &&
-      session?.tenant &&
-      (!session?.tenant?.subscription || (isPrivilegedRole && !session?.tenant?.apiKey))
-    );
-
-    if (!shouldHydrateSession) {
+    if (!session?.accessToken) {
       return;
     }
 
-    let isMounted = true;
+    refreshSession();
 
-    const hydrateSession = async () => {
-      try {
-        const meResponse = await Agents.getMe();
+    const intervalId = window.setInterval(() => {
+      refreshSession();
+    }, 60000);
 
-        if (!isMounted) {
-          return;
-        }
+    const handleWindowFocus = () => {
+      refreshSession();
+    };
 
-        setSession((prevSession) => {
-          if (!prevSession) {
-            return prevSession;
-          }
-
-          return {
-            ...prevSession,
-            tenant: meResponse.tenant,
-            agent: meResponse.agent,
-          };
-        });
-      } catch {
-        // Keep existing session if hydration fails.
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        refreshSession();
       }
     };
 
-    hydrateSession();
+    window.addEventListener("focus", handleWindowFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
-      isMounted = false;
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", handleWindowFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [isPrivilegedRole, session?.accessToken, session?.tenant]);
+  }, [refreshSession, session?.accessToken]);
 
   const login = useCallback(async (loginData: LoginData): Promise<AgentLoginResponse> => {
     const response = await Agents.login(loginData);
@@ -115,9 +134,29 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     return response;
   }, []);
 
-  const logout = useCallback(() => {
-    setSession(null);
-  }, []);
+  const logout = useCallback(async () => {
+    try {
+      if (session?.accessToken) {
+        await Agents.logout();
+      }
+    } catch {
+      // Always clear local session even if API logout fails.
+    } finally {
+      clearSession();
+    }
+  }, [clearSession, session?.accessToken]);
+
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      clearSession();
+    };
+
+    window.addEventListener(AUTH_UNAUTHORIZED_EVENT, handleUnauthorized);
+
+    return () => {
+      window.removeEventListener(AUTH_UNAUTHORIZED_EVENT, handleUnauthorized);
+    };
+  }, [clearSession]);
 
   const updateUser = useCallback((agent: AuthAgent) => {
     setSession((prevSession) => {
@@ -141,8 +180,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       login,
       logout,
       updateUser,
+      refreshSession,
     }),
-    [session, login, logout, updateUser]
+    [session, login, logout, updateUser, refreshSession]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

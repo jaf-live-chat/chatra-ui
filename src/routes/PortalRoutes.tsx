@@ -177,7 +177,7 @@ const PortalRoutes: RouteObject[] = [
                 path: "homepage-faqs",
                 element: (
                   <AuthGuard
-                    allowedRoles={[USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value]}
+                    allowedRoles={[USER_ROLES.MASTER_ADMIN.value]}
                   >
                     <HomepageFaqsPage />
                   </AuthGuard>

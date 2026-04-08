@@ -337,7 +337,7 @@ const ReusableTable = <T,>({
       elevation={0}
       sx={{
         border: "1px solid",
-        borderColor: "grey.200",
+        borderColor: "divider",
         borderRadius: 1,
         overflow: "hidden",
         height: "100%",
@@ -350,8 +350,11 @@ const ReusableTable = <T,>({
           px: compact ? 2 : 3,
           py: compact ? 1.25 : 2,
           borderBottom: "1px solid",
-          borderColor: "grey.200",
-          background: "linear-gradient(135deg, #0891b210 0%, #0891b204 100%)",
+          borderColor: "divider",
+          background: (theme) =>
+            theme.palette.mode === "dark"
+              ? "linear-gradient(135deg, #0891b226 0%, #0f172a 100%)"
+              : "linear-gradient(135deg, #0891b210 0%, #0891b204 100%)",
         }}
       >
         <Stack
@@ -379,7 +382,7 @@ const ReusableTable = <T,>({
             <Box>
               <Typography
                 variant="subtitle1"
-                sx={{ fontWeight: 700, color: "grey.900", lineHeight: 1.2, fontSize: compact ? "0.98rem" : "1rem" }}
+                sx={{ fontWeight: 700, color: "text.primary", lineHeight: 1.2, fontSize: compact ? "0.98rem" : "1rem" }}
               >
                 {title}
               </Typography>
@@ -404,8 +407,8 @@ const ReusableTable = <T,>({
                 label={`${totalRecords} ${totalLabel}`}
                 size="small"
                 sx={{
-                  bgcolor: "#e0f2fe",
-                  color: "#0e7490",
+                  bgcolor: (theme) => (theme.palette.mode === "dark" ? "#164e63" : "#e0f2fe"),
+                  color: (theme) => (theme.palette.mode === "dark" ? "#67e8f9" : "#0e7490"),
                   fontWeight: 700,
                   height: compact ? 26 : 30,
                   borderRadius: 1,
@@ -419,19 +422,20 @@ const ReusableTable = <T,>({
                   px: 1.25,
                   py: compact ? 0.25 : 0.5,
                   borderRadius: 1,
-                  borderColor: "grey.200",
+                  borderColor: "divider",
+                  bgcolor: "background.paper",
                   display: "flex",
                   alignItems: "center",
                   gap: 1,
                   width: { xs: "100%", md: 260 },
                 }}
               >
-                <Search size={14} color="#94a3b8" />
+                <Search size={14} color="currentColor" />
                 <InputBase
                   value={resolvedSearchTerm}
                   onChange={(event) => setSearchTermValue(event.target.value)}
                   placeholder={searchPlaceholder}
-                  sx={{ width: "100%", fontSize: compact ? "0.8rem" : "0.85rem", color: "#475569" }}
+                  sx={{ width: "100%", fontSize: compact ? "0.8rem" : "0.85rem", color: "text.primary" }}
                 />
               </Paper>
             )}
@@ -460,7 +464,7 @@ const ReusableTable = <T,>({
             borderSpacing: 0,
           }}
         >
-          <TableHead sx={{ bgcolor: "grey.50" }}>
+          <TableHead sx={{ bgcolor: (theme) => (theme.palette.mode === "dark" ? "#1f2937" : "grey.50") }}>
             <TableRow>
               {columns.map((column) => (
                 <TableCell
@@ -468,10 +472,10 @@ const ReusableTable = <T,>({
                   align={column.headerAlign || column.align || "left"}
                   sx={{
                     fontWeight: 700,
-                    color: "grey.800",
+                    color: "text.primary",
                     fontSize: compact ? "0.72rem" : "0.8rem",
                     borderBottom: "1px solid",
-                    borderColor: "grey.200",
+                    borderColor: "divider",
                     px: compact ? 1.5 : 2,
                     py: compact ? 1 : 1.5,
                     whiteSpace: "nowrap",
@@ -526,7 +530,7 @@ const ReusableTable = <T,>({
               <TableRow>
                 <TableCell colSpan={columns.length} align="center" sx={{ py: 7 }}>
                   <Stack alignItems="center" spacing={1}>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "grey.900" }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "text.primary" }}>
                       {emptyStateTitle}
                     </Typography>
                     <Typography variant="body2" sx={{ color: "text.secondary", fontSize: "0.85rem" }}>
@@ -544,7 +548,9 @@ const ReusableTable = <T,>({
                   hover
                   sx={{
                     transition: "background 0.15s",
-                    "&:nth-of-type(odd) td": { bgcolor: "grey.50" },
+                    "&:nth-of-type(odd) td": {
+                      bgcolor: (theme) => (theme.palette.mode === "dark" ? "#1f2937" : "grey.50"),
+                    },
                     "& td": { py: compact ? 1.2 : 2.1, px: compact ? 1.5 : 2 },
                     "&:last-child td, &:last-child th": { border: 0 },
                   }}
@@ -573,7 +579,7 @@ const ReusableTable = <T,>({
           sx={{
             px: { xs: 1.5, sm: compact ? 2 : 3 },
             py: compact ? 0.75 : 1.5,
-            bgcolor: "grey.50",
+            bgcolor: (theme) => (theme.palette.mode === "dark" ? "#1f2937" : "grey.50"),
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
@@ -584,7 +590,7 @@ const ReusableTable = <T,>({
             <Typography
               component="span"
               variant="body2"
-              sx={{ fontWeight: 600, color: "grey.900", fontSize: "0.8rem", mx: 0.5 }}
+              sx={{ fontWeight: 600, color: "text.primary", fontSize: "0.8rem", mx: 0.5 }}
             >
               {startRecord}
             </Typography>
@@ -592,7 +598,7 @@ const ReusableTable = <T,>({
             <Typography
               component="span"
               variant="body2"
-              sx={{ fontWeight: 600, color: "grey.900", fontSize: "0.8rem", mx: 0.5 }}
+              sx={{ fontWeight: 600, color: "text.primary", fontSize: "0.8rem", mx: 0.5 }}
             >
               {endRecord}
             </Typography>
@@ -600,7 +606,7 @@ const ReusableTable = <T,>({
             <Typography
               component="span"
               variant="body2"
-              sx={{ fontWeight: 600, color: "grey.900", fontSize: "0.8rem", ml: 0.5 }}
+              sx={{ fontWeight: 600, color: "text.primary", fontSize: "0.8rem", ml: 0.5 }}
             >
               {totalRecords}
             </Typography>
@@ -613,7 +619,7 @@ const ReusableTable = <T,>({
               size="small"
               sx={{
                 border: "1px solid",
-                borderColor: "grey.200",
+                borderColor: "divider",
                 bgcolor: "background.paper",
                 borderRadius: 1,
               }}
@@ -652,7 +658,7 @@ const ReusableTable = <T,>({
               size="small"
               sx={{
                 border: "1px solid",
-                borderColor: "grey.200",
+                borderColor: "divider",
                 bgcolor: "background.paper",
                 borderRadius: 1,
               }}

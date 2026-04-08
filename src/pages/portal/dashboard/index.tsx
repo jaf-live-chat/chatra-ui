@@ -7,6 +7,7 @@ import {
   UserCog,
   Star,
   Activity,
+  User,
   MessageCircle,
   UserPlus
 } from "lucide-react";
@@ -18,6 +19,7 @@ import ReusableTable, {
 import useAuth from "../../../hooks/useAuth";
 import React from "react";
 import PageTitle from "../../../components/common/PageTitle";
+import TitleTag from "../../../components/TitleTag";
 
 type ActiveSessionRow = {
   id: string;
@@ -148,7 +150,7 @@ const DashboardPage = () => {
       renderCell: (row) => (
         <div className="flex flex-col items-end">
           <p className="text-[13px] font-medium text-slate-800">{row.agent}</p>
-          <span className="inline-block mt-1 font-bold tracking-wide text-[10px] text-emerald-500 border border-emerald-200/60 bg-emerald-50/50 px-2 py-0.5 rounded">
+          <span className="inline-block mt-1 font-bold tracking-wide text-[10px] text-slate-900 dark:text-white border border-emerald-200/60 dark:border-emerald-500/40 bg-emerald-50/70 dark:bg-emerald-700/45 px-2 py-0.5 rounded">
             {row.time}
           </span>
         </div>
@@ -316,12 +318,11 @@ const DashboardPage = () => {
       />
     <div className="w-full">
       <div className="mb-6">
-        <h1 className="text-3xl font-black text-slate-900 tracking-tight dark:text-slate-100">
-          Welcome back, Admin
-        </h1>
-        <p className="text-slate-500 dark:text-slate-400 mt-1 text-[15px]">
-          Here&apos;s a quick look at your workspace right now.
-        </p>
+        <TitleTag
+          title="Welcome back, Admin"
+          subtitle="Here&apos;s a quick look at your workspace right now."
+          icon={<User className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />}
+        />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">

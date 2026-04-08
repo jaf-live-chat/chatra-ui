@@ -11,7 +11,7 @@ import Snackbar from "@mui/material/Snackbar";
 import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import { Eye, Power } from "lucide-react";
+import { Building2, Eye, Power } from "lucide-react";
 import { useNavigate } from "react-router";
 
 import ReusableTable, { type ReusableTableColumn } from "../../components/ReusableTable";
@@ -22,6 +22,7 @@ import Avatar from "@mui/material/Avatar";
 import idLabel from "../../utils/idUtils";
 import Box from "@mui/material/Box";
 import getAvatarColor from "../../utils/getAvatarColor";
+import TitleTag from "../../components/TitleTag";
 
 const EMPTY_LABEL = "-";
 
@@ -66,6 +67,17 @@ const getStatusChipStyles = (status: TenantStatus) => {
       sx: {
         bgcolor: "#dc26261a",
         color: "#b91c1c",
+        fontWeight: 700,
+      },
+    };
+  }
+
+  if (status === "DEACTIVATED") {
+    return {
+      label: "DEACTIVATED",
+      sx: {
+        bgcolor: "#ea580c1a",
+        color: "#c2410c",
         fontWeight: 700,
       },
     };
@@ -158,13 +170,13 @@ const TenantsTable = () => {
     textTransform: "none" as const,
     borderRadius: 9999,
     px: 1.6,
-    borderColor: "grey.300",
-    color: "grey.800",
+    borderColor: "divider",
+    color: "text.primary",
     fontWeight: 700,
     height: 34,
     minWidth: 76,
-    backgroundColor: "#f8fafc",
-    "&:hover": { bgcolor: "#e2e8f0", borderColor: "grey.400" },
+    backgroundColor: "background.paper",
+    "&:hover": { bgcolor: "action.hover", borderColor: "divider" },
   };
 
   const tenantColumns: ReusableTableColumn<Tenant>[] = [
@@ -273,12 +285,12 @@ const TenantsTable = () => {
                 onClick={() => handleOpenStatusDialog(tenant)}
                 sx={{
                   ...actionButtonSx,
-                  color: tenant.subscription.status === "ACTIVE" ? "#b91c1c" : "#166534",
-                  borderColor: tenant.subscription.status === "ACTIVE" ? "#fecdd3" : "#bbf7d0",
-                  backgroundColor: tenant.subscription.status === "ACTIVE" ? "#fff1f2" : "#f0fdf4",
+                  color: tenant.subscription.status === "ACTIVE" ? "error.light" : "success.light",
+                  borderColor: tenant.subscription.status === "ACTIVE" ? "error.dark" : "success.dark",
+                  backgroundColor: tenant.subscription.status === "ACTIVE" ? "#7f1d1d1f" : "#14532d1f",
                   "&:hover": {
-                    bgcolor: tenant.subscription.status === "ACTIVE" ? "#ffe4e6" : "#dcfce7",
-                    borderColor: tenant.subscription.status === "ACTIVE" ? "#fca5a5" : "#86efac",
+                    bgcolor: tenant.subscription.status === "ACTIVE" ? "#7f1d1d2f" : "#14532d2f",
+                    borderColor: tenant.subscription.status === "ACTIVE" ? "error.main" : "success.main",
                   },
                 }}
                 disabled={isActionProcessing(tenant.id)}
@@ -295,14 +307,11 @@ const TenantsTable = () => {
 
   return (
     <div className="space-y-5">
-      <div>
-        <Typography variant="h5" sx={{ fontWeight: 700, color: "grey.900" }}>
-          Tenants Management
-        </Typography>
-        <Typography variant="body2" sx={{ color: "grey.600", mt: 0.5 }}>
-          View tenant subscriptions and status overview.
-        </Typography>
-      </div>
+      <TitleTag
+        title="Tenants Management"
+        subtitle="View tenant subscriptions and status overview."
+        icon={<Building2 className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />}
+      />
 
       <ReusableTable
         title="Tenants"

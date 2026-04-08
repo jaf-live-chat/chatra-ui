@@ -25,6 +25,11 @@ interface SubscriptionPlanListResponse {
   plans: SubscriptionPlanApiModel[];
 }
 
+interface SingleSubscriptionPlanResponse {
+  success: boolean;
+  plan: SubscriptionPlanApiModel;
+}
+
 type SubscriptionPlanPayload = {
   name: string;
   description: string;
@@ -102,4 +107,25 @@ export const useGetSubscriptionPlans = () => {
   );
 
   return memoizedValue;
+};
+
+export const useGetSinglePlan = (planId?: string) => {
+  const shouldFetch = Boolean(planId);
+  const requestUrl = shouldFetch ? `${endpoints.key}/${encodeURIComponent(planId || "")}` : null;
+
+  const getSinglePlan = (url: string) =>
+    fetcher<SingleSubscriptionPlanResponse>(url, true) as Promise<SingleSubscriptionPlanResponse>;
+
+  const { data, isLoading, error, mutate } = useSWR<SingleSubscriptionPlanResponse>(
+    requestUrl,
+    getSinglePlan,
+    SWR_OPTIONS
+  );
+
+  return {
+    plan: data?.plan ?? null,
+    isLoading,
+    error,
+    mutate,
+  };
 };

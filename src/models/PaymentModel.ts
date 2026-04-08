@@ -3,9 +3,11 @@ export type CreatePaymentCheckoutPayload = {
     companyName: string;
     companyCode: string;
     subscriptionPlanId: string;
-    subscriptionStart: string;
+    subscriptionStart?: string;
+    tenantId?: string;
+    currentSubscriptionId?: string;
   };
-  agentData: {
+  agentData?: {
     fullName: string;
     emailAddress: string;
     password: string;
@@ -24,6 +26,7 @@ export type CreatePaymentCheckoutResponse = {
   amount?: number;
   planName?: string;
   isHitpayBypassed?: boolean;
+  subscriptionChange?: boolean;
   tenant?: string;
   tenantId?: string;
   subscription?: string;

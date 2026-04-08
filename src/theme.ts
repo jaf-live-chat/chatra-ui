@@ -39,10 +39,53 @@ const sharedComponents = {
       },
     },
   },
-  MuiChip: { styleOverrides: { root: { fontWeight: 600, fontSize: "0.75rem" } } },
+  MuiChip: {
+    styleOverrides: {
+      root: {
+        fontWeight: 600,
+        fontSize: "0.75rem",
+      },
+      label: { color: "inherit" },
+    },
+  },
   MuiTextField: {
     styleOverrides: {
       root: { "& .MuiOutlinedInput-root": { borderRadius: 12 } },
+    },
+  },
+  MuiOutlinedInput: {
+    styleOverrides: {
+      root: {
+        borderRadius: 12,
+      },
+    },
+  },
+  MuiInputBase: {
+    styleOverrides: {
+      input: {
+        color: "inherit",
+      },
+    },
+  },
+  MuiInputLabel: {
+    styleOverrides: {
+      root: {
+        color: "inherit",
+      },
+    },
+  },
+  MuiFormLabel: {
+    styleOverrides: {
+      root: {
+        color: "inherit",
+      },
+    },
+  },
+  MuiDrawer: {
+    styleOverrides: {
+      paper: {
+        color: "inherit",
+      },
     },
   },
   MuiTableCell: {
@@ -107,6 +150,66 @@ export const darkTheme = createTheme({
   shape: sharedShape,
   components: {
     ...sharedComponents,
+    MuiDrawer: {
+      styleOverrides: {
+        paper: {
+          backgroundColor: "#1e293b",
+          color: "#f1f5f9",
+          borderLeft: "1px solid #334155",
+        },
+      },
+    },
+    MuiOutlinedInput: {
+      styleOverrides: {
+        root: {
+          borderRadius: 12,
+          "& .MuiOutlinedInput-notchedOutline": {
+            borderColor: "#475569",
+          },
+          "&:hover .MuiOutlinedInput-notchedOutline": {
+            borderColor: "#64748b",
+          },
+          "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+            borderColor: "#22d3ee",
+          },
+        },
+        input: {
+          color: "#f1f5f9",
+          "&::placeholder": {
+            color: "#94a3b8",
+            opacity: 1,
+          },
+        },
+      },
+    },
+    MuiInputBase: {
+      styleOverrides: {
+        input: {
+          color: "#f1f5f9",
+          "&::placeholder": {
+            color: "#94a3b8",
+            opacity: 1,
+          },
+        },
+      },
+    },
+    MuiInputLabel: {
+      styleOverrides: {
+        root: {
+          color: "#94a3b8",
+          "&.Mui-focused": {
+            color: "#67e8f9",
+          },
+        },
+      },
+    },
+    MuiFormLabel: {
+      styleOverrides: {
+        root: {
+          color: "#94a3b8",
+        },
+      },
+    },
     MuiTableCell: {
       styleOverrides: {
         head: {

@@ -4,8 +4,11 @@ import axios from 'axios';
 import type { AxiosRequestConfig } from 'axios';
 import type { InternalAxiosRequestConfig } from 'axios';
 import { beginMutationBlock, endMutationBlock } from '../services/apiClient';
+import { API_BASE_URL } from '../constants/constants';
 
-const PROJECT_API = import.meta.env.VITE_APP_API_URL_LOCAL
+const AUTH_UNAUTHORIZED_EVENT = 'jaf_auth_unauthorized';
+
+const PROJECT_API = API_BASE_URL
 
 const axiosServices = axios.create({
   baseURL: PROJECT_API,
@@ -69,6 +72,10 @@ axiosServices.interceptors.response.use(
 
     if (blockingConfig?._didAcquireGlobalBlock) {
       endMutationBlock();
+    }
+
+    if (error?.response?.status === 401 && typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent(AUTH_UNAUTHORIZED_EVENT));
     }
 
     return Promise.reject(error);
