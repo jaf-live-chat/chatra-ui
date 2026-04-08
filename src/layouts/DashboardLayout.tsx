@@ -417,7 +417,7 @@ function DashboardLayoutInner() {
                   <Tooltip
                     key={module.id}
                     title={module.label}
-                    placement={isSidebarOpen ? "bottom" : "right"}
+                    placement={isSidebarOpen ? "right" : "right"}
                   >
                     <button
                       onClick={() => handleModuleNavigation(module.path)}
