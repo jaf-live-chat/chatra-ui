@@ -48,6 +48,22 @@ const sharedComponents = {
       label: { color: "inherit" },
     },
   },
+  MuiTooltip: {
+    styleOverrides: {
+      tooltip: {
+        backgroundColor: "#111827",
+        color: "#ffffff",
+        fontSize: "0.72rem",
+        fontWeight: 500,
+        borderRadius: 8,
+        padding: "6px 10px",
+        boxShadow: "none",
+      },
+      arrow: {
+        color: "#111827",
+      },
+    },
+  },
   MuiTextField: {
     styleOverrides: {
       root: { "& .MuiOutlinedInput-root": { borderRadius: 12 } },

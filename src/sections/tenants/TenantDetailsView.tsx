@@ -10,7 +10,6 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import Paper from "@mui/material/Paper";
 import Skeleton from "@mui/material/Skeleton";
-import Snackbar from "@mui/material/Snackbar";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { useMemo, useState } from "react";
@@ -26,6 +25,7 @@ import TitleTag from "../../components/TitleTag";
 import TenantSubscriptionPlanDrawer from "./TenantSubscriptionPlanDrawer";
 import TenantPlanChangeDrawer from "./TenantPlanChangeDrawer";
 import TenantManageSubscriptionDrawer from "./TenantManageSubscriptionDrawer";
+import { toast } from "sonner";
 
 const EMPTY_LABEL = "-";
 
@@ -81,6 +81,10 @@ const defaultFeedbackState: FeedbackState = {
   message: "",
   severity: "success",
 };
+const LIGHT_SURFACE_TEXT_PRIMARY = "#0f172a";
+const LIGHT_SURFACE_TEXT_SECONDARY = "#64748b";
+const HEADER_TEXT_PRIMARY = "#ffffff";
+const HEADER_TEXT_SECONDARY = "#cbd5e1";
 
 interface DrawerSubscriptionMeta {
   id?: string;
@@ -114,7 +118,6 @@ const TenantDetailsView = () => {
   const [isMutating, setIsMutating] = useState(false);
   const [isReminderSending, setIsReminderSending] = useState(false);
   const [adjustmentDays, setAdjustmentDays] = useState("7");
-  const [feedback, setFeedback] = useState<FeedbackState>(defaultFeedbackState);
 
   const currentStatus = useMemo(() => {
     if (!tenant) return statusMeta.INACTIVE;
@@ -123,14 +126,6 @@ const TenantDetailsView = () => {
 
   const planActionLabel = tenant?.subscription.status === "EXPIRED" ? "Renew Plan" : "Change Plan";
   const masterAdminActionLabel = "Manage Subscription";
-
-  const showFeedback = (message: string, severity: SnackbarSeverity) => {
-    setFeedback({ open: true, message, severity });
-  };
-
-  const closeFeedback = () => {
-    setFeedback((prev) => ({ ...prev, open: false }));
-  };
 
   const refreshTenant = async () => {
     await mutate();
@@ -148,7 +143,7 @@ const TenantDetailsView = () => {
 
     const parsedDays = Number(adjustmentDays);
     if (!Number.isInteger(parsedDays) || parsedDays === 0) {
-      showFeedback("Please enter a non-zero whole number of days.", "error");
+      toast.error("Please enter a non-zero whole number of days.");
       return;
     }
 
@@ -159,10 +154,10 @@ const TenantDetailsView = () => {
         days: parsedDays,
       });
       await refreshTenant();
-      showFeedback("Subscription end date updated successfully.", "success");
+      toast.success("Subscription end date updated successfully.");
     } catch (actionError) {
       console.error("Failed to adjust tenant subscription end date", actionError);
-      showFeedback("Failed to adjust subscription end date.", "error");
+      toast.error("Failed to adjust subscription end date.");
     } finally {
       setIsMutating(false);
     }
@@ -177,11 +172,11 @@ const TenantDetailsView = () => {
         action: "DEACTIVATE",
       });
       await refreshTenant();
-      showFeedback("Tenant subscription deactivated successfully.", "success");
+      toast.success("Tenant subscription deactivated successfully.");
       setIsDeactivateDialogOpen(false);
     } catch (actionError) {
       console.error("Failed to deactivate tenant subscription", actionError);
-      showFeedback("Failed to deactivate tenant subscription.", "error");
+      toast.error("Failed to deactivate tenant subscription.");
     } finally {
       setIsMutating(false);
     }
@@ -193,10 +188,10 @@ const TenantDetailsView = () => {
     setIsReminderSending(true);
     try {
       const response = await tenantService.sendSubscriptionReminder(id);
-      showFeedback(response.message || "Subscription reminder sent successfully.", "success");
+      toast.success(response.message || "Subscription reminder sent successfully.");
     } catch (actionError) {
       console.error("Failed to send tenant subscription reminder", actionError);
-      showFeedback("Failed to send subscription reminder.", "error");
+      toast.error("Failed to send subscription reminder.");
     } finally {
       setIsReminderSending(false);
     }
@@ -650,17 +645,6 @@ const TenantDetailsView = () => {
           </Button>
         </DialogActions>
       </Dialog>
-
-      <Snackbar
-        open={feedback.open}
-        autoHideDuration={3500}
-        onClose={closeFeedback}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      >
-        <Alert onClose={closeFeedback} severity={feedback.severity} variant="filled" sx={{ width: "100%" }}>
-          {feedback.message}
-        </Alert>
-      </Snackbar>
 
       <TenantSubscriptionPlanDrawer
         open={isSubscriptionDrawerOpen}

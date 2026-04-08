@@ -32,7 +32,6 @@ import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
-import Snackbar from "@mui/material/Snackbar";
 import Alert from "@mui/material/Alert";
 import TextField from "@mui/material/TextField";
 import MenuItem from "@mui/material/MenuItem";
@@ -45,6 +44,7 @@ import PageTitle from "../../components/common/PageTitle";
 import idLabel from "../../utils/idUtils";
 import getAvatarColor from "../../utils/getAvatarColor";
 import TitleTag from "../../components/TitleTag";
+import { toast } from "sonner";
 
 interface Agent extends AuthAgent {
   id: string;
@@ -121,21 +121,17 @@ const AgentsManagementView = () => {
     email: "",
   });
   const [inviteCopied, setInviteCopied] = useState(false);
-  const [snackbar, setSnackbar] = useState<{
-    open: boolean;
-    message: string;
-    tone: "add" | "edit" | "delete" | "error";
-  }>({
-    open: false,
-    message: "",
-    tone: "add",
-  });
 
   const showSnackbar = (
     message: string,
     tone: "add" | "edit" | "delete" | "error"
   ) => {
-    setSnackbar({ open: true, message, tone });
+    if (tone === "error") {
+      toast.error(message);
+      return;
+    }
+
+    toast.success(message);
   };
 
   const {
@@ -516,18 +512,6 @@ const AgentsManagementView = () => {
     [agents, page, user?._id, isDeletingAgent],
   );
 
-  const snackbarToneStyles: Record<
-    "add" | "edit" | "delete" | "error",
-    { bgcolor: string; color: string; borderColor: string; severity: "success" | "error" }
-  > = {
-    add: { bgcolor: "#dcfce7", color: "#166534", borderColor: "#86efac", severity: "success" },
-    edit: { bgcolor: "#dcfce7", color: "#166534", borderColor: "#86efac", severity: "success" },
-    delete: { bgcolor: "#fee2e2", color: "#991b1b", borderColor: "#fca5a5", severity: "error" },
-    error: { bgcolor: "#fee2e2", color: "#991b1b", borderColor: "#fca5a5", severity: "error" },
-  };
-
-  const activeSnackbarTone = snackbarToneStyles[snackbar.tone];
-
   return (
     <React.Fragment>
       <PageTitle
@@ -895,30 +879,6 @@ const AgentsManagementView = () => {
 
 
         </Dialog>
-
-        <Snackbar
-          open={snackbar.open}
-          autoHideDuration={3000}
-          onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-          anchorOrigin={{ vertical: "top", horizontal: "right" }}
-        >
-          <Alert
-            onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-            severity={activeSnackbarTone.severity}
-            variant="standard"
-            sx={{
-              width: "100%",
-              bgcolor: activeSnackbarTone.bgcolor,
-              color: activeSnackbarTone.color,
-              border: "1px solid",
-              borderColor: activeSnackbarTone.borderColor,
-              "& .MuiAlert-icon": { color: activeSnackbarTone.color },
-              "& .MuiAlert-action": { color: activeSnackbarTone.color },
-            }}
-          >
-            {snackbar.message}
-          </Alert>
-        </Snackbar>
       </Box>
     </React.Fragment>
   );

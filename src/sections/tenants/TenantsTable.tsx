@@ -1,5 +1,4 @@
 import { useState, type CSSProperties } from "react";
-import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
@@ -7,7 +6,6 @@ import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
-import Snackbar from "@mui/material/Snackbar";
 import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
@@ -23,14 +21,10 @@ import idLabel from "../../utils/idUtils";
 import Box from "@mui/material/Box";
 import getAvatarColor from "../../utils/getAvatarColor";
 import TitleTag from "../../components/TitleTag";
+import type { Theme } from "@mui/material/styles";
+import { toast } from "sonner";
 
 const EMPTY_LABEL = "-";
-
-interface SnackbarState {
-  open: boolean;
-  message: string;
-  severity: "success" | "error";
-}
 
 interface ConfirmDialogState {
   open: boolean;
@@ -101,20 +95,12 @@ const TenantsTable = () => {
   const { tenants, isLoading, mutate: mutateTenants, pagination } = useGetTenants(currentPage, ROWS_PER_PAGE);
   const [processingTenantId, setProcessingTenantId] = useState<string>("");
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>(defaultDialogState);
-  const [snackbar, setSnackbar] = useState<SnackbarState>({ open: false, message: "", severity: "success" });
 
   const isActionProcessing = (tenantId: string) => processingTenantId === tenantId;
-
-  const showSnackbar = (message: string, severity: "success" | "error") => {
-    setSnackbar({ open: true, message, severity });
-  };
-
-  const closeSnackbar = () => setSnackbar((prev) => ({ ...prev, open: false }));
 
   const refreshTenants = async () => {
     await mutateTenants();
   };
-
   const handleViewTenant = (tenant: Tenant) => {
     navigate(`/portal/tenants/${tenant.id}`);
   };
@@ -145,10 +131,10 @@ const TenantsTable = () => {
     try {
       await tenantService.updateTenantStatus(tenantId, confirmDialog.nextStatus);
       await refreshTenants();
-      showSnackbar("Tenant status updated successfully.", "success");
+      toast.success("Tenant status updated successfully.");
     } catch (error) {
       console.error("Error processing tenant action:", error);
-      showSnackbar("Failed to process tenant action.", "error");
+      toast.error("Failed to process tenant action.");
     } finally {
       setProcessingTenantId("");
       handleCloseConfirmDialog();
@@ -359,16 +345,6 @@ const TenantsTable = () => {
         </DialogActions>
       </Dialog>
 
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={4000}
-        onClose={closeSnackbar}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      >
-        <Alert onClose={closeSnackbar} severity={snackbar.severity} variant="filled" sx={{ width: "100%" }}>
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
     </div>
   );
 };
