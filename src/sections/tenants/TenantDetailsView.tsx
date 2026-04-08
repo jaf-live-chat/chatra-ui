@@ -380,11 +380,8 @@ const TenantDetailsView = () => {
                           <Typography variant="caption" sx={{ color: HEADER_TEXT_SECONDARY, fontWeight: 500 }}>
                             <Stack component="span" direction="row" spacing={0.5} alignItems="center">
                               <Building2 size={12} />
-                              <span>Code: {tenant?.companyCode}</span>
+                              <span>Company Code: {tenant?.companyCode}</span>
                             </Stack>
-                          </Typography>
-                          <Typography variant="caption" sx={{ color: HEADER_TEXT_SECONDARY, fontWeight: 500 }}>
-                            DB: {tenant?.databaseName}
                           </Typography>
                         </Stack>
                       </>
