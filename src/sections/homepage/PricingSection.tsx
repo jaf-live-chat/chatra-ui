@@ -1,5 +1,5 @@
 import { Box, Typography, Button, Container, Grid, Dialog, TextField, Stack, IconButton } from "@mui/material";
-import { Check, X, Info, CheckCircle2, Loader2 } from "lucide-react";
+import { Check, X, Info, CheckCircle2, Loader2, Users, BarChart3, CalendarDays, Sparkles } from "lucide-react";
 import { Link } from "react-router";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
@@ -25,6 +25,22 @@ const getPeriodLabel = (billingCycle: string, interval: number) => {
 
   const unit = unitByCycle[billingCycle] || "day";
   return `/${interval} ${interval === 1 ? unit : `${unit}s`}`;
+};
+
+const getBillingCadenceText = (billingCycle: string, interval: number) => {
+  const unitByCycle: Record<string, string> = {
+    daily: "day",
+    weekly: "week",
+    monthly: "month",
+    yearly: "year",
+  };
+
+  const unit = unitByCycle[billingCycle] || "month";
+  if (interval <= 1) {
+    return `Billed every ${unit}`;
+  }
+
+  return `Billed every ${interval} ${unit}s`;
 };
 
 const centerMostPopularPlan = <T extends { popular: boolean }>(items: T[]) => {
@@ -61,8 +77,8 @@ const PricingSection = () => {
   const [contactForm, setContactForm] = useState({ fullName: "", email: "", company: "", phone: "", message: "" });
   const [contactSending, setContactSending] = useState(false);
   const [contactSent, setContactSent] = useState(false);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const timeout2Ref = useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const timeout2Ref = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { plans: fetchedPlans, isLoading } = useGetSubscriptionPlans();
 
   const plans = useMemo(() => {
@@ -71,8 +87,12 @@ const PricingSection = () => {
     const mappedPlans = postedPlans.map((plan) => ({
       name: plan.name,
       description: plan.description,
+      priceValue: Number(plan.price || 0),
       price: formatPhp(plan.price),
       period: getPeriodLabel(plan.billingCycle, plan.interval),
+      billingCadence: getBillingCadenceText(plan.billingCycle, plan.interval || 1),
+      maxAgents: plan.limits?.maxAgents,
+      hasAdvancedAnalytics: Boolean(plan.limits?.hasAdvancedAnalytics),
       features: plan.features,
       buttonText: plan.price === 0 ? "Start Free Trial" : "Get Started",
       buttonVariant: plan.isMostPopular ? "primary" : "light",
@@ -159,6 +179,12 @@ const PricingSection = () => {
             const textColor = isPro ? "#FFFFFFFF" : navyColor;
             const descColor = isPro ? "#94A3B8FF" : "#64748BFF";
             const checkColor = isPro ? cyanBtnColor : greenCheck;
+            const chipBg = isPro ? "#08213D" : "#F1F5F9";
+            const chipBorder = isPro ? "#1E3A5F" : "#DBE7F3";
+            const chipTitleColor = isPro ? "#93C5FD" : "#64748B";
+            const chipValueColor = isPro ? "#FFFFFF" : "#0F172A";
+            const visibleFeatures = plan.features;
+            const hiddenFeatureCount = Math.max(plan.features.length - visibleFeatures.length, 0);
 
             return (
               <Grid size={{ xs: 12, md: 4 }} key={plan.name}>
@@ -168,18 +194,40 @@ const PricingSection = () => {
                     bgcolor: cardBg,
                     borderRadius: "24px",
                     p: { xs: 4, md: 5 },
+                    pt: isPro ? { xs: 6.5, md: 7 } : { xs: 4, md: 5 },
                     height: "100%",
                     display: "flex",
                     flexDirection: "column",
-                    boxShadow: isPro ? "0 20px 40px #0A192F4D" : "0 10px 30px #0000000A",
+                    boxShadow: isPro ? "0 28px 55px #0A192F59" : "0 14px 36px #0F172A14",
                     border: isPro ? "1px solid transparent" : "1px solid #E2E8F0FF",
+                    overflow: "hidden",
+                    transition: "transform .25s ease, box-shadow .25s ease",
+                    "&:hover": {
+                      transform: "translateY(-6px)",
+                      boxShadow: isPro ? "0 34px 64px #0A192F75" : "0 20px 48px #0F172A1F",
+                    },
                   }}
                 >
+                  <Box
+                    sx={{
+                      position: "absolute",
+                      top: -80,
+                      right: -50,
+                      width: 220,
+                      height: 220,
+                      borderRadius: "50%",
+                      background: isPro
+                        ? "radial-gradient(circle, #22D3EE38 0%, #22D3EE00 70%)"
+                        : "radial-gradient(circle, #0EA5E91F 0%, #0EA5E900 70%)",
+                      pointerEvents: "none",
+                    }}
+                  />
+
                   {isPro && (
                     <Box
                       sx={{
                         position: "absolute",
-                        top: "-14px",
+                        top: "14px",
                         left: "50%",
                         transform: "translateX(-50%)",
                         bgcolor: cyanBtnColor,
@@ -193,6 +241,7 @@ const PricingSection = () => {
                         textTransform: "uppercase",
                         whiteSpace: "nowrap",
                         boxShadow: "0 4px 6px #0000001A",
+                        zIndex: 2,
                       }}
                     >
                       Most Popular
@@ -217,13 +266,13 @@ const PricingSection = () => {
                     </Typography>
                   </Box>
 
-                  <Box sx={{ mb: 4 }}>
+                  <Box sx={{ mb: 2.5 }}>
                     <Box sx={{ display: "flex", alignItems: "baseline", gap: 0.5 }}>
                       <Typography
                         sx={{
                           color: textColor,
                           fontWeight: 800,
-                          fontSize: "3.5rem",
+                          fontSize: { xs: "3rem", md: "3.3rem" },
                           letterSpacing: "-0.02em",
                           fontFamily: "inherit",
                           lineHeight: 1,
@@ -235,18 +284,105 @@ const PricingSection = () => {
                         {plan.period}
                       </Typography>
                     </Box>
+
+                    <Typography sx={{ color: descColor, fontSize: "0.84rem", fontWeight: 700, fontFamily: "inherit", mt: 0.75 }}>
+                      {plan.billingCadence}
+                    </Typography>
+                  </Box>
+
+                  <Box
+                    sx={{
+                      mb: 3,
+                      p: 1.5,
+                      borderRadius: "14px",
+                      border: "1px solid",
+                      borderColor: chipBorder,
+                      background: isPro ? "linear-gradient(180deg, #0D2747 0%, #0B213D 100%)" : "#F8FAFC",
+                      display: "grid",
+                      gridTemplateColumns: "1fr",
+                      gap: 1,
+                    }}
+                  >
+                    <Stack direction="row" alignItems="center" spacing={1}>
+                      <CalendarDays size={15} color={isPro ? "#7DD3FC" : "#0284C7"} />
+                      <Typography sx={{ color: chipTitleColor, fontSize: "0.78rem", fontWeight: 700, letterSpacing: "0.02em" }}>
+                        BILLING
+                      </Typography>
+                      <Typography sx={{ color: chipValueColor, fontSize: "0.84rem", fontWeight: 800 }}>
+                        {plan.priceValue === 0 ? "No upfront payment" : "Cancel anytime"}
+                      </Typography>
+                    </Stack>
+
+                    <Stack direction="row" alignItems="center" spacing={1}>
+                      <Users size={15} color={isPro ? "#7DD3FC" : "#0284C7"} />
+                      <Typography sx={{ color: chipTitleColor, fontSize: "0.78rem", fontWeight: 700, letterSpacing: "0.02em" }}>
+                        AGENT LIMIT
+                      </Typography>
+                      <Typography sx={{ color: chipValueColor, fontSize: "0.84rem", fontWeight: 800 }}>
+                        {plan.maxAgents ?? "Unlimited"}
+                      </Typography>
+                    </Stack>
+
+                    <Stack direction="row" alignItems="center" spacing={1}>
+                      <BarChart3 size={15} color={isPro ? "#7DD3FC" : "#0284C7"} />
+                      <Typography sx={{ color: chipTitleColor, fontSize: "0.78rem", fontWeight: 700, letterSpacing: "0.02em" }}>
+                        ANALYTICS
+                      </Typography>
+                      <Typography sx={{ color: chipValueColor, fontSize: "0.84rem", fontWeight: 800 }}>
+                        {plan.hasAdvancedAnalytics ? "Advanced included" : "Standard"}
+                      </Typography>
+                    </Stack>
                   </Box>
 
                   <Box sx={{ flexGrow: 1, mb: 4 }}>
-                    <Box component="ul" sx={{ listStyle: "none", p: 0, m: 0, display: "flex", flexDirection: "column", gap: 2.5 }}>
-                      {plan.features.map((feat) => (
-                        <Box component="li" key={feat} sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-                          <Check color={checkColor} size={20} strokeWidth={3} style={{ flexShrink: 0 }} />
-                          <Typography sx={{ color: isPro ? "#E2E8F0FF" : "#334155FF", fontSize: "0.9rem", fontFamily: "inherit" }}>
+                    <Stack direction="row" alignItems="center" spacing={0.75} sx={{ mb: 1.25 }}>
+                      <Sparkles size={15} color={isPro ? "#7DD3FC" : "#0284C7"} />
+                      <Typography sx={{ color: isPro ? "#BAE6FD" : "#0369A1", fontSize: "0.78rem", fontWeight: 800, letterSpacing: "0.04em" }}>
+                        INCLUDED FEATURES
+                      </Typography>
+                    </Stack>
+
+                    <Box component="ul" sx={{ listStyle: "none", p: 0, m: 0, display: "flex", flexDirection: "column", gap: 1.1 }}>
+                      {visibleFeatures.map((feat) => (
+                        <Box
+                          component="li"
+                          key={feat}
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 1.1,
+                            p: 1,
+                            borderRadius: "10px",
+                            background: isPro ? "#FFFFFF0F" : "#F8FAFC",
+                            border: "1px solid",
+                            borderColor: isPro ? "#334155" : "#E2E8F0",
+                          }}
+                        >
+                          <Box
+                            sx={{
+                              width: 22,
+                              height: 22,
+                              borderRadius: "9999px",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              backgroundColor: isPro ? "#0EA5E933" : "#10B98122",
+                              flexShrink: 0,
+                            }}
+                          >
+                            <Check color={checkColor} size={14} strokeWidth={3} />
+                          </Box>
+                          <Typography sx={{ color: isPro ? "#E2E8F0FF" : "#334155FF", fontSize: "0.9rem", fontFamily: "inherit", fontWeight: 600 }}>
                             {feat}
                           </Typography>
                         </Box>
                       ))}
+
+                      {hiddenFeatureCount > 0 && (
+                        <Typography sx={{ color: descColor, fontSize: "0.84rem", fontWeight: 700, pt: 0.35, pl: 0.5 }}>
+                          +{hiddenFeatureCount} more included
+                        </Typography>
+                      )}
                     </Box>
                   </Box>
 
