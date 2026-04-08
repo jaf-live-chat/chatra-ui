@@ -23,8 +23,11 @@ import getAvatarColor from "../../utils/getAvatarColor";
 import TitleTag from "../../components/TitleTag";
 import type { Theme } from "@mui/material/styles";
 import { toast } from "sonner";
+import { USER_ROLES } from "../../constants/constants";
+import useAuth from "../../hooks/useAuth";
 
 const EMPTY_LABEL = "-";
+const INTERNAL_OWNER_PLAN_NAME = "Free Internal Plan";
 
 interface ConfirmDialogState {
   open: boolean;
@@ -89,12 +92,26 @@ const getStatusChipStyles = (status: TenantStatus) => {
 
 const TenantsTable = () => {
   const navigate = useNavigate();
+  const { user, tenant: loggedInTenant } = useAuth();
   const [currentPage, setCurrentPage] = useState(1);
   const ROWS_PER_PAGE = 5;
 
   const { tenants, isLoading, mutate: mutateTenants, pagination } = useGetTenants(currentPage, ROWS_PER_PAGE);
   const [processingTenantId, setProcessingTenantId] = useState<string>("");
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>(defaultDialogState);
+
+  const isMasterAdmin = user?.role === USER_ROLES.MASTER_ADMIN.value;
+  const ownerTenantId = loggedInTenant?.id || "";
+  const visibleTenants = tenants.filter((tenant) => {
+    if (!isMasterAdmin) return true;
+
+    // Hide owner tenant entry from tenants management for master admin.
+    if (ownerTenantId && tenant.id === ownerTenantId) {
+      return false;
+    }
+
+    return tenant.subscription.planName !== INTERNAL_OWNER_PLAN_NAME;
+  });
 
   const isActionProcessing = (tenantId: string) => processingTenantId === tenantId;
 
@@ -200,14 +217,20 @@ const TenantsTable = () => {
       label: "Plan",
       sortable: true,
       sortAccessor: (tenant) => tenant.subscription.planName,
-      renderCell: (tenant) => tenant.subscription.planName || EMPTY_LABEL,
+      renderCell: (tenant) =>
+        tenant.subscription.planName === INTERNAL_OWNER_PLAN_NAME
+          ? EMPTY_LABEL
+          : (tenant.subscription.planName || EMPTY_LABEL),
     },
     {
       id: "startDate",
       label: "Start Date",
       sortable: true,
       sortAccessor: (tenant) => new Date(tenant.subscription.startDate),
-      renderCell: (tenant) => formatDate(tenant.subscription.startDate),
+      renderCell: (tenant) =>
+        tenant.subscription.planName === INTERNAL_OWNER_PLAN_NAME
+          ? EMPTY_LABEL
+          : formatDate(tenant.subscription.startDate),
     },
     {
       id: "endDate",
@@ -216,17 +239,11 @@ const TenantsTable = () => {
       align: "center",
       sortAccessor: (tenant) => new Date(tenant.subscription.endDate),
       renderCell: (tenant) => {
-        if (tenant.subscription.planName === 'Free Internal Plan') {
-          return (
-            <Tooltip title="This is the owner tenant which has a free internal plan with no expiration date.">
-              <span style={{ cursor: "help" }}>
-                <Chip label="No Expiration" size="small" color="info" variant="filled" />
-              </span>
-            </Tooltip>
-          )
-        } else {
-          return formatDate(tenant.subscription.endDate);
+        if (tenant.subscription.planName === INTERNAL_OWNER_PLAN_NAME) {
+          return EMPTY_LABEL;
         }
+
+        return formatDate(tenant.subscription.endDate);
       },
     },
     {
@@ -302,7 +319,7 @@ const TenantsTable = () => {
       <ReusableTable
         title="Tenants"
         subtitle="View tenant subscriptions and status overview."
-        rows={tenants}
+        rows={visibleTenants}
         columns={tenantColumns}
         getRowKey={(tenant) => tenant.id}
         loading={isLoading}
@@ -317,7 +334,9 @@ const TenantsTable = () => {
           rowsPerPage: ROWS_PER_PAGE,
           page: currentPage,
           onPageChange: setCurrentPage,
-          totalRows: pagination?.totalRecords,
+          totalRows: isMasterAdmin
+            ? visibleTenants.length
+            : pagination?.totalRecords,
         }}
         tableMinWidth={1150}
         totalLabel="tenants"
