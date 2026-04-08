@@ -21,7 +21,7 @@ import useGetRole from "../../hooks/useGetRole";
 import { formatDate } from "../../utils/dateFormatter";
 import idLabel from "../../utils/idUtils";
 import TitleTag from "../../components/TitleTag";
-import TenantSubscriptionPlanDrawer from "./TenantSubscriptionPlanDrawer";
+import TenantSubscriptionAccordion from "./TenantSubscriptionAccordion";
 import TenantPlanChangeDrawer from "./TenantPlanChangeDrawer";
 import TenantManageSubscriptionDrawer from "./TenantManageSubscriptionDrawer";
 import { toast } from "sonner";
@@ -73,15 +73,6 @@ const LIGHT_SURFACE_TEXT_SECONDARY = "#64748b";
 const HEADER_TEXT_PRIMARY = "#ffffff";
 const HEADER_TEXT_SECONDARY = "#cbd5e1";
 
-interface DrawerSubscriptionMeta {
-  id?: string;
-  planId?: string;
-  planName?: string;
-  startDate?: string;
-  endDate?: string;
-  status?: string;
-}
-
 const safeIdLabel = (rawId: string | undefined, prefix: Parameters<typeof idLabel>[1]): string => {
   if (!rawId || !rawId.trim()) return EMPTY_LABEL;
   return idLabel(rawId, prefix);
@@ -93,11 +84,7 @@ const TenantDetailsView = () => {
   const { isAdmin, isMasterAdmin } = useGetRole();
   const { tenant, isLoading, error, mutate } = useGetSingleTenant(id);
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
-  const [isSubscriptionDrawerOpen, setIsSubscriptionDrawerOpen] = useState(false);
   const [isManageSubscriptionDrawerOpen, setIsManageSubscriptionDrawerOpen] = useState(false);
-  const [drawerPlanId, setDrawerPlanId] = useState("");
-  const [drawerPlanLabel, setDrawerPlanLabel] = useState("Current Subscription");
-  const [drawerSubscriptionMeta, setDrawerSubscriptionMeta] = useState<DrawerSubscriptionMeta | null>(null);
   const [isPlanChangeDrawerOpen, setIsPlanChangeDrawerOpen] = useState(false);
   const [isMutating, setIsMutating] = useState(false);
   const [isReminderSending, setIsReminderSending] = useState(false);
@@ -116,13 +103,6 @@ const TenantDetailsView = () => {
 
   const refreshTenant = async () => {
     await mutate();
-  };
-
-  const openPlanDrawer = (meta: DrawerSubscriptionMeta, label: string) => {
-    setDrawerPlanId(meta.planId || "");
-    setDrawerSubscriptionMeta(meta);
-    setDrawerPlanLabel(label);
-    setIsSubscriptionDrawerOpen(true);
   };
 
   const handleAdjustEndDate = async () => {
@@ -286,27 +266,23 @@ const TenantDetailsView = () => {
                 </Typography>
               </Box>
 
-              <Button
-                variant="contained"
-                endIcon={<ArrowRight size={14} />}
-                onClick={() =>
-                  openPlanDrawer(
-                    {
+              {tenant.upcomingSubscription?.planId && (
+                <Box sx={{ mt: 2 }}>
+                  <TenantSubscriptionAccordion
+                    planId={tenant.upcomingSubscription.planId}
+                    subscriptionMeta={{
                       id: tenant.upcomingSubscription?.id,
                       planId: tenant.upcomingSubscription?.planId,
                       planName: tenant.upcomingSubscription?.planName,
                       startDate: tenant.upcomingSubscription?.startDate,
                       endDate: tenant.upcomingSubscription?.endDate,
                       status: tenant.upcomingSubscription?.status,
-                    },
-                    "Upcoming Subscription"
-                  )
-                }
-                disabled={!tenant.upcomingSubscription?.planId}
-                sx={{ borderRadius: 2, fontWeight: 700, px: 2.5, py: 1.1, minWidth: { md: 220 } }}
-              >
-                View
-              </Button>
+                    }}
+                    contextLabel="Upcoming Subscription"
+                    defaultExpanded={false}
+                  />
+                </Box>
+              )}
             </Stack>
           </Stack>
         </Paper>
@@ -502,29 +478,23 @@ const TenantDetailsView = () => {
                           </Box>
                         </Box>
 
-                        <Stack direction="row" spacing={1.2}>
-                          <Button
-                            variant="text"
-                            startIcon={<CreditCard size={14} />}
-                            onClick={() =>
-                              openPlanDrawer(
-                                {
-                                  id: tenant?.subscription.id,
-                                  planId: tenant?.subscription.planId,
-                                  planName: tenant?.subscription.planName,
-                                  startDate: tenant?.subscription.startDate,
-                                  endDate: tenant?.subscription.endDate,
-                                  status: tenant?.subscription.status,
-                                },
-                                "Current Subscription"
-                              )
-                            }
-                            disabled={!tenant?.subscription.planId}
-                            sx={{ px: 0, fontWeight: 700 }}
-                          >
-                            View subscription
-                          </Button>
-                        </Stack>
+                        {tenant?.subscription.planId && (
+                          <Box sx={{ mt: 1.5 }}>
+                            <TenantSubscriptionAccordion
+                              planId={tenant?.subscription.planId}
+                              subscriptionMeta={{
+                                id: tenant?.subscription.id,
+                                planId: tenant?.subscription.planId,
+                                planName: tenant?.subscription.planName,
+                                startDate: tenant?.subscription.startDate,
+                                endDate: tenant?.subscription.endDate,
+                                status: tenant?.subscription.status,
+                              }}
+                              contextLabel="Current Subscription"
+                              defaultExpanded={true}
+                            />
+                          </Box>
+                        )}
 
                         {tenant?.upcomingSubscription?.planName && (
                           <Box
@@ -645,19 +615,6 @@ const TenantDetailsView = () => {
           </Button>
         </DialogActions>
       </Dialog>
-
-      <TenantSubscriptionPlanDrawer
-        open={isSubscriptionDrawerOpen}
-        planId={drawerPlanId}
-        subscriptionMeta={drawerSubscriptionMeta}
-        contextLabel={drawerPlanLabel}
-        onClose={() => {
-          setIsSubscriptionDrawerOpen(false);
-          setDrawerPlanId("");
-          setDrawerSubscriptionMeta(null);
-          setDrawerPlanLabel("Current Subscription");
-        }}
-      />
 
       <TenantPlanChangeDrawer
         open={isPlanChangeDrawerOpen}
