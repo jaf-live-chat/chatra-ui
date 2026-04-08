@@ -3,7 +3,7 @@ import {
   Users,
   Clock,
   ListOrdered,
-   Eye,
+  Eye,
   UserCog,
   Star,
   Activity,
@@ -198,13 +198,12 @@ const DashboardPage = () => {
         <div className="flex justify-end pr-4">
           <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-slate-700">
             <span
-              className={`h-2 w-2 rounded-full ${
-                row.status === "Available"
-                  ? "bg-emerald-500"
-                  : row.status === "In Chat"
-                    ? "bg-blue-500"
-                    : "bg-slate-300"
-              }`}
+              className={`h-2 w-2 rounded-full ${row.status === "Available"
+                ? "bg-emerald-500"
+                : row.status === "In Chat"
+                  ? "bg-blue-500"
+                  : "bg-slate-300"
+                }`}
             />
             {row.status}
           </span>
@@ -310,165 +309,165 @@ const DashboardPage = () => {
 
   return (
     <React.Fragment>
-        <PageTitle
+      <PageTitle
         title="Dashboard"
         description="Get a quick overview of your support operations, including active chats, visitor activity, and agent performance."
         canonical="/portal/dashboard"
 
       />
-    <div className="w-full">
-      <div className="mb-6">
-        <TitleTag
-          title="Welcome back, Admin"
-          subtitle="Here&apos;s a quick look at your workspace right now."
-          icon={<User className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />}
-        />
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
-        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] p-5 flex flex-col md:flex-row items-start md:items-center gap-4">
-          <div className="w-14 h-14 rounded-full bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center shrink-0">
-            <MessageSquare className="w-6 h-6 text-emerald-500 dark:text-emerald-400" />
-          </div>
-          <div className="flex flex-col">
-            <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-0.5">Active Chats</p>
-            <p className="text-[28px] font-bold text-slate-900 leading-none dark:text-slate-100">24</p>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] p-5 flex flex-col md:flex-row items-start md:items-center gap-4">
-          <div className="w-14 h-14 rounded-full bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center shrink-0">
-            <Users className="w-6 h-6 text-blue-500 dark:text-blue-400" />
-          </div>
-          <div className="flex flex-col">
-            <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-0.5">Visitors Online</p>
-            <p className="text-[28px] font-bold text-slate-900 leading-none dark:text-slate-100">148</p>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] p-5 flex flex-col md:flex-row items-start md:items-center gap-4">
-          <div className="w-14 h-14 rounded-full bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center shrink-0">
-            <ListOrdered className="w-6 h-6 text-amber-500 dark:text-amber-400" />
-          </div>
-          <div className="flex flex-col">
-            <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-0.5">In Queue</p>
-            <p className="text-[28px] font-bold text-slate-900 leading-none dark:text-slate-100">7</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-stretch mb-6">
-        <div className="xl:col-span-7 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] rounded-2xl bg-white border border-slate-100 overflow-hidden h-full flex flex-col">
-          <ReusableTable
-            title="Waiting Queue"
-            rows={liveQueue}
-            columns={liveQueueColumns}
-            getRowKey={(row) => row.id}
-            compact={true}
-            tableMinWidth={0}
-            tableLayout="fixed"
-            noHorizontalScroll={true}
-            showTotalBadge={false}
-            search={{ show: false }}
-            pagination={{ show: true, rowsPerPage: 3 }}
-            headerIcon={<Clock className="text-amber-500" size={20} />}
-            headerActions={
-              <Tooltip title="View waiting queue" placement="top">
-                <button
-                  onClick={() => navigate("/portal/chats")}
-                  className="text-xs font-bold text-blue-600 hover:text-blue-700 tracking-wide px-3 py-1.5 rounded-md hover:bg-blue-50 transition-colors border border-transparent hover:border-blue-100 uppercase"
-                >
-                  View all
-                </button>
-              </Tooltip>
-            }
+      <div className="w-full">
+        <div className="mb-6">
+          <TitleTag
+            title={`Welcome back, ${user?.fullName || "Agent"}!`}
+            subtitle="Here&apos;s a quick look at your workspace right now."
+            icon={<User className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />}
           />
         </div>
 
-        <div className="xl:col-span-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] rounded-2xl bg-white border border-slate-100 overflow-hidden h-full flex flex-col">
-          <ReusableTable
-            title="Currently Being Served"
-            rows={activeSessions}
-            columns={activeSessionsColumns}
-            getRowKey={(row) => row.id}
-            compact={true}
-            tableMinWidth={0}
-            tableLayout="fixed"
-            noHorizontalScroll={true}
-            showTotalBadge={false}
-            search={{ show: false }}
-            pagination={{ show: true, rowsPerPage: 3 }}
-            headerIcon={<Activity className="text-blue-500" size={20} />}
-            headerActions={
-              <Tooltip title="View all active sessions" placement="top">
-                <button
-                  onClick={() => navigate("/portal/chat-sessions")}
-                  className="text-xs font-bold text-blue-600 hover:text-blue-700 tracking-wide px-3 py-1.5 rounded-md hover:bg-blue-50 transition-colors border border-transparent hover:border-blue-100 uppercase"
-                >
-                  View All
-                </button>
-              </Tooltip>
-            }
-          />
-        </div>
-      </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] p-5 flex flex-col md:flex-row items-start md:items-center gap-4">
+            <div className="w-14 h-14 rounded-full bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center shrink-0">
+              <MessageSquare className="w-6 h-6 text-emerald-500 dark:text-emerald-400" />
+            </div>
+            <div className="flex flex-col">
+              <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-0.5">Active Chats</p>
+              <p className="text-[28px] font-bold text-slate-900 leading-none dark:text-slate-100">24</p>
+            </div>
+          </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-stretch">
-        <div className="xl:col-span-4 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] rounded-2xl bg-white border border-slate-100 overflow-hidden h-full flex flex-col">
-          <ReusableTable
-            title="Agent Status"
-            rows={agentStatuses}
-            columns={agentStatusColumns}
-            getRowKey={(row) => row.id}
-            compact={true}
-            tableMinWidth={0}
-            tableLayout="fixed"
-            noHorizontalScroll={true}
-            showTotalBadge={false}
-            search={{ show: false }}
-            pagination={{ show: true, rowsPerPage: 3 }}
-            headerIcon={<UserCog className="text-blue-500" size={20} />}
-            headerActions={
-              <Tooltip title="Manage agent status" placement="top">
-                <button
-                  onClick={() => navigate("/portal/agents")}
-                  className="text-xs font-bold text-blue-600 hover:text-blue-700 tracking-wide px-3 py-1.5 rounded-md hover:bg-blue-50 transition-colors border border-transparent hover:border-blue-100 uppercase"
-                >
-                  Manage
-                </button>
-              </Tooltip>
-            }
-          />
+          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] p-5 flex flex-col md:flex-row items-start md:items-center gap-4">
+            <div className="w-14 h-14 rounded-full bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center shrink-0">
+              <Users className="w-6 h-6 text-blue-500 dark:text-blue-400" />
+            </div>
+            <div className="flex flex-col">
+              <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-0.5">Visitors Online</p>
+              <p className="text-[28px] font-bold text-slate-900 leading-none dark:text-slate-100">148</p>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] p-5 flex flex-col md:flex-row items-start md:items-center gap-4">
+            <div className="w-14 h-14 rounded-full bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center shrink-0">
+              <ListOrdered className="w-6 h-6 text-amber-500 dark:text-amber-400" />
+            </div>
+            <div className="flex flex-col">
+              <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-0.5">In Queue</p>
+              <p className="text-[28px] font-bold text-slate-900 leading-none dark:text-slate-100">7</p>
+            </div>
+          </div>
         </div>
 
-        <div className="xl:col-span-8 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] rounded-2xl bg-white border border-slate-100 overflow-hidden h-full flex flex-col">
-          <ReusableTable
-            title="Ratings"
-            rows={recentFeedback}
-            columns={feedbackColumns}
-            getRowKey={(row) => row.id}
-            compact={true}
-            tableMinWidth={0}
-            tableLayout="fixed"
-            noHorizontalScroll={true}
-            showTotalBadge={false}
-            search={{ show: false }}
-            pagination={{ show: true, rowsPerPage: 3 }}
-            headerIcon={<Star className="text-purple-500" size={20} />}
-            headerActions={
-              <Tooltip title="View all reviews" placement="top">
-                <button
-                  onClick={() => navigate("/portal/analytics")}
-                  className="text-xs font-bold text-blue-600 hover:text-blue-700 tracking-wide px-3 py-1.5 rounded-md hover:bg-blue-50 transition-colors border border-transparent hover:border-blue-100 uppercase"
-                >
-                  View All 
-                </button>
-              </Tooltip>
-            }
-          />
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-stretch mb-6">
+          <div className="xl:col-span-7 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] rounded-2xl bg-white border border-slate-100 overflow-hidden h-full flex flex-col">
+            <ReusableTable
+              title="Waiting Queue"
+              rows={liveQueue}
+              columns={liveQueueColumns}
+              getRowKey={(row) => row.id}
+              compact={true}
+              tableMinWidth={0}
+              tableLayout="fixed"
+              noHorizontalScroll={true}
+              showTotalBadge={false}
+              search={{ show: false }}
+              pagination={{ show: true, rowsPerPage: 3 }}
+              headerIcon={<Clock className="text-amber-500" size={20} />}
+              headerActions={
+                <Tooltip title="View waiting queue" placement="top">
+                  <button
+                    onClick={() => navigate("/portal/chats")}
+                    className="text-xs font-bold text-blue-600 hover:text-blue-700 tracking-wide px-3 py-1.5 rounded-md hover:bg-blue-50 transition-colors border border-transparent hover:border-blue-100 uppercase"
+                  >
+                    View all
+                  </button>
+                </Tooltip>
+              }
+            />
+          </div>
+
+          <div className="xl:col-span-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] rounded-2xl bg-white border border-slate-100 overflow-hidden h-full flex flex-col">
+            <ReusableTable
+              title="Currently Being Served"
+              rows={activeSessions}
+              columns={activeSessionsColumns}
+              getRowKey={(row) => row.id}
+              compact={true}
+              tableMinWidth={0}
+              tableLayout="fixed"
+              noHorizontalScroll={true}
+              showTotalBadge={false}
+              search={{ show: false }}
+              pagination={{ show: true, rowsPerPage: 3 }}
+              headerIcon={<Activity className="text-blue-500" size={20} />}
+              headerActions={
+                <Tooltip title="View all active sessions" placement="top">
+                  <button
+                    onClick={() => navigate("/portal/chat-sessions")}
+                    className="text-xs font-bold text-blue-600 hover:text-blue-700 tracking-wide px-3 py-1.5 rounded-md hover:bg-blue-50 transition-colors border border-transparent hover:border-blue-100 uppercase"
+                  >
+                    View All
+                  </button>
+                </Tooltip>
+              }
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-stretch">
+          <div className="xl:col-span-4 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] rounded-2xl bg-white border border-slate-100 overflow-hidden h-full flex flex-col">
+            <ReusableTable
+              title="Agent Status"
+              rows={agentStatuses}
+              columns={agentStatusColumns}
+              getRowKey={(row) => row.id}
+              compact={true}
+              tableMinWidth={0}
+              tableLayout="fixed"
+              noHorizontalScroll={true}
+              showTotalBadge={false}
+              search={{ show: false }}
+              pagination={{ show: true, rowsPerPage: 3 }}
+              headerIcon={<UserCog className="text-blue-500" size={20} />}
+              headerActions={
+                <Tooltip title="Manage agent status" placement="top">
+                  <button
+                    onClick={() => navigate("/portal/agents")}
+                    className="text-xs font-bold text-blue-600 hover:text-blue-700 tracking-wide px-3 py-1.5 rounded-md hover:bg-blue-50 transition-colors border border-transparent hover:border-blue-100 uppercase"
+                  >
+                    Manage
+                  </button>
+                </Tooltip>
+              }
+            />
+          </div>
+
+          <div className="xl:col-span-8 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] rounded-2xl bg-white border border-slate-100 overflow-hidden h-full flex flex-col">
+            <ReusableTable
+              title="Ratings"
+              rows={recentFeedback}
+              columns={feedbackColumns}
+              getRowKey={(row) => row.id}
+              compact={true}
+              tableMinWidth={0}
+              tableLayout="fixed"
+              noHorizontalScroll={true}
+              showTotalBadge={false}
+              search={{ show: false }}
+              pagination={{ show: true, rowsPerPage: 3 }}
+              headerIcon={<Star className="text-purple-500" size={20} />}
+              headerActions={
+                <Tooltip title="View all reviews" placement="top">
+                  <button
+                    onClick={() => navigate("/portal/analytics")}
+                    className="text-xs font-bold text-blue-600 hover:text-blue-700 tracking-wide px-3 py-1.5 rounded-md hover:bg-blue-50 transition-colors border border-transparent hover:border-blue-100 uppercase"
+                  >
+                    View All
+                  </button>
+                </Tooltip>
+              }
+            />
+          </div>
         </div>
       </div>
-    </div>
     </React.Fragment>
   );
 };
