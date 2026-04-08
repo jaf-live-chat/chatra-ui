@@ -58,6 +58,11 @@ const formatLimitValue = (value?: number) => {
   return String(parsed);
 };
 
+const formatBooleanLimitValue = (value?: boolean) => {
+  if (typeof value !== "boolean") return "-";
+  return value ? "Enabled" : "Disabled";
+};
+
 const TenantSubscriptionPlanDrawer = ({
   open,
   planId,
@@ -204,9 +209,9 @@ const TenantSubscriptionPlanDrawer = ({
                   </Box>
                 </Typography>
                 <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                  Max Websites:{" "}
+                  Advanced Analytics:{" "}
                   <Box component="span" sx={{ color: "text.primary", fontWeight: 600 }}>
-                    {formatLimitValue(plan.limits?.maxWebsites)}
+                    {formatBooleanLimitValue(plan.limits?.hasAdvancedAnalytics)}
                   </Box>
                 </Typography>
               </Stack>

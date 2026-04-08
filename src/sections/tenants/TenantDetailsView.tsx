@@ -588,7 +588,7 @@ const TenantDetailsView = () => {
                         <Stack direction="row" spacing={0.8} alignItems="center" sx={{ mt: 0.2 }}>
                           <CalendarDays size={16} color="#0ea5e9" />
                           <Typography variant="subtitle1" sx={{ color: "primary.main", fontWeight: 700 }}>
-                            {getDaysRemaining(tenant?.subscription.endDate || "")}
+                            {tenant?.subscription.endDate ? getDaysRemaining(tenant.subscription.endDate) : "No expiration date"}
                           </Typography>
                         </Stack>
                       </Box>

@@ -63,7 +63,7 @@ interface SubscriptionPlan {
   active: boolean;
   limits: {
     maxAgents: string;
-    maxWebsites: string;
+    hasAdvancedAnalytics: boolean;
   };
 }
 
@@ -123,14 +123,13 @@ const mapApiPlanToView = (plan: SubscriptionPlanApiModel): SubscriptionPlan => (
   active: Boolean(plan.isPosted),
   limits: {
     maxAgents: String(plan.limits?.maxAgents ?? 1),
-    maxWebsites: String(plan.limits?.maxWebsites ?? 1),
+    hasAdvancedAnalytics: Boolean(plan.limits?.hasAdvancedAnalytics),
   },
 });
 
 const toApiPayload = (plan: SubscriptionPlan) => {
   const { billingCycle, interval } = parsePeriod(plan.period);
   const parsedMaxAgents = Number.parseInt(plan.limits.maxAgents || "1", 10);
-  const parsedMaxWebsites = Number.parseInt(plan.limits.maxWebsites || "1", 10);
 
   return {
     name: plan.name.trim(),
@@ -140,7 +139,7 @@ const toApiPayload = (plan: SubscriptionPlan) => {
     interval,
     limits: {
       maxAgents: Number.isNaN(parsedMaxAgents) ? 1 : Math.max(1, parsedMaxAgents),
-      maxWebsites: Number.isNaN(parsedMaxWebsites) ? 1 : Math.max(1, parsedMaxWebsites),
+      hasAdvancedAnalytics: Boolean(plan.limits.hasAdvancedAnalytics),
     },
     features: plan.features.map((f) => f.text.trim()).filter(Boolean),
     isMostPopular: plan.popular,
@@ -159,7 +158,7 @@ const createDefaultPlanDraft = (): SubscriptionPlan => ({
   active: true,
   limits: {
     maxAgents: "1",
-    maxWebsites: "1",
+    hasAdvancedAnalytics: false,
   },
 });
 
@@ -610,6 +609,20 @@ const SubscriptionPlansView = () => {
                   <span className="text-gray-500 dark:text-slate-400 text-sm">{plan.period}</span>
                 </div>
 
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center rounded-md border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-700 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200">
+                    Max Agents: {plan.limits.maxAgents}
+                  </span>
+                  <span
+                    className={`inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-medium ${plan.limits.hasAdvancedAnalytics
+                      ? "border-cyan-300 bg-cyan-100 text-cyan-700 dark:border-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300"
+                      : "border-gray-200 bg-white text-gray-600 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-300"
+                      }`}
+                  >
+                    Advanced Analytics: {plan.limits.hasAdvancedAnalytics ? "Enabled" : "Disabled"}
+                  </span>
+                </div>
+
                 {isEditing && (
                   <div className="space-y-3 pt-4">
                     <div>
@@ -658,7 +671,7 @@ const SubscriptionPlansView = () => {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <div>
                         <label className="text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Max Agents</label>
                         <input
@@ -671,16 +684,19 @@ const SubscriptionPlansView = () => {
                         />
                       </div>
 
-                      <div>
-                        <label className="text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Max Websites</label>
-                        <input
-                          type="number"
-                          min={1}
-                          value={plan.limits.maxWebsites}
-                          onChange={(e) => updatePlan(plan.id, { limits: { ...plan.limits, maxWebsites: e.target.value } })}
-                          className={inputCls}
-                          placeholder="1"
-                        />
+                      <div className="flex items-center">
+                        <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-slate-400">
+                          <input
+                            type="checkbox"
+                            checked={plan.limits.hasAdvancedAnalytics}
+                            onChange={(e) =>
+                              updatePlan(plan.id, {
+                                limits: { ...plan.limits, hasAdvancedAnalytics: e.target.checked },
+                              })
+                            }
+                          />
+                          Advanced Analytics
+                        </label>
                       </div>
                     </div>
 
@@ -832,7 +848,7 @@ const SubscriptionPlansView = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
                   <label className="text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Max Agents</label>
                   <input
@@ -850,21 +866,23 @@ const SubscriptionPlansView = () => {
                   />
                 </div>
 
-                <div>
-                  <label className="text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Max Websites</label>
-                  <input
-                    type="number"
-                    min={1}
-                    value={createPlanDraft.limits.maxWebsites}
-                    onChange={(e) =>
-                      setCreatePlanDraft((prev) => ({
-                        ...prev,
-                        limits: { ...prev.limits, maxWebsites: e.target.value },
-                      }))
-                    }
-                    className={inputCls}
-                    placeholder="1"
-                  />
+                <div className="flex items-center">
+                  <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-slate-400">
+                    <input
+                      type="checkbox"
+                      checked={createPlanDraft.limits.hasAdvancedAnalytics}
+                      onChange={(e) =>
+                        setCreatePlanDraft((prev) => ({
+                          ...prev,
+                          limits: {
+                            ...prev.limits,
+                            hasAdvancedAnalytics: e.target.checked,
+                          },
+                        }))
+                      }
+                    />
+                    Advanced Analytics
+                  </label>
                 </div>
               </div>
 

@@ -62,7 +62,18 @@ const isPaidPlan = (price?: number) => Number(price || 0) > 0;
 
 const limitLabels: Record<string, string> = {
   maxAgents: "Max agents",
-  maxWebsites: "Max websites",
+  hasAdvancedAnalytics: "Advanced analytics",
+};
+
+const toLimitValueLabel = (limitKey: string, value: unknown) => {
+  if (limitKey === "hasAdvancedAnalytics") {
+    return value === true ? "Enabled" : "Disabled";
+  }
+
+  const parsed = Number(value);
+  if (Number.isNaN(parsed)) return "-";
+  if (parsed >= 999999) return "Unlimited";
+  return String(parsed);
 };
 
 const toLimitLabel = (limitKey: string) => {
@@ -101,7 +112,7 @@ const TenantPlanChangeDrawer = ({ open, tenant, onClose }: TenantPlanChangeDrawe
     () =>
       Object.entries(selectedPlan?.limits || {})
         .map(([key, value]) => ({ key, value }))
-        .filter((item) => Number.isFinite(Number(item.value))),
+        .filter((item) => typeof item.value === "number" || typeof item.value === "boolean"),
     [selectedPlan?.limits],
   );
 
@@ -324,7 +335,7 @@ const TenantPlanChangeDrawer = ({ open, tenant, onClose }: TenantPlanChangeDrawe
                   <Stack spacing={0.9}>
                     {selectedPlanLimitList.map((item) => (
                       <Typography key={item.key} variant="body2" sx={{ color: "text.primary" }}>
-                        • {toLimitLabel(item.key)}: {Number(item.value)}
+                        • {toLimitLabel(item.key)}: {toLimitValueLabel(item.key, item.value)}
                       </Typography>
                     ))}
                   </Stack>

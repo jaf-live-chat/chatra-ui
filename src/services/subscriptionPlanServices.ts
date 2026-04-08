@@ -12,7 +12,7 @@ export interface SubscriptionPlanApiModel {
   interval: number;
   limits?: {
     maxAgents?: number;
-    maxWebsites?: number;
+    hasAdvancedAnalytics?: boolean;
   };
   features: string[];
   isMostPopular: boolean;
@@ -38,7 +38,7 @@ type SubscriptionPlanPayload = {
   interval: number;
   limits: {
     maxAgents: number;
-    maxWebsites: number;
+    hasAdvancedAnalytics: boolean;
   };
   features: string[];
   isMostPopular: boolean;
