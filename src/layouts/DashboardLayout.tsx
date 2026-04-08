@@ -207,7 +207,7 @@ function DashboardLayoutInner() {
   const userProfilePicture = user?.profilePicture || "";
   const [profileImageFailed, setProfileImageFailed] = useState(false);
   const companyName = tenant?.companyName || "-";
-  const userRole = (user?.role || "-") as UserRole | "-";
+  const userRole = user?.role || "User" as UserRole;
   const subscription = tenant?.subscription ?? null;
   const planName = subscription?.planName || "No Plan";
   const currentAgentStatus = user?.status || USER_STATUS.OFFLINE;
@@ -639,7 +639,7 @@ function DashboardLayoutInner() {
                   <p className="text-sm font-semibold text-gray-900 dark:text-slate-100 leading-none">
                     {userName}
                   </p>
-                  <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">My Profile</p>
+                  <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">{toTitleCase('MASTER_ADMIN')}</p>
                 </div>
                 <ChevronDown className="w-4 h-4 text-gray-400 dark:text-slate-500 hidden lg:block" />
               </div>
@@ -657,7 +657,7 @@ function DashboardLayoutInner() {
                           fontSize: "0.875rem",
                           fontWeight: 700,
                         }}
-                        src={user?.phoneNumber || ''}
+                        src={user?.profilePicture || ''}
                       >
                         {userInitial}
                       </Avatar>

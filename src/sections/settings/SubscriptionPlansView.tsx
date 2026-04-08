@@ -43,6 +43,7 @@ import {
   type SubscriptionPlanApiModel,
 } from "../../services/subscriptionPlanServices";
 import TitleTag from "../../components/TitleTag";
+import { toast } from "sonner";
 
 type BillingCycle = "daily" | "weekly" | "monthly" | "yearly";
 
@@ -64,11 +65,6 @@ interface SubscriptionPlan {
     maxAgents: string;
     maxWebsites: string;
   };
-}
-
-interface ToastState {
-  type: "success" | "error";
-  message: string;
 }
 
 interface ValidationResult {
@@ -199,7 +195,6 @@ const SubscriptionPlansView = () => {
   const [saved, setSaved] = useState(false);
   const [savingPlanId, setSavingPlanId] = useState<string | null>(null);
   const [newFeatureTextByPlan, setNewFeatureTextByPlan] = useState<Record<string, string>>({});
-  const [toast, setToast] = useState<ToastState | null>(null);
   const [isCreateDrawerOpen, setIsCreateDrawerOpen] = useState(false);
   const [isCreatingPlan, setIsCreatingPlan] = useState(false);
   const [createPlanDraft, setCreatePlanDraft] = useState<SubscriptionPlan>(createDefaultPlanDraft);
@@ -217,11 +212,6 @@ const SubscriptionPlansView = () => {
   const showSaved = () => {
     setSaved(true);
     setTimeout(() => setSaved(false), 1500);
-  };
-
-  const showToast = (type: ToastState["type"], message: string) => {
-    setToast({ type, message });
-    setTimeout(() => setToast(null), 2500);
   };
 
   const openCreateDrawer = () => {
@@ -319,7 +309,7 @@ const SubscriptionPlansView = () => {
     const validation = validatePlanDraft(plan);
 
     if (!validation.valid) {
-      showToast("error", validation.message || "Please check plan details.");
+      toast.error(validation.message || "Please check plan details.");
       return;
     }
 
@@ -342,11 +332,11 @@ const SubscriptionPlansView = () => {
       });
       setEditingPlan(null);
       showSaved();
-      showToast("success", `"${plan.name}" saved successfully.`);
+      toast.success(`"${plan.name}" saved successfully.`);
     } catch (error) {
       console.error("Failed to save subscription plan:", error);
       setPlans(currentPlans);
-      showToast("error", "Failed to save subscription plan.");
+      toast.error("Failed to save subscription plan.");
     } finally {
       setSavingPlanId(null);
     }
@@ -358,7 +348,7 @@ const SubscriptionPlansView = () => {
     const invalidPlan = plans.find((plan) => !validatePlanDraft(plan).valid);
     if (invalidPlan) {
       const invalidMessage = validatePlanDraft(invalidPlan).message || "Please check plan details.";
-      showToast("error", `${invalidPlan.name}: ${invalidMessage}`);
+      toast.error(`${invalidPlan.name}: ${invalidMessage}`);
       return;
     }
 
@@ -377,11 +367,11 @@ const SubscriptionPlansView = () => {
       setEditSnapshots({});
       setEditingPlan(null);
       showSaved();
-      showToast("success", "All plans saved successfully.");
+      toast.success("All plans saved successfully.");
     } catch (error) {
       console.error("Failed to save all plans:", error);
       setPlans(currentPlans);
-      showToast("error", "Failed to save all plans.");
+      toast.error("Failed to save all plans.");
     } finally {
       setSavingPlanId(null);
     }
@@ -398,17 +388,17 @@ const SubscriptionPlansView = () => {
       setPlans((prev) => prev.filter((p) => p.id !== planId));
 
       if (planId.startsWith("tmp-plan-")) {
-        showToast("success", `"${planName}" removed.`);
+        toast.success(`"${planName}" removed.`);
         return;
       }
 
       await deleteSubscriptionPlanById(planId);
       await mutate();
-      showToast("success", `"${planName}" deleted successfully.`);
+      toast.success(`"${planName}" deleted successfully.`);
     } catch (error) {
       console.error("Failed to delete plan:", error);
       setPlans(currentPlans);
-      showToast("error", "Failed to delete plan.");
+      toast.error("Failed to delete plan.");
     }
   };
 
@@ -444,7 +434,7 @@ const SubscriptionPlansView = () => {
     const validation = validatePlanDraft(createPlanDraft);
     if (!validation.valid) {
       setCreateValidationAlert(validation.message || "Please review plan details.");
-      showToast("error", validation.message || "Please review plan details.");
+      toast.error(validation.message || "Please review plan details.");
       return;
     }
 
@@ -455,10 +445,10 @@ const SubscriptionPlansView = () => {
       setIsCreateDrawerOpen(false);
       setCreateValidationAlert(null);
       showSaved();
-      showToast("success", `"${createPlanDraft.name}" created successfully.`);
+      toast.success(`"${createPlanDraft.name}" created successfully.`);
     } catch (error) {
       console.error("Failed to create plan:", error);
-      showToast("error", "Failed to create subscription plan.");
+      toast.error("Failed to create subscription plan.");
     } finally {
       setIsCreatingPlan(false);
     }
@@ -509,30 +499,6 @@ const SubscriptionPlansView = () => {
 
   return (
     <div className={`flex flex-col gap-6${isDark ? " dark" : ""}`}>
-      {toast && (
-        <div className="fixed bottom-5 right-5 z-50 max-w-sm">
-          <div
-            className={`px-4 py-3 rounded-lg border text-sm font-medium shadow-md ${toast.type === "success"
-              ? "bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-900/40 dark:border-emerald-700 dark:text-emerald-300"
-              : "bg-red-50 border-red-200 text-red-700 dark:bg-red-900/40 dark:border-red-700 dark:text-red-300"
-              }`}
-          >
-            <div className="flex items-start gap-2">
-              {toast.type === "success" ? <Check className="w-4 h-4 mt-0.5" /> : <AlertCircle className="w-4 h-4 mt-0.5" />}
-              <span>{toast.message}</span>
-              <button
-                type="button"
-                onClick={() => setToast(null)}
-                className="ml-2 opacity-70 hover:opacity-100 transition-opacity"
-                aria-label="Dismiss notification"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-8">
         <TitleTag
           title="Subscription Plans"
@@ -994,9 +960,9 @@ const SubscriptionPlansView = () => {
           if (!open) setPlanPendingDelete(null);
         }}
       >
-        <AlertDialogContent>
+        <AlertDialogContent >
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete subscription plan?</AlertDialogTitle>
+            <AlertDialogTitle className="text-slate-900 dark:text-white">Delete subscription plan?</AlertDialogTitle>
             <AlertDialogDescription>
               {planPendingDelete
                 ? `This will permanently delete "${planPendingDelete.name}" and cannot be undone.`
@@ -1027,7 +993,7 @@ const SubscriptionPlansView = () => {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>
+            <AlertDialogTitle className="text-slate-900 dark:text-white">
               {mostPopularPending?.nextValue ? "Set as Most Popular?" : "Remove Most Popular?"}
             </AlertDialogTitle>
             <AlertDialogDescription>
@@ -1042,6 +1008,11 @@ const SubscriptionPlansView = () => {
               onClick={() => {
                 if (!mostPopularPending) return;
                 toggleMostPopular(mostPopularPending.planId, mostPopularPending.nextValue);
+                toast.success(
+                  mostPopularPending.nextValue
+                    ? `"${mostPopularPending.planName}" set as Most Popular.`
+                    : `"${mostPopularPending.planName}" removed from Most Popular.`
+                );
                 setMostPopularPending(null);
               }}
             >

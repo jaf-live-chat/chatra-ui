@@ -3,10 +3,7 @@ import {
   Plus,
   Trash2,
   GripVertical,
-  ChevronDown,
-  ChevronUp,
   Save,
-  RotateCcw,
   HelpCircle,
   Eye,
   PencilLine,
@@ -41,39 +38,19 @@ type FaqItem = {
   order: number;
 };
 
-const DEFAULT_FAQS: Array<{ q: string; a: string }> = [
-  {
-    q: "What is JAF Chatra and how does it work?",
-    a: "JAF Chatra is a real-time live chat platform that lets you connect with your website visitors instantly. Simply add our lightweight widget to your site, and your support agents can start chatting with customers from the admin dashboard.",
-  },
-  {
-    q: "How do I install the chat widget on my website?",
-    a: "You can install JAF Chatra by copying a small JavaScript snippet into your website's HTML, or by using one of our integrations for WordPress, Shopify, Wix, and other popular platforms.",
-  },
-  {
-    q: "Can I customize the appearance of the chat widget?",
-    a: "Yes! You can fully customize the widget's colors, position, welcome messages, and branding from the Widget Settings page in your dashboard.",
-  },
-  {
-    q: "What's the difference between the Free, Pro, and Enterprise plans?",
-    a: "The Free plan includes 1 agent and basic chat features. Pro adds unlimited agents, analytics, chat history, and priority support. Enterprise includes everything in Pro plus SSO, custom integrations, and SLA guarantees.",
-  },
-  {
-    q: "Is my data secure with JAF Chatra?",
-    a: "Absolutely. We use end-to-end encryption for all chat communications, and our infrastructure is SOC 2 Type II compliant.",
-  },
-  {
-    q: "Do you offer a free trial?",
-    a: "Yes! We offer a 14-day free trial of the Pro plan with no credit card required. You can explore all premium features before deciding on a plan.",
-  },
-];
-
 const mapFaq = (faq: FaqModel): FaqItem => ({
   id: faq._id,
   q: faq.question,
   a: faq.answer,
   order: faq.order,
 });
+
+const DRAFT_FAQ_PREFIX = "draft-";
+
+const isDraftFaq = (id: string) => id.startsWith(DRAFT_FAQ_PREFIX);
+
+const normalizeFaqOrders = (list: FaqItem[]) =>
+  list.map((faq, index) => ({ ...faq, order: index }));
 
 const buildPreviewOrder = (
   list: FaqItem[],
@@ -145,7 +122,6 @@ const getErrorMessage = (error: unknown, fallbackMessage: string) => {
 function FaqRow({
   faq,
   index,
-  total,
   expanded,
   isPersisting,
   isDragging,
@@ -154,8 +130,6 @@ function FaqRow({
   onUpdate,
   onPersist,
   onDelete,
-  onMoveUp,
-  onMoveDown,
   onDragStart,
   onDragEnd,
 }: FaqRowProps) {
@@ -166,11 +140,10 @@ function FaqRow({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -8, scale: 0.97 }}
       transition={{ duration: 0.22, ease: "easeOut" }}
-      className={`bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl overflow-hidden shadow-sm transition-all ${
-        isDragging
-          ? "opacity-80 border-transparent dark:border-transparent ring-0 shadow-md scale-[1.005]"
-          : "opacity-100"
-      }`}
+      className={`bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl overflow-hidden shadow-sm transition-all ${isDragging
+        ? "opacity-80 border-transparent dark:border-transparent ring-0 shadow-md scale-[1.005]"
+        : "opacity-100"
+        }`}
     >
       <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 dark:bg-slate-700/50 border-b border-gray-100 dark:border-slate-700">
         <button
@@ -200,8 +173,8 @@ function FaqRow({
         </button>
 
         <div className="flex items-center gap-1 shrink-0">
-      
-       
+
+
           <button
             onClick={() => onPersist(faq.id)}
             title="Save"
@@ -242,8 +215,8 @@ function FaqRow({
                 </label>
                 <input
                   type="text"
+                  value={faq.q}
                   onChange={(e) => onUpdate({ ...faq, q: e.target.value })}
-                  onBlur={() => onPersist(faq.id)}
                   placeholder="Enter the question..."
                   className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition"
                 />
@@ -254,8 +227,8 @@ function FaqRow({
                   Answer
                 </label>
                 <textarea
+                  value={faq.a}
                   onChange={(e) => onUpdate({ ...faq, a: e.target.value })}
-                  onBlur={() => onPersist(faq.id)}
                   placeholder="Enter the answer..."
                   rows={3}
                   className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition resize-y"
@@ -297,9 +270,8 @@ function DropZone({ isActive, onDragEnter, onDrop }: DropZoneProps) {
         className="absolute left-0 right-0 -top-3 h-6 cursor-pointer"
       />
       <div
-        className={`absolute left-0 right-0 -top-[6px] h-[2px] rounded-full transition-all ${
-          isActive ? "bg-cyan-400/90 dark:bg-cyan-500/90" : "bg-transparent"
-        }`}
+        className={`absolute left-0 right-0 -top-[6px] h-[2px] rounded-full transition-all ${isActive ? "bg-cyan-400/90 dark:bg-cyan-500/90" : "bg-transparent"
+          }`}
       />
     </div>
   );
@@ -393,13 +365,31 @@ const FaqEditorView = () => {
 
       try {
         setPersistingById((prev) => ({ ...prev, [id]: true }));
-        await updateFaqById(id, {
-          question,
-          answer,
-          order: targetFaq.order,
-        });
+        if (isDraftFaq(id)) {
+          const response = await createFaq({
+            question,
+            answer,
+            order: targetFaq.order,
+          });
+
+          if (!response.faq) {
+            throw new Error("Failed to create FAQ.");
+          }
+
+          const createdFaq = mapFaq(response.faq);
+
+          setExpandedFaqId(createdFaq.id);
+          toast.success("FAQ created successfully.");
+        } else {
+          await updateFaqById(id, {
+            question,
+            answer,
+            order: targetFaq.order,
+          });
+          toast.success("FAQ updated successfully.");
+        }
+
         showSavedState();
-        toast.success("FAQ updated successfully.");
         await mutate();
       } catch (error) {
         const message = getErrorMessage(error, "Failed to save FAQ.");
@@ -414,12 +404,18 @@ const FaqEditorView = () => {
 
   const persistOrder = useCallback(
     async (nextFaqs: FaqItem[]) => {
-      const reordered = nextFaqs.map((faq, index) => ({ ...faq, order: index }));
+      const reordered = normalizeFaqOrders(nextFaqs);
       setFaqs(reordered);
+
+      const persistedIds = reordered.filter((faq) => !isDraftFaq(faq.id)).map((faq) => faq.id);
+
+      if (persistedIds.length === 0) {
+        return;
+      }
 
       try {
         setIsBusy(true);
-        await reorderFaqs({ ids: reordered.map((faq) => faq.id) });
+        await reorderFaqs({ ids: persistedIds });
         showSavedState();
         toast.success("FAQ order updated.");
         await mutate();
@@ -435,38 +431,27 @@ const FaqEditorView = () => {
   );
 
   const addFaq = async () => {
-    try {
-      setIsBusy(true);
-      const response = await createFaq({
-        question: "New question",
-        answer: "Type the answer here.",
-        order: 0,
-      });
+    const draftId = `${DRAFT_FAQ_PREFIX}${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
-      if (response.faq) {
-        const createdFaq = mapFaq(response.faq as FaqModel);
-        const reorderedIds = [
-          createdFaq.id,
-          ...sortedFaqs.map((faq) => faq.id),
-        ];
-
-        await reorderFaqs({ ids: reorderedIds });
-        setExpandedFaqId(createdFaq.id);
-      }
-
-      showSavedState();
-      toast.success("FAQ created successfully.");
-      await mutate();
-    } catch (error) {
-      const message = getErrorMessage(error, "Failed to create FAQ.");
-      toast.error(message);
-      console.error("Failed to create FAQ:", error);
-    } finally {
-      setIsBusy(false);
-    }
+    setFaqs((prev) => {
+      const current = [...prev].sort((a, b) => a.order - b.order);
+      return normalizeFaqOrders([
+        { id: draftId, q: "", a: "", order: 0 },
+        ...current,
+      ]);
+    });
+    setExpandedFaqId(draftId);
+    setActiveView("editor");
   };
 
   const deleteFaq = async (id: string) => {
+    if (isDraftFaq(id)) {
+      setFaqs((prev) => normalizeFaqOrders(prev.filter((faq) => faq.id !== id)));
+      setExpandedFaqId((prev) => (prev === id ? null : prev));
+      toast.success("Draft FAQ removed.");
+      return;
+    }
+
     try {
       setIsBusy(true);
       await deleteFaqById(id);
@@ -499,20 +484,15 @@ const FaqEditorView = () => {
   };
 
   const resetToDefaults = async () => {
+    const persistedFaqs = faqs.filter((faq) => !isDraftFaq(faq.id));
+
     try {
       setIsBusy(true);
 
-      await Promise.all(faqs.map((faq) => deleteFaqById(faq.id)));
+      await Promise.all(persistedFaqs.map((faq) => deleteFaqById(faq.id)));
 
-      await Promise.all(
-        DEFAULT_FAQS.map((faq, index) =>
-          createFaq({
-            question: faq.q,
-            answer: faq.a,
-            order: index,
-          })
-        )
-      );
+      setFaqs([]);
+      setExpandedFaqId(null);
 
       showSavedState();
       toast.success("FAQs reset to defaults.");
@@ -648,37 +628,25 @@ const FaqEditorView = () => {
             <div className="flex items-center bg-gray-100 dark:bg-slate-700 rounded-lg p-1">
               <button
                 onClick={() => setActiveView("editor")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                  activeView === "editor"
-                    ? "bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 shadow-sm"
-                    : "text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300"
-                }`}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${activeView === "editor"
+                  ? "bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 shadow-sm"
+                  : "text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300"
+                  }`}
               >
                 <PencilLine className="w-3.5 h-3.5" />
                 Editor
               </button>
               <button
                 onClick={() => setActiveView("preview")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                  activeView === "preview"
-                    ? "bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 shadow-sm"
-                    : "text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300"
-                }`}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${activeView === "preview"
+                  ? "bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 shadow-sm"
+                  : "text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300"
+                  }`}
               >
                 <Eye className="w-3.5 h-3.5" />
                 Preview
               </button>
             </div>
-
-            <button
-              onClick={requestResetConfirmation}
-              title="Reset to defaults"
-              disabled={isBusy}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-600 transition-colors disabled:opacity-60"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              Reset
-            </button>
 
             <button
               onClick={addFaq}
