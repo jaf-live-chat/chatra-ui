@@ -12,12 +12,13 @@ import { Avatar, Button, Chip, Stack, Tooltip, Typography } from "@mui/material"
 import { DarkModeProvider, useDarkMode } from "../providers/DarkModeContext";
 import { APP_LOGO, USER_ROLES, USER_STATUS } from "../constants/constants";
 import useAuth from "../hooks/useAuth";
+import useGetRole from "../hooks/useGetRole";
 import useIsMobile from "../hooks/useMobile";
 import Agents from "../services/agentServices";
 import { MODULE_GROUPS } from "../constants/modules";
 import filterModulesByRole from "../utils/filterModules";
 import { formatDate } from "../utils/dateFormatter";
-import type { AuthUser, UserRole } from "../models/AgentModel";
+import type { AuthUser } from "../models/AgentModel";
 import toTitleCase from "../utils/toTitleCase";
 import getAvatarColor from "../utils/getAvatarColor";
 import AutoLogoutModal from "../components/common/AutoLogoutModal";
@@ -57,6 +58,7 @@ function DashboardLayoutInner() {
 
   const { isDark, toggleDark } = useDarkMode();
   const { user, tenant, logout, updateUser } = useAuth();
+  const { isMasterAdmin } = useGetRole();
 
   const clearInactivityTimeout = useCallback(() => {
     if (inactivityTimeoutRef.current) {
@@ -207,8 +209,7 @@ function DashboardLayoutInner() {
   const userProfilePicture = user?.profilePicture || "";
   const [profileImageFailed, setProfileImageFailed] = useState(false);
   const companyName = tenant?.companyName || "-";
-  const userRole = user?.role || "User" as UserRole;
-  const isMasterAdmin = userRole === USER_ROLES.MASTER_ADMIN.value;
+  const userRole = user?.role || USER_ROLES.VISITOR.value;
   const subscription = tenant?.subscription ?? null;
   const planName = subscription?.planName || "No Plan";
   const currentAgentStatus = user?.status || USER_STATUS.OFFLINE;

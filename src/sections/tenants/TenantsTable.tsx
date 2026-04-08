@@ -23,8 +23,8 @@ import getAvatarColor from "../../utils/getAvatarColor";
 import TitleTag from "../../components/TitleTag";
 import type { Theme } from "@mui/material/styles";
 import { toast } from "sonner";
-import { USER_ROLES } from "../../constants/constants";
 import useAuth from "../../hooks/useAuth";
+import useGetRole from "../../hooks/useGetRole";
 
 const EMPTY_LABEL = "-";
 const INTERNAL_OWNER_PLAN_NAME = "Free Internal Plan";
@@ -92,7 +92,8 @@ const getStatusChipStyles = (status: TenantStatus) => {
 
 const TenantsTable = () => {
   const navigate = useNavigate();
-  const { user, tenant: loggedInTenant } = useAuth();
+  const { tenant: loggedInTenant } = useAuth();
+  const { isMasterAdmin } = useGetRole();
   const [currentPage, setCurrentPage] = useState(1);
   const ROWS_PER_PAGE = 5;
 
@@ -100,7 +101,6 @@ const TenantsTable = () => {
   const [processingTenantId, setProcessingTenantId] = useState<string>("");
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>(defaultDialogState);
 
-  const isMasterAdmin = user?.role === USER_ROLES.MASTER_ADMIN.value;
   const ownerTenantId = loggedInTenant?.id || "";
   const visibleTenants = tenants.filter((tenant) => {
     if (!isMasterAdmin) return true;

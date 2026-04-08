@@ -15,9 +15,10 @@ import {
 import { motion } from "motion/react";
 import axios from "axios";
 import useAuth from "../../hooks/useAuth";
+import useGetRole from "../../hooks/useGetRole";
 import Agents from "../../services/agentServices";
 import AvatarUpload from "../../components/uploads/AvatarUpload";
-import { API_BASE_URL, USER_ROLES } from "../../constants/constants";
+import { API_BASE_URL } from "../../constants/constants";
 import PageTitle from "../../components/common/PageTitle";
 import TitleTag from "../../components/TitleTag"
 import { Box } from "@mui/material";
@@ -117,6 +118,7 @@ const toPhilippineE164 = (value: string) => {
 
 const AccountSettingsView = () => {
   const { user, tenant, accessToken, updateUser } = useAuth();
+  const { isAdmin, isMasterAdmin } = useGetRole();
   const [activeSection, setActiveSection] = useState("profile");
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -345,10 +347,7 @@ const AccountSettingsView = () => {
     };
   }, []);
 
-  const canViewTenantApiKey = [
-    USER_ROLES.MASTER_ADMIN.value,
-    USER_ROLES.ADMIN.value,
-  ].includes(user?.role || "");
+  const canViewTenantApiKey = isMasterAdmin || isAdmin;
 
   // Reset to profile tab if user loses access to integration
   useEffect(() => {

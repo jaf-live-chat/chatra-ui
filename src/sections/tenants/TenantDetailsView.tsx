@@ -14,11 +14,10 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router";
-import { USER_ROLES } from "../../constants/constants";
 import type { TenantStatus } from "../../models/TenantModel";
 import { useGetSingleTenant } from "../../services/tenantService";
 import tenantService from "../../services/tenantService";
-import useAuth from "../../hooks/useAuth";
+import useGetRole from "../../hooks/useGetRole";
 import { formatDate } from "../../utils/dateFormatter";
 import idLabel from "../../utils/idUtils";
 import TitleTag from "../../components/TitleTag";
@@ -90,11 +89,8 @@ const safeIdLabel = (rawId: string | undefined, prefix: Parameters<typeof idLabe
 const TenantDetailsView = () => {
   const navigate = useNavigate();
   const { id } = useParams();
-  const { user } = useAuth();
+  const { isAdmin, isMasterAdmin } = useGetRole();
   const { tenant, isLoading, error, mutate } = useGetSingleTenant(id);
-
-  const isMasterAdmin = user?.role === USER_ROLES.MASTER_ADMIN.value;
-  const isAdmin = user?.role === USER_ROLES.ADMIN.value;
   const [isDeactivateDialogOpen, setIsDeactivateDialogOpen] = useState(false);
   const [isSubscriptionDrawerOpen, setIsSubscriptionDrawerOpen] = useState(false);
   const [isManageSubscriptionDrawerOpen, setIsManageSubscriptionDrawerOpen] = useState(false);
