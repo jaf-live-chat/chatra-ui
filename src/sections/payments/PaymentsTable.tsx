@@ -89,13 +89,13 @@ const PaymentsTable = () => {
     textTransform: "none" as const,
     borderRadius: 9999,
     px: 1.6,
-    borderColor: "grey.300",
-    color: "grey.700",
+    borderColor: "divider",
+    color: "text.primary",
     fontWeight: 600,
     height: 32,
     minWidth: 72,
     backgroundColor: "background.paper",
-    "&:hover": { bgcolor: "grey.50", borderColor: "grey.400" },
+    "&:hover": { bgcolor: "action.hover", borderColor: "divider" },
   };
 
   const selectedStatusStyle = selectedPayment ? statusStyles[selectedPayment.status] : null;
@@ -121,7 +121,7 @@ const PaymentsTable = () => {
               {payment.tenantName.slice(0, 2).toUpperCase()}
             </Avatar>
             <Box>
-              <Box component="p" sx={{ m: 0, fontSize: "0.875rem", fontWeight: 600, color: "grey.900", lineHeight: 1.2 }}>
+              <Box component="p" sx={{ m: 0, fontSize: "0.875rem", fontWeight: 600, color: "text.primary", lineHeight: 1.2 }}>
                 {payment.tenantName}
               </Box>
               <Box component="p" sx={{ m: 0, color: "text.secondary", fontSize: "0.7rem" }}>
@@ -232,7 +232,7 @@ const PaymentsTable = () => {
         <Box sx={{ p: 3, pb: 2.5 }}>
           <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2.2 }}>
             <FileText size={18} color="#0284c7" />
-            <Box component="h2" sx={{ m: 0, fontWeight: 800, color: "#0f172a", fontSize: "1.05rem", lineHeight: 1.2 }}>
+            <Box component="h2" sx={{ m: 0, fontWeight: 800, color: "text.primary", fontSize: "1.05rem", lineHeight: 1.2 }}>
               Transaction Details
             </Box>
           </Stack>
@@ -253,10 +253,10 @@ const PaymentsTable = () => {
               {(selectedPayment?.tenantName || "-").slice(0, 2).toUpperCase()}
             </Avatar>
             <Box>
-              <Box component="p" sx={{ m: 0, fontSize: "0.95rem", fontWeight: 800, color: "#0f172a", lineHeight: 1.2 }}>
+              <Box component="p" sx={{ m: 0, fontSize: "0.95rem", fontWeight: 800, color: "text.primary", lineHeight: 1.2 }}>
                 {selectedPayment?.tenantName || "-"}
               </Box>
-              <Box component="p" sx={{ m: 0, fontSize: "0.75rem", color: "#64748b", fontWeight: 500 }}>
+              <Box component="p" sx={{ m: 0, fontSize: "0.75rem", color: "text.secondary", fontWeight: 500 }}>
                 ID: {selectedPayment ? idLabel(selectedPayment.id, "PAYMENT") : "-"}
               </Box>
             </Box>
@@ -265,17 +265,17 @@ const PaymentsTable = () => {
           <Box
             sx={{
               borderRadius: 2,
-              backgroundColor: "#f8fafc",
+              backgroundColor: "background.default",
               border: "1px solid",
-              borderColor: "#e2e8f0",
+              borderColor: "divider",
               p: 2.4,
               mb: 3,
             }}
           >
-            <Box component="p" sx={{ m: 0, fontSize: "0.78rem", color: "#64748b", fontWeight: 700, mb: 0.9 }}>
+            <Box component="p" sx={{ m: 0, fontSize: "0.78rem", color: "text.secondary", fontWeight: 700, mb: 0.9 }}>
               Total Amount
             </Box>
-            <Box component="p" sx={{ m: 0, color: "#0f172a", fontSize: "1.55rem", fontWeight: 900, lineHeight: 1.05 }}>
+            <Box component="p" sx={{ m: 0, color: "text.primary", fontSize: "1.55rem", fontWeight: 900, lineHeight: 1.05 }}>
               {formatAmount(selectedPayment?.amount)}
             </Box>
 
@@ -285,31 +285,32 @@ const PaymentsTable = () => {
                 size="small"
                 sx={{
                   mt: 1.5,
-                  bgcolor: "#ecfdf3",
-                  color: "#047857",
+                  bgcolor: selectedStatusStyle.bg,
+                  color: selectedStatusStyle.color,
                   fontWeight: 700,
-                  border: "1px solid #a7f3d0",
+                  border: "1px solid",
+                  borderColor: "divider",
                   borderRadius: "8px",
                 }}
               />
             )}
           </Box>
 
-          <Box component="p" sx={{ m: 0, color: "#94a3b8", fontSize: "0.78rem", fontWeight: 800, mb: 1.1, letterSpacing: "0.02em" }}>
+          <Box component="p" sx={{ m: 0, color: "text.secondary", fontSize: "0.78rem", fontWeight: 800, mb: 1.1, letterSpacing: "0.02em" }}>
             PAYMENT INFORMATION
           </Box>
 
           <Stack spacing={0} sx={{ mb: 2.4 }}>
             <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ py: 1.15 }}>
-              <Box component="p" sx={{ m: 0, fontSize: "0.85rem", color: "#64748b" }}>
+              <Box component="p" sx={{ m: 0, fontSize: "0.85rem", color: "text.secondary" }}>
                 Date
               </Box>
-              <Box component="p" sx={{ m: 0, fontSize: "0.85rem", color: "#0f172a", fontWeight: 700 }}>
+              <Box component="p" sx={{ m: 0, fontSize: "0.85rem", color: "text.primary", fontWeight: 700 }}>
                 {selectedPayment ? formatTransactionDate(selectedPayment.transactionDate) : "-"}
               </Box>
             </Stack>
             <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ py: 1.15 }}>
-              <Box component="p" sx={{ m: 0, fontSize: "0.85rem", color: "#64748b" }}>
+              <Box component="p" sx={{ m: 0, fontSize: "0.85rem", color: "text.secondary" }}>
                 Reference Number
               </Box>
               <Box
@@ -317,7 +318,7 @@ const PaymentsTable = () => {
                 sx={{
                   m: 0,
                   fontSize: "0.85rem",
-                  color: "#0f172a",
+                  color: "text.primary",
                   fontWeight: 700,
                   textAlign: "right",
                   maxWidth: "72%",
@@ -329,24 +330,24 @@ const PaymentsTable = () => {
             </Stack>
           </Stack>
 
-          <Box component="p" sx={{ m: 0, color: "#94a3b8", fontSize: "0.78rem", fontWeight: 800, mb: 1.1, letterSpacing: "0.02em" }}>
+          <Box component="p" sx={{ m: 0, color: "text.secondary", fontSize: "0.78rem", fontWeight: 800, mb: 1.1, letterSpacing: "0.02em" }}>
             SUBSCRIPTION DETAILS
           </Box>
 
           <Stack spacing={0}>
             <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ py: 1.15 }}>
-              <Box component="p" sx={{ m: 0, fontSize: "0.85rem", color: "#64748b" }}>
+              <Box component="p" sx={{ m: 0, fontSize: "0.85rem", color: "text.secondary" }}>
                 Plan
               </Box>
-              <Box component="p" sx={{ m: 0, fontSize: "0.85rem", color: "#0f172a", fontWeight: 700 }}>
+              <Box component="p" sx={{ m: 0, fontSize: "0.85rem", color: "text.primary", fontWeight: 700 }}>
                 {selectedPayment?.subscriptionType || "-"}
               </Box>
             </Stack>
             <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ py: 1.15 }}>
-              <Box component="p" sx={{ m: 0, fontSize: "0.85rem", color: "#64748b" }}>
+              <Box component="p" sx={{ m: 0, fontSize: "0.85rem", color: "text.secondary" }}>
                 Billing Period
               </Box>
-              <Box component="p" sx={{ m: 0, fontSize: "0.85rem", color: "#0f172a", fontWeight: 700 }}>
+              <Box component="p" sx={{ m: 0, fontSize: "0.85rem", color: "text.primary", fontWeight: 700 }}>
                 {formatBillingPeriod(selectedPayment?.transactionDate)}
               </Box>
             </Stack>
@@ -359,7 +360,7 @@ const PaymentsTable = () => {
             p: 2,
             borderTop: "1px solid",
             borderColor: "divider",
-            backgroundColor: "#f8fafc",
+            backgroundColor: "background.default",
           }}
         >
           <Button
@@ -369,11 +370,11 @@ const PaymentsTable = () => {
             sx={{
               height: 48,
               borderRadius: 2,
-              borderColor: "#cbd5e1",
-              color: "#0f172a",
+              borderColor: "divider",
+              color: "text.primary",
               fontWeight: 700,
               textTransform: "none",
-              "&:hover": { borderColor: "#94a3b8", backgroundColor: "#f1f5f9" },
+              "&:hover": { borderColor: "divider", backgroundColor: "action.hover" },
             }}
           >
             Close Details

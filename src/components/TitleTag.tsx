@@ -30,7 +30,7 @@ const TitleTag: React.FC<TitleTagProps> = ({ title, subtitle, icon }: TitleTagPr
         </Box>
       )}
       <Box>
-        <Typography variant="h5" sx={{ fontWeight: 800, color: "grey.900" }}>
+        <Typography variant="h5" sx={{ fontWeight: 800, color: "text.primary" }}>
           {title}
         </Typography>
         <Typography variant="body2" sx={{ color: "text.secondary" }}>

@@ -160,13 +160,13 @@ const AgentsManagementView = () => {
     textTransform: "none" as const,
     borderRadius: 9999,
     px: 1.6,
-    borderColor: "grey.300",
-    color: "grey.800",
+    borderColor: "divider",
+    color: "text.primary",
     fontWeight: 700,
     height: 34,
     minWidth: 76,
-    backgroundColor: "#f8fafc",
-    "&:hover": { bgcolor: "#e2e8f0", borderColor: "grey.400" },
+    backgroundColor: "background.paper",
+    "&:hover": { bgcolor: "action.hover", borderColor: "divider" },
   };
 
   const handleRemoveAgent = async (agentId: string) => {
