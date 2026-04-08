@@ -58,7 +58,7 @@ const getDaysRemaining = (rawDate: string, status?: TenantStatus): string => {
   const dayDiff = Math.floor((endDate.getTime() - today.getTime()) / msPerDay);
 
   if (dayDiff <= 0) return "0";
-  return `${dayDiff}`;
+  return `${dayDiff} Days`;
 };
 
 const statusMeta: Record<TenantStatus, { label: string; bg: string; color: string }> = {
@@ -591,7 +591,7 @@ const TenantDetailsView = () => {
 
                       <Box>
                         <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, letterSpacing: "0.04em" }}>
-                          TIME REMAINING
+                          DAYS REMAINING
                         </Typography>
                         <Stack direction="row" spacing={0.8} alignItems="center" sx={{ mt: 0.2 }}>
                           <CalendarDays size={16} color="#0ea5e9" />

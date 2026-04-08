@@ -261,7 +261,7 @@ function DashboardLayoutInner() {
       };
     }
 
-    if (subscriptionLifecycleStatus && subscriptionLifecycleStatus !== "ACTIVE") {
+    if (subscriptionLifecycleStatus && subscriptionLifecycleStatus !== "ACTIVATED") {
       return {
         label: "Inactive",
         detail: "Not active",
