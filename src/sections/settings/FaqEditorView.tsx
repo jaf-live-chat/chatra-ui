@@ -243,7 +243,6 @@ function FaqRow({
                 <input
                   type="text"
                   onChange={(e) => onUpdate({ ...faq, q: e.target.value })}
-                  onBlur={() => onPersist(faq.id)}
                   placeholder="Enter the question..."
                   className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition"
                 />
@@ -255,7 +254,6 @@ function FaqRow({
                 </label>
                 <textarea
                   onChange={(e) => onUpdate({ ...faq, a: e.target.value })}
-                  onBlur={() => onPersist(faq.id)}
                   placeholder="Enter the answer..."
                   rows={3}
                   className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition resize-y"
