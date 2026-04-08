@@ -21,6 +21,7 @@ import CompanyInfoPage from "../pages/portal/company-info";
 import SubscriptionPlansPage from "../pages/portal/subscription-plans";
 import HomepageFaqsPage from "../pages/portal/homepage-faqs";
 import QuickRepliesPage from "../pages/portal/quick-replies";
+import QuickMessagesPage from "../pages/portal/quick-messages";
 import QueueAssignmentPage from "../pages/portal/queue-assignment";
 import Tenants from "../pages/portal/tenants";
 import TenantDetails from "../pages/portal/tenants/details";
@@ -200,6 +201,16 @@ const PortalRoutes: RouteObject[] = [
                     allowedRoles={[USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value, USER_ROLES.SUPPORT_AGENT.value]}
                   >
                     <QuickRepliesPage />
+                  </AuthGuard>
+                ),
+              },
+              {
+                path: "quick-messages",
+                element: (
+                  <AuthGuard
+                    allowedRoles={[USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value]}
+                  >
+                    <QuickMessagesPage />
                   </AuthGuard>
                 ),
               },
