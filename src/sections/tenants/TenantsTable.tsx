@@ -23,6 +23,7 @@ import idLabel from "../../utils/idUtils";
 import Box from "@mui/material/Box";
 import getAvatarColor from "../../utils/getAvatarColor";
 import TitleTag from "../../components/TitleTag";
+import type { Theme } from "@mui/material/styles";
 
 const EMPTY_LABEL = "-";
 
@@ -53,43 +54,43 @@ const getStatusChipStyles = (status: TenantStatus) => {
   if (status === "ACTIVE") {
     return {
       label: "ACTIVE",
-      sx: {
-        bgcolor: "#16a34a1a",
-        color: "#15803d",
+      sx: (theme: Theme) => ({
+        bgcolor: theme.palette.mode === "dark" ? "#166534" : "#16a34a1a",
+        color: theme.palette.mode === "dark" ? "#ffffff" : "#15803d",
         fontWeight: 700,
-      },
+      }),
     };
   }
 
   if (status === "EXPIRED") {
     return {
       label: "EXPIRED",
-      sx: {
-        bgcolor: "#dc26261a",
-        color: "#b91c1c",
+      sx: (theme: Theme) => ({
+        bgcolor: theme.palette.mode === "dark" ? "#991b1b" : "#dc26261a",
+        color: theme.palette.mode === "dark" ? "#ffffff" : "#b91c1c",
         fontWeight: 700,
-      },
+      }),
     };
   }
 
   if (status === "DEACTIVATED") {
     return {
       label: "DEACTIVATED",
-      sx: {
-        bgcolor: "#ea580c1a",
-        color: "#c2410c",
+      sx: (theme: Theme) => ({
+        bgcolor: theme.palette.mode === "dark" ? "#9a3412" : "#ea580c1a",
+        color: theme.palette.mode === "dark" ? "#ffffff" : "#c2410c",
         fontWeight: 700,
-      },
+      }),
     };
   }
 
   return {
     label: "INACTIVE",
-    sx: {
-      bgcolor: "#f59e0b1a",
-      color: "#b45309",
+    sx: (theme: Theme) => ({
+      bgcolor: theme.palette.mode === "dark" ? "#92400e" : "#f59e0b1a",
+      color: theme.palette.mode === "dark" ? "#ffffff" : "#b45309",
       fontWeight: 700,
-    },
+    }),
   };
 };
 
