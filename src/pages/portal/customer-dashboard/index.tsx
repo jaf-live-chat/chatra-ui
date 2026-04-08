@@ -1015,7 +1015,20 @@ const CustomerDashboard = () => {
         {/* Logo */}
         <div className="h-16 flex items-center justify-between px-3 border-b border-slate-100 overflow-hidden">
           {sidebarOpen ? (
-            <img src={APP_LOGO.logoDark} alt="JAF Live Chat" style={{ height: "90px", width: "auto" }} className="ml-3 shrink-0" />
+            <>
+              <img
+                src={APP_LOGO.logoDark}
+                alt="JAF Live Chat"
+                style={{ height: "32px", width: "auto", maxWidth: "140px", objectFit: "contain" }}
+                className="ml-3 shrink-0 dark:hidden"
+              />
+              <img
+                src={APP_LOGO.logoLight}
+                alt="JAF Live Chat"
+                style={{ height: "32px", width: "auto", maxWidth: "140px", objectFit: "contain" }}
+                className="ml-3 hidden shrink-0 dark:block"
+              />
+            </>
           ) : (
             <div className="w-8 h-8 rounded-lg bg-sky-600 flex items-center justify-center shrink-0 mx-auto">
               <MessageSquare className="w-4 h-4 text-white" />
