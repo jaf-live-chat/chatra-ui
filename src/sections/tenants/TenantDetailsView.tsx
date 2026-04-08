@@ -68,24 +68,6 @@ const statusMeta: Record<TenantStatus, { label: string; bg: string; color: strin
   DEACTIVATED: { label: "Deactivated", bg: "#ffedd5", color: "#c2410c" },
 };
 
-type SnackbarSeverity = "success" | "error";
-
-interface FeedbackState {
-  open: boolean;
-  message: string;
-  severity: SnackbarSeverity;
-}
-
-const defaultFeedbackState: FeedbackState = {
-  open: false,
-  message: "",
-  severity: "success",
-};
-const LIGHT_SURFACE_TEXT_PRIMARY = "#0f172a";
-const LIGHT_SURFACE_TEXT_SECONDARY = "#64748b";
-const HEADER_TEXT_PRIMARY = "#ffffff";
-const HEADER_TEXT_SECONDARY = "#cbd5e1";
-
 const LIGHT_SURFACE_TEXT_PRIMARY = "#0f172a";
 const LIGHT_SURFACE_TEXT_SECONDARY = "#64748b";
 const HEADER_TEXT_PRIMARY = "#ffffff";
