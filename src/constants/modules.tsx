@@ -149,7 +149,7 @@ const MODULE_GROUPS: ModuleGroup[] = [
         label: "Homepage FAQs",
         path: "/portal/homepage-faqs",
         icon: <HelpCircle className="w-5 h-5" />,
-        allowedRoles: [USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value],
+        allowedRoles: [USER_ROLES.MASTER_ADMIN.value],
       },
       {
         id: "content-quick-replies",
