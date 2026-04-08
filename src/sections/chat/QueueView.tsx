@@ -2,8 +2,8 @@ import React, { useState, useMemo, useEffect, useCallback, type CSSProperties, t
 import {
   Activity,
   Bot,
-  Check as CheckIcon,
   CheckCircle2,
+  Check as CheckIcon,
   ChevronLeft,
   ChevronRight,
   Clock,
@@ -23,7 +23,6 @@ import {
   X,
   Zap,
 } from "lucide-react";
-import Alert from "@mui/material/Alert";
 import Avatar from "@mui/material/Avatar";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -39,7 +38,6 @@ import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
 import Paper from "@mui/material/Paper";
 import Select from "@mui/material/Select";
-import Snackbar from "@mui/material/Snackbar";
 import Stack from "@mui/material/Stack";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
@@ -52,6 +50,7 @@ import Typography from "@mui/material/Typography";
 import ReusableTable, { type ReusableTableColumn } from "../../components/ReusableTable";
 import PageTitle from "../../components/common/PageTitle";
 import TitleTag from "../../components/TitleTag";
+import { toast } from "sonner";
 
 // ─── Mock Data ───────────────────────────────────────────────────────────────
 
@@ -134,8 +133,6 @@ const QueueView = ({ queue, onStartChat, isAgent = false, currentAgentId }: { qu
 
   // Assignment tracking state
   const [assignedAgents, setAssignedAgents] = useState<Record<string, { agentId: string; agentName: string }>>({});
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
-  const [snackbarMsg, setSnackbarMsg] = useState("");
 
   // ── Agent-side: assignments received from admin via localStorage ──
   const [agentAssignments, setAgentAssignments] = useState<any[]>([]);
@@ -1551,8 +1548,7 @@ const QueueView = ({ queue, onStartChat, isAgent = false, currentAgentId }: { qu
                     }
                   } catch (e) { /* silently fail */ }
 
-                  setSnackbarMsg(`${agent.name} has been assigned to ${assignToConfirm.name}`);
-                  setSnackbarOpen(true);
+                  toast.success(`${agent.name} has been assigned to ${assignToConfirm.name}`);
                 }
               }
               setAssignToConfirm(null);
@@ -1688,23 +1684,6 @@ const QueueView = ({ queue, onStartChat, isAgent = false, currentAgentId }: { qu
         );
       })()}
 
-      {/* ════════════════════ SNACKBAR — Assignment Success ════════════════════ */}
-      <Snackbar
-        open={snackbarOpen}
-        autoHideDuration={4000}
-        onClose={() => setSnackbarOpen(false)}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      >
-        <Alert
-          onClose={() => setSnackbarOpen(false)}
-          severity="success"
-          variant="filled"
-          icon={<CheckCircle2 size={18} />}
-          sx={{ fontWeight: 600, borderRadius: 2, boxShadow: "0 4px 20px #00000026" }}
-        >
-          {snackbarMsg}
-        </Alert>
-      </Snackbar>
       </Box>
     </>
   );

@@ -35,10 +35,9 @@ import Select from "@mui/material/Select";
 import MenuItem from "@mui/material/MenuItem";
 import FormControl from "@mui/material/FormControl";
 import InputLabel from "@mui/material/InputLabel";
-import Alert from "@mui/material/Alert";
-import Snackbar from "@mui/material/Snackbar";
 import Tooltip from "@mui/material/Tooltip";
 import TitleTag from "../../components/TitleTag";
+import { toast } from "sonner";
 
 const themeOptions = [
   { key: "cyan", label: "Cyan", color: "#0891B2" },
@@ -95,14 +94,10 @@ const WidgetSettingsView = () => {
   // Text size
   const [textSize, setTextSize] = useState("Default");
 
-  // Snackbar
-  const [snackOpen, setSnackOpen] = useState(false);
-  const [snackMessage, setSnackMessage] = useState("");
   const [codeCopied, setCodeCopied] = useState(false);
 
   const handleSave = () => {
-    setSnackMessage("Widget settings saved successfully!");
-    setSnackOpen(true);
+    toast.success("Widget settings saved successfully!");
   };
 
   const handleCopyCode = () => {
@@ -133,8 +128,7 @@ const WidgetSettingsView = () => {
     setOfflineMode(false);
     setOperatingHoursEnabled(false);
     setTextSize("Default");
-    setSnackMessage("Settings reset to defaults.");
-    setSnackOpen(true);
+    toast.success("Settings reset to defaults.");
   };
 
   const SectionHeader = ({ icon, title, subtitle }: { icon: ReactNode; title: string; subtitle: string }) => (
@@ -362,17 +356,6 @@ const WidgetSettingsView = () => {
         </Typography>
       </Paper>
 
-      {/* Snackbar */}
-      <Snackbar
-        open={snackOpen}
-        autoHideDuration={3000}
-        onClose={() => setSnackOpen(false)}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      >
-        <Alert onClose={() => setSnackOpen(false)} severity="success" sx={{ borderRadius: 2, fontWeight: 600 }}>
-          {snackMessage}
-        </Alert>
-      </Snackbar>
     </Box>
   );
 }

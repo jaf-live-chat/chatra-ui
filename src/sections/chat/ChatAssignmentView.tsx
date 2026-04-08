@@ -31,8 +31,7 @@ import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
 import FormControl from "@mui/material/FormControl";
 import InputLabel from "@mui/material/InputLabel";
-import Snackbar from "@mui/material/Snackbar";
-import Alert from "@mui/material/Alert";
+import { toast } from "sonner";
 
 interface QueueChat {
   id: string;
@@ -76,7 +75,6 @@ const ChatAssignmentView = () => {
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
   const [selectedChat, setSelectedChat] = useState<QueueChat | null>(null);
   const [selectedAgent, setSelectedAgent] = useState("");
-  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" as "success" | "error" });
   const [quickAssignDialogOpen, setQuickAssignDialogOpen] = useState(false);
   const [quickAssignTarget, setQuickAssignTarget] = useState<{ chat: QueueChat; agent: Agent } | null>(null);
 
@@ -108,11 +106,7 @@ const ChatAssignmentView = () => {
           : c
       )
     );
-    setSnackbar({
-      open: true,
-      message: `Chat ${selectedChat.id} assigned to ${agent.name}`,
-      severity: "success",
-    });
+    toast.success(`Chat ${selectedChat.id} assigned to ${agent.name}`);
     setAssignDialogOpen(false);
     setSelectedChat(null);
     setSelectedAgent("");
@@ -126,17 +120,13 @@ const ChatAssignmentView = () => {
           : c
       )
     );
-    setSnackbar({
-      open: true,
-      message: `Chat ${chatId} unassigned`,
-      severity: "success",
-    });
+    toast.success(`Chat ${chatId} unassigned`);
   };
 
   const handleAutoAssign = () => {
     const unassigned = chats.filter(c => !c.assignedTo);
     if (unassigned.length === 0 || availableAgents.length === 0) {
-      setSnackbar({ open: true, message: "No chats or agents available for auto-assignment", severity: "error" });
+      toast.error("No chats or agents available for auto-assignment");
       return;
     }
 
@@ -151,16 +141,12 @@ const ChatAssignmentView = () => {
     });
 
     setChats(updated);
-    setSnackbar({
-      open: true,
-      message: `${Math.min(unassigned.length, availableAgents.length)} chats auto-assigned to available agents`,
-      severity: "success",
-    });
+    toast.success(`${Math.min(unassigned.length, availableAgents.length)} chats auto-assigned to available agents`);
   };
 
   const handleQuickAssign = (chat: QueueChat) => {
     if (availableAgents.length === 0) {
-      setSnackbar({ open: true, message: "No available agents for quick-assign", severity: "error" });
+      toast.error("No available agents for quick-assign");
       return;
     }
     // Pick the agent with the fewest active chats (most availability)
@@ -179,11 +165,7 @@ const ChatAssignmentView = () => {
           : c
       )
     );
-    setSnackbar({
-      open: true,
-      message: `Chat ${chat.id} quick-assigned to ${agent.name}`,
-      severity: "success",
-    });
+    toast.success(`Chat ${chat.id} quick-assigned to ${agent.name}`);
     setQuickAssignDialogOpen(false);
     setQuickAssignTarget(null);
   };
@@ -505,21 +487,6 @@ const ChatAssignmentView = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Snackbar */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={3000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      >
-        <Alert
-          onClose={() => setSnackbar({ ...snackbar, open: false })}
-          severity={snackbar.severity}
-          sx={{ width: "100%", borderRadius: 2 }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
     </Box>
   );
 }

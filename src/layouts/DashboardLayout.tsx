@@ -8,7 +8,7 @@ import {
   Menu,
 } from "lucide-react";
 import { Outlet, useNavigate, useLocation } from "react-router";
-import { Avatar, Button, Chip, Stack, Typography } from "@mui/material";
+import { Avatar, Button, Chip, Stack, Tooltip, Typography } from "@mui/material";
 import { DarkModeProvider, useDarkMode } from "../providers/DarkModeContext";
 import { APP_LOGO, USER_STATUS } from "../constants/constants";
 import useAuth from "../hooks/useAuth";
@@ -388,17 +388,21 @@ function DashboardLayoutInner() {
 
               {group.modules.map((module) => {
                 return (
-                  <button
+                  <Tooltip
                     key={module.id}
-                    onClick={() => handleModuleNavigation(module.path)}
-                    className={`w-full flex items-center ${isSidebarOpen ? "justify-start px-3" : "justify-center px-0"} py-2.5 rounded-lg text-sm font-medium transition-colors ${isActivePath(module.path) ? activeNavCls : inactiveNavCls}`}
                     title={module.label}
+                    placement={isSidebarOpen ? "bottom" : "right"}
                   >
-                    <span className={`${isSidebarOpen ? "mr-3" : ""} shrink-0`}>
-                      {module.icon}
-                    </span>
-                    {isSidebarOpen && <span>{module.label}</span>}
-                  </button>
+                    <button
+                      onClick={() => handleModuleNavigation(module.path)}
+                      className={`w-full flex items-center ${isSidebarOpen ? "justify-start px-3" : "justify-center px-0"} py-2.5 rounded-lg text-sm font-medium transition-colors ${isActivePath(module.path) ? activeNavCls : inactiveNavCls}`}
+                    >
+                      <span className={`${isSidebarOpen ? "mr-3" : ""} shrink-0`}>
+                        {module.icon}
+                      </span>
+                      {isSidebarOpen && <span>{module.label}</span>}
+                    </button>
+                  </Tooltip>
                 );
               })}
             </div>
