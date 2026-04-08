@@ -50,6 +50,25 @@ const AgentEditDialog = ({
     onChange({ ...formValues, [field]: value });
   };
 
+  const fieldSx = (theme: { palette: { mode: string } }) => {
+    const isDark = theme.palette.mode === "dark";
+    const fieldBg = isDark ? "#1e293b" : "#f8fafc";
+    const fieldText = isDark ? "#ffffff" : "#111111";
+
+    return {
+      height: 46,
+      borderRadius: 1,
+      bgcolor: fieldBg,
+      color: fieldText,
+      "& input": {
+        color: fieldText,
+      },
+      "& .MuiSelect-select": {
+        color: fieldText,
+      },
+    };
+  };
+
   return (
     <Dialog
       open={open}
@@ -110,7 +129,7 @@ const AgentEditDialog = ({
                     <EditOutlined sx={{ fontSize: 17, color: "#94a3b8" }} />
                   </InputAdornment>
                 ),
-                sx: { height: 46, bgcolor: "#f8fafc", borderRadius: 1 },
+                sx: fieldSx,
               }}
             />
           </Box>
@@ -132,7 +151,7 @@ const AgentEditDialog = ({
                     <AlternateEmailRounded sx={{ fontSize: 17, color: "#94a3b8" }} />
                   </InputAdornment>
                 ),
-                sx: { height: 46, bgcolor: "#f8fafc", borderRadius: 1 },
+                sx: fieldSx,
               }}
             />
           </Box>
@@ -152,7 +171,7 @@ const AgentEditDialog = ({
                     <PhoneRounded sx={{ fontSize: 17, color: "#94a3b8" }} />
                   </InputAdornment>
                 ),
-                sx: { height: 46, bgcolor: "#f8fafc", borderRadius: 1 },
+                sx: fieldSx,
               }}
             />
           </Box>
@@ -173,7 +192,7 @@ const AgentEditDialog = ({
                     <VerifiedUserRounded sx={{ fontSize: 17, color: "#94a3b8" }} />
                   </InputAdornment>
                 ),
-                sx: { height: 46, bgcolor: "#f8fafc", borderRadius: 1 },
+                sx: fieldSx,
               }}
             >
               <MenuItem value="ADMIN">Admin</MenuItem>

@@ -39,9 +39,14 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  --legacy-surface: #ffffff;
+  --legacy-border: #e5e7eb;
+  --legacy-text-primary: #111827;
+  --legacy-text-secondary: #64748b;
 }
 
 .dark {
+  color-scheme: dark;
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.145 0 0);
@@ -60,6 +65,8 @@
   --destructive-foreground: oklch(0.637 0.237 25.331);
   --border: oklch(0.269 0 0);
   --input: oklch(0.269 0 0);
+  --input-background: oklch(0.205 0 0);
+  --switch-background: oklch(0.439 0 0);
   --ring: oklch(0.439 0 0);
   --font-weight-medium: 500;
   --font-weight-normal: 400;
@@ -76,6 +83,10 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(0.269 0 0);
   --sidebar-ring: oklch(0.439 0 0);
+  --legacy-surface: #1e293b;
+  --legacy-border: #334155;
+  --legacy-text-primary: #f1f5f9;
+  --legacy-text-secondary: #94a3b8;
 }
 
 @theme inline {
@@ -164,6 +175,12 @@
     @apply bg-background text-foreground;
   }
 
+  input,
+  textarea,
+  select {
+    color: var(--foreground);
+  }
+
   /**
   * Default typography styles for HTML elements (h1-h4, p, label, button, input).
   * These are in @layer base, so Tailwind utility classes (like text-sm, text-lg) automatically override them.
@@ -250,4 +267,110 @@
     transform: translateY(-4px);
     opacity: 1;
   }
+}
+
+/* Scoped dark-mode corrections for legacy light-only account settings utilities. */
+.dark .account-settings-surface .bg-white {
+  background-color: var(--legacy-surface) !important;
+}
+
+.dark .account-settings-surface .border-gray-200,
+.dark .account-settings-surface .border-gray-100 {
+  border-color: var(--legacy-border) !important;
+}
+
+.dark .account-settings-surface .text-gray-900 {
+  color: var(--legacy-text-primary) !important;
+}
+
+.dark .account-settings-surface .text-gray-800 {
+  color: var(--legacy-text-primary) !important;
+}
+
+.dark .account-settings-surface .text-gray-700,
+.dark .account-settings-surface .text-gray-600,
+.dark .account-settings-surface .text-gray-500,
+.dark .account-settings-surface .text-gray-400 {
+  color: var(--legacy-text-secondary) !important;
+}
+
+.dark .account-settings-surface .hover\:bg-gray-50:hover {
+  background-color: var(--legacy-border) !important;
+}
+
+.dark .account-settings-surface input,
+.dark .account-settings-surface select,
+.dark .account-settings-surface textarea {
+  background-color: var(--input-background);
+  color: var(--foreground);
+  border-color: var(--legacy-border);
+}
+
+.dark .account-settings-surface input::placeholder,
+.dark .account-settings-surface textarea::placeholder {
+  color: var(--legacy-text-secondary);
+}
+
+/* Global dark-mode fallback for legacy utility classes without dark: variants. */
+.dark .bg-white {
+  background-color: var(--legacy-surface);
+}
+
+.dark .bg-gray-50,
+.dark .bg-gray-100 {
+  background-color: var(--input-background);
+}
+
+.dark .border-gray-100,
+.dark .border-gray-200,
+.dark .border-gray-300 {
+  border-color: var(--legacy-border);
+}
+
+.dark .text-gray-900,
+.dark .text-gray-800 {
+  color: var(--legacy-text-primary);
+}
+
+.dark .text-gray-700,
+.dark .text-gray-600,
+.dark .text-gray-500,
+.dark .text-gray-400 {
+  color: var(--legacy-text-secondary);
+}
+
+.dark .text-slate-900,
+.dark .text-slate-800,
+.dark .text-slate-700 {
+  color: var(--legacy-text-primary);
+}
+
+.dark .text-slate-600,
+.dark .text-slate-500,
+.dark .text-slate-400 {
+  color: var(--legacy-text-secondary);
+}
+
+.dark .border-slate-100,
+.dark .border-slate-200,
+.dark .border-slate-300,
+.dark .border-slate-600,
+.dark .border-slate-700 {
+  border-color: var(--legacy-border);
+}
+
+.dark .bg-slate-50,
+.dark .bg-slate-100,
+.dark .bg-slate-200 {
+  background-color: var(--input-background);
+}
+
+.dark .placeholder-gray-400::placeholder,
+.dark .placeholder-gray-500::placeholder {
+  color: var(--legacy-text-secondary);
+}
+
+.dark .hover\:bg-gray-50:hover,
+.dark .hover\:bg-gray-100:hover {
+  background-color: var(--legacy-border);
 }

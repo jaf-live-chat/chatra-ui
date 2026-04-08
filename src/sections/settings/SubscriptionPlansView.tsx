@@ -741,7 +741,7 @@ const SubscriptionPlansView = () => {
                           <input
                             value={feature.text}
                             onChange={(e) => updateFeature(plan.id, feature.id, e.target.value)}
-                            className="flex-1 px-2 py-1 border border-gray-200 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700"
+                            className="flex-1 px-2 py-1 border border-gray-200 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500"
                           />
                           <button onClick={() => removeFeature(plan.id, feature.id)} className="p-1 text-red-500">
                             <X className="w-3.5 h-3.5" />
@@ -771,7 +771,7 @@ const SubscriptionPlansView = () => {
                         if (e.key === "Enter") addFeature(plan.id);
                       }}
                       placeholder="Add feature (e.g. Priority Support)"
-                      className="flex-1 px-3 py-2 border border-gray-200 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700"
+                      className="flex-1 px-3 py-2 border border-gray-200 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500"
                     />
                     <button onClick={() => addFeature(plan.id)} className="px-3 py-2 rounded-lg bg-cyan-600 text-white text-sm">
                       <Plus className="w-4 h-4" />
@@ -941,7 +941,7 @@ const SubscriptionPlansView = () => {
                         <input
                           value={feature.text}
                           onChange={(e) => updateDraftFeature(feature.id, e.target.value)}
-                          className="flex-1 px-2 py-1 border border-gray-200 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700"
+                          className="flex-1 px-2 py-1 border border-gray-200 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500"
                         />
                         <button onClick={() => removeDraftFeature(feature.id)} className="p-1 text-red-500" type="button">
                           <X className="w-3.5 h-3.5" />
@@ -959,7 +959,7 @@ const SubscriptionPlansView = () => {
                       if (e.key === "Enter") addFeatureToDraft();
                     }}
                     placeholder="Add feature (e.g. Priority Support)"
-                    className="flex-1 px-3 py-2 border border-gray-200 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700"
+                    className="flex-1 px-3 py-2 border border-gray-200 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500"
                   />
                   <button onClick={addFeatureToDraft} className="px-3 py-2 rounded-lg bg-cyan-600 text-white text-sm" type="button">
                     <Plus className="w-4 h-4" />

@@ -350,7 +350,7 @@ const WidgetSettingsView = () => {
         </Stack>
         <Box
           sx={{
-            p: 2.5, borderRadius: 2, bgcolor: "grey.900", color: "#a5f3fc",
+            p: 2.5, borderRadius: 2, bgcolor: "#0f172a", color: "#ffffff",
             fontFamily: "monospace", fontSize: "0.78rem", lineHeight: 1.7,
             whiteSpace: "pre-wrap", overflow: "auto", maxHeight: 200,
           }}

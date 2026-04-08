@@ -170,13 +170,13 @@ const TenantsTable = () => {
     textTransform: "none" as const,
     borderRadius: 9999,
     px: 1.6,
-    borderColor: "grey.300",
-    color: "grey.800",
+    borderColor: "divider",
+    color: "text.primary",
     fontWeight: 700,
     height: 34,
     minWidth: 76,
-    backgroundColor: "#f8fafc",
-    "&:hover": { bgcolor: "#e2e8f0", borderColor: "grey.400" },
+    backgroundColor: "background.paper",
+    "&:hover": { bgcolor: "action.hover", borderColor: "divider" },
   };
 
   const tenantColumns: ReusableTableColumn<Tenant>[] = [
@@ -285,12 +285,12 @@ const TenantsTable = () => {
                 onClick={() => handleOpenStatusDialog(tenant)}
                 sx={{
                   ...actionButtonSx,
-                  color: tenant.subscription.status === "ACTIVE" ? "#b91c1c" : "#166534",
-                  borderColor: tenant.subscription.status === "ACTIVE" ? "#fecdd3" : "#bbf7d0",
-                  backgroundColor: tenant.subscription.status === "ACTIVE" ? "#fff1f2" : "#f0fdf4",
+                  color: tenant.subscription.status === "ACTIVE" ? "error.light" : "success.light",
+                  borderColor: tenant.subscription.status === "ACTIVE" ? "error.dark" : "success.dark",
+                  backgroundColor: tenant.subscription.status === "ACTIVE" ? "#7f1d1d1f" : "#14532d1f",
                   "&:hover": {
-                    bgcolor: tenant.subscription.status === "ACTIVE" ? "#ffe4e6" : "#dcfce7",
-                    borderColor: tenant.subscription.status === "ACTIVE" ? "#fca5a5" : "#86efac",
+                    bgcolor: tenant.subscription.status === "ACTIVE" ? "#7f1d1d2f" : "#14532d2f",
+                    borderColor: tenant.subscription.status === "ACTIVE" ? "error.main" : "success.main",
                   },
                 }}
                 disabled={isActionProcessing(tenant.id)}

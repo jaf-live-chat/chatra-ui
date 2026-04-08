@@ -528,7 +528,7 @@ const AccountSettingsView = () => {
         description="Manage your profile, notifications, and security preferences."
         canonical="/portal/account-settings"
       />
-      <div>
+      <div className="account-settings-surface">
         {/* Header */}
         <Box sx={{ mb: 4 }}>
           <TitleTag

@@ -150,7 +150,7 @@ const DashboardPage = () => {
       renderCell: (row) => (
         <div className="flex flex-col items-end">
           <p className="text-[13px] font-medium text-slate-800">{row.agent}</p>
-          <span className="inline-block mt-1 font-bold tracking-wide text-[10px] text-emerald-500 border border-emerald-200/60 bg-emerald-50/50 px-2 py-0.5 rounded">
+          <span className="inline-block mt-1 font-bold tracking-wide text-[10px] text-slate-900 dark:text-white border border-emerald-200/60 dark:border-emerald-500/40 bg-emerald-50/70 dark:bg-emerald-700/45 px-2 py-0.5 rounded">
             {row.time}
           </span>
         </div>
