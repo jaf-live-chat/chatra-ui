@@ -639,7 +639,7 @@ function DashboardLayoutInner() {
                   <p className="text-sm font-semibold text-gray-900 dark:text-slate-100 leading-none">
                     {userName}
                   </p>
-                  <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">{toTitleCase('MASTER_ADMIN')}</p>
+                  <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">{toTitleCase(userRole)}</p>
                 </div>
                 <ChevronDown className="w-4 h-4 text-gray-400 dark:text-slate-500 hidden lg:block" />
               </div>
