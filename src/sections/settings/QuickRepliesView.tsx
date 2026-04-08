@@ -704,7 +704,7 @@ const QuickRepliesView = () => {
             </p>
             <button
               onClick={openAdd}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-semibold shadow-sm transition-colors shrink-0"
+              className="inline-flex my-3 items-center gap-2 px-4 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-semibold shadow-sm transition-colors shrink-0"
             >
               <Plus className="w-4 h-4" />
               New Quick Reply
