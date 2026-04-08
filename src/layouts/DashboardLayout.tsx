@@ -356,7 +356,7 @@ function DashboardLayoutInner() {
               <img
                 src={sidebarLogo}
                 alt="JAF Chatra Logo"
-                style={{ height: "104px", width: "auto" }}
+                style={{ height: "32px", width: "auto", maxWidth: "140px", objectFit: "contain" }}
                 className="mx-auto"
               />
             </div>

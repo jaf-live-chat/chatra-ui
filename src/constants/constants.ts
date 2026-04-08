@@ -5,9 +5,9 @@ const APP_LOGO = {
   logoMain:
     "https://res.cloudinary.com/dvrhry6ru/image/upload/v1773735919/logo1_f5e86y.png",
   logoLight:
-    "https://res.cloudinary.com/dvrhry6ru/image/upload/v1774497953/JAF_white_pv1d5b.png",
+    "https://res.cloudinary.com/dvrhry6ru/image/upload/v1775447929/white_1_vpoeuh.png",
   logoDark:
-    "https://res.cloudinary.com/dvrhry6ru/image/upload/v1774497950/JAF_black_rg0udw.png",
+    "https://res.cloudinary.com/dvrhry6ru/image/upload/v1775447904/black_f8bj3q.png",
 };
 
 const USER_ROLES = {

@@ -146,7 +146,7 @@ const Navbar = () => {
               <img
                 src={APP_LOGO.logoDark}
                 alt="JAF Chatra Logo"
-                style={{ height: "120px", width: "auto" }}
+                style={{ height: "36px", width: "auto", maxWidth: "220px", objectFit: "contain", display: "block" }}
               />
             </Box>
 
