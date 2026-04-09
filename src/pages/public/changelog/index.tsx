@@ -2,7 +2,6 @@ import { Box, Container, Typography, Chip, Paper, Grid } from "@mui/material";
 import { Clock, Star, Zap, Wrench } from "lucide-react";
 import Navbar from "../../../components/common/Navbar";
 import Footer from "../../../components/common/Footer";
-import LiveChatWidget from "../../../components/widgets/LiveChatWidget";
 import React from "react";
 import PageTitle from "../../../components/common/PageTitle";
 
@@ -42,7 +41,7 @@ const ChangelogPage = () => {
 
   return (
     <React.Fragment>
-       <PageTitle
+      <PageTitle
         title="Changelog"
         description="Discover the latest updates, features, and improvements in JAF Chatra. See what's new and what's coming next."
         canonical="/portal/changelog"
@@ -126,7 +125,6 @@ const ChangelogPage = () => {
         </Container>
       </Box>
       <Footer />
-      <LiveChatWidget />
     </React.Fragment>
   );
 }

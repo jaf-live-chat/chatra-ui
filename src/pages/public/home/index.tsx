@@ -10,7 +10,6 @@ import CTASection from "../../../sections/homepage/CTASection";
 import Footer from "../../../components/common/Footer";
 import HomepageFaqSection from "../../../sections/homepage/HomepageFaqSection";
 import React from "react";
-import LiveChatWidget from "../../../components/widgets/LiveChatWidget";
 
 const Home = () => {
   return (
@@ -34,7 +33,6 @@ const Home = () => {
           <CTASection />
         </main>
         <Footer />
-        <LiveChatWidget initialConfig={{ apiKey: "jaf_84ee72f898f1dc74ab2167e0bfac96a1a24ce2132b0f3de8" }} />
       </div>
     </React.Fragment>
   );

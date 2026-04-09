@@ -1,14 +1,13 @@
-import { Box, Container, Typography, Grid, Chip, Avatar, Card, CardContent, Divider, Stack } from "@mui/material";
+import { Box, Container, Typography, Grid, Avatar, Card, CardContent, Divider, Stack } from "@mui/material";
 import Navbar from "../../../components/common/Navbar";
 import Footer from "../../../components/common/Footer";
-import LiveChatWidget from "../../../components/widgets/LiveChatWidget";
-import { 
-  Building2, 
-  Hexagon, 
-  Mountain, 
-  Rocket, 
-  Shield, 
-  Target, 
+import {
+  Building2,
+  Hexagon,
+  Mountain,
+  Rocket,
+  Shield,
+  Target,
   Zap,
   Globe,
   Briefcase,
@@ -59,166 +58,165 @@ const IntegrationsPage = () => {
         description="See how JAF Chatra integrates with your favorite tools and platforms."
         canonical="/portal/integrations"
       />
-    <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column", bgcolor: "background.default", pt: 10 }}>
-      <Navbar />
-      
-      <Box component="main" sx={{ flexGrow: 1 }}>
-        {/* Header Section */}
-        <Box 
-          sx={{ 
-            bgcolor: "#0A192FFF", 
-            color: "#FFFFFFFF",
-            py: { xs: 8, md: 12 },
-            textAlign: "center",
-            borderColor: "#1E293BFF #1E293BFF #1E293BFF #1E293BFF",
-            borderStyle: "solid",
-            borderWidth: "0 0 1px 0",
-          }}
-        >
-          <Container maxWidth="md">
-            <Typography variant="h2" sx={{ fontWeight: 800, mb: 3, fontFamily: "Inter, sans-serif" }}>
-              Trusted by innovative companies worldwide
-            </Typography>
-            <Typography variant="h6" sx={{ color: "#94A3B8FF", fontWeight: 400, maxWidth: "600px", mx: "auto", lineHeight: 1.6 }}>
-              Join thousands of businesses that use JAF Chatra to connect with their customers, drive sales, and build lasting relationships.
-            </Typography>
-          </Container>
-        </Box>
+      <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column", bgcolor: "background.default", pt: 10 }}>
+        <Navbar />
 
-        {/* Logo Grid Section */}
-        <Container maxWidth="lg" sx={{ py: { xs: 8, md: 12 } }}>
-          <Box sx={{ textAlign: "center", mb: 8 }}>
-            <Typography variant="h3" sx={{ mb: 2, fontWeight: 700 }}>
-              Meet our partners
-            </Typography>
-            <Typography variant="body1" color="text.secondary" sx={{ maxWidth: "600px", mx: "auto", fontSize: "1.1rem" }}>
-              From fast-growing startups to established enterprises, see who's powering their customer experience with us.
-            </Typography>
+        <Box component="main" sx={{ flexGrow: 1 }}>
+          {/* Header Section */}
+          <Box
+            sx={{
+              bgcolor: "#0A192FFF",
+              color: "#FFFFFFFF",
+              py: { xs: 8, md: 12 },
+              textAlign: "center",
+              borderColor: "#1E293BFF #1E293BFF #1E293BFF #1E293BFF",
+              borderStyle: "solid",
+              borderWidth: "0 0 1px 0",
+            }}
+          >
+            <Container maxWidth="md">
+              <Typography variant="h2" sx={{ fontWeight: 800, mb: 3, fontFamily: "Inter, sans-serif" }}>
+                Trusted by innovative companies worldwide
+              </Typography>
+              <Typography variant="h6" sx={{ color: "#94A3B8FF", fontWeight: 400, maxWidth: "600px", mx: "auto", lineHeight: 1.6 }}>
+                Join thousands of businesses that use JAF Chatra to connect with their customers, drive sales, and build lasting relationships.
+              </Typography>
+            </Container>
           </Box>
 
-          <Grid container spacing={4}>
-            {partners.map((partner, index) => (
-              <Grid size={{ xs: 12, sm: 6, md: 4 }} key={index}>
-                <Card 
-                  elevation={0} 
-                  sx={{ 
-                    height: "100%", 
-                    display: "flex", 
-                    flexDirection: "column",
-                    transition: "transform 0.2s, box-shadow 0.2s",
-                    "&:hover": {
-                      transform: "translateY(-4px)",
-                      boxShadow: "0 10px 40px -10px #0000001a"
-                    }
-                  }}
-                >
-                  <CardContent sx={{ flexGrow: 1, p: 4 }}>
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 3 }}>
-                      <Box 
-                        sx={{ 
-                          width: 48, 
-                          height: 48, 
-                          borderRadius: 2, 
-                          bgcolor: `${partner.color}15`, 
-                          display: "flex", 
-                          alignItems: "center", 
-                          justifyContent: "center",
-                          color: partner.color
-                        }}
-                      >
-                        <partner.icon size={24} />
-                      </Box>
-                      <Typography variant="h5" sx={{ fontWeight: 700 }}>
-                        {partner.name}
-                      </Typography>
-                    </Box>
-                    
-                    <Divider sx={{ my: 2 }} />
-                    
-                    <Stack spacing={2} sx={{ mt: 3 }}>
-                      <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-                        <Typography variant="body2" color="text.secondary">Industry</Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>{partner.category}</Typography>
-                      </Box>
-                      <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-                        <Typography variant="body2" color="text.secondary">Revenue Impact</Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 600, color: "success.main" }}>{partner.revenue}</Typography>
-                      </Box>
-                      <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-                        <Typography variant="body2" color="text.secondary">Active Users</Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>{partner.users}</Typography>
-                      </Box>
-                    </Stack>
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
-        </Container>
-
-        {/* Testimonials Section */}
-        <Box sx={{ bgcolor: "grey.50", py: { xs: 8, md: 12 } }}>
-          <Container maxWidth="lg">
+          {/* Logo Grid Section */}
+          <Container maxWidth="lg" sx={{ py: { xs: 8, md: 12 } }}>
             <Box sx={{ textAlign: "center", mb: 8 }}>
               <Typography variant="h3" sx={{ mb: 2, fontWeight: 700 }}>
-                What our customers say
+                Meet our partners
               </Typography>
               <Typography variant="body1" color="text.secondary" sx={{ maxWidth: "600px", mx: "auto", fontSize: "1.1rem" }}>
-                Don't just take our word for it. Hear directly from the teams who use JAF Chatra every day.
+                From fast-growing startups to established enterprises, see who's powering their customer experience with us.
               </Typography>
             </Box>
 
             <Grid container spacing={4}>
-              {testimonials.map((testimonial, index) => (
-                <Grid size={{ xs: 12, md: 4 }} key={index}>
-                  <Card elevation={0} sx={{ height: "100%", p: 4, position: "relative" }}>
-                    <Quote 
-                      size={48} 
-                      color="#0891b2" 
-                      style={{ position: "absolute", top: 24, right: 24, opacity: 0.1 }} 
-                    />
-                    <Box sx={{ mb: 3 }}>
-                      <Stack direction="row" spacing={0.5}>
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <Star key={star} size={16} fill="#f59e0b" color="#f59e0b" />
-                        ))}
-                      </Stack>
-                    </Box>
-                    <Typography 
-                      variant="body1" 
-                      sx={{ 
-                        mb: 4, 
-                        fontSize: "1.1rem", 
-                        lineHeight: 1.6, 
-                        fontStyle: "italic",
-                        color: "text.primary",
-                        flexGrow: 1
-                      }}
-                    >
-                      "{testimonial.quote}"
-                    </Typography>
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                      <Avatar src={testimonial.avatar} alt={testimonial.author} sx={{ width: 48, height: 48 }} />
-                      <Box>
-                        <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                          {testimonial.author}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          {testimonial.title}
+              {partners.map((partner, index) => (
+                <Grid size={{ xs: 12, sm: 6, md: 4 }} key={index}>
+                  <Card
+                    elevation={0}
+                    sx={{
+                      height: "100%",
+                      display: "flex",
+                      flexDirection: "column",
+                      transition: "transform 0.2s, box-shadow 0.2s",
+                      "&:hover": {
+                        transform: "translateY(-4px)",
+                        boxShadow: "0 10px 40px -10px #0000001a"
+                      }
+                    }}
+                  >
+                    <CardContent sx={{ flexGrow: 1, p: 4 }}>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 3 }}>
+                        <Box
+                          sx={{
+                            width: 48,
+                            height: 48,
+                            borderRadius: 2,
+                            bgcolor: `${partner.color}15`,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: partner.color
+                          }}
+                        >
+                          <partner.icon size={24} />
+                        </Box>
+                        <Typography variant="h5" sx={{ fontWeight: 700 }}>
+                          {partner.name}
                         </Typography>
                       </Box>
-                    </Box>
+
+                      <Divider sx={{ my: 2 }} />
+
+                      <Stack spacing={2} sx={{ mt: 3 }}>
+                        <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                          <Typography variant="body2" color="text.secondary">Industry</Typography>
+                          <Typography variant="body2" sx={{ fontWeight: 600 }}>{partner.category}</Typography>
+                        </Box>
+                        <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                          <Typography variant="body2" color="text.secondary">Revenue Impact</Typography>
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: "success.main" }}>{partner.revenue}</Typography>
+                        </Box>
+                        <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                          <Typography variant="body2" color="text.secondary">Active Users</Typography>
+                          <Typography variant="body2" sx={{ fontWeight: 600 }}>{partner.users}</Typography>
+                        </Box>
+                      </Stack>
+                    </CardContent>
                   </Card>
                 </Grid>
               ))}
             </Grid>
           </Container>
-        </Box>
-      </Box>
 
-      <Footer />
-      <LiveChatWidget />
-    </Box>
+          {/* Testimonials Section */}
+          <Box sx={{ bgcolor: "grey.50", py: { xs: 8, md: 12 } }}>
+            <Container maxWidth="lg">
+              <Box sx={{ textAlign: "center", mb: 8 }}>
+                <Typography variant="h3" sx={{ mb: 2, fontWeight: 700 }}>
+                  What our customers say
+                </Typography>
+                <Typography variant="body1" color="text.secondary" sx={{ maxWidth: "600px", mx: "auto", fontSize: "1.1rem" }}>
+                  Don't just take our word for it. Hear directly from the teams who use JAF Chatra every day.
+                </Typography>
+              </Box>
+
+              <Grid container spacing={4}>
+                {testimonials.map((testimonial, index) => (
+                  <Grid size={{ xs: 12, md: 4 }} key={index}>
+                    <Card elevation={0} sx={{ height: "100%", p: 4, position: "relative" }}>
+                      <Quote
+                        size={48}
+                        color="#0891b2"
+                        style={{ position: "absolute", top: 24, right: 24, opacity: 0.1 }}
+                      />
+                      <Box sx={{ mb: 3 }}>
+                        <Stack direction="row" spacing={0.5}>
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star key={star} size={16} fill="#f59e0b" color="#f59e0b" />
+                          ))}
+                        </Stack>
+                      </Box>
+                      <Typography
+                        variant="body1"
+                        sx={{
+                          mb: 4,
+                          fontSize: "1.1rem",
+                          lineHeight: 1.6,
+                          fontStyle: "italic",
+                          color: "text.primary",
+                          flexGrow: 1
+                        }}
+                      >
+                        "{testimonial.quote}"
+                      </Typography>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                        <Avatar src={testimonial.avatar} alt={testimonial.author} sx={{ width: 48, height: 48 }} />
+                        <Box>
+                          <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                            {testimonial.author}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {testimonial.title}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+            </Container>
+          </Box>
+        </Box>
+
+        <Footer />
+      </Box>
     </React.Fragment>
 
   );

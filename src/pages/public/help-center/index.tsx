@@ -1,9 +1,8 @@
-import { Box, Container, Typography, TextField, InputAdornment, Button, Card, CardContent, Grid, Accordion, AccordionSummary, AccordionDetails } from "@mui/material";
-import { Search, BookOpen, MessageCircle, Settings, Shield, ChevronRight, Mail, Phone, Headphones, ChevronDown, HelpCircle } from "lucide-react";
+import { Box, Container, Typography, Card, CardContent, Grid, Accordion, AccordionSummary, AccordionDetails } from "@mui/material";
+import { BookOpen, MessageCircle, Settings, Shield, ChevronRight, Mail, Phone, Headphones, ChevronDown, HelpCircle } from "lucide-react";
 import { Link } from "react-router";
 import Navbar from "../../../components/common/Navbar";
 import Footer from "../../../components/common/Footer";
-import LiveChatWidget from "../../../components/widgets/LiveChatWidget";
 import React from "react";
 import PageTitle from "../../../components/common/PageTitle";
 
@@ -25,7 +24,7 @@ const HelpCenterPage = () => {
 
   return (
     <React.Fragment>
-         <PageTitle
+      <PageTitle
         title="Help Center"
         description="Find answers to common questions, access guides, and get support for JAF Chatra."
         canonical="/portal/help-center"
@@ -260,7 +259,6 @@ const HelpCenterPage = () => {
         </Container>
       </Box>
       <Footer />
-      <LiveChatWidget />
     </React.Fragment>
   );
 }

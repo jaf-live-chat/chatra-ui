@@ -4,7 +4,6 @@ import { Link } from "react-router";
 import React, { useState } from "react";
 import Navbar from "../../../components/common/Navbar";
 import Footer from "../../../components/common/Footer";
-import LiveChatWidget from "../../../components/widgets/LiveChatWidget";
 import PageTitle from "../../../components/common/PageTitle";
 
 function CodeBlock({ lines, filename, onCopy, copied }: { lines: string[]; filename: string; onCopy: () => void; copied: boolean }) {

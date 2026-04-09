@@ -2,7 +2,6 @@ import { Box, Container, Typography, Paper, Grid } from "@mui/material";
 import { CheckCircle2, Activity, Server, Database, Globe } from "lucide-react";
 import Navbar from "../../../components/common/Navbar";
 import Footer from "../../../components/common/Footer";
-import LiveChatWidget from "../../../components/widgets/LiveChatWidget";
 import React from "react";
 import PageTitle from "../../../components/common/PageTitle";
 
@@ -16,7 +15,7 @@ const SystemStatusPage = () => {
 
   return (
     <React.Fragment>
-       <PageTitle
+      <PageTitle
         title="System Status"
         description="Real-time information about JAF Chatra services and infrastructure."
         canonical="/portal/system-status"
@@ -129,7 +128,6 @@ const SystemStatusPage = () => {
         </Container>
       </Box>
       <Footer />
-      <LiveChatWidget />
     </React.Fragment>
   );
 }

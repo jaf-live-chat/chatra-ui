@@ -3,7 +3,6 @@ import { Clock, ArrowRight, LayoutDashboard, BarChart3, Users, ListOrdered, Mess
 import { Link } from "react-router";
 import Navbar from "../../../components/common/Navbar";
 import Footer from "../../../components/common/Footer";
-import LiveChatWidget from "../../../components/widgets/LiveChatWidget";
 import React from "react";
 import PageTitle from "../../../components/common/PageTitle";
 
@@ -121,7 +120,7 @@ const BlogPage = () => {
 
   return (
     <React.Fragment>
-       <PageTitle
+      <PageTitle
         title="Blog & Guides"
         description="Insights, tutorials, and best practices for delivering exceptional customer experiences."
         canonical="/portal/blog"
@@ -407,7 +406,6 @@ const BlogPage = () => {
         </Container>
       </Box>
       <Footer />
-      <LiveChatWidget />
     </React.Fragment>
   );
 }
