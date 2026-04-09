@@ -145,7 +145,7 @@ const ApiDocsPage = () => {
 
   return (
     <React.Fragment>
-         <PageTitle
+      <PageTitle
         title="API & Developers"
         description="Build custom integrations, automate workflows, and extend JAF Chatra with our powerful REST API and Webhooks."
         canonical="/portal/api-docs"
@@ -313,7 +313,6 @@ const ApiDocsPage = () => {
         </Container>
       </Box>
       <Footer />
-      <LiveChatWidget />
     </React.Fragment>
   );
 }
