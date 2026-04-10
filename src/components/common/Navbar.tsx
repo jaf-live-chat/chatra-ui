@@ -140,21 +140,21 @@ const Navbar = () => {
         }}
       >
         <Container maxWidth="lg">
-          <Toolbar disableGutters sx={{ minHeight: "80px !important", justifyContent: "space-between" }}>
+            <Toolbar disableGutters sx={{ minHeight: { xs: "56px", sm: "60px", md: "64px" }, justifyContent: "space-between", px: { xs: 1, sm: 1.5, md: 0.5 } }}>
             {/* Logo */}
-            <Box component={Link} to="/" sx={{ display: "flex", alignItems: "center", textDecoration: "none" }}>
+              <Box component={Link} to="/" sx={{ display: "flex", alignItems: "center", textDecoration: "none", flexShrink: 0 }}>
               <Logo
                 variant="dark"
                 alt="JAF Chatra Logo"
-                style={{ height: "36px", maxWidth: "220px", display: "block" }}
+                  size="sm"
               />
             </Box>
 
             {/* Desktop Nav */}
             <Stack
               direction="row"
-              spacing={4}
-              sx={{ display: { xs: "none", md: "flex" }, alignItems: "center" }}
+                spacing={{ xs: 1.5, sm: 2, md: 2.5 }}
+                sx={{ display: { xs: "none", md: "flex" }, alignItems: "center", flex: 1, mx: 2, justifyContent: "center" }}
             >
               {NAV_LINKS.map((link) => (
                 link.label === "Resources" ? (
@@ -311,7 +311,7 @@ const Navbar = () => {
             {/* Actions */}
             <Stack
               direction="row"
-              spacing={2}
+              spacing={1.25}
               sx={{ display: { xs: "none", md: "flex" }, alignItems: "center" }}
             >
               <Button
@@ -341,10 +341,10 @@ const Navbar = () => {
                   fontFamily: "Inter, sans-serif",
                   fontWeight: 600,
                   textTransform: "none",
-                  fontSize: "0.95rem",
+                  fontSize: "0.9rem",
                   boxShadow: "none",
                   borderRadius: "8px",
-                  padding: "8px 20px",
+                  padding: "7px 16px",
                   "&:hover": {
                     bgcolor: btnHover,
                     boxShadow: "none",
@@ -379,7 +379,7 @@ const Navbar = () => {
         }}
         PaperProps={{
           sx: {
-            top: "80px",
+            top: { xs: "56px", sm: "60px", md: "64px" },
             bgcolor: "#FFFFFFFF",
             boxShadow: "0 4px 6px -1px #0000001A",
           }

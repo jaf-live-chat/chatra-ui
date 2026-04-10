@@ -1,31 +1,38 @@
 import React from "react";
-import { APP_LOGO } from "../../constants/constants";
+import useCompanyBranding from "../../hooks/useCompanyBranding";
 
 interface LogoProps {
-  variant: "light" | "dark" | "main";
+  variant: "light" | "dark" | "collapsed" | "main";
   alt?: string;
   className?: string;
   style?: React.CSSProperties;
+  size?: "sm" | "md" | "lg" | "xl";
 }
 
-const LOGO_SOURCE_BY_VARIANT: Record<LogoProps["variant"], string> = {
-  light: APP_LOGO.logoLight,
-  dark: APP_LOGO.logoDark,
-  main: APP_LOGO.logoMain,
+const LOGO_SIZES: Record<string, string> = {
+  sm: "120px",
+  md: "160px",
+  lg: "220px",
+  xl: "280px",
 };
 
 const Logo: React.FC<LogoProps> = ({
   variant,
-  alt = "JAF Chatra Logo",
+  alt,
   className,
   style,
+  size = "xl",
 }: LogoProps) => {
+  const { companyName, logos } = useCompanyBranding();
+  const logoSource = variant === "main" ? logos.collapsed : logos[variant];
+  const width = LOGO_SIZES[size];
+
   return (
     <img
-      src={LOGO_SOURCE_BY_VARIANT[variant]}
-      alt={alt}
+      src={logoSource}
+      alt={alt || `${companyName} Logo`}
       className={className}
-      style={{ width: "auto", objectFit: "contain", ...style }}
+      style={{ width, height: "auto", objectFit: "contain", ...style }}
     />
   );
 };
