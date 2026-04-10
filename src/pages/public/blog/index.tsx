@@ -103,7 +103,7 @@ const BlogPage = () => {
       icon: <Building2 size={24} />,
       title: "Company Info",
       subtitle: "Your organization profile",
-      description: "Keep your company details accurate and up to date. Edit your company name, website, contact email, phone number, and full address. This information appears in automated emails, invoices, and your public-facing support pages.",
+      description: "Keep your company details accurate and up to date. Edit your company name, website, contact email, and phone number. This information appears in automated emails, invoices, and your public-facing support pages.",
       image: imgCompanyInfo,
       tip: "Update this immediately after rebranding or changing office locations."
     },

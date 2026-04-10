@@ -5,7 +5,6 @@ import {
   Globe,
   Mail,
   Phone,
-  MapPin,
   Save,
   Upload,
   Pencil,
@@ -47,15 +46,6 @@ const EMPTY_INFO: CompanyInfoFormData = {
   website: "",
   email: "",
   phone: "",
-  address: "",
-  city: "",
-  state: "",
-  zip: "",
-  country: "",
-  industry: "",
-  size: "",
-  description: "",
-  timezone: "",
   logoUrl: "",
 };
 
@@ -85,15 +75,6 @@ const mapApiToForm = (companyInfo?: CompanyInfoRecord): CompanyInfoFormData => {
     website: companyInfo.generalInformation?.website || "",
     email: companyInfo.generalInformation?.contactEmail || "",
     phone: companyInfo.generalInformation?.phoneNumber || "",
-    address: companyInfo.address?.streetAddress || "",
-    city: companyInfo.address?.city || "",
-    state: companyInfo.address?.stateProvince || "",
-    zip: companyInfo.address?.zipPostalCode || "",
-    country: companyInfo.address?.country || "",
-    industry: companyInfo.businessDetails?.industry || "",
-    size: companyInfo.businessDetails?.companySize || "",
-    description: companyInfo.businessDetails?.description || "",
-    timezone: companyInfo.businessDetails?.timezone || "",
     logoUrl: getLogoUrl(companyInfo, "collapsed"),
   };
 };
@@ -204,19 +185,6 @@ const mapFormToUpdatePayload = (formData: CompanyInfoFormData): UpdateCompanyInf
     website: formData.website,
     contactEmail: formData.email,
     phoneNumber: formData.phone,
-  },
-  address: {
-    streetAddress: formData.address,
-    city: formData.city,
-    stateProvince: formData.state,
-    zipPostalCode: formData.zip,
-    country: formData.country,
-  },
-  businessDetails: {
-    industry: formData.industry,
-    companySize: formData.size,
-    timezone: formData.timezone,
-    description: formData.description,
   },
 });
 
@@ -629,130 +597,6 @@ const CompanyInfoView = () => {
           disabled={isBusy}
           isDark={isDark}
         />
-      </div>
-
-      {/* Address */}
-      <div className={cardClass}>
-        <h2 className={sectionTitleClassSm}>Address</h2>
-        <FieldRow
-          icon={<MapPin className={`w-4 h-4 ${isDark ? "text-cyan-400" : "text-cyan-600"}`} />}
-          label="Street Address"
-          value={current.address}
-          name="address"
-          editing={editing}
-          onChange={handleChange}
-          disabled={isBusy}
-          isDark={isDark}
-        />
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-0 sm:gap-6">
-          <FieldRow
-            icon={<MapPin className={`w-4 h-4 ${isDark ? "text-cyan-400" : "text-cyan-600"}`} />}
-            label="City"
-            value={current.city}
-            name="city"
-            editing={editing}
-            onChange={handleChange}
-            disabled={isBusy}
-            isDark={isDark}
-          />
-          <FieldRow
-            icon={<MapPin className={`w-4 h-4 ${isDark ? "text-cyan-400" : "text-cyan-600"}`} />}
-            label="State / Province"
-            value={current.state}
-            name="state"
-            editing={editing}
-            onChange={handleChange}
-            disabled={isBusy}
-            isDark={isDark}
-          />
-          <FieldRow
-            icon={<MapPin className={`w-4 h-4 ${isDark ? "text-cyan-400" : "text-cyan-600"}`} />}
-            label="ZIP / Postal Code"
-            value={current.zip}
-            name="zip"
-            editing={editing}
-            onChange={handleChange}
-            disabled={isBusy}
-            isDark={isDark}
-          />
-        </div>
-        <FieldRow
-          icon={<Globe className={`w-4 h-4 ${isDark ? "text-cyan-400" : "text-cyan-600"}`} />}
-          label="Country"
-          value={current.country}
-          name="country"
-          editing={editing}
-          onChange={handleChange}
-          disabled={isBusy}
-          isDark={isDark}
-        />
-      </div>
-
-      {/* Business Details */}
-      <div className={cardClass}>
-        <h2 className={sectionTitleClassSm}>Business Details</h2>
-        <FieldRow
-          icon={<Building2 className={`w-4 h-4 ${isDark ? "text-cyan-400" : "text-cyan-600"}`} />}
-          label="Industry"
-          value={current.industry}
-          name="industry"
-          editing={editing}
-          onChange={handleChange}
-          disabled={isBusy}
-          isDark={isDark}
-        />
-        <FieldRow
-          icon={<Building2 className={`w-4 h-4 ${isDark ? "text-cyan-400" : "text-cyan-600"}`} />}
-          label="Company Size"
-          value={current.size}
-          name="size"
-          editing={editing}
-          onChange={handleChange}
-          disabled={isBusy}
-          isDark={isDark}
-        />
-        <FieldRow
-          icon={<Globe className={`w-4 h-4 ${isDark ? "text-cyan-400" : "text-cyan-600"}`} />}
-          label="Timezone"
-          value={current.timezone}
-          name="timezone"
-          editing={editing}
-          onChange={handleChange}
-          disabled={isBusy}
-          isDark={isDark}
-        />
-        <div
-          className={`flex items-start gap-2 sm:gap-4 py-3 sm:py-4 ${isDark ? "border-t border-slate-700" : "border-t border-gray-100"
-            }`}
-        >
-          <div
-            className={`w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${isDark ? "bg-cyan-900/40" : "bg-cyan-50"
-              }`}
-          >
-            <Building2 className={`w-4 h-4 ${isDark ? "text-cyan-400" : "text-cyan-600"}`} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className={`text-xs sm:text-xs mb-1 sm:mb-1.5 ${isDark ? "text-slate-400" : "text-gray-400"}`}>
-              Description
-            </p>
-            {editing ? (
-              <textarea
-                value={current.description}
-                onChange={(e) => handleChange("description", e.target.value)}
-                disabled={isBusy}
-                rows={3}
-                className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent resize-none ${isDark
-                    ? "border-slate-600 bg-slate-700 text-slate-100 placeholder-slate-400"
-                    : "border-gray-200 bg-white text-gray-900"
-                  }`}
-              />
-            ) : (
-              <p className={`text-sm ${isDark ? "text-slate-200" : "text-gray-900"}`}>
-                {current.description || "—"}
-              </p>
-            )}
-          </div>
-        </div>
       </div>
     </div>
   );
