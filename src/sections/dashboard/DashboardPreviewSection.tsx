@@ -37,10 +37,10 @@ const recentChats = [
 
 const DashboardPreviewSection = () => {
   return (
-    <section className="py-24 bg-white">
-      <div className="max-w-7xl mx-auto px-6 lg:px-8 pointer-events-none select-none">
+    <section className="bg-white py-16 sm:py-20 lg:py-24">
+      <div className="pointer-events-none mx-auto max-w-7xl select-none px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="text-center max-w-2xl mx-auto mb-14">
+        <div className="mx-auto mb-10 max-w-2xl text-center sm:mb-14">
           <span
             className="inline-block bg-blue-50 text-blue-600 px-3 py-1 rounded-full mb-4"
             style={{ fontFamily: "Inter, sans-serif", fontSize: "0.8rem", fontWeight: 600 }}
@@ -67,9 +67,111 @@ const DashboardPreviewSection = () => {
           </p>
         </div>
 
-        {/* Dashboard Mockup */}
+        {/* Mobile + Tablet Mockup */}
         <div
-          className="rounded-2xl overflow-hidden shadow-2xl border border-gray-200"
+          className="rounded-2xl border border-gray-200 bg-slate-50 p-4 shadow-xl lg:hidden"
+          style={{ background: "#f8fafc" }}
+        >
+          <div className="mb-4 flex items-center justify-between rounded-xl bg-gray-950 px-3 py-2">
+            <div className="flex gap-1.5">
+              <div className="h-2.5 w-2.5 rounded-full bg-red-400"></div>
+              <div className="h-2.5 w-2.5 rounded-full bg-yellow-400"></div>
+              <div className="h-2.5 w-2.5 rounded-full bg-green-400"></div>
+            </div>
+            <span className="max-w-[180px] truncate text-gray-300" style={{ fontFamily: "Inter, sans-serif", fontSize: "0.66rem" }}>
+              app.jaflivechat.com/dashboard
+            </span>
+          </div>
+
+          <div className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm sm:p-4">
+            <div className="mb-4 flex items-start justify-between gap-2">
+              <div>
+                <h3 className="text-gray-900" style={{ fontFamily: "Inter, sans-serif", fontWeight: 700, fontSize: "0.95rem" }}>
+                  Dashboard Overview
+                </h3>
+                <p className="text-gray-400" style={{ fontFamily: "Inter, sans-serif", fontSize: "0.68rem" }}>
+                  Wednesday, March 11, 2026
+                </p>
+              </div>
+              <div className="flex items-center gap-1.5 rounded-lg border border-yellow-200 bg-yellow-50 px-2 py-1 text-yellow-700">
+                <div className="h-1.5 w-1.5 rounded-full bg-yellow-400 animate-pulse"></div>
+                <span style={{ fontFamily: "Inter, sans-serif", fontSize: "0.65rem", fontWeight: 600 }}>Live</span>
+              </div>
+            </div>
+
+            <div className="mb-4 grid grid-cols-2 gap-2.5">
+              {stats.map((stat) => (
+                <div key={stat.label} className="rounded-lg border border-gray-100 bg-white p-2.5 shadow-sm sm:p-3">
+                  <div className="mb-1.5 flex items-center justify-between">
+                    <div className={`h-7 w-7 ${stat.color} rounded-md flex items-center justify-center`}>
+                      {stat.icon}
+                    </div>
+                    <span
+                      className={stat.trend === "up" ? "text-green-500" : "text-blue-400"}
+                      style={{ fontFamily: "Inter, sans-serif", fontSize: "0.62rem", fontWeight: 600 }}
+                    >
+                      {stat.change}
+                    </span>
+                  </div>
+                  <p className="text-gray-900" style={{ fontFamily: "Inter, sans-serif", fontWeight: 700, fontSize: "1rem" }}>
+                    {stat.value}
+                  </p>
+                  <p className="text-gray-400" style={{ fontFamily: "Inter, sans-serif", fontSize: "0.62rem" }}>
+                    {stat.label}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            <div className="overflow-hidden rounded-lg border border-gray-100 bg-white shadow-sm">
+              <div className="flex items-center justify-between border-b border-gray-100 px-3 py-2.5">
+                <h4 className="text-gray-700" style={{ fontFamily: "Inter, sans-serif", fontWeight: 700, fontSize: "0.74rem" }}>
+                  Recent Conversations
+                </h4>
+                <span className="text-blue-600" style={{ fontFamily: "Inter, sans-serif", fontSize: "0.66rem", fontWeight: 600 }}>
+                  View All
+                </span>
+              </div>
+
+              <div className="divide-y divide-gray-100">
+                {recentChats.slice(0, 4).map((chat) => (
+                  <div key={chat.name} className="flex items-center justify-between gap-2 px-3 py-2.5">
+                    <div className="min-w-0">
+                      <p className="truncate text-gray-700" style={{ fontFamily: "Inter, sans-serif", fontSize: "0.7rem", fontWeight: 600 }}>
+                        {chat.name}
+                      </p>
+                      <p className="truncate text-gray-500" style={{ fontSize: "0.64rem" }}>
+                        {chat.msg}
+                      </p>
+                    </div>
+                    <span
+                      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 capitalize ${chat.status === "active"
+                        ? "bg-green-100 text-green-700"
+                        : chat.status === "pending"
+                          ? "bg-yellow-400 text-yellow-900 border border-yellow-500"
+                          : "bg-blue-100 text-blue-700"
+                        }`}
+                      style={{ fontFamily: "Inter, sans-serif", fontSize: "0.56rem", fontWeight: 600 }}
+                    >
+                      {chat.status === "active" ? (
+                        <CheckCircle2 className="h-2.5 w-2.5" />
+                      ) : chat.status === "pending" ? (
+                        <Clock className="h-2.5 w-2.5" />
+                      ) : (
+                        <Circle className="h-2.5 w-2.5" />
+                      )}
+                      {chat.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Desktop Mockup */}
+        <div
+          className="hidden overflow-hidden rounded-2xl border border-gray-200 shadow-2xl lg:block"
           style={{ background: "#f8fafc" }}
         >
           {/* Title Bar */}
@@ -260,7 +362,7 @@ const DashboardPreviewSection = () => {
         </div>
 
         {/* Bottom gradient fade */}
-        <div className="h-8 -mt-1 rounded-b-2xl" style={{ background: "linear-gradient(to bottom, transparent, white)" }}></div>
+        <div className="-mt-1 hidden h-8 rounded-b-2xl lg:block" style={{ background: "linear-gradient(to bottom, transparent, white)" }}></div>
       </div>
     </section>
   );

@@ -30,9 +30,9 @@ const IntegrationSection = () => {
   const lines = codeSnippet.split("\n");
 
   return (
-    <section className="py-24 bg-white">
-      <div className="max-w-7xl mx-auto px-6 lg:px-8">
-        <div className="grid lg:grid-cols-2 gap-16 items-center">
+    <section className="bg-white py-12 sm:py-20 lg:py-24">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
           {/* Left Content */}
           <div>
             <span
@@ -54,8 +54,8 @@ const IntegrationSection = () => {
               Easy Website Integration
             </h2>
             <p
-              className="text-gray-500 mb-6"
-              style={{ fontFamily: "Inter, sans-serif", fontSize: "1rem", lineHeight: "1.7" }}
+              className="mb-6 text-gray-500"
+              style={{ fontFamily: "Inter, sans-serif", fontSize: "0.95rem", lineHeight: "1.7" }}
             >
               Add JAF Live Chat to your website using a simple JavaScript snippet. It works with any platform — WordPress, Shopify, Wix, or custom HTML sites.
             </p>
@@ -73,7 +73,7 @@ const IntegrationSection = () => {
                   </div>
                   <span
                     className="text-gray-600"
-                    style={{ fontFamily: "Inter, sans-serif", fontSize: "0.9rem" }}
+                    style={{ fontFamily: "Inter, sans-serif", fontSize: "0.84rem" }}
                   >
                     {item}
                   </span>
@@ -95,39 +95,51 @@ const IntegrationSection = () => {
           </div>
 
           {/* Right: Code Block */}
-          <div>
-            <div className="rounded-2xl overflow-hidden shadow-2xl border border-gray-800">
+          <div className="w-full">
+            <div className="max-w-full overflow-hidden rounded-2xl border border-gray-800 shadow-2xl">
               {/* Code Header */}
-              <div className="flex items-center justify-between px-5 py-3 bg-gray-900 border-b border-gray-700">
+              <div className="flex items-center justify-between border-b border-gray-700 bg-gray-900 px-4 py-3 sm:px-5">
                 <div className="flex items-center gap-3">
                   <div className="flex gap-1.5">
                     <div className="w-3 h-3 rounded-full bg-red-400"></div>
                     <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
                     <div className="w-3 h-3 rounded-full bg-green-400"></div>
                   </div>
-                  <span className="text-gray-400" style={{ fontFamily: "Inter, sans-serif", fontSize: "0.78rem" }}>
+                  <span className="max-w-[120px] truncate text-gray-400 sm:max-w-none" style={{ fontFamily: "Inter, sans-serif", fontSize: "0.78rem" }}>
                     index.html
                   </span>
                 </div>
                 <div
                   onClick={handleCopy}
-                  className="flex items-center gap-1.5 text-gray-400 cursor-pointer hover:text-gray-200 transition-colors"
+                  className="cursor-pointer items-center gap-1.5 text-gray-400 transition-colors hover:text-gray-200 hidden sm:flex"
                   style={{ fontFamily: "Inter, sans-serif", fontSize: "0.75rem" }}
                 >
                   {copied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
                   <span className={copied ? "text-green-400" : ""}>{copied ? "Copied!" : "Copy"}</span>
                 </div>
+                <button
+                  onClick={handleCopy}
+                  type="button"
+                  className="inline-flex items-center gap-1 text-gray-300 sm:hidden"
+                  style={{ fontFamily: "Inter, sans-serif", fontSize: "0.72rem" }}
+                >
+                  {copied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span className={copied ? "text-green-400" : ""}>{copied ? "Copied" : "Copy"}</span>
+                </button>
               </div>
 
               {/* Code Body */}
-              <div className="bg-gray-950 p-5 overflow-x-auto">
-                <pre style={{ fontFamily: "monospace", fontSize: "0.8rem", lineHeight: "1.7" }}>
+              <div className="overflow-x-auto bg-gray-950 p-3.5 sm:p-5">
+                <pre
+                  className="whitespace-pre-wrap break-words sm:whitespace-pre"
+                  style={{ fontFamily: "monospace", fontSize: "0.7rem", lineHeight: "1.7" }}
+                >
                   {lines.map((line, i) => (
-                    <div key={i} className="flex">
-                      <span className="text-gray-600 w-7 shrink-0 select-none text-right mr-4" style={{ fontSize: "0.72rem" }}>
+                    <div key={i} className="flex items-start">
+                      <span className="mr-2 w-6 shrink-0 select-none text-right text-gray-600 sm:mr-4 sm:w-7" style={{ fontSize: "0.62rem" }}>
                         {i + 1}
                       </span>
-                      <span>
+                      <span className="break-words">
                         {line.includes("<!--") || line.includes("-->") ? (
                           <span className="text-gray-500">{line}</span>
                         ) : line.includes("<script") || line.includes("</script") ? (
@@ -156,7 +168,7 @@ const IntegrationSection = () => {
               </div>
 
               {/* Code Footer */}
-              <div className="bg-gray-900 px-5 py-3 border-t border-gray-800 flex items-center gap-2">
+              <div className="flex items-center gap-2 border-t border-gray-800 bg-gray-900 px-4 py-3 sm:px-5">
                 <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
                 <span className="text-gray-400" style={{ fontFamily: "Inter, sans-serif", fontSize: "0.72rem" }}>
                   Paste this snippet before the <span className="text-blue-400 font-mono">{"</body>"}</span> tag on your website.
