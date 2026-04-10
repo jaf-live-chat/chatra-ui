@@ -1,15 +1,9 @@
 import { Copy, Check } from "lucide-react";
 import { useState } from "react";
 
-const codeSnippet = `<!-- Live Chat Widget -->
-<script>
-  window.LiveChatConfig = {
-    apiUrl: 'https://depauperate-destiny-superdelicate.ngrok-free.dev/api/v1',
-    socketUrl: 'https://depauperate-destiny-superdelicate.ngrok-free.dev'
-  };
-</script>
-
-<script src="https://timora-live-chat.vercel.app/widget/live-chat-widget.js"></script>`;
+const codeSnippet = `<!-- JAF Chatra Widget -->
+<script src="https://jafchatra.com/widget.js"data-api-key="{{YOUR_API_KEY_HERE}}">
+</script>`;
 
 const IntegrationSection = () => {
   const [copied, setCopied] = useState(false);

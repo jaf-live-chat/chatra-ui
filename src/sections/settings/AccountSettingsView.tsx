@@ -32,6 +32,29 @@ const formatCountdown = (remainingMs: number) => {
   return `${minutes}:${seconds}`;
 };
 
+const parseAsLocalCalendarDate = (value: string | null | undefined) => {
+  const normalized = String(value || "").trim();
+
+  if (!normalized) {
+    return null;
+  }
+
+  const dateOnlyMatch = /^(\d{4})-(\d{2})-(\d{2})/.exec(normalized);
+  if (dateOnlyMatch) {
+    const year = Number(dateOnlyMatch[1]);
+    const monthIndex = Number(dateOnlyMatch[2]) - 1;
+    const day = Number(dateOnlyMatch[3]);
+    return new Date(year, monthIndex, day);
+  }
+
+  const parsed = new Date(normalized);
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+
+  return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+};
+
 const splitFullName = (fullName: string) => {
   const name = String(fullName || "").trim();
 
@@ -516,9 +539,21 @@ const AccountSettingsView = () => {
   const isUnlocked = Boolean(unlockUntil && unlockUntil > nowTs);
   const remainingUnlockMs = isUnlocked ? (unlockUntil || 0) - nowTs : 0;
 
-  const tenantApiKey = canViewTenantApiKey ? tenant?.apiKey || "" : "";
-  const socketUrl = API_BASE_URL.replace(/\/api\/v\d+\/?$/, "");
-  const widgetScript = `<!-- Live Chat Widget -->\n<script>\n  window.LiveChatConfig = {\n    apiUrl: '${API_BASE_URL}',\n    socketUrl: '${socketUrl}',\n    apiKey: '${tenantApiKey || ""}'\n  };\n</script>\n<script src="https://timora-live-chat.vercel.app/widget/live-chat-widget.js"></script>`;
+  const subscriptionLifecycleStatus = String(tenant?.subscriptionData?.status || "").toUpperCase();
+  const hasPurchaseRecord = Boolean(tenant?.subscriptionData?.id || tenant?.subscription?.startDate);
+  const subscriptionEndDate = tenant?.subscriptionData?.endDate || tenant?.subscription?.endDate || "";
+  const endDate = parseAsLocalCalendarDate(subscriptionEndDate);
+  const today = new Date();
+  const todayDateOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const isExpiredByDate = Boolean(endDate && endDate.getTime() < todayDateOnly.getTime());
+  const hasActiveTenantPurchase =
+    hasPurchaseRecord &&
+    !["DEACTIVATED", "EXPIRED", "CANCELLED", "INACTIVE"].includes(subscriptionLifecycleStatus) &&
+    !isExpiredByDate;
+
+  const tenantApiKey = canViewTenantApiKey && hasActiveTenantPurchase ? tenant?.apiKey || "" : "";
+  const scriptApiKey = tenantApiKey || "{{YOUR_API_KEY_HERE}}";
+  const widgetScript = `<!-- JAF Chatra Widget -->\n<script src="https://jafchatra.com/widget.js" data-api-key="${scriptApiKey}"></script>`;
 
   return (
     <React.Fragment>
@@ -1067,6 +1102,10 @@ const AccountSettingsView = () => {
                       {!canViewTenantApiKey ? (
                         <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
                           API key access is available only for Admin and Master Admin accounts.
+                        </div>
+                      ) : !hasActiveTenantPurchase ? (
+                        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                          API key will appear once your tenant has an active purchased subscription.
                         </div>
                       ) : (
                         <div className="flex items-center gap-3">
