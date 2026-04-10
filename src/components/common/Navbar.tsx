@@ -20,7 +20,7 @@ import {
   InputAdornment,
   CircularProgress,
 } from "@mui/material";
-import { APP_LOGO } from "../../constants/constants";
+import Logo from "./Logo";
 
 const NAV_LINKS = [
   { label: "Features", to: "/features" },
@@ -143,10 +143,10 @@ const Navbar = () => {
           <Toolbar disableGutters sx={{ minHeight: "80px !important", justifyContent: "space-between" }}>
             {/* Logo */}
             <Box component={Link} to="/" sx={{ display: "flex", alignItems: "center", textDecoration: "none" }}>
-              <img
-                src={APP_LOGO.logoDark}
+              <Logo
+                variant="dark"
                 alt="JAF Chatra Logo"
-                style={{ height: "36px", width: "auto", maxWidth: "220px", objectFit: "contain", display: "block" }}
+                style={{ height: "36px", maxWidth: "220px", display: "block" }}
               />
             </Box>
 

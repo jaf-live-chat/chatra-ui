@@ -1,5 +1,5 @@
 import { Twitter, Github, Linkedin } from "lucide-react";
-import { APP_LOGO } from "../../constants/constants";
+import Logo from "./Logo";
 
 const footerColumns = [
   {
@@ -29,7 +29,7 @@ const Footer = () => {
           {/* Brand */}
           <div className="lg:col-span-1">
             <div className="flex items-center gap-2 mb-4">
-              <img src={APP_LOGO.logoDark} alt="JAF Chatra" className="h-40 w-auto -my-10" />
+              <Logo variant="dark" alt="JAF Chatra" className="h-40 w-auto -my-10" />
             </div>
             <p style={{ fontFamily: "Inter, sans-serif", fontSize: "0.85rem", lineHeight: "1.7" }}>
               Real-time customer support made simple for businesses of all sizes.

@@ -9,7 +9,7 @@ import {
   CheckCircle2,
   Circle,
 } from "lucide-react";
-import { APP_LOGO } from "../../constants/constants";
+import Logo from "../../components/common/Logo";
 
 const navItems = [
   { icon: <LayoutDashboard className="w-4 h-4" />, label: "Dashboard", active: true },
@@ -94,7 +94,7 @@ const DashboardPreviewSection = () => {
             <div className="w-48 bg-gray-950 flex flex-col py-4">
               {/* Logo */}
               <div className="flex items-center gap-2 px-4 mb-6">
-                <img src={APP_LOGO.logoDark} alt="JAF Chatra" className="h-8 w-auto" style={{ filter: "brightness(0) invert(1)" }} />
+                <Logo variant="light" alt="JAF Chatra" className="h-8 w-auto" />
               </div>
 
               {/* Nav Items */}
