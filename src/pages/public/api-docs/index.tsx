@@ -88,15 +88,8 @@ function ParamTable({ params }: { params: { name: string; type: string; desc: st
 
 const ApiDocsPage = () => {
   const codeLines = [
-    `<!-- Live Chat Widget -->`,
-    `<script>`,
-    `  window.LiveChatConfig = {`,
-    `    apiUrl: 'https://depauperate-destiny-superdelicate.ngrok-free.dev/api/v1',`,
-    `    socketUrl: 'https://depauperate-destiny-superdelicate.ngrok-free.dev'`,
-    `  };`,
-    `</script>`,
-    ``,
-    `<script src="https://timora-live-chat.vercel.app/widget/live-chat-widget.js"></script>`,
+    `<!-- JAF Chatra Widget -->`,
+    `<script src="https://jafchatra.com/widget.js"data-api-key="{{YOUR_API_KEY_HERE}}"></script>`,
   ];
 
   const developersCodeLines = [
