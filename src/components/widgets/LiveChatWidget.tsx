@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Loader2, MessageCircle, Send, X, Paperclip, MoreVertical, Check, CheckCheck } from "lucide-react";
+import { Loader2, MessageCircle, Paperclip, Send, X, CheckCheck, MoreHorizontal } from "lucide-react";
 import { API_BASE_URL } from "../../constants/constants";
 import type {
   LiveChatMessage,
@@ -32,9 +32,12 @@ const WIDGET_DARK_MODE_KEY = "jaf_dark_mode";
 const QUICK_MESSAGES_KEY = "jaf_quick_messages";
 
 const DEFAULT_TITLE = "Support";
-const DEFAULT_WELCOME = "👋 Hi there! Welcome to JAF Live Chat. How can I help you today?";
+const DEFAULT_WELCOME = "Hi there. Welcome to JAF Live Chat. How can I help you today?";
 const DEFAULT_ACCENT = "#0891b2";
 const MESSAGE_PAGE_LIMIT = 100;
+const PANEL_CLOSE_ANIMATION_MS = 220;
+
+const isHexColor = (value: string) => /^#([A-Fa-f0-9]{3}|[A-Fa-f0-9]{6})$/.test(value.trim());
 
 const readStoredValue = (key: string, fallback = "") => {
   if (typeof window === "undefined") {
@@ -93,8 +96,6 @@ const getResolvedConfig = (initialConfig: LiveChatWidgetConfig = {}): LiveChatWi
     accentColor: initialConfig.accentColor || windowConfig.accentColor || DEFAULT_ACCENT,
   };
 };
-
-const normalizeSocketUrl = (value: string) => value.replace(/\/$/, "");
 
 const resolveSocketUrl = () => {
   const apiBaseUrl = String(API_BASE_URL).trim().replace(/\/$/, "");
@@ -178,6 +179,8 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
   const [messages, setMessages] = useState<LiveChatMessage[]>([]);
   const [messageText, setMessageText] = useState("");
   const [isOpen, setIsOpen] = useState(false);
+  const [shouldRenderPanel, setShouldRenderPanel] = useState(false);
+  const [isPanelVisible, setIsPanelVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [socketStatus, setSocketStatus] = useState<SocketStatus>("idle");
@@ -196,6 +199,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
   const title = widgetConfig.title || DEFAULT_TITLE;
   const welcomeMessage = widgetConfig.welcomeMessage || DEFAULT_WELCOME;
   const accentColor = widgetConfig.accentColor || DEFAULT_ACCENT;
+  const resolvedAccent = isHexColor(accentColor) ? accentColor : DEFAULT_ACCENT;
   const statusLabel = useMemo(() => {
     switch (socketStatus) {
       case "connected":
@@ -292,8 +296,8 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
     }
   }, [apiKey, syncMessages, visitorToken, widgetConfig]);
 
-  const handleSendMessage = useCallback(async () => {
-    const trimmedMessage = messageText.trim();
+  const handleSendMessage = useCallback(async (presetMessage?: string) => {
+    const trimmedMessage = String(presetMessage ?? messageText).trim();
 
     if (!trimmedMessage || isSending) {
       return;
@@ -324,7 +328,9 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
       };
 
       setMessages((currentMessages) => normalizeMessages([...currentMessages, optimisticMessage]));
-      setMessageText("");
+      if (!presetMessage) {
+        setMessageText("");
+      }
 
       await liveChatWidgetServices.sendMessage(widgetConfig, visitorToken, {
         conversationId: resolvedConversationId,
@@ -362,6 +368,33 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
       window.removeEventListener("storage", handleStorage);
     };
   }, [initialConfig]);
+
+  useEffect(() => {
+    if (isOpen) {
+      setShouldRenderPanel(true);
+      const rafId = window.requestAnimationFrame(() => {
+        setIsPanelVisible(true);
+      });
+
+      return () => {
+        window.cancelAnimationFrame(rafId);
+      };
+    }
+
+    setIsPanelVisible(false);
+
+    if (!shouldRenderPanel) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setShouldRenderPanel(false);
+    }, PANEL_CLOSE_ANIMATION_MS);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [isOpen, shouldRenderPanel]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -483,77 +516,104 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
 
   const theme = isDarkMode
     ? {
-      shell: "bg-slate-950 border-slate-800 text-slate-100",
-      header: "bg-gradient-to-r from-cyan-600 to-teal-600 text-white shadow-lg",
-      panel: "bg-slate-900 border-slate-800",
-      body: "bg-slate-950",
+      shell: "bg-slate-900/95 border-slate-700/70 text-slate-100 shadow-[0_24px_55px_-28px_rgba(2,6,23,0.95)] ring-1 ring-white/10 backdrop-blur-xl",
+      topBar: "bg-slate-900/95 border-b border-slate-800",
+      header: "bg-[linear-gradient(140deg,#0e7490_0%,#0369a1_52%,#155e75_100%)] text-white shadow-lg",
+      panel: "bg-slate-900 border-slate-700",
+      body: "bg-[radial-gradient(circle_at_top,rgba(34,211,238,0.16),transparent_34%),linear-gradient(180deg,#020617_0%,#111827_68%,#0f172a_100%)]",
       headerText: "text-white font-semibold text-sm",
-      subText: "text-cyan-200 text-xs font-medium",
+      subText: "text-cyan-100/90 text-xs font-medium",
       muted: "text-slate-400 text-xs",
       bubbleVisitor: "bg-cyan-600 text-white rounded-3xl rounded-tr-lg shadow-sm",
-      bubbleAgent: "bg-slate-800 text-slate-100 border border-slate-700 rounded-3xl rounded-tl-lg shadow-sm",
-      composer: "bg-slate-900 border-t border-slate-800",
+      bubbleAgent: "bg-slate-800/95 text-slate-100 border border-slate-700 rounded-3xl rounded-tl-lg shadow-sm",
+      composer: "bg-slate-900/95 border-t border-slate-800",
       input: "bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-500 rounded-2xl focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/20",
       button: "bg-cyan-600 hover:bg-cyan-700 text-white disabled:bg-slate-700 disabled:cursor-not-allowed",
       buttonSecondary: "bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700",
-      quickMsg: "bg-slate-800 border border-slate-700 text-slate-100 hover:bg-slate-700 text-xs cursor-pointer",
+      quickMsg: "bg-slate-800 border border-slate-700 text-slate-100 hover:bg-slate-700 text-xs cursor-pointer shadow-sm",
       error: "bg-red-950/50 text-red-200 border border-red-900/50",
-      divider: "bg-slate-800",
+      divider: "bg-slate-900/80",
+      welcomeTitle: "text-slate-100 text-sm font-semibold",
     }
     : {
-      shell: "bg-white border-slate-200 text-slate-900 shadow-2xl",
-      header: "bg-gradient-to-r from-cyan-600 to-teal-600 text-white shadow-lg",
-      panel: "bg-slate-50 border-slate-200",
-      body: "bg-white",
+      shell: "bg-white/95 border-cyan-100 text-slate-900 shadow-[0_28px_64px_-28px_rgba(8,145,178,0.45)] ring-1 ring-cyan-100/80 backdrop-blur-xl",
+      topBar: "bg-white/95 border-b border-slate-100",
+      header: "bg-[linear-gradient(140deg,#0891b2_0%,#0ea5e9_52%,#14b8a6_100%)] text-white shadow-lg",
+      panel: "bg-white border-cyan-100 shadow-md",
+      body: "bg-[radial-gradient(circle_at_top,rgba(34,211,238,0.3),transparent_34%),linear-gradient(180deg,#f0fdff_0%,#f8fafc_44%,#ffffff_100%)]",
       headerText: "text-white font-semibold text-sm",
       subText: "text-cyan-100 text-xs font-medium",
       muted: "text-slate-500 text-xs",
       bubbleVisitor: "bg-cyan-600 text-white rounded-3xl rounded-tr-lg shadow-sm",
-      bubbleAgent: "bg-slate-100 text-slate-900 border border-slate-200 rounded-3xl rounded-tl-lg shadow-sm",
-      composer: "bg-white border-t border-slate-200",
-      input: "bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 rounded-2xl focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/20",
+      bubbleAgent: "bg-white/95 text-slate-900 border border-cyan-100 rounded-3xl rounded-tl-lg shadow-sm",
+      composer: "bg-white/90 border-t border-cyan-100",
+      input: "bg-white border border-slate-200 text-slate-900 placeholder-slate-400 rounded-2xl focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/20",
       button: "bg-cyan-600 hover:bg-cyan-700 text-white disabled:bg-slate-200 disabled:cursor-not-allowed",
-      buttonSecondary: "bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200",
-      quickMsg: "bg-slate-100 border border-slate-200 text-slate-700 hover:bg-slate-200 text-xs cursor-pointer",
+      buttonSecondary: "bg-cyan-50 hover:bg-cyan-100 text-cyan-700 border border-cyan-100",
+      quickMsg: "bg-cyan-50 border border-cyan-100 text-cyan-700 hover:bg-cyan-100 text-xs cursor-pointer shadow-sm",
       error: "bg-red-50 text-red-700 border border-red-200",
-      divider: "bg-slate-200",
+      divider: "bg-slate-100",
+      welcomeTitle: "text-slate-800 text-sm font-semibold",
     };
 
   return (
-    <div className="fixed bottom-6 right-6 z-[70] flex flex-col items-end gap-4 font-sans" style={{ fontFamily: "Inter, sans-serif" }}>
-      {isOpen ? (
-        <div className={`w-[400px] max-w-[calc(100vw-1.5rem)] h-[600px] overflow-hidden rounded-2xl border flex flex-col ${theme.shell}`}>
+    <div className="fixed bottom-3 right-3 sm:bottom-6 sm:right-6 z-[70] flex flex-col items-end gap-4" style={{ fontFamily: "Sora, Avenir Next, Segoe UI, sans-serif" }}>
+      {shouldRenderPanel ? (
+        <div
+          className={`w-[min(420px,calc(100vw-1rem))] sm:w-[400px] h-[min(680px,calc(100vh-1rem))] sm:h-[620px] overflow-hidden rounded-[30px] border flex flex-col origin-bottom-right transition-all duration-200 ease-out ${theme.shell}`}
+          style={{
+            opacity: isPanelVisible ? 1 : 0,
+            transform: isPanelVisible ? "translateY(0) scale(1)" : "translateY(12px) scale(0.96)",
+          }}
+        >
+          <div className={`${theme.topBar} px-4 py-2.5 flex items-center justify-between gap-3 flex-shrink-0`}>
+            <div className="h-9 w-9 rounded-full flex items-center justify-center bg-slate-100/90 text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+              <MessageCircle className="h-4.5 w-4.5" />
+            </div>
+            <div className={`px-4 py-1 rounded-full border flex items-center gap-2 min-w-0 ${theme.panel}`}>
+              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+              <p className="truncate text-[0.95rem] font-semibold">{title}</p>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setShowQuickMessages((current) => !current)}
+                className="flex h-9 w-9 items-center justify-center rounded-full text-slate-500 transition-all duration-200 hover:-translate-y-0.5 hover:bg-slate-200/70 hover:text-slate-700 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-slate-100"
+                aria-label="Toggle quick replies"
+              >
+                <MoreHorizontal className="h-5 w-5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsOpen(false)}
+                className="flex h-9 w-9 items-center justify-center rounded-full text-slate-600 transition-all duration-200 hover:-translate-y-0.5 hover:bg-slate-200/80 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-slate-100"
+                aria-label="Close live chat"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+
           {/* Header */}
-          <div className={`${theme.header} px-6 py-4 flex-shrink-0`}>
+          <div className={`${theme.header} px-5 sm:px-6 py-4 flex-shrink-0`}>
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-3 min-w-0 flex-1">
-                <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-white/20 text-white font-bold text-lg">
+                <div className="flex h-11 w-11 sm:h-12 sm:w-12 flex-shrink-0 items-center justify-center rounded-full bg-white/20 text-white font-bold text-base sm:text-lg ring-1 ring-white/40">
                   {title.trim().charAt(0).toUpperCase() || "J"}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-semibold text-white leading-tight">{title}</p>
+                  <p className="truncate font-semibold text-white leading-tight tracking-tight">Text Support</p>
                   <div className="flex items-center gap-1.5 mt-1">
-                    <div className={`h-2 w-2 rounded-full ${socketStatus === "connected" ? "bg-green-400 animate-pulse" : socketStatus === "connecting" ? "bg-yellow-400" : "bg-slate-400"}`} />
+                    <div className={`h-2 w-2 rounded-full ${socketStatus === "connected" ? "bg-green-400 animate-pulse" : socketStatus === "connecting" ? "bg-yellow-300" : "bg-slate-300"}`} />
                     <p className={theme.subText}>{statusLabel}</p>
                   </div>
                 </div>
-              </div>
-
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setIsOpen(false)}
-                  className="flex h-10 w-10 items-center justify-center rounded-full bg-white/15 text-white transition-colors hover:bg-white/25 active:bg-white/30"
-                  aria-label="Close live chat"
-                >
-                  <X className="h-5 w-5" />
-                </button>
               </div>
             </div>
           </div>
 
           {/* Messages Area */}
-          <div className={`flex-1 overflow-y-auto px-6 py-4 flex flex-col ${theme.body}`}>
+          <div className={`flex-1 overflow-y-auto px-4 sm:px-6 py-4 flex flex-col ${theme.body}`}>
             {isLoading && messages.length === 0 ? (
               <div className="flex items-center justify-center h-full">
                 <div className="flex flex-col items-center gap-3">
@@ -564,19 +624,17 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
             ) : messages.length === 0 ? (
               <div className={`rounded-2xl border p-6 text-center ${theme.panel}`}>
                 <div className="flex justify-center mb-3">
-                  <div className="h-14 w-14 rounded-full bg-cyan-100 dark:bg-cyan-900/30 flex items-center justify-center">
+                  <div className="h-14 w-14 rounded-full bg-cyan-100/90 dark:bg-cyan-900/30 flex items-center justify-center ring-8 ring-cyan-50/60 dark:ring-cyan-900/30">
                     <MessageCircle className="h-7 w-7 text-cyan-600" />
                   </div>
                 </div>
-                <p className={`font-semibold ${theme.headerText}`}>{welcomeMessage}</p>
+                <p className={theme.welcomeTitle}>{welcomeMessage}</p>
                 <p className={`mt-2 ${theme.muted}`}>We're here to help. Send a message to get started.</p>
               </div>
             ) : (
               <div className="flex flex-col gap-4">
                 {messages.map((message) => {
                   const isVisitorMessage = message.senderType === "VISITOR";
-                  const isRead = message.createdAt; // Placeholder for read status
-
                   return (
                     <div key={message._id} className={`flex ${isVisitorMessage ? "justify-end" : "justify-start"} items-end gap-2`}>
                       {!isVisitorMessage && (
@@ -584,7 +642,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                           J
                         </div>
                       )}
-                      <div className={`max-w-[70%] ${isVisitorMessage ? theme.bubbleVisitor : theme.bubbleAgent}`}>
+                      <div className={`max-w-[78%] sm:max-w-[70%] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${isVisitorMessage ? theme.bubbleVisitor : theme.bubbleAgent}`}>
                         <p className="px-4 py-2.5 whitespace-pre-wrap leading-relaxed text-sm">{message.message}</p>
                         <div className={`px-4 pb-1 flex items-center gap-1 ${isVisitorMessage ? "text-white/70" : theme.muted}`}>
                           <p className="text-[11px]">{formatTime(message.createdAt)}</p>
@@ -600,8 +658,8 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
           </div>
 
           {/* Quick Messages */}
-          {showQuickMessages && (
-            <div className={`border-t px-6 py-4 ${theme.divider}`}>
+          {showQuickMessages && quickMessages.length > 0 && (
+            <div className={`border-t px-4 sm:px-6 py-3 ${theme.divider}`}>
               <p className={`text-[11px] font-semibold uppercase tracking-wide mb-2 ${theme.muted}`}>Quick Replies</p>
               <div className="flex flex-wrap gap-2">
                 {quickMessages.slice(0, 5).map((qm) => (
@@ -610,10 +668,11 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                     type="button"
                     onClick={() => {
                       setMessageText(qm.response);
-                      void handleSendMessage();
+                      setShowQuickMessages(false);
+                      void handleSendMessage(qm.response);
                     }}
                     disabled={!apiKey || isLoading || isSending}
-                    className={`px-3 py-1.5 rounded-full border transition-colors text-xs font-medium ${theme.quickMsg} disabled:opacity-50 disabled:cursor-not-allowed`}
+                    className={`px-3 py-1.5 rounded-full border transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md text-xs font-medium ${theme.quickMsg} disabled:opacity-50 disabled:cursor-not-allowed`}
                   >
                     {qm.title}
                   </button>
@@ -623,7 +682,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
           )}
 
           {/* Input Area */}
-          <div className={`border-t ${theme.composer} px-6 py-4 flex-shrink-0`}>
+          <div className={`border-t ${theme.composer} px-4 sm:px-6 py-4 flex-shrink-0`}>
             {errorMessage ? (
               <div className={`mb-3 rounded-xl border px-3 py-2 text-xs ${theme.error} flex items-start gap-2`}>
                 <span className="flex-shrink-0 mt-0.5">!</span>
@@ -636,7 +695,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={!apiKey || isLoading || isSending}
-                className={`flex h-10 w-10 items-center justify-center rounded-2xl flex-shrink-0 transition-colors ${theme.buttonSecondary} disabled:opacity-50 disabled:cursor-not-allowed`}
+                className={`flex h-10 w-10 items-center justify-center rounded-2xl flex-shrink-0 transition-all duration-200 hover:-translate-y-0.5 ${theme.buttonSecondary} disabled:opacity-50 disabled:cursor-not-allowed`}
                 aria-label="Attach file"
                 title="Attach file (coming soon)"
               >
@@ -672,14 +731,15 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                   void handleSendMessage();
                 }}
                 disabled={!apiKey || isLoading || isSending || !messageText.trim()}
-                className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl transition-colors ${theme.button} disabled:opacity-50 disabled:cursor-not-allowed`}
+                className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl transition-all duration-200 hover:-translate-y-0.5 ${theme.button} disabled:opacity-50 disabled:cursor-not-allowed`}
+                style={{ backgroundColor: resolvedAccent }}
                 aria-label="Send message"
               >
                 {isSending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
               </button>
             </div>
 
-            <p className={`text-[10px] mt-2 text-center ${theme.muted}`}>Press <kbd className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono">Shift+Enter</kbd> for new line</p>
+            <p className={`text-[10px] mt-2 text-center ${theme.muted}`}> Powered by JAF Chatra </p>
           </div>
         </div>
       ) : null}
@@ -693,10 +753,14 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
             setUnreadCount(0);
           }
         }}
-        className={`relative flex h-16 w-16 items-center justify-center rounded-2xl text-white shadow-xl transition-all hover:scale-110 active:scale-95 ${theme.button}`}
+        className={`group relative flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-2xl text-white shadow-xl transition-all duration-200 hover:-translate-y-1 hover:scale-105 active:scale-95 ${theme.button}`}
+        style={{
+          background: `linear-gradient(140deg, ${resolvedAccent} 0%, #0ea5e9 85%)`,
+          boxShadow: `0 16px 34px -16px ${resolvedAccent}`,
+        }}
         aria-label="Open live chat"
       >
-        {isOpen ? <X className="h-7 w-7" /> : <MessageCircle className="h-7 w-7" />}
+        {isOpen ? <X className="h-7 w-7 transition-transform duration-200" /> : <MessageCircle className="h-7 w-7 transition-transform duration-200 group-hover:rotate-6" />}
 
         {unreadCount > 0 && !isOpen ? (
           <span className="absolute -right-3 -top-3 flex min-w-[24px] items-center justify-center rounded-full border-2 border-white bg-red-500 px-1.5 text-[10px] font-bold text-white shadow-lg">
