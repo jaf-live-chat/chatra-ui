@@ -12,6 +12,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { toast } from "sonner";
 import PageTitle from "../../components/common/PageTitle";
 import TitleTag from "../../components/TitleTag";
+import Skeleton from "../../components/skeleton";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -118,6 +119,12 @@ const getErrorMessage = (error: unknown, fallbackMessage: string) => {
 
   return fallbackMessage;
 };
+
+const normalizeSupportText = (value: string) =>
+  value
+    .replace(/\s+/g, " ")
+    .replace(/\s+([.,!?])/g, "$1")
+    .trim();
 
 function FaqRow({
   faq,
@@ -233,6 +240,9 @@ function FaqRow({
                   rows={3}
                   className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition resize-y"
                 />
+                <p className="text-[11px] text-gray-400 dark:text-slate-500">
+                  Keep answers brief, clear, and include a concrete next step.
+                </p>
               </div>
 
               {isPersisting && (
@@ -356,8 +366,8 @@ const FaqEditorView = () => {
         return;
       }
 
-      const question = targetFaq.q.trim();
-      const answer = targetFaq.a.trim();
+      const question = normalizeSupportText(targetFaq.q);
+      const answer = normalizeSupportText(targetFaq.a);
 
       if (!question || !answer) {
         return;
@@ -365,6 +375,18 @@ const FaqEditorView = () => {
 
       try {
         setPersistingById((prev) => ({ ...prev, [id]: true }));
+        setFaqs((prev) =>
+          prev.map((faq) =>
+            faq.id === id
+              ? {
+                ...faq,
+                q: question,
+                a: answer,
+              }
+              : faq
+          )
+        );
+
         if (isDraftFaq(id)) {
           const response = await createFaq({
             question,
@@ -670,7 +692,22 @@ const FaqEditorView = () => {
               className="flex flex-col gap-3"
             >
               {isLoading ? (
-                <div className="py-10 text-center text-sm text-gray-500 dark:text-slate-400">Loading FAQs...</div>
+                <div className="space-y-3">
+                  {Array.from({ length: 5 }).map((_, index) => (
+                    <div
+                      key={index}
+                      className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4"
+                    >
+                      <div className="flex items-center gap-3 mb-3">
+                        <Skeleton className="h-7 w-7 rounded-full" />
+                        <Skeleton className="h-5 w-2/3" />
+                        <Skeleton className="h-5 w-20 ml-auto" />
+                      </div>
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-11/12 mt-2" />
+                    </div>
+                  ))}
+                </div>
               ) : sortedFaqs.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 border-2 border-dashed border-gray-200 dark:border-slate-700 rounded-xl text-center gap-3">
                   <HelpCircle className="w-10 h-10 text-gray-300 dark:text-slate-600" />
@@ -787,7 +824,19 @@ const FaqEditorView = () => {
                       Everything you need to know about JAF Chatra
                     </p>
                   </div>
-                  <PreviewPanel faqs={sortedFaqs} />
+                  {isLoading ? (
+                    <div className="space-y-3">
+                      {Array.from({ length: 4 }).map((_, index) => (
+                        <div key={index} className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4">
+                          <Skeleton className="h-5 w-3/4" />
+                          <Skeleton className="h-4 w-full mt-3" />
+                          <Skeleton className="h-4 w-5/6 mt-2" />
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <PreviewPanel faqs={sortedFaqs} />
+                  )}
                 </div>
               </div>
             </motion.div>

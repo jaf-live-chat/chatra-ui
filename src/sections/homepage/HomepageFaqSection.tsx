@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { motion } from "motion/react";
 import { useGetFaqs } from "../../services/faqServices";
+import Skeleton from "../../components/skeleton";
 
 type FaqItem = {
   id: string;
@@ -147,9 +148,17 @@ const HomepageFaqSection = () => {
 
         {/* FAQ items */}
         <div className="flex flex-col gap-3">
-          {faqs.map((faq, i) => (
-            <FaqAccordionItem key={faq.id} faq={faq} index={i} />
-          ))}
+          {isLoading
+            ? Array.from({ length: 5 }).map((_, index) => (
+              <div key={index} className="bg-white rounded-xl border border-gray-100 shadow-sm px-6 py-5">
+                <Skeleton className="h-5 w-4/5" />
+                <Skeleton className="h-4 w-full mt-4" />
+                <Skeleton className="h-4 w-3/4 mt-2" />
+              </div>
+            ))
+            : faqs.map((faq, i) => (
+              <FaqAccordionItem key={faq.id} faq={faq} index={i} />
+            ))}
         </div>
       </div>
     </section>
