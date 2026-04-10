@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   AlertCircle,
   Plus,
@@ -12,12 +12,12 @@ import {
   Tag,
   MessageSquareText,
   ChevronDown,
-  Loader2,
 } from "lucide-react";
 import PageTitle from "../../components/common/PageTitle";
 import quickRepliesServices, { useGetQuickReplies } from "../../services/quickRepliesServices";
 import type { QuickReplyRecord } from "../../models/QuickReplyModel";
 import TitleTag from "../../components/TitleTag";
+import Skeleton from "../../components/skeleton";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -216,15 +216,31 @@ function ReplyModal({ editingReply, onSave, onClose, isSubmitting = false, categ
     const e: typeof errors = {};
     if (!form.title.trim()) e.title = "Title is required.";
     if (!form.message.trim()) e.message = "Message is required.";
+    if (form.message.trim().length > 0 && form.message.trim().length < 12) {
+      e.message = "Message should be at least 12 characters.";
+    }
     return e;
   };
+
+  const normalizeText = (value: string) =>
+    value
+      .replace(/\s+/g, " ")
+      .replace(/\s+([.,!?])/g, "$1")
+      .trim();
 
   const handleSubmit = () => {
     const e = validate();
     if (Object.keys(e).length > 0) { setErrors(e); return; }
     // Auto-generate shortcut from title
-    const autoShortcut = "/" + form.title.trim().toLowerCase().replace(/\s+/g, "").slice(0, 20);
-    onSave({ ...form, shortcut: form.shortcut || autoShortcut });
+    const normalizedTitle = normalizeText(form.title);
+    const normalizedMessage = normalizeText(form.message);
+    const autoShortcut = "/" + normalizedTitle.toLowerCase().replace(/\s+/g, "").slice(0, 20);
+    onSave({
+      ...form,
+      title: normalizedTitle,
+      message: normalizedMessage,
+      shortcut: form.shortcut || autoShortcut,
+    });
   };
 
   const field = (key: keyof typeof form, value: string) =>
@@ -394,6 +410,9 @@ function ReplyModal({ editingReply, onSave, onClose, isSubmitting = false, categ
               }
               <p className="text-xs text-gray-400 dark:text-slate-500 ml-auto">{form.message.length} chars</p>
             </div>
+            <p className="mt-1 text-[11px] text-gray-400 dark:text-slate-500">
+              Keep replies concise, professional, and action-oriented.
+            </p>
           </div>
         </div>
 
@@ -474,12 +493,34 @@ const QuickRepliesView = () => {
   const [actionAlert, setActionAlert] = useState("");
   const [actionAlertType, setActionAlertType] = useState<"success" | "delete">("success");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [query, setQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("All");
   const categoryOptions = Array.from(
     new Set([
       ...CATEGORIES,
       ...replies.map((reply) => reply.category).filter(Boolean),
     ])
   );
+
+  const filteredReplies = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+
+    return replies.filter((reply) => {
+      const categoryMatch = selectedCategory === "All" || reply.category === selectedCategory;
+      if (!categoryMatch) {
+        return false;
+      }
+
+      if (!normalizedQuery) {
+        return true;
+      }
+
+      return [reply.title, reply.message, reply.category]
+        .join(" ")
+        .toLowerCase()
+        .includes(normalizedQuery);
+    });
+  }, [query, replies, selectedCategory]);
 
   useEffect(() => {
     if (Array.isArray(quickRepliesApi)) {
@@ -590,7 +631,7 @@ const QuickRepliesView = () => {
         (requestError || actionAlert) && (
           <div className="fixed top-6 right-6 z-[90] w-[min(88vw,340px)]">
             {requestError ? (
-              <div className="flex items-start gap-2 rounded-xl border border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-900/20 px-3 py-2.5 text-sm text-green-700 dark:text-green-300 shadow-lg">
+              <div className="flex items-start gap-2 rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 px-3 py-2.5 text-sm text-red-700 dark:text-red-300 shadow-lg">
                 <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
                 <span>{requestError}</span>
               </div>
@@ -631,15 +672,48 @@ const QuickRepliesView = () => {
           </button>
         </div>
 
+        <div className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 sm:p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search by title, message, or category"
+              className="w-full sm:flex-1 px-3 py-2.5 rounded-lg border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 outline-none focus:ring-2 focus:ring-cyan-300 dark:focus:ring-cyan-700"
+            />
+            <select
+              value={selectedCategory}
+              onChange={(event) => setSelectedCategory(event.target.value)}
+              className="w-full sm:w-56 px-3 py-2.5 rounded-lg border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm text-gray-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-cyan-300 dark:focus:ring-cyan-700"
+            >
+              {categoryOptions.map((category) => (
+                <option key={category} value={category}>
+                  {category}
+                </option>
+              ))}
+            </select>
+          </div>
+          <p className="mt-2 text-xs text-gray-500 dark:text-slate-400">
+            Use clear, empathetic language and include next steps whenever possible.
+          </p>
+        </div>
+
         {isLoading && (
-          <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-slate-400">
-            <Loader2 className="w-4 h-4 animate-spin" />
-            Loading quick replies...
+          <div className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4">
+            <div className="space-y-3">
+              {Array.from({ length: 5 }).map((_, index) => (
+                <div key={index} className="grid grid-cols-12 gap-3 items-center">
+                  <Skeleton className="col-span-3 h-5" />
+                  <Skeleton className="col-span-2 h-5" />
+                  <Skeleton className="col-span-5 h-5" />
+                  <Skeleton className="col-span-2 h-5" />
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
         {/* ── Table ── */}
-        {!isLoading && replies.length > 0 ? (
+        {!isLoading && filteredReplies.length > 0 ? (
           <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -652,13 +726,15 @@ const QuickRepliesView = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
-                  {replies.map((reply) => (
+                  {filteredReplies.map((reply) => (
                     <tr key={reply.id} className="hover:bg-gray-50 dark:hover:bg-slate-700/40 transition-colors">
                       <td className="px-4 py-3 font-medium text-gray-900 dark:text-slate-100 whitespace-nowrap">{reply.title}</td>
                       <td className="px-4 py-3">
                         <CategoryBadge category={reply.category} />
                       </td>
-                      <td className="px-4 py-3 text-gray-500 dark:text-slate-400 max-w-xs truncate">{reply.message}</td>
+                      <td className="px-4 py-3 text-gray-500 dark:text-slate-400 max-w-md">
+                        <p className="line-clamp-2">{reply.message}</p>
+                      </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-end gap-1">
                           <button
@@ -698,17 +774,23 @@ const QuickRepliesView = () => {
             <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 flex items-center justify-center mb-4">
               <MessageSquareText className="w-8 h-8 text-gray-400 dark:text-slate-500" />
             </div>
-            <p className="font-semibold text-gray-900 dark:text-slate-100 mb-1">No quick replies yet</p>
-            <p className="text-sm text-gray-500 dark:text-slate-400 max-w-xs">
-              Create your first quick reply to speed up your chat responses.
+            <p className="font-semibold text-gray-900 dark:text-slate-100 mb-1">
+              {replies.length > 0 ? "No matching quick replies" : "No quick replies yet"}
             </p>
-            <button
-              onClick={openAdd}
-              className="inline-flex my-3 items-center gap-2 px-4 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-semibold shadow-sm transition-colors shrink-0"
-            >
-              <Plus className="w-4 h-4" />
-              New Quick Reply
-            </button>
+            <p className="text-sm text-gray-500 dark:text-slate-400 max-w-xs">
+              {replies.length > 0
+                ? "Try adjusting your search query or selected category."
+                : "Create your first quick reply to speed up your chat responses."}
+            </p>
+            {replies.length === 0 && (
+              <button
+                onClick={openAdd}
+                className="inline-flex my-3 items-center gap-2 px-4 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-semibold shadow-sm transition-colors shrink-0"
+              >
+                <Plus className="w-4 h-4" />
+                New Quick Reply
+              </button>
+            )}
           </div>
         )}
 

@@ -6,6 +6,7 @@ import PageTitle from "../../components/common/PageTitle";
 import TitleTag from "../../components/TitleTag";
 import quickMessageServices, { useGetQuickMessages } from "../../services/quickMessageServices";
 import type { QuickMessageRecord } from "../../models/QuickMessageModel";
+import Skeleton from "../../components/skeleton";
 
 type QuickMessageItem = {
   id: string;
@@ -36,6 +37,12 @@ const getErrorMessage = (error: unknown, fallbackMessage: string) => {
 
   return fallbackMessage;
 };
+
+const normalizeSupportText = (value: string) =>
+  value
+    .replace(/\s+/g, " ")
+    .replace(/\s+([.,!?])/g, "$1")
+    .trim();
 
 function DeleteConfirmModal({
   title,
@@ -187,6 +194,9 @@ function EditorRow({
                   rows={4}
                   className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent resize-y"
                 />
+                <p className="text-[11px] text-gray-400 dark:text-slate-500">
+                  Write professional responses that include a clear next action.
+                </p>
               </div>
 
               {isPersisting && (
@@ -231,8 +241,8 @@ const QuickMessagesView = () => {
         return;
       }
 
-      const title = target.title.trim();
-      const response = target.response.trim();
+      const title = normalizeSupportText(target.title);
+      const response = normalizeSupportText(target.response);
 
       if (!title || !response) {
         toast.error("Title and response are required.");
@@ -241,6 +251,17 @@ const QuickMessagesView = () => {
 
       try {
         setPersistingById((prev) => ({ ...prev, [id]: true }));
+        setItems((prev) =>
+          prev.map((item) =>
+            item.id === id
+              ? {
+                ...item,
+                title,
+                response,
+              }
+              : item
+          )
+        );
 
         if (isDraft(id)) {
           const created = await quickMessageServices.createQuickMessage({ title, response });
@@ -338,6 +359,12 @@ const QuickMessagesView = () => {
           </div>
         </div>
 
+        <div className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3">
+          <p className="text-xs text-gray-500 dark:text-slate-400">
+            Keep quick messages concise, consistent in tone, and aligned with customer support workflows.
+          </p>
+        </div>
+
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -345,7 +372,19 @@ const QuickMessagesView = () => {
           className="flex flex-col gap-3"
         >
           {isLoading ? (
-            <div className="py-10 text-center text-sm text-gray-500 dark:text-slate-400">Loading quick messages...</div>
+            <div className="space-y-3">
+              {Array.from({ length: 5 }).map((_, index) => (
+                <div key={index} className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4">
+                  <div className="flex items-center gap-3 mb-3">
+                    <Skeleton className="h-7 w-7 rounded-full" />
+                    <Skeleton className="h-5 w-2/3" />
+                    <Skeleton className="h-5 w-20 ml-auto" />
+                  </div>
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-10/12 mt-2" />
+                </div>
+              ))}
+            </div>
           ) : sortedItems.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 border-2 border-dashed border-gray-200 dark:border-slate-700 rounded-xl text-center gap-3">
               <MessageCircle className="w-10 h-10 text-gray-300 dark:text-slate-600" />
