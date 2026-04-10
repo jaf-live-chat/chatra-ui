@@ -553,7 +553,7 @@ const AccountSettingsView = () => {
 
   const tenantApiKey = canViewTenantApiKey && hasActiveTenantPurchase ? tenant?.apiKey || "" : "";
   const scriptApiKey = tenantApiKey || "{{YOUR_API_KEY_HERE}}";
-  const widgetScript = `<!-- JAF Chatra Widget -->\n<script src="https://jafchatra.com/widget.js" data-api-key="${scriptApiKey}"></script>`;
+  const widgetScript = `<!-- JAF Chatra Widget -->\n<script src="${import.meta.env.MODE !== "LOCAL" ? "./client/dist/widget.js" : "https://jafchatra.com/widget.js"}" data-api-key="${scriptApiKey}"></script>`;
 
   return (
     <React.Fragment>
