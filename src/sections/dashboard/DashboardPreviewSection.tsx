@@ -196,7 +196,7 @@ const DashboardPreviewSection = () => {
             <div className="w-48 bg-gray-950 flex flex-col py-4">
               {/* Logo */}
               <div className="flex items-center gap-2 px-4 mb-6">
-                <Logo variant="light" alt="JAF Chatra" className="h-8 w-auto" />
+                <Logo variant="light" alt="JAF Chatra" size="lg" />
               </div>
 
               {/* Nav Items */}

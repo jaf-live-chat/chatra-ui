@@ -23,6 +23,7 @@ import toTitleCase from "../utils/toTitleCase";
 import getAvatarColor from "../utils/getAvatarColor";
 import AutoLogoutModal from "../components/common/AutoLogoutModal";
 import Logo from "../components/common/Logo";
+import useCompanyBranding from "../hooks/useCompanyBranding";
 
 const INACTIVITY_LIMIT_MS = 2 * 60 * 1000;
 const AUTO_LOGOUT_WARNING_SECONDS = 30;
@@ -60,6 +61,7 @@ function DashboardLayoutInner() {
   const { isDark, toggleDark } = useDarkMode();
   const { user, tenant, logout, updateUser } = useAuth();
   const { isAdmin } = useGetRole();
+  const { companyName: companyProfileName } = useCompanyBranding();
 
   const clearInactivityTimeout = useCallback(() => {
     if (inactivityTimeoutRef.current) {
@@ -209,7 +211,7 @@ function DashboardLayoutInner() {
   const userEmail = user?.emailAddress || "";
   const userProfilePicture = user?.profilePicture || "";
   const [profileImageFailed, setProfileImageFailed] = useState(false);
-  const companyName = tenant?.companyName || "-";
+  const companyName = companyProfileName || tenant?.companyName || "-";
   const userRole = user?.role || USER_ROLES.VISITOR.value;
   const subscription = tenant?.subscription ?? null;
   const planName = subscription?.planName || "No Plan";
@@ -350,9 +352,9 @@ function DashboardLayoutInner() {
   const activeNavCls = "bg-cyan-50 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400";
   const inactiveNavCls =
     "text-gray-600 hover:bg-gray-100 dark:text-slate-400 dark:hover:bg-slate-700/60";
-  const sidebarLogoVariant: "light" | "dark" | "main" = isSidebarOpen
+  const sidebarLogoVariant: "light" | "dark" | "collapsed" = isSidebarOpen
     ? (isDark ? "light" : "dark")
-    : "main";
+    : "collapsed";
 
   useEffect(() => {
     setProfileImageFailed(false);
@@ -381,7 +383,7 @@ function DashboardLayoutInner() {
               <Logo
                 variant={sidebarLogoVariant}
                 alt="JAF Chatra Logo"
-                style={{ height: "32px", maxWidth: "140px" }}
+                size="lg"
                 className="mx-auto"
               />
             </div>
@@ -389,7 +391,7 @@ function DashboardLayoutInner() {
             <Logo
               variant={sidebarLogoVariant}
               alt="JAF Chatra Minimized"
-              style={{ height: "46px" }}
+              size="xl"
               className="mx-auto"
             />
           )}

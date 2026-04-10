@@ -1019,13 +1019,13 @@ const CustomerDashboard = () => {
               <Logo
                 variant="dark"
                 alt="JAF Live Chat"
-                style={{ height: "32px", maxWidth: "140px" }}
+                size="lg"
                 className="ml-3 shrink-0 dark:hidden"
               />
               <Logo
                 variant="light"
                 alt="JAF Live Chat"
-                style={{ height: "32px", maxWidth: "140px" }}
+                size="lg"
                 className="ml-3 hidden shrink-0 dark:block"
               />
             </>
