@@ -198,6 +198,23 @@ const parseTextSizePreference = (value: string): TextSize => {
   return "default";
 };
 
+const getWidgetInitials = (value: string) => {
+  const words = String(value || "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  if (words.length === 0) {
+    return "JC";
+  }
+
+  if (words.length === 1) {
+    return words[0].slice(0, 1).toUpperCase();
+  }
+
+  return `${words[0].slice(0, 1)}${words[1].slice(0, 1)}`.toUpperCase();
+};
+
 const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
   const [widgetConfig, setWidgetConfig] = useState<LiveChatWidgetConfig>(() => getResolvedConfig(initialConfig));
   const [visitorToken] = useState(() => getVisitorToken());
@@ -407,6 +424,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
           const nextWelcomeMessage = String(settings.welcomeMessage || "").trim();
           const nextWidgetLogo = String(settings.widgetLogo || "").trim();
           const nextAccentColor = String(settings.accentColor || "").trim();
+          const hasWidgetLogo = Object.prototype.hasOwnProperty.call(settings, "widgetLogo");
 
           if (nextTitle) {
             writeStoredValue(WIDGET_TITLE_KEY, nextTitle);
@@ -416,15 +434,19 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
             writeStoredValue(WIDGET_WELCOME_KEY, nextWelcomeMessage);
           }
 
-          if (nextWidgetLogo) {
-            writeStoredValue(WIDGET_LOGO_KEY, nextWidgetLogo);
+          if (hasWidgetLogo) {
+            if (nextWidgetLogo) {
+              writeStoredValue(WIDGET_LOGO_KEY, nextWidgetLogo);
+            } else {
+              clearStoredValue(WIDGET_LOGO_KEY);
+            }
           }
 
           return {
             ...currentConfig,
             title: nextTitle || currentConfig.title,
             welcomeMessage: nextWelcomeMessage || currentConfig.welcomeMessage,
-            widgetLogo: nextWidgetLogo || currentConfig.widgetLogo,
+            widgetLogo: hasWidgetLogo ? nextWidgetLogo : currentConfig.widgetLogo,
             accentColor: nextAccentColor || currentConfig.accentColor,
           };
         });
@@ -919,7 +941,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                     }}
                   />
                 ) : (
-                  <span>{title.trim().charAt(0).toUpperCase() || "J"}</span>
+                  <span>{getWidgetInitials(title)}</span>
                 )}
               </div>
               <div className="min-w-0 flex-1">

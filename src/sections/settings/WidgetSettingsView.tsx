@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
-import { Monitor, Save } from "lucide-react";
+import { Monitor, RotateCcw, Save } from "lucide-react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Divider from "@mui/material/Divider";
+import IconButton from "@mui/material/IconButton";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import AvatarUpload from "../../components/uploads/AvatarUpload";
 import TitleTag from "../../components/TitleTag";
@@ -204,6 +206,18 @@ const WidgetSettingsView = () => {
                 fullWidth
                 helperText="The picker value is saved as a hex code."
               />
+              <Tooltip title="Reset to default color">
+                <span>
+                  <IconButton
+                    onClick={() => setAccentColor(DEFAULT_SETTINGS.accentColor)}
+                    disabled={isLoading || isSaving || accentColor === DEFAULT_SETTINGS.accentColor}
+                    color="primary"
+                    aria-label="Reset accent color"
+                  >
+                    <RotateCcw size={18} />
+                  </IconButton>
+                </span>
+              </Tooltip>
             </Stack>
           </Box>
         </Stack>
