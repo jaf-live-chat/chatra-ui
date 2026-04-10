@@ -111,5 +111,37 @@ export interface LiveChatWidgetConfig {
   apiKey?: string;
   title?: string;
   welcomeMessage?: string;
+  widgetLogo?: string;
   accentColor?: string;
+}
+
+export interface LiveChatWidgetQuickMessage {
+  _id: string;
+  title: string;
+  response: string;
+}
+
+export interface GetWidgetQuickMessagesResponse {
+  success: boolean;
+  count: number;
+  totalCount: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+  quickMessages: LiveChatWidgetQuickMessage[];
+}
+
+export interface WidgetSettingsRecord {
+  _id?: string;
+  widgetLogo?: string;
+  widgetTitle: string;
+  welcomeMessage: string;
+  accentColor: string;
+}
+
+export interface GetWidgetSettingsResponse {
+  success: boolean;
+  widgetSettings: WidgetSettingsRecord;
 }

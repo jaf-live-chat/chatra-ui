@@ -2,6 +2,8 @@ import axiosServices from "../utils/axios";
 import type {
   GetConversationMessagesParams,
   GetLiveChatMessagesResponse,
+  GetWidgetQuickMessagesResponse,
+  GetWidgetSettingsResponse,
   LiveChatSendMessagePayload,
   LiveChatStartConversationResponse,
   LiveChatWidgetConfig,
@@ -73,6 +75,33 @@ const liveChatWidgetServices = {
     });
 
     return messagesResponse.data;
+  },
+
+  getQuickMessages: async (
+    config: LiveChatWidgetConfig,
+    visitorToken: string,
+    params: GetConversationMessagesParams = {},
+  ): Promise<GetWidgetQuickMessagesResponse> => {
+    const response = await axiosServices.get<GetWidgetQuickMessagesResponse>(`${WIDGET_BASE_PATH}/quick-messages`, {
+      params: {
+        page: params.page ?? 1,
+        limit: params.limit ?? 10,
+      },
+      headers: buildHeaders(config, visitorToken),
+    });
+
+    return response.data;
+  },
+
+  getWidgetSettings: async (
+    config: LiveChatWidgetConfig,
+    visitorToken: string,
+  ): Promise<GetWidgetSettingsResponse> => {
+    const response = await axiosServices.get<GetWidgetSettingsResponse>(`${WIDGET_BASE_PATH}/settings`, {
+      headers: buildHeaders(config, visitorToken),
+    });
+
+    return response.data;
   },
 };
 
