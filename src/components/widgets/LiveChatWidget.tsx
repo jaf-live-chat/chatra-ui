@@ -226,6 +226,9 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
   const audioContextRef = useRef<AudioContext | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const messageInputRef = useRef<HTMLTextAreaElement | null>(null);
+  const widgetSettingsRequestRef = useRef<Promise<void> | null>(null);
+  const quickMessagesRequestRef = useRef<Promise<void> | null>(null);
+  const conversationBootstrapRef = useRef(false);
 
   const apiKey = String(widgetConfig.apiKey || "").trim();
   const hasApiKey = Boolean(apiKey);
@@ -326,13 +329,15 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
         return;
       }
 
+      const responsePromise = liveChatWidgetServices.getConversationMessages(
+        widgetConfig,
+        visitorToken,
+        targetConversationId,
+        { page: 1, limit: MESSAGE_PAGE_LIMIT },
+      );
+
       try {
-        const response = await liveChatWidgetServices.getConversationMessages(
-          widgetConfig,
-          visitorToken,
-          targetConversationId,
-          { page: 1, limit: MESSAGE_PAGE_LIMIT },
-        );
+        const response = await responsePromise;
 
         setMessages(normalizeMessages(response.messages));
       } catch (error) {
@@ -388,39 +393,49 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
       return;
     }
 
-    try {
-      const response = await liveChatWidgetServices.getWidgetSettings({ apiKey }, visitorToken);
-      const settings = response.widgetSettings;
-
-      setWidgetConfig((currentConfig) => {
-        const nextTitle = String(settings.widgetTitle || "").trim();
-        const nextWelcomeMessage = String(settings.welcomeMessage || "").trim();
-        const nextWidgetLogo = String(settings.widgetLogo || "").trim();
-        const nextAccentColor = String(settings.accentColor || "").trim();
-
-        if (nextTitle) {
-          writeStoredValue(WIDGET_TITLE_KEY, nextTitle);
-        }
-
-        if (nextWelcomeMessage) {
-          writeStoredValue(WIDGET_WELCOME_KEY, nextWelcomeMessage);
-        }
-
-        if (nextWidgetLogo) {
-          writeStoredValue(WIDGET_LOGO_KEY, nextWidgetLogo);
-        }
-
-        return {
-          ...currentConfig,
-          title: nextTitle || currentConfig.title,
-          welcomeMessage: nextWelcomeMessage || currentConfig.welcomeMessage,
-          widgetLogo: nextWidgetLogo || currentConfig.widgetLogo,
-          accentColor: nextAccentColor || currentConfig.accentColor,
-        };
-      });
-    } catch {
-      // Keep chat usable even when widget settings fail to load.
+    if (widgetSettingsRequestRef.current) {
+      return widgetSettingsRequestRef.current;
     }
+
+    widgetSettingsRequestRef.current = (async () => {
+      try {
+        const response = await liveChatWidgetServices.getWidgetSettings({ apiKey }, visitorToken);
+        const settings = response.widgetSettings;
+
+        setWidgetConfig((currentConfig) => {
+          const nextTitle = String(settings.widgetTitle || "").trim();
+          const nextWelcomeMessage = String(settings.welcomeMessage || "").trim();
+          const nextWidgetLogo = String(settings.widgetLogo || "").trim();
+          const nextAccentColor = String(settings.accentColor || "").trim();
+
+          if (nextTitle) {
+            writeStoredValue(WIDGET_TITLE_KEY, nextTitle);
+          }
+
+          if (nextWelcomeMessage) {
+            writeStoredValue(WIDGET_WELCOME_KEY, nextWelcomeMessage);
+          }
+
+          if (nextWidgetLogo) {
+            writeStoredValue(WIDGET_LOGO_KEY, nextWidgetLogo);
+          }
+
+          return {
+            ...currentConfig,
+            title: nextTitle || currentConfig.title,
+            welcomeMessage: nextWelcomeMessage || currentConfig.welcomeMessage,
+            widgetLogo: nextWidgetLogo || currentConfig.widgetLogo,
+            accentColor: nextAccentColor || currentConfig.accentColor,
+          };
+        });
+      } catch {
+        // Keep chat usable even when widget settings fail to load.
+      } finally {
+        widgetSettingsRequestRef.current = null;
+      }
+    })();
+
+    return widgetSettingsRequestRef.current;
   }, [apiKey, hasApiKey, visitorToken]);
 
   const syncQuickMessages = useCallback(async () => {
@@ -429,17 +444,27 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
       return;
     }
 
-    try {
-      const response = await liveChatWidgetServices.getQuickMessages({ apiKey }, visitorToken, {
-        page: 1,
-        limit: 10,
-      });
-
-      setQuickMessages(response.quickMessages || []);
-    } catch {
-      // Keep chat usable even when quick messages fail to load.
-      setQuickMessages([]);
+    if (quickMessagesRequestRef.current) {
+      return quickMessagesRequestRef.current;
     }
+
+    quickMessagesRequestRef.current = (async () => {
+      try {
+        const response = await liveChatWidgetServices.getQuickMessages({ apiKey }, visitorToken, {
+          page: 1,
+          limit: 10,
+        });
+
+        setQuickMessages(response.quickMessages || []);
+      } catch {
+        // Keep chat usable even when quick messages fail to load.
+        setQuickMessages([]);
+      } finally {
+        quickMessagesRequestRef.current = null;
+      }
+    })();
+
+    return quickMessagesRequestRef.current;
   }, [apiKey, hasApiKey, visitorToken]);
 
   const handleSendMessage = useCallback(async (presetMessage?: string) => {
@@ -541,6 +566,78 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
     return "text-[13px]";
   }, [textSize]);
 
+  const panelSpacingClass = useMemo(() => {
+    if (textSize === "small") {
+      return "gap-3";
+    }
+
+    if (textSize === "large") {
+      return "gap-5";
+    }
+
+    return "gap-4";
+  }, [textSize]);
+
+  const headerTitleClass = useMemo(() => {
+    if (textSize === "small") {
+      return "text-sm";
+    }
+
+    if (textSize === "large") {
+      return "text-xl";
+    }
+
+    return "text-[1.05rem]";
+  }, [textSize]);
+
+  const headerStatusClass = useMemo(() => {
+    if (textSize === "small") {
+      return "text-[10px]";
+    }
+
+    if (textSize === "large") {
+      return "text-sm";
+    }
+
+    return "text-xs";
+  }, [textSize]);
+
+  const headerButtonClass = useMemo(() => {
+    if (textSize === "small") {
+      return "px-2.5 py-1 text-xs";
+    }
+
+    if (textSize === "large") {
+      return "px-4 py-2 text-sm";
+    }
+
+    return "px-3 py-1.5 text-sm";
+  }, [textSize]);
+
+  const composerGapClass = useMemo(() => {
+    if (textSize === "small") {
+      return "gap-1.5";
+    }
+
+    if (textSize === "large") {
+      return "gap-3";
+    }
+
+    return "gap-2";
+  }, [textSize]);
+
+  const inputPaddingClass = useMemo(() => {
+    if (textSize === "small") {
+      return "px-2 py-1.5";
+    }
+
+    if (textSize === "large") {
+      return "px-4 py-2.5";
+    }
+
+    return "px-3 py-2";
+  }, [textSize]);
+
   useEffect(() => {
     const syncConfig = () => {
       setWidgetConfig(getResolvedConfig(initialConfig));
@@ -602,9 +699,15 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
 
   useEffect(() => {
     if (!isOpen) {
+      conversationBootstrapRef.current = false;
       return;
     }
 
+    if (conversationBootstrapRef.current) {
+      return;
+    }
+
+    conversationBootstrapRef.current = true;
     setUnreadCount(0);
 
     if (!hasApiKey) {
@@ -790,7 +893,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
     };
 
   return (
-    <div className="fixed bottom-3 right-3 sm:bottom-6 sm:right-6 z-[70] flex flex-col items-end gap-4" style={{ fontFamily: "Sora, Avenir Next, Segoe UI, sans-serif" }}>
+    <div className={`fixed bottom-3 right-3 sm:bottom-6 sm:right-6 z-[70] flex flex-col items-end ${panelSpacingClass}`} style={{ fontFamily: "Sora, Avenir Next, Segoe UI, sans-serif" }}>
       {shouldRenderPanel ? (
         <div
           className={`w-[min(390px,calc(100vw-1rem))] sm:w-[378px] h-[min(640px,calc(100vh-1rem))] sm:h-[588px] overflow-hidden rounded-[24px] border-2 flex flex-col origin-bottom-right transition-[opacity,transform,filter] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${theme.shell}`}
@@ -804,7 +907,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
             className={`${theme.header} px-5 py-4 flex items-center justify-between gap-3 flex-shrink-0`}
             style={{ background: accentHeaderBackground }}
           >
-            <div className="flex items-center gap-3 min-w-0">
+            <div className="flex items-center gap-3 min-w-0 flex-1">
               <div className="h-11 w-11 rounded-full bg-white/20 border border-white/35 flex items-center justify-center overflow-hidden text-white text-lg font-semibold shrink-0">
                 {widgetLogo ? (
                   <img
@@ -819,20 +922,20 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                   <span>{title.trim().charAt(0).toUpperCase() || "J"}</span>
                 )}
               </div>
-              <div className="min-w-0">
-                <p className="text-[1.05rem] font-semibold leading-tight truncate">{title}</p>
+              <div className="min-w-0 flex-1">
+                <p className={`font-semibold leading-tight truncate whitespace-nowrap ${headerTitleClass}`}>{title}</p>
                 <div className="flex items-center gap-2 mt-0.5">
                   <span className={`h-2.5 w-2.5 rounded-full ${socketStatus === "connected" ? "bg-emerald-400 animate-pulse" : socketStatus === "connecting" ? "bg-yellow-300" : "bg-slate-300"}`} />
-                  <p className={theme.subText}>{statusLabel}</p>
+                  <p className={`${theme.subText} ${headerStatusClass}`}>{statusLabel}</p>
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0">
               <button
                 type="button"
                 onClick={() => setIsEndChatModalOpen(true)}
-                className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 hover:-translate-y-0.5 ${theme.headerAction}`}
+                className={`rounded-lg font-semibold transition-all duration-200 hover:-translate-y-0.5 whitespace-nowrap ${theme.headerAction} ${headerButtonClass}`}
               >
                 End chat
               </button>
@@ -967,8 +1070,8 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                         <MessageCircle className="h-7 w-7 text-cyan-600" />
                       </div>
                     </div>
-                    <p className={`${theme.welcomeTitle} ${helperTextSizeClass}`}>{welcomeMessage}</p>
-                    <p className={`mt-2 ${theme.muted} ${helperTextSizeClass}`}>We're here to help. Send a message to get started.</p>
+                    <p className={`${theme.welcomeTitle} ${helperTextSizeClass} leading-snug`}>{welcomeMessage}</p>
+                    <p className={`mt-2 ${theme.muted} ${helperTextSizeClass} leading-snug`}>We're here to help. Send a message to get started.</p>
                   </div>
                 ) : (
                   <div className="flex flex-col gap-4">
@@ -1025,7 +1128,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                             void handleSendMessage(qm.response);
                           }}
                           disabled={isActionBlocked}
-                          className={`px-3 py-1.5 rounded-full border transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md text-xs font-medium ${theme.quickMsg} disabled:opacity-50 disabled:cursor-not-allowed`}
+                          className={`px-3 py-1.5 rounded-full border transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md font-medium ${theme.quickMsg} disabled:opacity-50 disabled:cursor-not-allowed ${textSize === "large" ? "text-sm" : textSize === "small" ? "text-[11px]" : "text-xs"}`}
                           style={{ backgroundColor: accentSoftBackground, borderColor: accentSoftBorder, color: resolvedAccent }}
                         >
                           {qm.title}
@@ -1048,7 +1151,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                   </div>
                 ) : null}
 
-                <div className="flex items-end gap-2">
+                <div className={`flex items-end ${composerGapClass}`}>
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
@@ -1090,7 +1193,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                       }}
                       placeholder={hasApiKey ? (hasRuntimeError ? "Resolve the error to continue chatting..." : "Type a message...") : "Widget apiKey is missing..."}
                       disabled={isActionBlocked}
-                      className={`w-full bg-transparent ${messageSizeClass} outline-none px-3 py-2 disabled:opacity-50 resize-none overflow-y-auto leading-5 max-h-[84px] ${isDarkMode ? "text-slate-100" : "text-slate-900"}`}
+                      className={`w-full bg-transparent ${messageSizeClass} outline-none ${inputPaddingClass} disabled:opacity-50 resize-none overflow-y-auto leading-5 max-h-[84px] ${isDarkMode ? "text-slate-100" : "text-slate-900"}`}
                     />
                   </div>
 
