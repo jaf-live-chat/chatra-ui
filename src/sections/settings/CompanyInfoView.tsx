@@ -488,46 +488,41 @@ const CompanyInfoView = () => {
         </div>
       </div>
 
-      {/* Sticky Action Bar */}
-      <div className={`sticky bottom-0 z-30 -mx-4 sm:-mx-6 md:-mx-8 px-4 sm:px-6 md:px-8 py-3 sm:py-4 mt-8 border-t backdrop-blur shadow-[0_-8px_24px_rgba(15,23,42,0.08)] ${isDark ? "bg-slate-900/95 border-slate-700" : "bg-white/95 border-gray-200"}`}>
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
-          <p className={`hidden sm:block text-xs sm:text-sm flex-1 ${isDark ? "text-slate-400" : "text-gray-500"}`}>
-            Changes will be saved to your account.
-          </p>
-          <div className="flex w-full sm:w-auto items-center gap-2 sm:gap-3">
-            {editing ? (
-              <>
-                <button
-                  onClick={handleCancel}
-                  disabled={isBusy}
-                  className={`flex-1 sm:flex-none inline-flex items-center justify-center sm:justify-start gap-1.5 px-4 py-2.5 sm:py-2 rounded-lg text-sm font-medium transition-colors ${isDark
-                      ? "text-slate-300 bg-slate-700 hover:bg-slate-600 active:scale-95"
-                      : "text-gray-600 bg-gray-100 hover:bg-gray-200 active:scale-95"
-                    }`}
-                >
-                  <X className="w-4 h-4 flex-shrink-0" />
-                  <span className="hidden sm:inline">Cancel</span>
-                </button>
-                <button
-                  onClick={handleSave}
-                  disabled={isBusy}
-                  className="flex-1 sm:flex-none inline-flex items-center justify-center sm:justify-start gap-1.5 px-4 py-2.5 sm:py-2 rounded-lg text-sm font-medium text-white bg-cyan-600 hover:bg-cyan-700 transition-colors shadow-sm active:scale-95"
-                >
-                  {isSaving ? <Loader2 className="w-4 h-4 animate-spin flex-shrink-0" /> : <Save className="w-4 h-4 flex-shrink-0" />}
-                  <span>{isSaving ? "Saving..." : "Save"}</span>
-                </button>
-              </>
-            ) : (
+      {/* Floating Action Dock */}
+      <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-40">
+        <div className={`flex items-center gap-2 rounded-xl border p-2 shadow-xl backdrop-blur ${isDark ? "bg-slate-900/90 border-slate-700" : "bg-white/90 border-gray-200"}`}>
+          {editing ? (
+            <>
               <button
-                onClick={handleEdit}
-                disabled={isBusy || isLoading}
-                className="flex-1 sm:flex-none inline-flex items-center justify-center sm:justify-start gap-1.5 px-4 py-2.5 sm:py-2 rounded-lg text-sm font-medium text-white bg-cyan-600 hover:bg-cyan-700 transition-colors shadow-sm active:scale-95"
+                onClick={handleCancel}
+                disabled={isBusy}
+                className={`inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-colors ${isDark
+                    ? "text-slate-300 bg-slate-700 hover:bg-slate-600 active:scale-95"
+                    : "text-gray-600 bg-gray-100 hover:bg-gray-200 active:scale-95"
+                  }`}
               >
-                <Pencil className="w-4 h-4 flex-shrink-0" />
-                <span>Edit Info</span>
+                <X className="w-4 h-4 flex-shrink-0" />
+                <span className="hidden sm:inline">Cancel</span>
               </button>
-            )}
-          </div>
+              <button
+                onClick={handleSave}
+                disabled={isBusy}
+                className="inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 rounded-lg text-sm font-medium text-white bg-cyan-600 hover:bg-cyan-700 transition-colors shadow-sm active:scale-95"
+              >
+                {isSaving ? <Loader2 className="w-4 h-4 animate-spin flex-shrink-0" /> : <Save className="w-4 h-4 flex-shrink-0" />}
+                <span>{isSaving ? "Saving..." : "Save"}</span>
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={handleEdit}
+              disabled={isBusy || isLoading}
+              className="inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 rounded-lg text-sm font-medium text-white bg-cyan-600 hover:bg-cyan-700 transition-colors shadow-sm active:scale-95"
+            >
+              <Pencil className="w-4 h-4 flex-shrink-0" />
+              <span>Edit Info</span>
+            </button>
+          )}
         </div>
       </div>
 
