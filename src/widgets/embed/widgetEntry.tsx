@@ -10,27 +10,15 @@ const WIDGET_HOST_ID = "livechat-widget-root";
 const WIDGET_MOUNT_ID = "livechat-widget-mount";
 const WIDGET_STYLE_TAG_ID = "live-chat-widget-style-tag";
 const WIDGET_BASE_STYLE_ID = "live-chat-widget-base-style";
-const WIDGET_API_KEY_STORAGE_KEY = "chat_widget_api_key";
+const LEGACY_WIDGET_API_KEY_STORAGE_KEY = "chat_widget_api_key";
 
 const normalizeText = (value: string | null | undefined) => String(value || "").trim();
 
-const readStoredApiKey = () => {
+const clearLegacyStoredApiKey = () => {
   try {
-    return normalizeText(window.localStorage.getItem(WIDGET_API_KEY_STORAGE_KEY));
+    window.localStorage.removeItem(LEGACY_WIDGET_API_KEY_STORAGE_KEY);
   } catch {
-    return "";
-  }
-};
-
-const writeStoredApiKey = (value: string) => {
-  if (!value) {
-    return;
-  }
-
-  try {
-    window.localStorage.setItem(WIDGET_API_KEY_STORAGE_KEY, value);
-  } catch {
-    // Ignore storage failures for strict embed environments.
+    // Ignore storage failures in restrictive embed environments.
   }
 };
 
@@ -74,10 +62,7 @@ const parseScriptAttributes = (script: HTMLScriptElement | null): LiveChatEmbedS
     || script?.getAttribute("data-key"),
   );
   const liveChatConfigApiKey = normalizeText((window as Window & { LiveChatConfig?: { apiKey?: string } }).LiveChatConfig?.apiKey);
-  const storedApiKey = readStoredApiKey();
-
-  const apiKey = scriptApiKey || liveChatConfigApiKey || storedApiKey;
-  writeStoredApiKey(apiKey);
+  const apiKey = scriptApiKey || liveChatConfigApiKey;
 
   return {
     apiKey,
@@ -168,6 +153,8 @@ const ensureShadowMount = (host: HTMLElement) => {
 };
 
 const mountWidget = async () => {
+  clearLegacyStoredApiKey();
+
   const bootstrapConfig = resolveBootstrapConfig();
 
   if (!bootstrapConfig) {

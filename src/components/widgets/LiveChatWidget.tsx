@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Loader2, MessageCircle, Paperclip, Send, X, CheckCheck, MoreHorizontal } from "lucide-react";
+import { Loader2, MessageCircle, Paperclip, Send, X, CheckCheck, Settings, Zap, ChevronUp, ChevronDown, ArrowLeft, Moon, Volume2, Shield, AlertCircle } from "lucide-react";
 import { API_BASE_URL } from "../../constants/constants";
 import type {
   LiveChatMessage,
@@ -16,6 +16,9 @@ interface QuickMessage {
   response: string;
 }
 
+type WidgetView = "chat" | "settings";
+type TextSize = "small" | "default" | "large";
+
 type WindowWithLiveChatConfig = Window & {
   LiveChatConfig?: LiveChatWidgetConfig;
 };
@@ -29,13 +32,15 @@ const CONVERSATION_ID_KEY = "chat_conversation_id";
 const WIDGET_TITLE_KEY = "jaf_widget_title";
 const WIDGET_WELCOME_KEY = "jaf_welcome_message";
 const WIDGET_DARK_MODE_KEY = "jaf_dark_mode";
+const WIDGET_TEXT_SIZE_KEY = "jaf_text_size";
+const WIDGET_MESSAGE_SOUNDS_KEY = "jaf_message_sounds";
 const QUICK_MESSAGES_KEY = "jaf_quick_messages";
 
 const DEFAULT_TITLE = "Support";
-const DEFAULT_WELCOME = "Hi there. Welcome to JAF Live Chat. How can I help you today?";
+const DEFAULT_WELCOME = "Hi there. Welcome to JAF Chatra. How can I help you today?";
 const DEFAULT_ACCENT = "#0891b2";
 const MESSAGE_PAGE_LIMIT = 100;
-const PANEL_CLOSE_ANIMATION_MS = 220;
+const PANEL_CLOSE_ANIMATION_MS = 320;
 
 const isHexColor = (value: string) => /^#([A-Fa-f0-9]{3}|[A-Fa-f0-9]{6})$/.test(value.trim());
 
@@ -58,6 +63,18 @@ const writeStoredValue = (key: string, value: string) => {
 
   try {
     window.localStorage.setItem(key, value);
+  } catch {
+    // Ignore storage errors in embedded contexts.
+  }
+};
+
+const clearStoredValue = (key: string) => {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.localStorage.removeItem(key);
   } catch {
     // Ignore storage errors in embedded contexts.
   }
@@ -90,7 +107,7 @@ const getResolvedConfig = (initialConfig: LiveChatWidgetConfig = {}): LiveChatWi
   const windowConfig = getWindowConfig();
 
   return {
-    apiKey: initialConfig.apiKey || windowConfig.apiKey || readStoredValue("chat_widget_api_key") || "",
+    apiKey: initialConfig.apiKey || windowConfig.apiKey || "",
     title: initialConfig.title || readStoredValue(WIDGET_TITLE_KEY, windowConfig.title || DEFAULT_TITLE),
     welcomeMessage: initialConfig.welcomeMessage || readStoredValue(WIDGET_WELCOME_KEY, windowConfig.welcomeMessage || DEFAULT_WELCOME),
     accentColor: initialConfig.accentColor || windowConfig.accentColor || DEFAULT_ACCENT,
@@ -172,6 +189,14 @@ const resolveConversationIdFromStart = (response: LiveChatStartConversationRespo
   return "";
 };
 
+const parseTextSizePreference = (value: string): TextSize => {
+  if (value === "small" || value === "default" || value === "large") {
+    return value;
+  }
+
+  return "default";
+};
+
 const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
   const [widgetConfig, setWidgetConfig] = useState<LiveChatWidgetConfig>(() => getResolvedConfig(initialConfig));
   const [visitorToken] = useState(() => getVisitorToken());
@@ -187,19 +212,37 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [errorMessage, setErrorMessage] = useState("");
   const [isDarkMode, setIsDarkMode] = useState(() => readStoredValue(WIDGET_DARK_MODE_KEY) === "true");
+  const [widgetView, setWidgetView] = useState<WidgetView>("chat");
+  const [textSize, setTextSize] = useState<TextSize>(() => parseTextSizePreference(readStoredValue(WIDGET_TEXT_SIZE_KEY, "default")));
+  const [isMessageSoundsEnabled, setIsMessageSoundsEnabled] = useState(() => readStoredValue(WIDGET_MESSAGE_SOUNDS_KEY, "true") !== "false");
+  const [isEndChatModalOpen, setIsEndChatModalOpen] = useState(false);
   const [showQuickMessages, setShowQuickMessages] = useState(true);
   const [quickMessages, setQuickMessages] = useState<QuickMessage[]>([]);
 
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
   const heartbeatRef = useRef<number | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const messageInputRef = useRef<HTMLTextAreaElement | null>(null);
 
   const apiKey = String(widgetConfig.apiKey || "").trim();
+  const hasApiKey = Boolean(apiKey);
   const title = widgetConfig.title || DEFAULT_TITLE;
   const welcomeMessage = widgetConfig.welcomeMessage || DEFAULT_WELCOME;
   const accentColor = widgetConfig.accentColor || DEFAULT_ACCENT;
   const resolvedAccent = isHexColor(accentColor) ? accentColor : DEFAULT_ACCENT;
+  const hasRuntimeError = Boolean(errorMessage.trim());
+  const isInvalidApiKeyError = /invalid\s+api\s+key/i.test(errorMessage);
+  const isActionBlocked = !hasApiKey || hasRuntimeError || isLoading || isSending;
+  const displayErrorMessage = hasApiKey
+    ? errorMessage
+    : "This widget is not configured correctly. Missing apiKey.";
+  const displayErrorTitle = isInvalidApiKeyError
+    ? "Invalid API key"
+    : !hasApiKey
+      ? "Configuration required"
+      : "Live chat unavailable";
   const statusLabel = useMemo(() => {
     switch (socketStatus) {
       case "connected":
@@ -233,6 +276,44 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
     }
   }, [clearHeartbeat]);
 
+  const playIncomingMessageSound = useCallback(() => {
+    if (!isMessageSoundsEnabled || typeof window === "undefined") {
+      return;
+    }
+
+    const AudioContextConstructor = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioContextConstructor) {
+      return;
+    }
+
+    try {
+      const context = audioContextRef.current ?? new AudioContextConstructor();
+      audioContextRef.current = context;
+
+      if (context.state === "suspended") {
+        void context.resume();
+      }
+
+      const oscillator = context.createOscillator();
+      const gainNode = context.createGain();
+      const now = context.currentTime;
+
+      oscillator.type = "sine";
+      oscillator.frequency.setValueAtTime(880, now);
+      gainNode.gain.setValueAtTime(0.0001, now);
+      gainNode.gain.exponentialRampToValueAtTime(0.05, now + 0.02);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
+
+      oscillator.connect(gainNode);
+      gainNode.connect(context.destination);
+
+      oscillator.start(now);
+      oscillator.stop(now + 0.2);
+    } catch {
+      // Ignore browser audio restrictions or unsupported playback environments.
+    }
+  }, [isMessageSoundsEnabled]);
+
   const syncMessages = useCallback(
     async (targetConversationId: string) => {
       if (!apiKey || !targetConversationId) {
@@ -256,7 +337,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
   );
 
   const startConversation = useCallback(async (): Promise<string | null> => {
-    if (!apiKey) {
+    if (!hasApiKey) {
       setErrorMessage("Configure an apiKey to start the live chat widget.");
       return null;
     }
@@ -294,7 +375,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
     } finally {
       setIsLoading(false);
     }
-  }, [apiKey, syncMessages, visitorToken, widgetConfig]);
+  }, [hasApiKey, syncMessages, visitorToken, widgetConfig]);
 
   const handleSendMessage = useCallback(async (presetMessage?: string) => {
     const trimmedMessage = String(presetMessage ?? messageText).trim();
@@ -330,6 +411,9 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
       setMessages((currentMessages) => normalizeMessages([...currentMessages, optimisticMessage]));
       if (!presetMessage) {
         setMessageText("");
+        if (messageInputRef.current) {
+          messageInputRef.current.style.height = "auto";
+        }
       }
 
       await liveChatWidgetServices.sendMessage(widgetConfig, visitorToken, {
@@ -346,10 +430,58 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
     }
   }, [conversationId, isSending, messageText, startConversation, syncMessages, visitorToken, widgetConfig]);
 
+  const handleEndChat = useCallback(() => {
+    disconnectSocket();
+    setConversationId("");
+    setMessages([]);
+    setMessageText("");
+    setUnreadCount(0);
+    setErrorMessage("");
+    clearStoredValue(CONVERSATION_ID_KEY);
+  }, [disconnectSocket]);
+
+  const messageSizeClass = useMemo(() => {
+    if (textSize === "small") {
+      return "text-xs";
+    }
+
+    if (textSize === "large") {
+      return "text-[16px]";
+    }
+
+    return "text-sm";
+  }, [textSize]);
+
+  const messageMetaSizeClass = useMemo(() => {
+    if (textSize === "small") {
+      return "text-[10px]";
+    }
+
+    if (textSize === "large") {
+      return "text-xs";
+    }
+
+    return "text-[11px]";
+  }, [textSize]);
+
+  const helperTextSizeClass = useMemo(() => {
+    if (textSize === "small") {
+      return "text-xs";
+    }
+
+    if (textSize === "large") {
+      return "text-sm";
+    }
+
+    return "text-[13px]";
+  }, [textSize]);
+
   useEffect(() => {
     const syncConfig = () => {
       setWidgetConfig(getResolvedConfig(initialConfig));
       setIsDarkMode(readStoredValue(WIDGET_DARK_MODE_KEY) === "true");
+      setTextSize(parseTextSizePreference(readStoredValue(WIDGET_TEXT_SIZE_KEY, "default")));
+      setIsMessageSoundsEnabled(readStoredValue(WIDGET_MESSAGE_SOUNDS_KEY, "true") !== "false");
     };
 
     const handleOpenChat = () => {
@@ -397,13 +529,20 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
   }, [isOpen, shouldRenderPanel]);
 
   useEffect(() => {
+    if (isOpen) {
+      setWidgetView("chat");
+      setIsEndChatModalOpen(false);
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
     if (!isOpen) {
       return;
     }
 
     setUnreadCount(0);
 
-    if (!apiKey) {
+    if (!hasApiKey) {
       setErrorMessage("Configure an apiKey to start the live chat widget.");
       return;
     }
@@ -424,7 +563,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
     }
 
     void syncMessages(conversationId);
-  }, [apiKey, conversationId, isOpen, startConversation, syncMessages]);
+  }, [conversationId, hasApiKey, isOpen, startConversation, syncMessages]);
 
   useEffect(() => {
     if (!isOpen || !apiKey || !conversationId) {
@@ -469,6 +608,10 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
             void syncMessages(conversationId);
           }
 
+          if (payload.event === "NEW_MESSAGE" && payload.data?.senderType !== "VISITOR") {
+            playIncomingMessageSound();
+          }
+
           if (payload.event === "NEW_MESSAGE" && payload.data?.senderType !== "VISITOR" && !isOpen) {
             setUnreadCount((currentCount) => currentCount + 1);
           }
@@ -492,7 +635,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
     return () => {
       disconnectSocket();
     };
-  }, [apiKey, conversationId, disconnectSocket, isOpen, syncMessages, visitorToken]);
+  }, [apiKey, conversationId, disconnectSocket, isOpen, playIncomingMessageSound, syncMessages, visitorToken]);
 
   useEffect(() => {
     if (!isOpen || messages.length === 0) {
@@ -516,77 +659,123 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
 
   const theme = isDarkMode
     ? {
-      shell: "bg-slate-900/95 border-slate-700/70 text-slate-100 shadow-[0_24px_55px_-28px_rgba(2,6,23,0.95)] ring-1 ring-white/10 backdrop-blur-xl",
-      topBar: "bg-slate-900/95 border-b border-slate-800",
-      header: "bg-[linear-gradient(140deg,#0e7490_0%,#0369a1_52%,#155e75_100%)] text-white shadow-lg",
-      panel: "bg-slate-900 border-slate-700",
-      body: "bg-[radial-gradient(circle_at_top,rgba(34,211,238,0.16),transparent_34%),linear-gradient(180deg,#020617_0%,#111827_68%,#0f172a_100%)]",
-      headerText: "text-white font-semibold text-sm",
+      shell: "bg-slate-900/96 border-slate-500/90 text-slate-100 shadow-[0_34px_78px_-30px_rgba(2,6,23,1)] ring-2 ring-cyan-400/25 outline outline-1 outline-white/10 backdrop-blur-xl",
+      header: "bg-[linear-gradient(135deg,#0b8aa8_0%,#0284c7_55%,#0e7490_100%)] border-b border-cyan-300/20 text-white shadow-sm",
+      panel: "bg-slate-900 border-slate-700/90",
+      body: "bg-slate-950/65",
       subText: "text-cyan-100/90 text-xs font-medium",
       muted: "text-slate-400 text-xs",
-      bubbleVisitor: "bg-cyan-600 text-white rounded-3xl rounded-tr-lg shadow-sm",
-      bubbleAgent: "bg-slate-800/95 text-slate-100 border border-slate-700 rounded-3xl rounded-tl-lg shadow-sm",
-      composer: "bg-slate-900/95 border-t border-slate-800",
-      input: "bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-500 rounded-2xl focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/20",
+      bubbleVisitor: "bg-cyan-600 text-white rounded-3xl rounded-tr-lg border border-cyan-500/70 shadow-sm",
+      bubbleAgent: "bg-slate-800/95 text-slate-100 border border-slate-600 rounded-3xl rounded-tl-lg shadow-sm",
+      composer: "bg-slate-900/95 border-t border-slate-700",
+      input: "bg-slate-800 border border-slate-600 text-slate-100 placeholder-slate-500 rounded-2xl focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/20",
       button: "bg-cyan-600 hover:bg-cyan-700 text-white disabled:bg-slate-700 disabled:cursor-not-allowed",
-      buttonSecondary: "bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700",
-      quickMsg: "bg-slate-800 border border-slate-700 text-slate-100 hover:bg-slate-700 text-xs cursor-pointer shadow-sm",
+      buttonSecondary: "bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-600",
+      quickBar: "bg-slate-900 border-y border-slate-700",
+      quickMsg: "bg-slate-800 border border-slate-600 text-slate-100 hover:bg-slate-700 text-xs cursor-pointer shadow-sm",
       error: "bg-red-950/50 text-red-200 border border-red-900/50",
-      divider: "bg-slate-900/80",
       welcomeTitle: "text-slate-100 text-sm font-semibold",
+      headerAction: "bg-white/15 text-white border border-white/25 hover:bg-white/25",
+      settingsSectionTitle: "text-slate-400 text-[11px] font-semibold tracking-wide",
+      settingsDivider: "border-slate-700/80",
+      settingsText: "text-slate-200 text-[13px]",
+      settingsMuted: "text-slate-400 text-[11px]",
+      settingsCard: "rounded-2xl border border-slate-700/70 bg-slate-900/45 px-4 py-3",
+      settingsControlShell: "grid grid-cols-3 rounded-xl border p-1",
+      settingsControlShellTone: "border-slate-700 bg-slate-800/80",
+      settingsControlActive: "bg-cyan-600 text-white shadow",
+      settingsControlIdle: "text-slate-300 hover:bg-slate-700",
+      toggleOff: "bg-slate-600",
+      toggleOn: "bg-cyan-600",
+      modalBackdrop: "bg-slate-950/65",
+      modalCard: "bg-slate-900 border border-slate-700 shadow-2xl",
+      modalPrimary: "bg-red-500 hover:bg-red-600 text-white",
+      modalSecondary: "bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700",
+      poweredText: "text-slate-300",
+      poweredBrand: "text-cyan-300",
     }
     : {
-      shell: "bg-white/95 border-cyan-100 text-slate-900 shadow-[0_28px_64px_-28px_rgba(8,145,178,0.45)] ring-1 ring-cyan-100/80 backdrop-blur-xl",
-      topBar: "bg-white/95 border-b border-slate-100",
-      header: "bg-[linear-gradient(140deg,#0891b2_0%,#0ea5e9_52%,#14b8a6_100%)] text-white shadow-lg",
-      panel: "bg-white border-cyan-100 shadow-md",
-      body: "bg-[radial-gradient(circle_at_top,rgba(34,211,238,0.3),transparent_34%),linear-gradient(180deg,#f0fdff_0%,#f8fafc_44%,#ffffff_100%)]",
-      headerText: "text-white font-semibold text-sm",
-      subText: "text-cyan-100 text-xs font-medium",
+      shell: "bg-white/96 border-cyan-300 text-slate-900 shadow-[0_34px_74px_-30px_rgba(8,145,178,0.5)] ring-2 ring-cyan-100 outline outline-1 outline-cyan-200/90 backdrop-blur-xl",
+      header: "bg-[linear-gradient(135deg,#0891b2_0%,#0ea5e9_58%,#0d9488_100%)] border-b border-cyan-200/80 text-white shadow-sm",
+      panel: "bg-white border-slate-200 shadow-md",
+      body: "bg-slate-100/70",
+      subText: "text-slate-600 text-xs font-medium",
       muted: "text-slate-500 text-xs",
-      bubbleVisitor: "bg-cyan-600 text-white rounded-3xl rounded-tr-lg shadow-sm",
-      bubbleAgent: "bg-white/95 text-slate-900 border border-cyan-100 rounded-3xl rounded-tl-lg shadow-sm",
-      composer: "bg-white/90 border-t border-cyan-100",
-      input: "bg-white border border-slate-200 text-slate-900 placeholder-slate-400 rounded-2xl focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/20",
+      bubbleVisitor: "bg-cyan-600 text-white rounded-3xl rounded-tr-lg border border-cyan-500/80 shadow-sm",
+      bubbleAgent: "bg-white text-slate-900 border border-slate-300 rounded-3xl rounded-tl-lg shadow-sm",
+      composer: "bg-white border-t border-slate-200",
+      input: "bg-white border border-slate-300 text-slate-900 placeholder-slate-400 rounded-2xl focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20",
       button: "bg-cyan-600 hover:bg-cyan-700 text-white disabled:bg-slate-200 disabled:cursor-not-allowed",
-      buttonSecondary: "bg-cyan-50 hover:bg-cyan-100 text-cyan-700 border border-cyan-100",
-      quickMsg: "bg-cyan-50 border border-cyan-100 text-cyan-700 hover:bg-cyan-100 text-xs cursor-pointer shadow-sm",
+      buttonSecondary: "bg-cyan-50 hover:bg-cyan-100 text-cyan-700 border border-cyan-200",
+      quickBar: "bg-white border-y border-slate-200",
+      quickMsg: "bg-cyan-50 border border-cyan-200 text-cyan-700 hover:bg-cyan-100 text-xs cursor-pointer shadow-sm",
       error: "bg-red-50 text-red-700 border border-red-200",
-      divider: "bg-slate-100",
       welcomeTitle: "text-slate-800 text-sm font-semibold",
+      headerAction: "bg-white/90 text-cyan-700 border border-cyan-100 hover:bg-white",
+      settingsSectionTitle: "text-slate-500 text-[11px] font-semibold tracking-wide",
+      settingsDivider: "border-slate-200",
+      settingsText: "text-slate-700 text-[13px]",
+      settingsMuted: "text-slate-500 text-[11px]",
+      settingsCard: "rounded-2xl border border-slate-200 bg-white/85 px-4 py-3",
+      settingsControlShell: "grid grid-cols-3 rounded-xl border p-1",
+      settingsControlShellTone: "border-slate-200 bg-slate-100/90",
+      settingsControlActive: "bg-white text-slate-900 border border-slate-300 shadow-sm",
+      settingsControlIdle: "text-slate-500 hover:bg-white",
+      toggleOff: "bg-slate-300",
+      toggleOn: "bg-cyan-600",
+      modalBackdrop: "bg-slate-900/45",
+      modalCard: "bg-white border border-slate-200 shadow-2xl",
+      modalPrimary: "bg-red-500 hover:bg-red-600 text-white",
+      modalSecondary: "bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200",
+      poweredText: "text-slate-500",
+      poweredBrand: "text-cyan-700",
     };
 
   return (
     <div className="fixed bottom-3 right-3 sm:bottom-6 sm:right-6 z-[70] flex flex-col items-end gap-4" style={{ fontFamily: "Sora, Avenir Next, Segoe UI, sans-serif" }}>
       {shouldRenderPanel ? (
         <div
-          className={`w-[min(420px,calc(100vw-1rem))] sm:w-[400px] h-[min(680px,calc(100vh-1rem))] sm:h-[620px] overflow-hidden rounded-[30px] border flex flex-col origin-bottom-right transition-all duration-200 ease-out ${theme.shell}`}
+          className={`w-[min(390px,calc(100vw-1rem))] sm:w-[378px] h-[min(640px,calc(100vh-1rem))] sm:h-[588px] overflow-hidden rounded-[24px] border-2 flex flex-col origin-bottom-right transition-[opacity,transform,filter] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${theme.shell}`}
           style={{
             opacity: isPanelVisible ? 1 : 0,
-            transform: isPanelVisible ? "translateY(0) scale(1)" : "translateY(12px) scale(0.96)",
+            transform: isPanelVisible ? "translateY(0) scale(1)" : "translateY(22px) scale(0.9)",
+            filter: isPanelVisible ? "blur(0px)" : "blur(6px)",
           }}
         >
-          <div className={`${theme.topBar} px-4 py-2.5 flex items-center justify-between gap-3 flex-shrink-0`}>
-            <div className="h-9 w-9 rounded-full flex items-center justify-center bg-slate-100/90 text-slate-700 dark:bg-slate-800 dark:text-slate-200">
-              <MessageCircle className="h-4.5 w-4.5" />
+          <div className={`${theme.header} px-5 py-4 flex items-center justify-between gap-3 flex-shrink-0`}>
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="h-11 w-11 rounded-full bg-white/20 border border-white/35 flex items-center justify-center text-white text-lg font-semibold">
+                {title.trim().charAt(0).toUpperCase() || "J"}
+              </div>
+              <div className="min-w-0">
+                <p className="text-[1.05rem] font-semibold leading-tight truncate">{title}</p>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className={`h-2.5 w-2.5 rounded-full ${socketStatus === "connected" ? "bg-emerald-400 animate-pulse" : socketStatus === "connecting" ? "bg-yellow-300" : "bg-slate-300"}`} />
+                  <p className={theme.subText}>{statusLabel}</p>
+                </div>
+              </div>
             </div>
-            <div className={`px-4 py-1 rounded-full border flex items-center gap-2 min-w-0 ${theme.panel}`}>
-              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-              <p className="truncate text-[0.95rem] font-semibold">{title}</p>
-            </div>
-            <div className="flex items-center gap-1.5">
+
+            <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => setShowQuickMessages((current) => !current)}
-                className="flex h-9 w-9 items-center justify-center rounded-full text-slate-500 transition-all duration-200 hover:-translate-y-0.5 hover:bg-slate-200/70 hover:text-slate-700 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-slate-100"
+                onClick={() => setIsEndChatModalOpen(true)}
+                className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 hover:-translate-y-0.5 ${theme.headerAction}`}
+              >
+                End chat
+              </button>
+              <button
+                type="button"
+                onClick={() => setWidgetView((current) => (current === "settings" ? "chat" : "settings"))}
+                className="h-9 w-9 rounded-lg border border-white/30 bg-white/10 text-white flex items-center justify-center transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/20"
                 aria-label="Toggle quick replies"
               >
-                <MoreHorizontal className="h-5 w-5" />
+                <Settings className="h-4.5 w-4.5" />
               </button>
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
-                className="flex h-9 w-9 items-center justify-center rounded-full text-slate-600 transition-all duration-200 hover:-translate-y-0.5 hover:bg-slate-200/80 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-slate-100"
+                className="h-9 w-9 rounded-lg border border-white/30 bg-white/10 text-white flex items-center justify-center transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/20"
                 aria-label="Close live chat"
               >
                 <X className="h-5 w-5" />
@@ -594,153 +783,302 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
             </div>
           </div>
 
-          {/* Header */}
-          <div className={`${theme.header} px-5 sm:px-6 py-4 flex-shrink-0`}>
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3 min-w-0 flex-1">
-                <div className="flex h-11 w-11 sm:h-12 sm:w-12 flex-shrink-0 items-center justify-center rounded-full bg-white/20 text-white font-bold text-base sm:text-lg ring-1 ring-white/40">
-                  {title.trim().charAt(0).toUpperCase() || "J"}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-semibold text-white leading-tight tracking-tight">Text Support</p>
-                  <div className="flex items-center gap-1.5 mt-1">
-                    <div className={`h-2 w-2 rounded-full ${socketStatus === "connected" ? "bg-green-400 animate-pulse" : socketStatus === "connecting" ? "bg-yellow-300" : "bg-slate-300"}`} />
-                    <p className={theme.subText}>{statusLabel}</p>
+          {widgetView === "settings" ? (
+            <>
+              <div className={`flex-1 overflow-y-auto px-5 py-5 ${theme.body}`}>
+                <button
+                  type="button"
+                  onClick={() => setWidgetView("chat")}
+                  className={`inline-flex items-center gap-2 text-[11px] font-semibold mb-4 transition-colors ${theme.settingsText}`}
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  <span>Back to chat</span>
+                </button>
+
+                <div className={theme.settingsCard}>
+                  <p className={`${theme.settingsSectionTitle} mb-2`}>TEXT SIZE</p>
+                  <div className={`${theme.settingsControlShell} ${theme.settingsControlShellTone}`}>
+                    {(["small", "default", "large"] as TextSize[]).map((size) => (
+                      <button
+                        key={size}
+                        type="button"
+                        onClick={() => {
+                          setTextSize(size);
+                          writeStoredValue(WIDGET_TEXT_SIZE_KEY, size);
+                        }}
+                        className={`px-2 py-1.5 rounded-lg text-[11px] font-semibold capitalize transition-all ${textSize === size ? theme.settingsControlActive : theme.settingsControlIdle}`}
+                      >
+                        {size}
+                      </button>
+                    ))}
                   </div>
                 </div>
-              </div>
-            </div>
-          </div>
 
-          {/* Messages Area */}
-          <div className={`flex-1 overflow-y-auto px-4 sm:px-6 py-4 flex flex-col ${theme.body}`}>
-            {isLoading && messages.length === 0 ? (
-              <div className="flex items-center justify-center h-full">
-                <div className="flex flex-col items-center gap-3">
-                  <Loader2 className="h-6 w-6 animate-spin text-cyan-600" />
-                  <p className="text-sm text-slate-500 dark:text-slate-400">Starting your chat session...</p>
-                </div>
-              </div>
-            ) : messages.length === 0 ? (
-              <div className={`rounded-2xl border p-6 text-center ${theme.panel}`}>
-                <div className="flex justify-center mb-3">
-                  <div className="h-14 w-14 rounded-full bg-cyan-100/90 dark:bg-cyan-900/30 flex items-center justify-center ring-8 ring-cyan-50/60 dark:ring-cyan-900/30">
-                    <MessageCircle className="h-7 w-7 text-cyan-600" />
+                <div className={`my-5 border-t ${theme.settingsDivider}`} />
+
+                <div className={`flex items-center justify-between ${theme.settingsCard}`}>
+                  <div className="flex items-center gap-2.5">
+                    <Moon className={`h-4.5 w-4.5 ${theme.settingsMuted}`} />
+                    <p className={theme.settingsText}>Dark Mode</p>
                   </div>
-                </div>
-                <p className={theme.welcomeTitle}>{welcomeMessage}</p>
-                <p className={`mt-2 ${theme.muted}`}>We're here to help. Send a message to get started.</p>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-4">
-                {messages.map((message) => {
-                  const isVisitorMessage = message.senderType === "VISITOR";
-                  return (
-                    <div key={message._id} className={`flex ${isVisitorMessage ? "justify-end" : "justify-start"} items-end gap-2`}>
-                      {!isVisitorMessage && (
-                        <div className="h-8 w-8 rounded-full bg-gradient-to-r from-cyan-600 to-teal-600 flex-shrink-0 flex items-center justify-center text-white text-xs font-bold">
-                          J
-                        </div>
-                      )}
-                      <div className={`max-w-[78%] sm:max-w-[70%] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${isVisitorMessage ? theme.bubbleVisitor : theme.bubbleAgent}`}>
-                        <p className="px-4 py-2.5 whitespace-pre-wrap leading-relaxed text-sm">{message.message}</p>
-                        <div className={`px-4 pb-1 flex items-center gap-1 ${isVisitorMessage ? "text-white/70" : theme.muted}`}>
-                          <p className="text-[11px]">{formatTime(message.createdAt)}</p>
-                          {isVisitorMessage && <CheckCheck className="h-3 w-3" />}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-                <div ref={bottomRef} />
-              </div>
-            )}
-          </div>
-
-          {/* Quick Messages */}
-          {showQuickMessages && quickMessages.length > 0 && (
-            <div className={`border-t px-4 sm:px-6 py-3 ${theme.divider}`}>
-              <p className={`text-[11px] font-semibold uppercase tracking-wide mb-2 ${theme.muted}`}>Quick Replies</p>
-              <div className="flex flex-wrap gap-2">
-                {quickMessages.slice(0, 5).map((qm) => (
                   <button
-                    key={qm._id}
                     type="button"
                     onClick={() => {
-                      setMessageText(qm.response);
-                      setShowQuickMessages(false);
-                      void handleSendMessage(qm.response);
+                      const next = !isDarkMode;
+                      setIsDarkMode(next);
+                      writeStoredValue(WIDGET_DARK_MODE_KEY, String(next));
                     }}
-                    disabled={!apiKey || isLoading || isSending}
-                    className={`px-3 py-1.5 rounded-full border transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md text-xs font-medium ${theme.quickMsg} disabled:opacity-50 disabled:cursor-not-allowed`}
+                    className={`relative h-7 w-14 rounded-full transition-colors ${isDarkMode ? theme.toggleOn : theme.toggleOff}`}
+                    aria-label="Toggle dark mode"
                   >
-                    {qm.title}
+                    <span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-all ${isDarkMode ? "left-8" : "left-1"}`} />
                   </button>
-                ))}
+                </div>
+
+                <div className={`my-5 border-t ${theme.settingsDivider}`} />
+
+                <div className={`flex items-center justify-between ${theme.settingsCard}`}>
+                  <div className="flex items-center gap-2.5">
+                    <Volume2 className={`h-4.5 w-4.5 ${theme.settingsMuted}`} />
+                    <p className={theme.settingsText}>Message Sounds</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsMessageSoundsEnabled((current) => {
+                        const next = !current;
+                        writeStoredValue(WIDGET_MESSAGE_SOUNDS_KEY, String(next));
+                        return next;
+                      });
+                    }}
+                    className={`relative h-7 w-14 rounded-full transition-colors ${isMessageSoundsEnabled ? theme.toggleOn : theme.toggleOff}`}
+                    aria-label="Toggle message sounds"
+                  >
+                    <span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-all ${isMessageSoundsEnabled ? "left-8" : "left-1"}`} />
+                  </button>
+                </div>
+
+                <div className={`my-5 border-t ${theme.settingsDivider}`} />
+
+                <div className={theme.settingsCard}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Shield className={`h-4.5 w-4.5 ${theme.settingsMuted}`} />
+                    <p className={`font-semibold tracking-wide ${theme.settingsText}`}>SESSION & PRIVACY</p>
+                  </div>
+                  <p className={`leading-relaxed ${theme.settingsMuted}`}>
+                    We securely store your session so you do not lose your chat on reload. You can end and clear this session at any time.
+                  </p>
+                </div>
               </div>
-            </div>
+
+              <div className={`border-t ${theme.composer} px-4 py-3.5 flex-shrink-0`}>
+                <p className={`text-xs text-center font-medium ${theme.poweredText}`}>
+                  Powered by <span className={`font-bold text-[0.65rem] ${theme.poweredBrand}`}>JAF Chatra</span>
+                </p>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Messages Area */}
+              <div className={`flex-1 overflow-y-auto px-4 sm:px-5 py-4 flex flex-col ${theme.body}`}>
+                {isLoading && messages.length === 0 ? (
+                  <div className="flex items-center justify-center h-full">
+                    <div className="flex flex-col items-center gap-3">
+                      <Loader2 className="h-6 w-6 animate-spin text-cyan-600" />
+                      <p className="text-sm text-slate-500 dark:text-slate-400">Starting your chat session...</p>
+                    </div>
+                  </div>
+                ) : messages.length === 0 ? (
+                  <div className={`rounded-2xl border-2 p-5 text-center ${theme.panel}`}>
+                    <div className="flex justify-center mb-3">
+                      <div className="h-14 w-14 rounded-full bg-cyan-100/90 dark:bg-cyan-900/30 flex items-center justify-center ring-8 ring-cyan-50/60 dark:ring-cyan-900/30">
+                        <MessageCircle className="h-7 w-7 text-cyan-600" />
+                      </div>
+                    </div>
+                    <p className={`${theme.welcomeTitle} ${helperTextSizeClass}`}>{welcomeMessage}</p>
+                    <p className={`mt-2 ${theme.muted} ${helperTextSizeClass}`}>We're here to help. Send a message to get started.</p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-4">
+                    {messages.map((message) => {
+                      const isVisitorMessage = message.senderType === "VISITOR";
+                      return (
+                        <div key={message._id} className={`flex ${isVisitorMessage ? "justify-end" : "justify-start"} items-end gap-2`}>
+                          {!isVisitorMessage && (
+                            <div className="h-8 w-8 rounded-full bg-gradient-to-r from-cyan-600 to-teal-600 flex-shrink-0 flex items-center justify-center text-white text-xs font-bold border border-cyan-400/40">
+                              J
+                            </div>
+                          )}
+                          <div className={`max-w-[80%] sm:max-w-[74%] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${isVisitorMessage ? theme.bubbleVisitor : theme.bubbleAgent}`}>
+                            <p className={`px-4 py-2.5 whitespace-pre-wrap leading-relaxed ${messageSizeClass}`}>{message.message}</p>
+                            <div className={`px-4 pb-1 flex items-center gap-1 ${isVisitorMessage ? "text-white/70" : theme.muted}`}>
+                              <p className={messageMetaSizeClass}>{formatTime(message.createdAt)}</p>
+                              {isVisitorMessage && <CheckCheck className="h-3 w-3" />}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    <div ref={bottomRef} />
+                  </div>
+                )}
+              </div>
+
+              {/* Quick Messages */}
+              {quickMessages.length > 0 && (
+                <div className={`${theme.quickBar} px-4 sm:px-5 py-2.5 flex-shrink-0`}>
+                  <button
+                    type="button"
+                    onClick={() => setShowQuickMessages((current) => !current)}
+                    disabled={isActionBlocked}
+                    className="w-full flex items-center justify-center gap-2 text-sm font-semibold text-slate-400 hover:text-slate-500 dark:text-slate-300 dark:hover:text-slate-100 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <Zap className="h-4 w-4" />
+                    <span>Quick Messages</span>
+                    {showQuickMessages ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                  </button>
+
+                  {showQuickMessages ? (
+                    <div className="mt-2.5 flex flex-wrap gap-2">
+                      {quickMessages.slice(0, 5).map((qm) => (
+                        <button
+                          key={qm._id}
+                          type="button"
+                          onClick={() => {
+                            setMessageText(qm.response);
+                            setShowQuickMessages(false);
+                            void handleSendMessage(qm.response);
+                          }}
+                          disabled={isActionBlocked}
+                          className={`px-3 py-1.5 rounded-full border transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md text-xs font-medium ${theme.quickMsg} disabled:opacity-50 disabled:cursor-not-allowed`}
+                        >
+                          {qm.title}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              )}
+
+              {/* Input Area */}
+              <div className={`border-t ${theme.composer} px-4 sm:px-5 py-3.5 flex-shrink-0`}>
+                {!hasApiKey || hasRuntimeError ? (
+                  <div className={`mb-3 rounded-2xl border px-3.5 py-3 ${theme.error} flex items-start gap-2.5`}>
+                    <AlertCircle className="h-4.5 w-4.5 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wide">{displayErrorTitle}</p>
+                      <p className="mt-1 text-xs leading-relaxed">{displayErrorMessage}</p>
+                    </div>
+                  </div>
+                ) : null}
+
+                <div className="flex items-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isActionBlocked}
+                    className={`flex h-11 w-11 items-center justify-center rounded-2xl flex-shrink-0 transition-all duration-200 hover:-translate-y-0.5 ${theme.buttonSecondary} disabled:opacity-50 disabled:cursor-not-allowed`}
+                    aria-label="Attach file"
+                    title="Attach file (coming soon)"
+                  >
+                    <Paperclip className="h-5 w-5" />
+                  </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    className="hidden"
+                    disabled
+                  />
+
+                  <div className={`flex-1 rounded-2xl border-2 px-1 py-1 ${theme.input} flex items-end`}>
+                    <textarea
+                      ref={messageInputRef}
+                      value={messageText}
+                      onChange={(event) => setMessageText(event.target.value)}
+                      rows={1}
+                      onInput={(event) => {
+                        const target = event.currentTarget;
+                        target.style.height = "auto";
+                        target.style.height = `${Math.min(target.scrollHeight, 84)}px`;
+                      }}
+                      onKeyDown={(event) => {
+                        if (isActionBlocked) {
+                          return;
+                        }
+
+                        if (event.key === "Enter" && !event.shiftKey) {
+                          event.preventDefault();
+                          void handleSendMessage();
+                        }
+                      }}
+                      placeholder={hasApiKey ? (hasRuntimeError ? "Resolve the error to continue chatting..." : "Type a message...") : "Widget apiKey is missing..."}
+                      disabled={isActionBlocked}
+                      className={`w-full bg-transparent ${messageSizeClass} outline-none px-3 py-2 disabled:opacity-50 resize-none overflow-y-auto leading-5 max-h-[84px] ${isDarkMode ? "text-slate-100" : "text-slate-900"}`}
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (isActionBlocked) {
+                        return;
+                      }
+
+                      void handleSendMessage();
+                    }}
+                    disabled={isActionBlocked || !messageText.trim()}
+                    className={`flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl transition-all duration-200 hover:-translate-y-0.5 ${theme.button} disabled:opacity-50 disabled:cursor-not-allowed`}
+                    style={{ backgroundColor: resolvedAccent }}
+                    aria-label="Send message"
+                  >
+                    {isSending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
+                  </button>
+                </div>
+
+                <p className={`text-xs mt-2.5 text-center font-medium ${theme.poweredText}`}>
+                  Powered by <span className={`font-bold text-[0.65rem] ${theme.poweredBrand}`}>JAF Chatra</span>
+                </p>
+              </div>
+            </>
           )}
 
-          {/* Input Area */}
-          <div className={`border-t ${theme.composer} px-4 sm:px-6 py-4 flex-shrink-0`}>
-            {errorMessage ? (
-              <div className={`mb-3 rounded-xl border px-3 py-2 text-xs ${theme.error} flex items-start gap-2`}>
-                <span className="flex-shrink-0 mt-0.5">!</span>
-                <span>{errorMessage}</span>
+          {isEndChatModalOpen ? (
+            <div className={`absolute inset-0 z-40 backdrop-blur-[5px] ${theme.modalBackdrop} flex items-center justify-center p-4`}>
+              <div className={`w-full max-w-[320px] rounded-3xl p-5 ${theme.modalCard}`}>
+                <div className="flex justify-center mb-3">
+                  <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center">
+                    <AlertCircle className="h-6 w-6 text-red-500" />
+                  </div>
+                </div>
+
+                <h3 className="text-center text-xl font-semibold">End this conversation?</h3>
+                <p className={`text-center mt-2 text-sm ${theme.settingsMuted}`}>
+                  Your conversation history will be cleared.
+                </p>
+
+                <div className="mt-5 grid grid-cols-2 gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setIsEndChatModalOpen(false)}
+                    className={`h-11 rounded-2xl text-base font-semibold transition-colors ${theme.modalSecondary}`}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleEndChat();
+                      setIsEndChatModalOpen(false);
+                      setWidgetView("chat");
+                    }}
+                    className={`h-11 rounded-2xl text-base font-semibold transition-colors ${theme.modalPrimary}`}
+                  >
+                    Yes, end chat
+                  </button>
+                </div>
               </div>
-            ) : null}
-
-            <div className="flex items-end gap-2">
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={!apiKey || isLoading || isSending}
-                className={`flex h-10 w-10 items-center justify-center rounded-2xl flex-shrink-0 transition-all duration-200 hover:-translate-y-0.5 ${theme.buttonSecondary} disabled:opacity-50 disabled:cursor-not-allowed`}
-                aria-label="Attach file"
-                title="Attach file (coming soon)"
-              >
-                <Paperclip className="h-5 w-5" />
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                className="hidden"
-                disabled
-              />
-
-              <div className={`flex-1 rounded-2xl border px-1 py-1 ${theme.input} flex items-center`}>
-                <input
-                  type="text"
-                  value={messageText}
-                  onChange={(event) => setMessageText(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" && !event.shiftKey) {
-                      event.preventDefault();
-                      void handleSendMessage();
-                    }
-                  }}
-                  placeholder={apiKey ? "Type a message..." : "Configure apiKey to chat..."}
-                  disabled={!apiKey || isLoading || isSending}
-                  className={`w-full bg-transparent text-sm outline-none px-3 py-2 disabled:opacity-50 ${isDarkMode ? "text-slate-100" : "text-slate-900"}`}
-                />
-              </div>
-
-              <button
-                type="button"
-                onClick={() => {
-                  void handleSendMessage();
-                }}
-                disabled={!apiKey || isLoading || isSending || !messageText.trim()}
-                className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl transition-all duration-200 hover:-translate-y-0.5 ${theme.button} disabled:opacity-50 disabled:cursor-not-allowed`}
-                style={{ backgroundColor: resolvedAccent }}
-                aria-label="Send message"
-              >
-                {isSending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
-              </button>
             </div>
-
-            <p className={`text-[10px] mt-2 text-center ${theme.muted}`}> Powered by JAF Chatra </p>
-          </div>
+          ) : null}
         </div>
       ) : null}
 
@@ -753,14 +1091,14 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
             setUnreadCount(0);
           }
         }}
-        className={`group relative flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-2xl text-white shadow-xl transition-all duration-200 hover:-translate-y-1 hover:scale-105 active:scale-95 ${theme.button}`}
+        className={`group relative flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-full border-2 border-white/30 text-white shadow-xl transition-all duration-200 hover:-translate-y-1 hover:scale-105 active:scale-95 ${theme.button}`}
         style={{
           background: `linear-gradient(140deg, ${resolvedAccent} 0%, #0ea5e9 85%)`,
           boxShadow: `0 16px 34px -16px ${resolvedAccent}`,
         }}
         aria-label="Open live chat"
       >
-        {isOpen ? <X className="h-7 w-7 transition-transform duration-200" /> : <MessageCircle className="h-7 w-7 transition-transform duration-200 group-hover:rotate-6" />}
+        {isOpen ? <X className="h-5 w-5 transition-transform duration-200" /> : <MessageCircle className="h-5 w-5 transition-transform duration-200 group-hover:rotate-6" />}
 
         {unreadCount > 0 && !isOpen ? (
           <span className="absolute -right-3 -top-3 flex min-w-[24px] items-center justify-center rounded-full border-2 border-white bg-red-500 px-1.5 text-[10px] font-bold text-white shadow-lg">
