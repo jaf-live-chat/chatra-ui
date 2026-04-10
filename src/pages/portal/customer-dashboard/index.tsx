@@ -44,7 +44,7 @@ import {
   Info,
 } from "lucide-react";
 import ImageWithFallback from "../../../components/ImageWithFallback";
-import { APP_LOGO } from "../../../constants/constants";
+import Logo from "../../../components/common/Logo";
 
 // ─── Mock Data ────────────────────────────────────────────────────────────────
 
@@ -1016,16 +1016,16 @@ const CustomerDashboard = () => {
         <div className="h-16 flex items-center justify-between px-3 border-b border-slate-100 overflow-hidden">
           {sidebarOpen ? (
             <>
-              <img
-                src={APP_LOGO.logoDark}
+              <Logo
+                variant="dark"
                 alt="JAF Live Chat"
-                style={{ height: "32px", width: "auto", maxWidth: "140px", objectFit: "contain" }}
+                style={{ height: "32px", maxWidth: "140px" }}
                 className="ml-3 shrink-0 dark:hidden"
               />
-              <img
-                src={APP_LOGO.logoLight}
+              <Logo
+                variant="light"
                 alt="JAF Live Chat"
-                style={{ height: "32px", width: "auto", maxWidth: "140px", objectFit: "contain" }}
+                style={{ height: "32px", maxWidth: "140px" }}
                 className="ml-3 hidden shrink-0 dark:block"
               />
             </>

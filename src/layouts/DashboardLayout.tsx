@@ -10,7 +10,7 @@ import {
 import { Outlet, useNavigate, useLocation } from "react-router";
 import { Avatar, Button, Chip, Stack, Tooltip, Typography } from "@mui/material";
 import { DarkModeProvider, useDarkMode } from "../providers/DarkModeContext";
-import { APP_LOGO, USER_ROLES, USER_STATUS } from "../constants/constants";
+import { USER_ROLES, USER_STATUS } from "../constants/constants";
 import useAuth from "../hooks/useAuth";
 import useGetRole from "../hooks/useGetRole";
 import useIsMobile from "../hooks/useMobile";
@@ -22,6 +22,7 @@ import type { AuthUser } from "../models/AgentModel";
 import toTitleCase from "../utils/toTitleCase";
 import getAvatarColor from "../utils/getAvatarColor";
 import AutoLogoutModal from "../components/common/AutoLogoutModal";
+import Logo from "../components/common/Logo";
 
 const INACTIVITY_LIMIT_MS = 2 * 60 * 1000;
 const AUTO_LOGOUT_WARNING_SECONDS = 30;
@@ -349,9 +350,9 @@ function DashboardLayoutInner() {
   const activeNavCls = "bg-cyan-50 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400";
   const inactiveNavCls =
     "text-gray-600 hover:bg-gray-100 dark:text-slate-400 dark:hover:bg-slate-700/60";
-  const sidebarLogo = isSidebarOpen
-    ? (isDark ? APP_LOGO.logoLight : APP_LOGO.logoDark)
-    : APP_LOGO.logoMain;
+  const sidebarLogoVariant: "light" | "dark" | "main" = isSidebarOpen
+    ? (isDark ? "light" : "dark")
+    : "main";
 
   useEffect(() => {
     setProfileImageFailed(false);
@@ -377,18 +378,18 @@ function DashboardLayoutInner() {
         <div className={`h-16 flex items-center ${isSidebarOpen ? "justify-between px-4" : "justify-center px-2"} border-b border-gray-100 dark:border-slate-700`}>
           {isSidebarOpen ? (
             <div className="flex w-full items-center justify-center overflow-hidden">
-              <img
-                src={sidebarLogo}
+              <Logo
+                variant={sidebarLogoVariant}
                 alt="JAF Chatra Logo"
-                style={{ height: "32px", width: "auto", maxWidth: "140px", objectFit: "contain" }}
+                style={{ height: "32px", maxWidth: "140px" }}
                 className="mx-auto"
               />
             </div>
           ) : (
-            <img
-              src={sidebarLogo}
+            <Logo
+              variant={sidebarLogoVariant}
               alt="JAF Chatra Minimized"
-              style={{ height: "46px", width: "auto", objectFit: "contain" }}
+              style={{ height: "46px" }}
               className="mx-auto"
             />
           )}
