@@ -14,6 +14,9 @@ export interface ChatMessage {
   text: string;
   timestamp: string;
   files?: AttachedFile[];
+  status?: "SENDING" | "DELIVERED" | "SEEN";
+  seenAt?: string | null;
+  seenByRole?: string | null;
 }
 
 export interface ActiveChat {
@@ -89,4 +92,7 @@ export const mapServerMessageToChatMessage = (
   timestamp: message.createdAt
     ? new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
     : fallbackTimestamp,
+  status: message.status as "SENDING" | "DELIVERED" | "SEEN" | undefined,
+  seenAt: message.seenAt || null,
+  seenByRole: message.seenByRole || null,
 });
