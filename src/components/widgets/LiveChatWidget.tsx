@@ -274,8 +274,21 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
   const hasRuntimeError = Boolean(errorMessage.trim());
   const isInvalidApiKeyError = /invalid\s+api\s+key/i.test(errorMessage);
   const isActionBlocked = !hasApiKey || hasRuntimeError || isLoading || isSending;
+  const hasEndedConversation = useMemo(() => {
+    if (conversationId) {
+      return false;
+    }
+
+    return messages.some((entry) => {
+      if (entry.senderType !== "SUPPORT_AGENT") {
+        return false;
+      }
+
+      return String(entry.message || "").toLowerCase().includes("this chat has ended");
+    });
+  }, [conversationId, messages]);
   const isPreChatPending = !conversationId && !hasCompletedPreChat;
-  const isComposerBlocked = isActionBlocked || isPreChatPending;
+  const isComposerBlocked = isActionBlocked || isPreChatPending || hasEndedConversation;
   const displayErrorMessage = hasApiKey
     ? errorMessage
     : "This widget is not configured correctly. Missing apiKey.";
@@ -605,6 +618,11 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
 
     resetConversationState();
   }, [conversationId, resetConversationState, visitorToken, widgetConfig]);
+
+  const handleGoBackToStart = useCallback(() => {
+    resetConversationState();
+    setWidgetView("chat");
+  }, [resetConversationState]);
 
   const appendEndedMessage = useCallback((payload: LiveChatConversationEndedEvent) => {
     const endedBy = payload.endedBy?.displayName ? ` Ended by ${payload.endedBy.displayName}.` : "";
@@ -1359,8 +1377,27 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                 )}
               </div>
 
+              {hasEndedConversation ? (
+                <div className={`${theme.quickBar} px-4 sm:px-5 py-3 flex-shrink-0`}>
+                  <div className={`rounded-2xl border px-3.5 py-3 text-left ${theme.settingsCard}`}>
+                    <p className={`font-semibold ${theme.settingsText}`}>This conversation has ended.</p>
+                    <p className={`mt-1 leading-relaxed ${theme.settingsMuted}`}>
+                      Go back to start a new chat.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleGoBackToStart}
+                      className="mt-3 w-full rounded-xl px-3 py-2 text-sm font-semibold text-white"
+                      style={{ backgroundColor: resolvedAccent }}
+                    >
+                      Go back
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+
               {/* Quick Messages */}
-              {quickMessages.length > 0 && (
+              {quickMessages.length > 0 && !hasEndedConversation && (
                 <div className={`${theme.quickBar} px-4 sm:px-5 py-2.5 flex-shrink-0`}>
                   <button
                     type="button"
@@ -1452,7 +1489,9 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                         hasApiKey
                           ? (hasRuntimeError
                             ? "Resolve the error to continue chatting..."
-                            : (isPreChatPending ? "Complete the optional pre-chat step to continue..." : "Type a message..."))
+                            : (hasEndedConversation
+                              ? "This chat has ended. Tap Go back to start again..."
+                              : (isPreChatPending ? "Complete the optional pre-chat step to continue..." : "Type a message...")))
                           : "Widget apiKey is missing..."
                       }
                       disabled={isComposerBlocked}
