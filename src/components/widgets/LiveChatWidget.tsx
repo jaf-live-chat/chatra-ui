@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Loader2, MessageCircle, Paperclip, Send, X, CheckCheck, Settings, Zap, ChevronUp, ChevronDown, ArrowLeft, Moon, Volume2, Shield, AlertCircle } from "lucide-react";
+import { Loader2, MessageCircle, Paperclip, Send, X, Settings, Zap, ChevronUp, ChevronDown, ArrowLeft, Moon, Volume2, Shield, AlertCircle } from "lucide-react";
 import type { Socket } from "socket.io-client";
 import type {
   LiveChatConversationEndedEvent,
@@ -1009,6 +1009,11 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
     };
   }, []);
 
+  const latestVisitorMessageId = useMemo(() => {
+    const latestMessage = [...messages].reverse().find((message) => message.senderType === "VISITOR");
+    return latestMessage ? String(latestMessage._id) : null;
+  }, [messages]);
+
   const theme = isDarkMode
     ? {
       shell: "bg-slate-900/96 border-slate-500/90 text-slate-100 shadow-[0_34px_78px_-30px_rgba(2,6,23,1)] ring-2 ring-cyan-400/25 outline outline-1 outline-white/10 backdrop-blur-xl",
@@ -1344,7 +1349,9 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                   <div className="flex flex-col gap-4">
                     {messages.map((message) => {
                       const isVisitorMessage = message.senderType === "VISITOR";
-                      const visitorMessageStatus = isVisitorMessage ? getVisitorMessageStatus(message) : null;
+                      const visitorMessageStatus = isVisitorMessage && String(message._id) === latestVisitorMessageId
+                        ? getVisitorMessageStatus(message)
+                        : null;
                       return (
                         <div key={message._id} className={`flex ${isVisitorMessage ? "justify-end" : "justify-start"} items-end gap-2`}>
                           {!isVisitorMessage && (
@@ -1359,11 +1366,10 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                             <p className={`px-4 py-2.5 whitespace-pre-wrap leading-relaxed ${messageSizeClass}`}>{message.message}</p>
                             <div className={`px-4 pb-1 flex items-center gap-1 ${isVisitorMessage ? "text-white/70" : theme.muted}`}>
                               <p className={messageMetaSizeClass}>{formatTime(message.createdAt)}</p>
-                              {isVisitorMessage ? (
+                              {visitorMessageStatus ? (
                                 <>
-                                  <CheckCheck className={`h-3 w-3 ${visitorMessageStatus?.toneClass || ""}`} />
-                                  <p className={`${messageMetaSizeClass} ${visitorMessageStatus?.toneClass || ""}`}>
-                                    {visitorMessageStatus?.label}
+                                  <p className={`${messageMetaSizeClass} ${visitorMessageStatus.toneClass}`}>
+                                    {visitorMessageStatus.label}
                                   </p>
                                 </>
                               ) : null}

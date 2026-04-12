@@ -151,6 +151,10 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
 
   const selectedChatSessionId = selectedChat?.sessionId ? String(selectedChat.sessionId) : null;
   const selectedChatResolvedId = selectedChat ? String(selectedChat.id) : null;
+  const latestAgentMessageId = useMemo(() => {
+    const latestMessage = [...(selectedChat?.messages || [])].reverse().find((message) => message.sender === "agent");
+    return latestMessage ? String(latestMessage.id) : null;
+  }, [selectedChat?.messages]);
 
   const syncServerMessages = useCallback(async (conversationId: string, chatId: string) => {
     const now = Date.now();
@@ -720,9 +724,9 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
                           {msg.sender === "agent" ? "A" : selectedChat.visitor.charAt(0)}
                         </div>
                         <div className={`flex flex-col ${msg.sender === "agent" ? "items-end" : "items-start"}`}>
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-1 whitespace-nowrap">
                             <span className="text-[11px] text-gray-400 dark:text-slate-500">{msg.timestamp}</span>
-                            {msg.sender === "agent" && (
+                            {msg.sender === "agent" && String(msg.id) === latestAgentMessageId && (
                               <MessageStatusBadge status={msg.status} seenByRole={msg.seenByRole} />
                             )}
                           </div>

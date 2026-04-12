@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
 import { History, MessagesSquare } from "lucide-react";
 import { HistoryEntry, SubTab } from "../../../models/ChatSessionManagementModel";
@@ -8,7 +8,7 @@ import PageTitle from "../../../components/common/PageTitle";
 import ChatHistorySection from "../../../sections/chat/ChatHistorySection";
 import ChatActiveSection from "../../../sections/chat/ChatActiveSection";
 import { useGetActiveLiveChat, useGetLiveChatHistory } from "../../../hooks/useLiveChat";
-import { LiveChatConversation } from "../../../models/LiveChatModel";
+import { LiveChatConversation, LiveChatQueueEntry } from "../../../models/LiveChatModel";
 import useAuth from "../../../hooks/useAuth";
 import { createLiveChatSocket } from "../../../services/liveChatRealtimeClient";
 
@@ -103,6 +103,16 @@ const ChatSessionManagementPage = () => {
     };
   });
 
+  const activeChatsBadgeCount = useMemo(
+    () => (queue || []).filter((entry: LiveChatQueueEntry) => {
+      const conversation = typeof entry.conversationId === "object" ? entry.conversationId : null;
+      const conversationId = conversation?._id || entry.conversationId || entry._id;
+
+      return Boolean(conversation && conversationId && conversation.status === "OPEN");
+    }).length,
+    [queue],
+  );
+
   return (
     <React.Fragment>
       <PageTitle
@@ -134,9 +144,9 @@ const ChatSessionManagementPage = () => {
                 >
                   {tab.icon}
                   <span className="hidden sm:inline">{tab.label}</span>
-                  {tab.key === "active-chats" && (queue || []).length > 0 && (
+                  {tab.key === "active-chats" && activeChatsBadgeCount > 0 && (
                     <span className="ml-1 w-5 h-5 rounded-full bg-cyan-600 text-white text-[11px] flex items-center justify-center">
-                      {queue.length}
+                      {activeChatsBadgeCount}
                     </span>
                   )}
                 </button>
