@@ -25,7 +25,7 @@ import AutoLogoutModal from "../components/common/AutoLogoutModal";
 import Logo from "../components/common/Logo";
 import useCompanyBranding from "../hooks/useCompanyBranding";
 
-const INACTIVITY_LIMIT_MS = 2 * 60 * 1000;
+const INACTIVITY_LIMIT_MS = 10 * 60 * 1000;
 const AUTO_LOGOUT_WARNING_SECONDS = 30;
 
 // ── Inner layout (consumes dark-mode context) ──────────────────────────────────

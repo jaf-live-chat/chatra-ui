@@ -2,6 +2,7 @@ export type LiveChatAssignmentMode = "MANUAL" | "ROUND_ROBIN";
 export type LiveChatConversationStatus = "WAITING" | "OPEN" | "ENDED";
 export type LiveChatQueueStatus = "WAITING" | "ASSIGNED";
 export type LiveChatParticipantRole = "MASTER_ADMIN" | "ADMIN" | "SUPPORT_AGENT" | "VISITOR";
+export type LiveChatMessageStatus = "SENDING" | "DELIVERED" | "SEEN";
 
 export interface LiveChatPagination {
   page: number;
@@ -16,9 +17,17 @@ export interface LiveChatVisitor {
   _id: string;
   visitorToken?: string | null;
   name?: string | null;
+  fullName?: string | null;
   emailAddress?: string | null;
+  phoneNumber?: string | null;
+  ipAddressConsent?: boolean;
   ipAddress?: string | null;
   userAgent?: string | null;
+  locationCity?: string | null;
+  locationCountry?: string | null;
+  locationSource?: string | null;
+  locationConsent?: boolean;
+  locationResolvedAt?: string | null;
   lastSeenAt?: string | null;
   createdAt?: string;
   updatedAt?: string;
@@ -40,9 +49,17 @@ export interface LiveChatConversation {
   visitorToken?: string | null;
   ipAddress?: string | null;
   userAgent?: string | null;
+  locationCity?: string | null;
+  locationCountry?: string | null;
+  locationSource?: string | null;
+  locationConsent?: boolean;
+  locationResolvedAt?: string | null;
   status: LiveChatConversationStatus;
   queuedAt?: string | null;
   assignedAt?: string | null;
+  closedAt?: string | null;
+  closedByRole?: string | null;
+  closedById?: string | null;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -56,6 +73,9 @@ export interface LiveChatQueueEntry {
   assignmentMode: LiveChatAssignmentMode;
   queuedAt?: string | null;
   assignedAt?: string | null;
+  endedAt?: string | null;
+  closedByRole?: string | null;
+  closedById?: string | null;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -66,6 +86,10 @@ export interface LiveChatMessage {
   senderType: LiveChatParticipantRole;
   senderId: string | LiveChatVisitor | LiveChatAgent;
   message: string;
+  status?: LiveChatMessageStatus;
+  seenAt?: string | null;
+  seenById?: string | null;
+  seenByRole?: LiveChatParticipantRole | null;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -73,6 +97,18 @@ export interface LiveChatMessage {
 export interface GetLiveChatQueueResponse {
   success: boolean;
   queue: LiveChatQueueEntry[];
+  pagination: LiveChatPagination;
+}
+
+export interface GetActiveLiveChatResponse {
+  success: boolean;
+  queue: LiveChatQueueEntry[];
+  pagination: LiveChatPagination;
+}
+
+export interface GetLiveChatHistoryResponse {
+  success: boolean;
+  conversations: LiveChatConversation[];
   pagination: LiveChatPagination;
 }
 
@@ -100,6 +136,50 @@ export interface LiveChatStartConversationResponse {
   visitor: LiveChatVisitor;
   agent: LiveChatAgent | null;
   initialMessage: LiveChatMessage | null;
+  location?: {
+    city?: string | null;
+    country?: string | null;
+    source?: string | null;
+    consentGranted?: boolean;
+    resolvedAt?: string | null;
+  };
+}
+
+export interface LiveChatEndedBy {
+  role?: string | null;
+  id?: string | null;
+  displayName?: string | null;
+  endedAt?: string | null;
+}
+
+export interface LiveChatConversationEndedEvent extends LiveChatStartConversationResponse {
+  endedBy?: LiveChatEndedBy;
+  timestamp?: string;
+}
+
+export interface LiveChatQueueUpdatedEvent {
+  reason?: string;
+  conversationId?: string;
+  queueEntry?: LiveChatQueueEntry | null;
+  conversation?: LiveChatConversation | null;
+  timestamp?: string;
+}
+
+export interface LiveChatEndConversationResponse {
+  success: boolean;
+  message?: string;
+  conversation: LiveChatConversation;
+  queueEntry: LiveChatQueueEntry | null;
+  visitor: LiveChatVisitor;
+  agent: LiveChatAgent | null;
+  location?: {
+    city?: string | null;
+    country?: string | null;
+    source?: string | null;
+    consentGranted?: boolean;
+    resolvedAt?: string | null;
+  };
+  endedBy?: LiveChatEndedBy;
 }
 
 export interface LiveChatSendMessagePayload {
@@ -113,6 +193,10 @@ export interface LiveChatWidgetConfig {
   welcomeMessage?: string;
   widgetLogo?: string;
   accentColor?: string;
+  visitorName?: string;
+  visitorEmail?: string;
+  visitorPhoneNumber?: string;
+  ipAddressConsent?: boolean;
 }
 
 export interface LiveChatWidgetQuickMessage {
