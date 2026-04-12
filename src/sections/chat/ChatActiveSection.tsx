@@ -21,6 +21,13 @@ import useAuth from "../../hooks/useAuth";
 import liveChatWidgetServices from "../../services/liveChatWidgetServices";
 import liveChatServices from "../../services/liveChatServices";
 import MessageStatusBadge from "../../components/MessageStatusBadge";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "../../components/Sheet";
 import { createLiveChatSocket } from "../../services/liveChatRealtimeClient";
 
 // Seeds for quick replies (assuming it's from constants)
@@ -171,6 +178,21 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
 
     return getVisitorMapEmbedUrl(selectedChat.location, selectedChat.country);
   }, [selectedChat]);
+  const visitorLocationLabel = useMemo(() => {
+    const parts = [selectedChat?.location, selectedChat?.country]
+      .map((value) => String(value || "").trim())
+      .filter(Boolean);
+
+    if (parts.length > 0) {
+      return parts.join(", ");
+    }
+
+    if (selectedChat?.locationConsent === true) {
+      return "Location not resolved yet";
+    }
+
+    return "Location unavailable";
+  }, [selectedChat?.country, selectedChat?.location, selectedChat?.locationConsent]);
   const latestAgentMessageId = useMemo(() => {
     const latestMessage = [...(selectedChat?.messages || [])].reverse().find((message) => message.sender === "agent");
     return latestMessage ? String(latestMessage.id) : null;
@@ -909,20 +931,21 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
             </div>
 
             {/* Info Sidebar */}
-            {showInfo && (
-              <React.Fragment>
-                <button className="fixed inset-0 bg-black/40 z-30 lg:hidden" onClick={() => setShowInfo(false)} />
-                <div className="fixed lg:static inset-y-0 right-0 z-40 w-[88vw] max-w-xs lg:w-72 bg-white dark:bg-slate-800 border-l border-gray-200 dark:border-slate-700 flex flex-col shrink-0 overflow-y-auto">
-                  <div className="p-4 border-b border-gray-100 dark:border-slate-700 text-center relative">
+            <Sheet open={showInfo} onOpenChange={setShowInfo}>
+              <SheetContent side="right" className="w-[96vw] max-w-2xl lg:w-[40rem] p-0 gap-0 overflow-hidden bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700">
+                <SheetHeader className="sr-only">
+                  <SheetTitle>Visitor Details</SheetTitle>
+                  <SheetDescription>Live chat visitor metadata and analytics map.</SheetDescription>
+                </SheetHeader>
+
+                <div className="h-full overflow-y-auto">
+                  <div className="p-4 border-b border-gray-100 dark:border-slate-700 text-center">
                     <div
                       className="w-14 h-14 rounded-full flex items-center justify-center text-white text-xl font-semibold mx-auto mb-2"
                       style={{ backgroundColor: getAvatarColor(selectedChat.visitor) }}
                     >
                       {selectedChat.visitor.charAt(0)}
                     </div>
-                    <button onClick={() => setShowInfo(false)} className="absolute top-3 right-3 p-1.5 text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300 lg:hidden">
-                      <X className="w-4 h-4" />
-                    </button>
                     <p className="text-sm font-semibold text-gray-900 dark:text-slate-100">{selectedChat.visitor}</p>
                     <div className="flex items-center gap-1 justify-center mt-1">
                       <span className="w-2 h-2 rounded-full bg-green-500" />
@@ -961,32 +984,10 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
                     <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-3">Visitor Metadata</p>
                     <div className="space-y-2.5 text-xs">
                       <div>
-                        <p className="text-[11px] text-gray-400 dark:text-slate-500">Browser</p>
-                        <p className="text-xs font-semibold text-gray-700 dark:text-slate-300">{selectedChat.browser || "—"}</p>
-                      </div>
-                      <div>
-                        <p className="text-[11px] text-gray-400 dark:text-slate-500">OS / Device</p>
-                        <p className="text-xs font-semibold text-gray-700 dark:text-slate-300">
-                          {selectedChat.os || "—"} &middot; {selectedChat.device || "—"}
-                        </p>
-                      </div>
-                      <div>
                         <p className="text-[11px] text-gray-400 dark:text-slate-500">Location</p>
                         <p className="text-xs font-semibold text-gray-700 dark:text-slate-300">
-                          {selectedChat.location || "—"}, {selectedChat.country || "—"}
+                          {visitorLocationLabel}
                         </p>
-                      </div>
-                      <div>
-                        <p className="text-[11px] text-gray-400 dark:text-slate-500">IP Address</p>
-                        <p className="text-xs font-semibold text-gray-700 dark:text-slate-300 font-mono">{selectedChat.ipAddress}</p>
-                      </div>
-                      <div>
-                        <p className="text-[11px] text-gray-400 dark:text-slate-500">Current Page</p>
-                        <p className="text-xs font-semibold text-gray-700 dark:text-slate-300 break-all">{selectedChat.currentPage}</p>
-                      </div>
-                      <div>
-                        <p className="text-[11px] text-gray-400 dark:text-slate-500">Referrer</p>
-                        <p className="text-xs font-semibold text-gray-700 dark:text-slate-300 break-all">{selectedChat.referrer || "—"}</p>
                       </div>
                     </div>
 
@@ -1014,19 +1015,19 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
                             referrerPolicy="no-referrer-when-downgrade"
                           />
                           <div className="px-3 py-2 text-[11px] text-gray-500 dark:text-slate-400 border-t border-gray-100 dark:border-slate-700">
-                            Showing {selectedChat.location || "Unknown city"}, {selectedChat.country || "Unknown country"}
+                            Showing {visitorLocationLabel}
                           </div>
                         </div>
                       ) : (
                         <div className="rounded-xl border border-dashed border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900/40 p-3 text-xs text-gray-500 dark:text-slate-400">
-                          Location permission unavailable for map plotting.
+                          {selectedChat.locationConsent === true ? "Location was granted but no map-ready location was resolved." : "Location permission unavailable for map plotting."}
                         </div>
                       )}
                     </div>
                   </div>
                 </div>
-              </React.Fragment>
-            )}
+              </SheetContent>
+            </Sheet>
           </div>
 
           {/* End Chat Confirmation */}

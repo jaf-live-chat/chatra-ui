@@ -33,6 +33,8 @@ const liveChatWidgetServices = {
       message?: string;
       locationConsent?: boolean;
       ipAddressConsent?: boolean;
+      browserLatitude?: number;
+      browserLongitude?: number;
     } = {},
   ): Promise<LiveChatStartConversationResponse> => {
     const normalizedPayload = Object.fromEntries(

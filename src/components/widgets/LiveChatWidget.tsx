@@ -21,6 +21,12 @@ interface QuickMessage {
 type WidgetView = "chat" | "settings";
 type TextSize = "small" | "default" | "large";
 
+type BrowserLocationSnapshot = {
+  latitude: number;
+  longitude: number;
+  accuracy?: number | null;
+};
+
 type WindowWithLiveChatConfig = Window & {
   LiveChatConfig?: LiveChatWidgetConfig;
 };
@@ -234,6 +240,8 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
   const [widgetView, setWidgetView] = useState<WidgetView>("chat");
   const [textSize, setTextSize] = useState<TextSize>(() => parseTextSizePreference(readStoredValue(WIDGET_TEXT_SIZE_KEY, "default")));
   const [isMessageSoundsEnabled, setIsMessageSoundsEnabled] = useState(() => readStoredValue(WIDGET_MESSAGE_SOUNDS_KEY, "true") !== "false");
+  const [browserLocation, setBrowserLocation] = useState<BrowserLocationSnapshot | null>(null);
+  const [browserLocationStatus, setBrowserLocationStatus] = useState<"idle" | "resolving" | "resolved" | "denied" | "unavailable" | "error">("idle");
   const [locationConsent, setLocationConsent] = useState<boolean | null>(() => {
     const storedConsent = readStoredValue(LOCATION_CONSENT_KEY);
 
@@ -359,6 +367,42 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
     }
   }, [isMessageSoundsEnabled]);
 
+  const requestBrowserLocation = useCallback(() => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      setBrowserLocation(null);
+      setBrowserLocationStatus("unavailable");
+      return;
+    }
+
+    setBrowserLocationStatus("resolving");
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setBrowserLocation({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          accuracy: typeof position.coords.accuracy === "number" ? position.coords.accuracy : null,
+        });
+        setBrowserLocationStatus("resolved");
+      },
+      (error) => {
+        setBrowserLocation(null);
+
+        if (error.code === error.PERMISSION_DENIED) {
+          setBrowserLocationStatus("denied");
+          return;
+        }
+
+        setBrowserLocationStatus("error");
+      },
+      {
+        enableHighAccuracy: false,
+        timeout: 10000,
+        maximumAge: 300000,
+      },
+    );
+  }, []);
+
   const syncMessages = useCallback(
     async (targetConversationId: string) => {
       if (!apiKey || !targetConversationId) {
@@ -416,6 +460,8 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
           phoneNumber: preChatPhoneNumber.trim(),
           ipAddressConsent: locationConsent === true,
           locationConsent: locationConsent === true,
+          browserLatitude: browserLocation?.latitude,
+          browserLongitude: browserLocation?.longitude,
         },
       );
 
@@ -443,7 +489,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
     } finally {
       setIsLoading(false);
     }
-  }, [hasApiKey, locationConsent, preChatEmailAddress, preChatFullName, preChatPhoneNumber, syncMessages, visitorToken, widgetConfig]);
+  }, [browserLocation?.latitude, browserLocation?.longitude, hasApiKey, locationConsent, preChatEmailAddress, preChatFullName, preChatPhoneNumber, syncMessages, visitorToken, widgetConfig]);
 
   const syncWidgetSettings = useCallback(async () => {
     if (!hasApiKey) {
@@ -588,8 +634,8 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
 
   const handleCompletePreChat = useCallback(() => {
     if (locationConsent === null) {
-      setLocationConsent(false);
-      writeStoredValue(LOCATION_CONSENT_KEY, "false");
+      setErrorMessage("Choose Allow or Skip for location before continuing.");
+      return;
     }
 
     setHasCompletedPreChat(true);
@@ -770,8 +816,13 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
       const storedConsent = readStoredValue(LOCATION_CONSENT_KEY);
       if (storedConsent === "true") {
         setLocationConsent(true);
+        if (browserLocationStatus === "idle") {
+          requestBrowserLocation();
+        }
       } else if (storedConsent === "false") {
         setLocationConsent(false);
+        setBrowserLocation(null);
+        setBrowserLocationStatus("idle");
       }
     };
 
@@ -790,7 +841,19 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
       window.removeEventListener("open-live-chat", handleOpenChat);
       window.removeEventListener("storage", handleStorage);
     };
-  }, [conversationId, initialConfig]);
+  }, [browserLocationStatus, conversationId, initialConfig, requestBrowserLocation]);
+
+  useEffect(() => {
+    if (!isOpen || locationConsent !== true) {
+      return;
+    }
+
+    if (browserLocation || browserLocationStatus === "resolving" || browserLocationStatus === "resolved") {
+      return;
+    }
+
+    requestBrowserLocation();
+  }, [browserLocation, browserLocationStatus, isOpen, locationConsent, requestBrowserLocation]);
 
   useEffect(() => {
     if (isOpen) {
@@ -1298,7 +1361,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                       <div className={`mb-4 rounded-2xl border px-4 py-3 text-left ${theme.settingsCard}`}>
                         <p className={`font-semibold ${theme.settingsText}`}>Location consent</p>
                         <p className={`mt-1 leading-relaxed ${theme.settingsMuted}`}>
-                          Allow us to estimate your city and country from your IP address. If you skip this, chat still works normally.
+                          Allow us to use your browser location for a more accurate city and country. If that is unavailable, we will fall back to IP-based lookup.
                         </p>
                         <div className="mt-3 flex flex-wrap gap-2">
                           <button
@@ -1306,17 +1369,20 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                             onClick={() => {
                               setLocationConsent(true);
                               writeStoredValue(LOCATION_CONSENT_KEY, "true");
+                              requestBrowserLocation();
                             }}
                             className="rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors"
                             style={{ backgroundColor: locationConsent === true ? resolvedAccent : accentSoftBackground, border: `1px solid ${accentSoftBorder}`, color: locationConsent === true ? "white" : resolvedAccent }}
                           >
-                            Allow
+                            Allow location
                           </button>
                           <button
                             type="button"
                             onClick={() => {
                               setLocationConsent(false);
                               writeStoredValue(LOCATION_CONSENT_KEY, "false");
+                              setBrowserLocation(null);
+                              setBrowserLocationStatus("idle");
                             }}
                             className="rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors"
                             style={{ backgroundColor: locationConsent === false ? resolvedAccent : accentSoftBackground, border: `1px solid ${accentSoftBorder}`, color: locationConsent === false ? "white" : resolvedAccent }}
@@ -1329,8 +1395,9 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                           <button
                             type="button"
                             onClick={handleCompletePreChat}
+                            disabled={locationConsent === null}
                             className="mt-3 w-full rounded-xl px-3 py-2 text-sm font-semibold text-white"
-                            style={{ backgroundColor: resolvedAccent }}
+                            style={{ backgroundColor: locationConsent === null ? "#94a3b8" : resolvedAccent }}
                           >
                             Continue to chat
                           </button>
