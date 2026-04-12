@@ -1,4 +1,5 @@
 import axiosServices from "../utils/axios";
+import type { AxiosRequestConfig } from "axios";
 import type {
   GetActiveLiveChatResponse,
   GetConversationMessagesParams,
@@ -9,6 +10,11 @@ import type {
   LiveChatParticipantRole,
   LiveChatStartConversationResponse,
 } from "../models/LiveChatModel";
+
+type LiveChatMutationRequestOptions = AxiosRequestConfig & {
+  skipGlobalBlocking?: boolean;
+  loadingMessage?: string;
+};
 
 const liveChatServices = {
   getQueue: async ({ page = 1, limit = 20 }: GetLiveChatQueueParams = {}): Promise<GetLiveChatQueueResponse> => {
@@ -58,8 +64,15 @@ const liveChatServices = {
     return response.data;
   },
 
-  endConversation: async (conversationId: string): Promise<LiveChatStartConversationResponse> => {
-    const response = await axiosServices.post<LiveChatStartConversationResponse>(`/conversations/${conversationId}/end`);
+  endConversation: async (
+    conversationId: string,
+    requestConfig?: LiveChatMutationRequestOptions,
+  ): Promise<LiveChatStartConversationResponse> => {
+    const response = await axiosServices.post<LiveChatStartConversationResponse>(
+      `/conversations/${conversationId}/end`,
+      undefined,
+      requestConfig,
+    );
     return response.data;
   },
 
@@ -68,13 +81,18 @@ const liveChatServices = {
     message: string,
     senderType: LiveChatParticipantRole,
     senderId: string,
+    requestConfig?: LiveChatMutationRequestOptions,
   ): Promise<unknown> => {
-    const response = await axiosServices.post("/messages", {
-      conversationId,
-      message,
-      senderType,
-      senderId,
-    });
+    const response = await axiosServices.post(
+      "/messages",
+      {
+        conversationId,
+        message,
+        senderType,
+        senderId,
+      },
+      requestConfig,
+    );
 
     return response.data;
   },
