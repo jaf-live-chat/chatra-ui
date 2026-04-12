@@ -63,6 +63,11 @@ const ChatSessionManagementPage = () => {
     socket.on("CONVERSATION_ENDED", refreshAll);
 
     return () => {
+      socket.off("NEW_CONVERSATION", refreshQueue);
+      socket.off("CONVERSATION_ASSIGNED", refreshQueue);
+      socket.off("CONVERSATION_TRANSFERRED", refreshQueue);
+      socket.off("QUEUE_UPDATED", refreshQueue);
+      socket.off("CONVERSATION_ENDED", refreshAll);
       socket.disconnect();
     };
   }, [mutateHistory, mutateQueue, tenant?.apiKey, user?._id, user?.role]);

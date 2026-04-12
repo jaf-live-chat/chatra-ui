@@ -333,6 +333,8 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
         String(user?._id || ""),
         { skipGlobalBlocking: true },
       );
+
+      void syncServerMessages(String(chat.sessionId), String(chat.id));
     } finally {
       setIsSendingMessage(false);
     }
@@ -362,7 +364,30 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
       return;
     }
 
-    socket.on("NEW_MESSAGE", (incomingMessage: LiveChatMessage) => {
+    const syncAllOpenChats = () => {
+      setActiveChats((currentChats) => {
+        currentChats.forEach((chat) => {
+          const conversationId = String(chat.sessionId || chat.id || "").trim();
+          if (!conversationId) {
+            return;
+          }
+
+          void syncServerMessages(conversationId, String(chat.id));
+        });
+
+        return currentChats;
+      });
+    };
+
+    const onConnect = () => {
+      syncAllOpenChats();
+    };
+
+    const onReconnect = () => {
+      syncAllOpenChats();
+    };
+
+    const onNewMessage = (incomingMessage: LiveChatMessage) => {
       const targetConversationId = String(incomingMessage?.conversationId || "");
       if (!targetConversationId) {
         return;
@@ -413,9 +438,9 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
           messages: [...nextMessages, mappedIncoming],
         };
       }));
-    });
+    };
 
-    socket.on("MESSAGE_STATUS_UPDATED", (payload: { conversationId?: string; messageIds?: string[]; status?: "DELIVERED" | "SEEN"; seenByRole?: string | null }) => {
+    const onMessageStatusUpdated = (payload: { conversationId?: string; messageIds?: string[]; status?: "DELIVERED" | "SEEN"; seenByRole?: string | null }) => {
       const targetConversationId = String(payload?.conversationId || "");
       const messageIds = Array.isArray(payload?.messageIds) ? new Set(payload.messageIds.map((id) => String(id))) : null;
 
@@ -443,9 +468,9 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
           }),
         };
       }));
-    });
+    };
 
-    socket.on("CONVERSATION_ENDED", (payload: LiveChatConversationEndedEvent) => {
+    const onConversationEnded = (payload: LiveChatConversationEndedEvent) => {
       const targetConversationId = String(payload?.conversation?._id || "");
       if (!targetConversationId) {
         return;
@@ -479,24 +504,41 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
       }));
 
       void mutateQueue();
-    });
+    };
 
-    socket.on("CONVERSATION_ASSIGNED", () => {
+    const onConversationAssigned = () => {
       void mutateQueue();
-    });
+    };
 
-    socket.on("CONVERSATION_TRANSFERRED", () => {
+    const onConversationTransferred = () => {
       void mutateQueue();
-    });
+    };
 
-    socket.on("QUEUE_UPDATED", () => {
+    const onQueueUpdated = () => {
       void mutateQueue();
-    });
+    };
+
+    socket.on("connect", onConnect);
+    socket.on("reconnect", onReconnect);
+    socket.on("NEW_MESSAGE", onNewMessage);
+    socket.on("MESSAGE_STATUS_UPDATED", onMessageStatusUpdated);
+    socket.on("CONVERSATION_ENDED", onConversationEnded);
+    socket.on("CONVERSATION_ASSIGNED", onConversationAssigned);
+    socket.on("CONVERSATION_TRANSFERRED", onConversationTransferred);
+    socket.on("QUEUE_UPDATED", onQueueUpdated);
 
     return () => {
+      socket.off("connect", onConnect);
+      socket.off("reconnect", onReconnect);
+      socket.off("NEW_MESSAGE", onNewMessage);
+      socket.off("MESSAGE_STATUS_UPDATED", onMessageStatusUpdated);
+      socket.off("CONVERSATION_ENDED", onConversationEnded);
+      socket.off("CONVERSATION_ASSIGNED", onConversationAssigned);
+      socket.off("CONVERSATION_TRANSFERRED", onConversationTransferred);
+      socket.off("QUEUE_UPDATED", onQueueUpdated);
       socket.disconnect();
     };
-  }, [mutateQueue, resolveEndedByText, tenant?.apiKey, user?._id, user?.role]);
+  }, [mutateQueue, resolveEndedByText, syncServerMessages, tenant?.apiKey, user?._id, user?.role]);
 
   const handleEndChat = async () => {
     if (!selectedChatId) return;

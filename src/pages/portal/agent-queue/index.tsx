@@ -92,6 +92,11 @@ const AgentQueuePage = () => {
     socket.on("QUEUE_UPDATED", onQueueMutation);
 
     return () => {
+      socket.off("NEW_CONVERSATION", onQueueMutation);
+      socket.off("CONVERSATION_ASSIGNED", onQueueMutation);
+      socket.off("CONVERSATION_TRANSFERRED", onQueueMutation);
+      socket.off("CONVERSATION_ENDED", onQueueMutation);
+      socket.off("QUEUE_UPDATED", onQueueMutation);
       socket.disconnect();
     };
   }, [mutate, tenant?.apiKey, user?._id, user?.role]);
