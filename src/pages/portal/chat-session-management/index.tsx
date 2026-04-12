@@ -24,6 +24,10 @@ import { useDarkMode } from "../../../providers/DarkModeContext";
 import { SEED_REPLIES } from "../../../sections/settings/QuickRepliesView";
 import PageTitle from "../../../components/common/PageTitle";
 import TitleTag from "../../../components/TitleTag";
+import liveChatServices from "../../../services/liveChatServices";
+import useAuth from "../../../hooks/useAuth";
+import { useGetActiveLiveChat, useGetLiveChatHistory } from "../../../hooks/useLiveChat";
+import type { LiveChatConversation } from "../../../models/LiveChatModel";
 
 type SubTab = "active-chats" | "chat-history";
 
@@ -51,6 +55,14 @@ interface ActiveChat {
   messages: ChatMessage[];
   startedAt: number;
   agent: string;
+  location?: string;
+  country?: string;
+  ipAddress?: string;
+  currentPage?: string;
+  referrer?: string;
+  browser?: string;
+  os?: string;
+  device?: string;
 }
 
 interface HistoryEntry {
@@ -68,77 +80,6 @@ interface HistoryEntry {
   queueDisplayId?: string;
 }
 
-// Mock data
-const mockChatHistory = [
-  { id: "CH-001", visitor: "Emma Wilson", agent: "Sarah M.", duration: "12m 34s", messages: 18, rating: 5, date: "Mar 16, 2026", time: "10:23 AM", status: "Resolved" as const, tags: ["Billing", "General Inquiry"] },
-  { id: "CH-002", visitor: "Oliver Garcia", agent: "Tom R.", duration: "8m 12s", messages: 11, rating: 4, date: "Mar 16, 2026", time: "9:45 AM", status: "Resolved" as const, tags: ["Technical"] },
-  { id: "CH-003", visitor: "Mia Rodriguez", agent: "Sarah M.", duration: "22m 08s", messages: 34, rating: 3, date: "Mar 15, 2026", time: "4:12 PM", status: "Escalated" as const, tags: ["Bug Report", "Technical"] },
-  { id: "CH-004", visitor: "Daniel Taylor", agent: "Tom R.", duration: "5m 47s", messages: 8, rating: 0, date: "Mar 15, 2026", time: "2:30 PM", status: "Abandoned" as const, tags: ["Sales"] },
-  { id: "CH-005", visitor: "Sophia Chen", agent: "Sarah M.", duration: "15m 22s", messages: 22, rating: 5, date: "Mar 15, 2026", time: "11:05 AM", status: "Resolved" as const, tags: ["Onboarding"] },
-  { id: "CH-006", visitor: "Liam Johnson", agent: "Tom R.", duration: "3m 55s", messages: 6, rating: 2, date: "Mar 14, 2026", time: "3:48 PM", status: "Resolved" as const, tags: ["Cancellation"] },
-  { id: "CH-007", visitor: "Ava Martinez", agent: "Sarah M.", duration: "18m 41s", messages: 27, rating: 4, date: "Mar 14, 2026", time: "10:15 AM", status: "Resolved" as const, tags: ["Feature Request"] },
-  { id: "CH-008", visitor: "Noah Williams", agent: "Tom R.", duration: "9m 10s", messages: 14, rating: 5, date: "Mar 13, 2026", time: "1:22 PM", status: "Resolved" as const, tags: ["Billing", "General Inquiry"] },
-];
-
-const mockTranscripts: Record<string, { sender: "visitor" | "agent"; text: string; time: string }[]> = {
-  "CH-001": [
-    { sender: "visitor", text: "Hi, I have a question about my latest invoice.", time: "10:23 AM" },
-    { sender: "agent", text: "Hello Emma! I'd be happy to help. Could you share the invoice number?", time: "10:24 AM" },
-    { sender: "visitor", text: "Sure, it's INV-20260312. The total seems higher than expected.", time: "10:25 AM" },
-    { sender: "agent", text: "Let me pull that up for you... I can see the invoice includes a pro-rated charge for the plan upgrade you made on March 8th.", time: "10:26 AM" },
-    { sender: "visitor", text: "Oh I see, that makes sense now. Thank you!", time: "10:28 AM" },
-    { sender: "agent", text: "You're welcome! Is there anything else I can help with?", time: "10:28 AM" },
-    { sender: "visitor", text: "No, that's all. Thanks!", time: "10:29 AM" },
-  ],
-  "CH-002": [
-    { sender: "visitor", text: "The dashboard keeps showing a loading spinner and never loads.", time: "9:45 AM" },
-    { sender: "agent", text: "Hi Oliver, sorry to hear that. Have you tried clearing your browser cache?", time: "9:46 AM" },
-    { sender: "visitor", text: "Yes, I tried that and also a different browser. Same issue.", time: "9:47 AM" },
-    { sender: "agent", text: "Thanks for trying that. Let me check the server status... It looks like there was a brief outage. It should be resolved now. Can you try again?", time: "9:49 AM" },
-    { sender: "visitor", text: "It's working now! Thank you for the quick help.", time: "9:50 AM" },
-  ],
-  "CH-003": [
-    { sender: "visitor", text: "I found a bug in the export feature. When I export to CSV, the dates are formatted incorrectly.", time: "4:12 PM" },
-    { sender: "agent", text: "Thank you for reporting this, Mia. Can you tell me which date format you're seeing vs. what you expect?", time: "4:13 PM" },
-    { sender: "visitor", text: "It shows MM-DD-YYYY but my locale is set to DD/MM/YYYY. The exported file ignores my settings.", time: "4:15 PM" },
-    { sender: "agent", text: "I've reproduced the issue. This appears to be a known bug with our latest release. I'm escalating this to our engineering team.", time: "4:20 PM" },
-    { sender: "visitor", text: "How long until it gets fixed?", time: "4:22 PM" },
-    { sender: "agent", text: "I'll make sure it's prioritized. You should see a fix in the next patch, expected within the week.", time: "4:25 PM" },
-  ],
-  "CH-004": [
-    { sender: "visitor", text: "I'm interested in upgrading to the Enterprise plan. What are the pricing details?", time: "2:30 PM" },
-    { sender: "agent", text: "Hi Daniel! Great to hear you're interested. The Enterprise plan starts at $299/month and includes...", time: "2:31 PM" },
-  ],
-  "CH-005": [
-    { sender: "visitor", text: "Hi, I just signed up and I'm not sure how to set up my first project.", time: "11:05 AM" },
-    { sender: "agent", text: "Welcome aboard, Sophia! Let me walk you through the setup process.", time: "11:06 AM" },
-    { sender: "agent", text: "First, click on 'New Project' in the top-right corner of your dashboard.", time: "11:06 AM" },
-    { sender: "visitor", text: "Got it, I see the form now.", time: "11:07 AM" },
-    { sender: "agent", text: "Perfect! Fill in the project name and select your preferred template. The 'Starter' template is great for beginners.", time: "11:08 AM" },
-    { sender: "visitor", text: "Done! This is really easy. Thank you so much!", time: "11:12 AM" },
-  ],
-  "CH-006": [
-    { sender: "visitor", text: "I'd like to cancel my subscription.", time: "3:48 PM" },
-    { sender: "agent", text: "I'm sorry to hear that, Liam. May I ask what prompted this decision?", time: "3:49 PM" },
-    { sender: "visitor", text: "It's too expensive for our current needs.", time: "3:50 PM" },
-    { sender: "agent", text: "I understand. We do have a more affordable plan that might work for you. Would you like me to go over the options?", time: "3:51 PM" },
-    { sender: "visitor", text: "No thanks, please proceed with the cancellation.", time: "3:52 PM" },
-  ],
-  "CH-007": [
-    { sender: "visitor", text: "Is there a way to add custom fields to the contact form in the widget?", time: "10:15 AM" },
-    { sender: "agent", text: "Hi Ava! Currently we support name, email, and a message field. Custom fields aren't available yet, but it's on our roadmap.", time: "10:17 AM" },
-    { sender: "visitor", text: "That would be really useful. Can I request a specific field type? We need a dropdown for department selection.", time: "10:19 AM" },
-    { sender: "agent", text: "Absolutely! I've logged your feature request with the product team, including the dropdown field type detail.", time: "10:22 AM" },
-    { sender: "visitor", text: "Great, looking forward to it. Thank you!", time: "10:24 AM" },
-  ],
-  "CH-008": [
-    { sender: "visitor", text: "Hello, I was charged twice for last month's subscription.", time: "1:22 PM" },
-    { sender: "agent", text: "Hi Noah, I apologize for the inconvenience. Let me look into your account right away.", time: "1:23 PM" },
-    { sender: "agent", text: "I can confirm a duplicate charge was processed. I've initiated a refund for the extra payment. It should appear in 3-5 business days.", time: "1:26 PM" },
-    { sender: "visitor", text: "Thank you for resolving this so quickly!", time: "1:27 PM" },
-  ],
-};
-
 const avatarColors = ["#0891b2", "#7c3aed", "#059669", "#d97706", "#dc2626", "#2563eb"];
 
 const subTabs: { key: SubTab; label: string; icon: React.ReactNode }[] = [
@@ -155,6 +96,23 @@ function getTime() {
   return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
+function formatQueueDuration(queuedAt?: string | null) {
+  if (!queuedAt) {
+    return "0m";
+  }
+
+  const queuedTime = new Date(queuedAt).getTime();
+  if (Number.isNaN(queuedTime)) {
+    return "0m";
+  }
+
+  const elapsedSeconds = Math.max(0, Math.floor((Date.now() - queuedTime) / 1000));
+  const mins = Math.floor(elapsedSeconds / 60);
+  const secs = elapsedSeconds % 60;
+
+  return `${mins}m ${String(secs).padStart(2, "0")}s`;
+}
+
 const ChatSessionManagementPage = () => {
   const [searchParams] = useSearchParams();
   const initialTab: SubTab = searchParams.get("tab") === "chat-history" ? "chat-history" : "active-chats";
@@ -165,13 +123,11 @@ const ChatSessionManagementPage = () => {
   const [chatMessage, setChatMessage] = useState("");
   const [showEndConfirm, setShowEndConfirm] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
-  const [visitorTyping, setVisitorTyping] = useState(false);
-  const [endedChats, setEndedChats] = useState<HistoryEntry[]>([]);
-  const [endedTranscripts, setEndedTranscripts] = useState<
-    Record<string, { sender: "visitor" | "agent"; text: string; time: string }[]>
-  >({});
   const bottomRef = useRef<HTMLDivElement>(null);
   const { isDark } = useDarkMode();
+  const { user } = useAuth();
+  const { queue, mutate: mutateQueue } = useGetActiveLiveChat({ page: 1, limit: 100 });
+  const { conversations: historyConversations, mutate: mutateHistory } = useGetLiveChatHistory({ page: 1, limit: 100 });
 
   // File attachment state
   const [attachedFiles, setAttachedFiles] = useState<{ file: File; previewUrl: string }[]>([]);
@@ -236,11 +192,6 @@ const ChatSessionManagementPage = () => {
     setShowQuickReplies(false);
   };
 
-  // Track message IDs we've already seen from the queue (to avoid duplicates)
-  const seenQueueMsgIdsRef = useRef<Set<string>>(new Set());
-  // Track admin-sent message texts so we can skip echo-backs from the queue
-  const adminSentTextsRef = useRef<string[]>([]);
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files) {
@@ -261,157 +212,147 @@ const ChatSessionManagementPage = () => {
     setAttachedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
-  // Load active chat visitor from localStorage (from Queue navigation)
+  const syncServerMessages = useCallback(async (conversationId: string, chatId: string) => {
+    try {
+      const response = await liveChatServices.getConversationMessages(conversationId, { page: 1, limit: 100 });
+      const syncedMessages: ChatMessage[] = (response.messages || []).map((message: any, index: number) => ({
+        id: message._id || `${conversationId}-${index}`,
+        sender: message.senderType === "VISITOR" ? "visitor" : "agent",
+        text: message.message,
+        timestamp: message.createdAt
+          ? new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+          : getTime(),
+      }));
+
+      setActiveChats((prev) =>
+        prev.map((chat) => (chat.id === chatId ? { ...chat, messages: syncedMessages } : chat)),
+      );
+    } catch {
+      // Keep existing message list if server sync fails.
+    }
+  }, []);
+
+  useEffect(() => {
+    const liveChats: ActiveChat[] = (queue || [])
+      .map((entry: any) => {
+        const conversation = typeof entry.conversationId === "object" ? entry.conversationId : null;
+        const visitor = typeof entry.visitorId === "object" ? entry.visitorId : null;
+        const agent = typeof entry.agentId === "object" ? entry.agentId : null;
+        const conversationId = conversation?._id || entry.conversationId || entry._id;
+
+        if (!conversationId || conversation?.status !== "OPEN") {
+          return null;
+        }
+
+        return {
+          id: String(conversationId),
+          visitor: visitor?.name || (visitor?.visitorToken ? `Visitor ${String(visitor.visitorToken).slice(-4)}` : "Website Visitor"),
+          sessionId: String(conversationId),
+          message: "Active support conversation",
+          status: "Active",
+          timeInQueue: formatQueueDuration(entry.queuedAt || conversation?.queuedAt),
+          messages: [],
+          startedAt: Date.now(),
+          agent: agent?.fullName || "Assigned Agent",
+          location: conversation?.locationCity || visitor?.locationCity || "Unknown",
+          country: conversation?.locationCountry || visitor?.locationCountry || "Unknown",
+          ipAddress: visitor?.ipAddress || conversation?.ipAddress || "—",
+          currentPage: visitor?.currentPage || "—",
+          referrer: visitor?.referrer || "—",
+          browser: visitor?.browser || "—",
+          os: visitor?.os || "—",
+          device: visitor?.device || "—",
+        } as ActiveChat;
+      })
+      .filter(Boolean) as ActiveChat[];
+
+    setActiveChats((prev) => {
+      const prevById = new Map(prev.map((chat) => [chat.id, chat]));
+      return liveChats.map((chat) => {
+        const existing = prevById.get(chat.id);
+        return {
+          ...chat,
+          messages: existing?.messages || [],
+          startedAt: existing?.startedAt || chat.startedAt,
+        };
+      });
+    });
+
+    if (!selectedChatId && liveChats.length > 0) {
+      setSelectedChatId(liveChats[0].id);
+    }
+  }, [queue, selectedChatId]);
+
+  // Load active chat visitor from Queue navigation state.
   useEffect(() => {
     try {
       const stored = localStorage.getItem("jaf_active_chat_visitor");
       if (stored) {
         const visitor = JSON.parse(stored);
-        const existingChat = activeChats.find((c) => c.id === visitor.id);
-        if (!existingChat) {
-          const initialMessages: ChatMessage[] = visitor.messages
-            ? visitor.messages.map((m: any, i: number) => {
-              if (m.id) seenQueueMsgIdsRef.current.add(String(m.id));
-              return {
-                id: m.id ? String(m.id) : `${i}-${Date.now()}`,
-                sender: m.sender === "visitor" ? ("visitor" as const) : ("agent" as const),
-                text: m.text,
-                timestamp: m.timestamp || getTime(),
-                ...(m.files ? { files: m.files } : {}),
-              };
-            })
-            : [
-              {
-                id: "1",
-                sender: "visitor" as const,
-                text: visitor.message,
-                timestamp: getTime(),
-              },
-            ];
-
-          const newChat: ActiveChat = {
-            id: visitor.id,
-            visitor: visitor.name,
-            sessionId: visitor.sessionId,
-            message: visitor.message,
-            status: "Active",
-            timeInQueue: visitor.timeInQueue,
-            messages: initialMessages,
-            startedAt: Date.now(),
-            agent: "Admin User",
-          };
-
-          setActiveChats((prev) => {
-            if (prev.find((c) => c.id === visitor.id)) return prev;
-            return [newChat, ...prev];
-          });
-          setSelectedChatId(visitor.id);
+        const targetId = String(visitor.sessionId || visitor.conversationId || visitor.id || "");
+        if (targetId) {
+          setSelectedChatId(targetId);
           setActiveSubTab("active-chats");
-        } else {
-          setSelectedChatId(visitor.id);
-          setActiveSubTab("active-chats");
+          void syncServerMessages(targetId, targetId);
         }
         localStorage.removeItem("jaf_active_chat_visitor");
       }
     } catch (e) {
       // silently fail
     }
-  }, []);
-
-  // Sync messages from live queue (visitor messages + auto-replies)
-  const syncFromQueue = useCallback(() => {
-    setActiveChats((prev) =>
-      prev.map((chat) => {
-        if (!chat.sessionId) return chat;
-        try {
-          const stored = localStorage.getItem("jaf_live_queue");
-          if (!stored) return chat;
-          const queue = JSON.parse(stored);
-          const entry = queue.find((q: any) => q.sessionId === chat.sessionId);
-          if (!entry || !entry.messages) return chat;
-
-          const existingIds = new Set(chat.messages.map((m) => String(m.id)));
-
-          const newMessages: ChatMessage[] = [];
-          for (let idx = 0; idx < entry.messages.length; idx++) {
-            const m = entry.messages[idx];
-            const msgId = m.id ? String(m.id) : `${chat.sessionId}-${idx}-${m.text?.slice(0, 20)}`;
-            if (existingIds.has(msgId)) continue;
-            if (m.sender === "agent" || m.sender === "Agent") {
-              const textIdx = adminSentTextsRef.current.indexOf(m.text);
-              if (textIdx !== -1) {
-                adminSentTextsRef.current.splice(textIdx, 1);
-                seenQueueMsgIdsRef.current.add(msgId);
-                continue;
-              }
-            }
-            if (seenQueueMsgIdsRef.current.has(msgId)) continue;
-
-            seenQueueMsgIdsRef.current.add(msgId);
-            const sender = m.sender === "visitor" ? "visitor" as const : "agent" as const;
-            newMessages.push({
-              id: `q-${msgId}-${Date.now()}`,
-              sender,
-              text: m.text,
-              timestamp: m.timestamp || getTime(),
-              ...(m.files ? { files: m.files } : {}),
-            });
-          }
-
-          if (newMessages.length > 0) {
-            return { ...chat, messages: [...chat.messages, ...newMessages] };
-          }
-        } catch (e) {
-          // silently fail
-        }
-        return chat;
-      })
-    );
-  }, []);
+  }, [syncServerMessages]);
 
   useEffect(() => {
-    const interval = setInterval(syncFromQueue, 1500);
-    const handleQueueUpdate = () => syncFromQueue();
-    window.addEventListener("jaf_queue_updated", handleQueueUpdate);
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener("jaf_queue_updated", handleQueueUpdate);
-    };
-  }, [syncFromQueue]);
+    const selectedChat = activeChats.find((chat) => chat.id === selectedChatId);
+    if (!selectedChat?.sessionId) {
+      return;
+    }
 
-  useEffect(() => {
-    const selectedChat = activeChats.find((c) => c.id === selectedChatId);
-    if (!selectedChat?.sessionId) return;
-
-    const checkTyping = () => {
-      try {
-        const val = localStorage.getItem(`jaf_visitor_typing_${selectedChat.sessionId}`);
-        if (val) {
-          const parsed = JSON.parse(val);
-          setVisitorTyping(Date.now() - parsed.timestamp < 3000 && parsed.isTyping);
-        } else {
-          setVisitorTyping(false);
-        }
-      } catch (e) {
-        setVisitorTyping(false);
-      }
-    };
-
-    const handleEvent = () => checkTyping();
-    window.addEventListener("jaf_visitor_typing", handleEvent);
-    const interval = setInterval(checkTyping, 800);
+    void syncServerMessages(String(selectedChat.sessionId), String(selectedChat.id));
+    const interval = setInterval(() => {
+      void syncServerMessages(String(selectedChat.sessionId), String(selectedChat.id));
+    }, 3000);
 
     return () => {
-      window.removeEventListener("jaf_visitor_typing", handleEvent);
       clearInterval(interval);
     };
-  }, [selectedChatId, activeChats]);
+  }, [activeChats, selectedChatId, syncServerMessages]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [activeChats, selectedChatId, visitorTyping]);
+  }, [activeChats, selectedChatId]);
 
   const selectedChat = activeChats.find((c) => c.id === selectedChatId);
+  const historyEntries: HistoryEntry[] = historyConversations.map((conversation: LiveChatConversation) => {
+    const visitor = typeof conversation.visitorId === "object" ? conversation.visitorId : null;
+    const agent = typeof conversation.agentId === "object" ? conversation.agentId : null;
+    const startedAt = conversation.assignedAt || conversation.queuedAt || conversation.createdAt;
+    const endedAt = conversation.closedAt || conversation.updatedAt || conversation.createdAt;
+    const startedTime = startedAt ? new Date(startedAt).getTime() : 0;
+    const endedTime = endedAt ? new Date(endedAt).getTime() : 0;
+    const durationMs = Math.max(0, endedTime - startedTime);
+    const durationSeconds = Math.floor(durationMs / 1000);
+    const mins = Math.floor(durationSeconds / 60);
+    const secs = durationSeconds % 60;
+    const displayDate = endedAt ? new Date(endedAt) : new Date();
+    const visitorName = String(visitor?.name || "").trim();
+    const visitorToken = String(visitor?.visitorToken || "").trim();
+
+    return {
+      id: String(conversation._id),
+      visitor: visitorName || (visitorToken ? `Visitor ${visitorToken.slice(-4)}` : "Website Visitor"),
+      agent: String(agent?.fullName || "Assigned Agent"),
+      duration: `${mins}m ${String(secs).padStart(2, "0")}s`,
+      messages: 0,
+      rating: 0,
+      date: displayDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+      time: displayDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      status: "Resolved",
+      tags: [],
+      isLive: false,
+      queueDisplayId: getQueueDisplayId(String(conversation._id)),
+    };
+  });
 
   const handleSendMessage = () => {
     const hasText = chatMessage.trim().length > 0;
@@ -432,8 +373,6 @@ const ChatSessionManagementPage = () => {
       ...(hasFiles ? { files: fileAttachments } : {}),
     };
 
-    adminSentTextsRef.current.push(newMsg.text);
-
     setActiveChats((prev) =>
       prev.map((c) => (c.id === selectedChatId ? { ...c, messages: [...c.messages, newMsg] } : c))
     );
@@ -443,33 +382,18 @@ const ChatSessionManagementPage = () => {
 
     const chat = activeChats.find((c) => c.id === selectedChatId);
     if (chat?.sessionId) {
-      try {
-        const key = `jaf_admin_replies_${chat.sessionId}`;
-        const stored = localStorage.getItem(key);
-        const replies = stored ? JSON.parse(stored) : [];
-        replies.push({ id: newMsg.id, text: newMsg.text, time: newMsg.timestamp, ...(newMsg.files ? { files: newMsg.files.map(f => ({ name: f.name, type: f.type })) } : {}) });
-        localStorage.setItem(key, JSON.stringify(replies));
-        window.dispatchEvent(new Event("jaf_admin_reply"));
-
-        localStorage.setItem(
-          `jaf_admin_typing_${chat.sessionId}`,
-          JSON.stringify({ isTyping: false, timestamp: Date.now() })
+      if (newMsg.text.trim()) {
+        void liveChatServices.sendMessage(
+          String(chat.sessionId),
+          newMsg.text,
+          String(user?.role || "ADMIN") as any,
+          String(user?._id || ""),
         );
-        window.dispatchEvent(new Event("jaf_admin_typing"));
-      } catch (e) {
-        // silently fail
+        setTimeout(() => {
+          void syncServerMessages(String(chat.sessionId), String(chat.id));
+        }, 200);
       }
     }
-  };
-
-  const broadcastAdminTyping = () => {
-    const chat = activeChats.find((c) => c.id === selectedChatId);
-    if (!chat?.sessionId) return;
-    localStorage.setItem(
-      `jaf_admin_typing_${chat.sessionId}`,
-      JSON.stringify({ isTyping: true, timestamp: Date.now() })
-    );
-    window.dispatchEvent(new Event("jaf_admin_typing"));
   };
 
   const handleEndChat = () => {
@@ -477,65 +401,14 @@ const ChatSessionManagementPage = () => {
     const chat = activeChats.find((c) => c.id === selectedChatId);
 
     if (chat) {
-      const durationMs = Date.now() - chat.startedAt;
-      const totalSeconds = Math.floor(durationMs / 1000);
-      const mins = Math.floor(totalSeconds / 60);
-      const secs = totalSeconds % 60;
-      const duration = `${mins}m ${String(secs).padStart(2, "0")}s`;
-
-      const now = new Date();
-      const historyId = `LIVE-${chat.id}`;
-      const historyEntry: HistoryEntry = {
-        id: historyId,
-        visitor: chat.visitor,
-        agent: chat.agent,
-        duration,
-        messages: chat.messages.length,
-        rating: 0,
-        date: now.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
-        time: now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        status: "Resolved",
-        tags: [],
-        isLive: true,
-        queueDisplayId: getQueueDisplayId(chat.id),
-      };
-
-      const transcript = chat.messages.map((m) => ({
-        sender: m.sender,
-        text: m.text,
-        time: m.timestamp,
-      }));
-
-      setEndedChats((prev) => [historyEntry, ...prev]);
-      setEndedTranscripts((prev) => ({ ...prev, [historyId]: transcript }));
-
       if (chat.sessionId) {
-        try {
-          const stored = localStorage.getItem("jaf_live_queue");
-          if (stored) {
-            const queue = JSON.parse(stored);
-            const filtered = queue.filter((q: any) => q.sessionId !== chat.sessionId);
-            localStorage.setItem("jaf_live_queue", JSON.stringify(filtered));
-            window.dispatchEvent(new Event("jaf_queue_updated"));
-          }
-          localStorage.removeItem(`jaf_admin_replies_${chat.sessionId}`);
-          localStorage.removeItem(`jaf_admin_typing_${chat.sessionId}`);
-          localStorage.removeItem(`jaf_visitor_typing_${chat.sessionId}`);
-        } catch (e) {
-          // silently fail
-        }
+        void liveChatServices.endConversation(String(chat.sessionId));
       }
     }
 
     setActiveChats((prev) => prev.filter((c) => c.id !== selectedChatId));
-
-    // Always reset admin status to Online when any chat ends
-    try {
-      localStorage.setItem("jaf_agent_status", "Online");
-      window.dispatchEvent(new CustomEvent("jaf_agent_status_changed", { detail: { status: "Online" } }));
-    } catch (e) {
-      // silently fail
-    }
+    void mutateQueue();
+    void mutateHistory();
 
     setSelectedChatId(activeChats.length > 1 ? activeChats.find((c) => c.id !== selectedChatId)?.id || null : null);
     setShowEndConfirm(false);
@@ -791,26 +664,6 @@ const ChatSessionManagementPage = () => {
                             </div>
                           ))}
 
-                          {/* Visitor typing indicator */}
-                          {visitorTyping && (
-                            <div className="flex justify-start">
-                              <div className="flex items-end gap-2 max-w-[65%]">
-                                <div
-                                  className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[11px] font-semibold shrink-0"
-                                  style={{ backgroundColor: getAvatarColor(selectedChat.visitor) }}
-                                >
-                                  {selectedChat.visitor.charAt(0)}
-                                </div>
-                                <div className="px-4 py-3 bg-[#e5e7eb] dark:bg-slate-700 rounded-2xl rounded-bl-[4px] shadow-sm">
-                                  <div className="flex items-center gap-[5px]">
-                                    <span className="w-[6px] h-[6px] rounded-full bg-gray-500 dark:bg-slate-400 animate-[typingBounce_1.4s_ease-in-out_infinite]" style={{ animationDelay: "0ms" }} />
-                                    <span className="w-[6px] h-[6px] rounded-full bg-gray-500 dark:bg-slate-400 animate-[typingBounce_1.4s_ease-in-out_infinite]" style={{ animationDelay: "200ms" }} />
-                                    <span className="w-[6px] h-[6px] rounded-full bg-gray-500 dark:bg-slate-400 animate-[typingBounce_1.4s_ease-in-out_infinite]" style={{ animationDelay: "400ms" }} />
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          )}
                         </div>
 
                         <div ref={bottomRef} />
@@ -970,10 +823,7 @@ const ChatSessionManagementPage = () => {
                             <textarea
                               placeholder="Type your reply... (or use quick replies ⚡)"
                               value={chatMessage}
-                              onChange={(e) => {
-                                setChatMessage(e.target.value);
-                                if (e.target.value.trim()) broadcastAdminTyping();
-                              }}
+                              onChange={(e) => setChatMessage(e.target.value)}
                               onKeyDown={(e) => {
                                 if (e.key === "Enter" && !e.shiftKey) {
                                   e.preventDefault();
@@ -1049,21 +899,21 @@ const ChatSessionManagementPage = () => {
                               <Globe className="w-3.5 h-3.5 text-gray-400 dark:text-slate-500 mt-0.5 shrink-0" />
                               <div>
                                 <p className="text-[11px] text-gray-400 dark:text-slate-500">Browser</p>
-                                <p className="text-xs font-semibold text-gray-700 dark:text-slate-300">Chrome 122.0</p>
+                                <p className="text-xs font-semibold text-gray-700 dark:text-slate-300">{selectedChat.browser || "—"}</p>
                               </div>
                             </div>
                             <div className="flex items-start gap-2">
                               <Monitor className="w-3.5 h-3.5 text-gray-400 dark:text-slate-500 mt-0.5 shrink-0" />
                               <div>
                                 <p className="text-[11px] text-gray-400 dark:text-slate-500">OS / Device</p>
-                                <p className="text-xs font-semibold text-gray-700 dark:text-slate-300">Windows 11 &middot; Desktop</p>
+                                <p className="text-xs font-semibold text-gray-700 dark:text-slate-300">{selectedChat.os || "—"} &middot; {selectedChat.device || "—"}</p>
                               </div>
                             </div>
                             <div className="flex items-start gap-2">
                               <MapPin className="w-3.5 h-3.5 text-gray-400 dark:text-slate-500 mt-0.5 shrink-0" />
                               <div>
                                 <p className="text-[11px] text-gray-400 dark:text-slate-500">Location</p>
-                                <p className="text-xs font-semibold text-gray-700 dark:text-slate-300">New York, NY, US</p>
+                                <p className="text-xs font-semibold text-gray-700 dark:text-slate-300">{selectedChat.location || "Unknown"}, {selectedChat.country || "Unknown"}</p>
                               </div>
                             </div>
                             <div className="flex items-start gap-2">
@@ -1079,21 +929,21 @@ const ChatSessionManagementPage = () => {
                               <Globe className="w-3.5 h-3.5 text-gray-400 dark:text-slate-500 mt-0.5 shrink-0" />
                               <div>
                                 <p className="text-[11px] text-gray-400 dark:text-slate-500">IP Address</p>
-                                <p className="text-xs font-semibold text-gray-700 dark:text-slate-300 font-mono">192.168.1.***</p>
+                                <p className="text-xs font-semibold text-gray-700 dark:text-slate-300 font-mono">{selectedChat.ipAddress || "—"}</p>
                               </div>
                             </div>
                             <div className="flex items-start gap-2">
                               <LinkIcon className="w-3.5 h-3.5 text-gray-400 dark:text-slate-500 mt-0.5 shrink-0" />
                               <div>
                                 <p className="text-[11px] text-gray-400 dark:text-slate-500">Current Page</p>
-                                <p className="text-xs font-semibold text-gray-700 dark:text-slate-300 break-all">/pricing</p>
+                                <p className="text-xs font-semibold text-gray-700 dark:text-slate-300 break-all">{selectedChat.currentPage || "—"}</p>
                               </div>
                             </div>
                             <div className="flex items-start gap-2">
                               <LinkIcon className="w-3.5 h-3.5 text-gray-400 dark:text-slate-500 mt-0.5 shrink-0" />
                               <div>
                                 <p className="text-[11px] text-gray-400 dark:text-slate-500">Referrer</p>
-                                <p className="text-xs font-semibold text-gray-700 dark:text-slate-300 break-all">google.com</p>
+                                <p className="text-xs font-semibold text-gray-700 dark:text-slate-300 break-all">{selectedChat.referrer || "—"}</p>
                               </div>
                             </div>
                           </div>
@@ -1162,8 +1012,8 @@ const ChatSessionManagementPage = () => {
                 <ChatHistorySection
                   searchQuery={searchQuery}
                   setSearchQuery={setSearchQuery}
-                  endedChats={endedChats}
-                  endedTranscripts={endedTranscripts}
+                  endedChats={historyEntries}
+                  endedTranscripts={{}}
                 />
               )}
             </div>
@@ -1187,14 +1037,45 @@ function ChatHistorySection({
   endedTranscripts: Record<string, { sender: "visitor" | "agent"; text: string; time: string }[]>;
 }) {
   const [transcriptChatId, setTranscriptChatId] = useState<string | null>(null);
+  const [transcriptCache, setTranscriptCache] = useState<
+    Record<string, { sender: "visitor" | "agent"; text: string; time: string }[]>
+  >(endedTranscripts);
+  const [isTranscriptLoading, setIsTranscriptLoading] = useState(false);
   const { isDark } = useDarkMode();
 
-  const allHistory: HistoryEntry[] = [...endedChats, ...mockChatHistory];
+  const allHistory: HistoryEntry[] = [...endedChats];
 
   const transcriptChat = transcriptChatId ? allHistory.find((c) => c.id === transcriptChatId) : null;
   const transcriptMessages = transcriptChatId
-    ? endedTranscripts[transcriptChatId] ?? mockTranscripts[transcriptChatId] ?? []
+    ? transcriptCache[transcriptChatId] ?? []
     : [];
+
+  useEffect(() => {
+    if (!transcriptChatId || transcriptCache[transcriptChatId]) {
+      return;
+    }
+
+    setIsTranscriptLoading(true);
+
+    void liveChatServices.getConversationMessages(transcriptChatId, { page: 1, limit: 100 })
+      .then((response) => {
+        const mappedTranscript = (response.messages || []).map((message, index) => ({
+          sender: message.senderType === "VISITOR" ? ("visitor" as const) : ("agent" as const),
+          text: String(message.message || ""),
+          time: message.createdAt
+            ? new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+            : `${index + 1}`,
+        }));
+
+        setTranscriptCache((previousCache) => ({
+          ...previousCache,
+          [transcriptChatId]: mappedTranscript,
+        }));
+      })
+      .finally(() => {
+        setIsTranscriptLoading(false);
+      });
+  }, [transcriptCache, transcriptChatId]);
 
   const filtered = allHistory.filter((chat) => {
     return (
@@ -1358,7 +1239,11 @@ function ChatHistorySection({
 
             {/* Transcript Messages */}
             <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3 bg-gray-50 dark:bg-slate-900/30" style={{ scrollbarWidth: "thin" }}>
-              {transcriptMessages.length === 0 ? (
+              {isTranscriptLoading ? (
+                <div className="text-center py-8">
+                  <p className="text-sm text-gray-400 dark:text-slate-500">Loading transcript...</p>
+                </div>
+              ) : transcriptMessages.length === 0 ? (
                 <div className="text-center py-8">
                   <MessagesSquare className="w-8 h-8 text-gray-300 dark:text-slate-600 mx-auto mb-2" />
                   <p className="text-sm text-gray-400 dark:text-slate-500">No transcript available.</p>

@@ -35,6 +35,7 @@ const WIDGET_LOGO_KEY = "jaf_widget_logo";
 const WIDGET_DARK_MODE_KEY = "jaf_dark_mode";
 const WIDGET_TEXT_SIZE_KEY = "jaf_text_size";
 const WIDGET_MESSAGE_SOUNDS_KEY = "jaf_message_sounds";
+const LOCATION_CONSENT_KEY = "jaf_location_consent";
 
 const DEFAULT_TITLE = "Support";
 const DEFAULT_WELCOME = "Hi there. Welcome to JAF Chatra. How can I help you today?";
@@ -112,6 +113,12 @@ const getResolvedConfig = (initialConfig: LiveChatWidgetConfig = {}): LiveChatWi
     welcomeMessage: initialConfig.welcomeMessage || readStoredValue(WIDGET_WELCOME_KEY, windowConfig.welcomeMessage || DEFAULT_WELCOME),
     widgetLogo: initialConfig.widgetLogo || readStoredValue(WIDGET_LOGO_KEY, windowConfig.widgetLogo || ""),
     accentColor: initialConfig.accentColor || windowConfig.accentColor || DEFAULT_ACCENT,
+    visitorName: initialConfig.visitorName || windowConfig.visitorName || "",
+    visitorEmail: initialConfig.visitorEmail || windowConfig.visitorEmail || "",
+    visitorPhoneNumber: initialConfig.visitorPhoneNumber || windowConfig.visitorPhoneNumber || "",
+    ipAddressConsent: typeof initialConfig.ipAddressConsent === "boolean"
+      ? initialConfig.ipAddressConsent
+      : (typeof windowConfig.ipAddressConsent === "boolean" ? windowConfig.ipAddressConsent : undefined),
   };
 };
 
@@ -172,6 +179,13 @@ const getErrorMessage = (error: unknown) => {
   return "Unable to load live chat.";
 };
 
+const isConversationNotFoundError = (error: unknown) => {
+  const statusCode = (error as { response?: { status?: number } })?.response?.status;
+  const message = getErrorMessage(error).toLowerCase();
+
+  return statusCode === 404 || message.includes("conversation not found");
+};
+
 const resolveConversationIdFromStart = (response: LiveChatStartConversationResponse) => {
   if (response.conversation?._id) {
     return response.conversation._id;
@@ -217,6 +231,10 @@ const getWidgetInitials = (value: string) => {
 
 const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
   const [widgetConfig, setWidgetConfig] = useState<LiveChatWidgetConfig>(() => getResolvedConfig(initialConfig));
+  const [preChatFullName, setPreChatFullName] = useState(() => String(getResolvedConfig(initialConfig).visitorName || ""));
+  const [preChatEmailAddress, setPreChatEmailAddress] = useState(() => String(getResolvedConfig(initialConfig).visitorEmail || ""));
+  const [preChatPhoneNumber, setPreChatPhoneNumber] = useState(() => String(getResolvedConfig(initialConfig).visitorPhoneNumber || ""));
+  const [hasCompletedPreChat, setHasCompletedPreChat] = useState(() => Boolean(readStoredValue(CONVERSATION_ID_KEY)));
   const [visitorToken] = useState(() => getVisitorToken());
   const [conversationId, setConversationId] = useState(() => readStoredValue(CONVERSATION_ID_KEY));
   const [messages, setMessages] = useState<LiveChatMessage[]>([]);
@@ -233,6 +251,19 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
   const [widgetView, setWidgetView] = useState<WidgetView>("chat");
   const [textSize, setTextSize] = useState<TextSize>(() => parseTextSizePreference(readStoredValue(WIDGET_TEXT_SIZE_KEY, "default")));
   const [isMessageSoundsEnabled, setIsMessageSoundsEnabled] = useState(() => readStoredValue(WIDGET_MESSAGE_SOUNDS_KEY, "true") !== "false");
+  const [locationConsent, setLocationConsent] = useState<boolean | null>(() => {
+    const storedConsent = readStoredValue(LOCATION_CONSENT_KEY);
+
+    if (storedConsent === "true") {
+      return true;
+    }
+
+    if (storedConsent === "false") {
+      return false;
+    }
+
+    return null;
+  });
   const [isEndChatModalOpen, setIsEndChatModalOpen] = useState(false);
   const [showQuickMessages, setShowQuickMessages] = useState(true);
   const [quickMessages, setQuickMessages] = useState<QuickMessage[]>([]);
@@ -261,6 +292,8 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
   const hasRuntimeError = Boolean(errorMessage.trim());
   const isInvalidApiKeyError = /invalid\s+api\s+key/i.test(errorMessage);
   const isActionBlocked = !hasApiKey || hasRuntimeError || isLoading || isSending;
+  const isPreChatPending = !conversationId && !hasCompletedPreChat;
+  const isComposerBlocked = isActionBlocked || isPreChatPending;
   const displayErrorMessage = hasApiKey
     ? errorMessage
     : "This widget is not configured correctly. Missing apiKey.";
@@ -358,10 +391,18 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
 
         setMessages(normalizeMessages(response.messages));
       } catch (error) {
+        if (targetConversationId === conversationId && isConversationNotFoundError(error)) {
+          setConversationId("");
+          clearStoredValue(CONVERSATION_ID_KEY);
+          setMessages([]);
+          setErrorMessage("");
+          return;
+        }
+
         setErrorMessage(getErrorMessage(error));
       }
     },
-    [apiKey, visitorToken, widgetConfig],
+    [apiKey, conversationId, visitorToken, widgetConfig],
   );
 
   const startConversation = useCallback(async (): Promise<string | null> => {
@@ -374,10 +415,22 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
     setErrorMessage("");
 
     try {
+      const sanitizedEmail = preChatEmailAddress.trim();
+      if (sanitizedEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(sanitizedEmail)) {
+        setErrorMessage("Please enter a valid email address or leave it blank.");
+        return null;
+      }
+
       const response: LiveChatStartConversationResponse = await liveChatWidgetServices.startConversation(
         widgetConfig,
         visitorToken,
-        {},
+        {
+          fullName: preChatFullName.trim(),
+          emailAddress: sanitizedEmail,
+          phoneNumber: preChatPhoneNumber.trim(),
+          ipAddressConsent: locationConsent === true,
+          locationConsent: locationConsent === true,
+        },
       );
 
       const nextConversationId = resolveConversationIdFromStart(response);
@@ -387,6 +440,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
       }
 
       setConversationId(nextConversationId);
+      setHasCompletedPreChat(true);
       writeStoredValue(CONVERSATION_ID_KEY, nextConversationId);
 
       if (response.initialMessage) {
@@ -403,7 +457,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
     } finally {
       setIsLoading(false);
     }
-  }, [hasApiKey, syncMessages, visitorToken, widgetConfig]);
+  }, [hasApiKey, locationConsent, preChatEmailAddress, preChatFullName, preChatPhoneNumber, syncMessages, visitorToken, widgetConfig]);
 
   const syncWidgetSettings = useCallback(async () => {
     if (!hasApiKey) {
@@ -496,6 +550,11 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
       return;
     }
 
+    if (!conversationId && !hasCompletedPreChat) {
+      setErrorMessage("Complete the optional pre-chat form step first.");
+      return;
+    }
+
     let activeConversationId: string | null = conversationId || null;
 
     if (!activeConversationId) {
@@ -517,6 +576,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
         senderType: "VISITOR",
         senderId: visitorToken,
         message: trimmedMessage,
+        status: "SENDING",
         createdAt: new Date().toISOString(),
       };
 
@@ -540,17 +600,40 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
     } finally {
       setIsSending(false);
     }
-  }, [conversationId, isSending, messageText, startConversation, syncMessages, visitorToken, widgetConfig]);
+  }, [conversationId, hasCompletedPreChat, isSending, messageText, startConversation, syncMessages, visitorToken, widgetConfig]);
 
-  const handleEndChat = useCallback(() => {
+  const handleCompletePreChat = useCallback(() => {
+    if (locationConsent === null) {
+      setLocationConsent(false);
+      writeStoredValue(LOCATION_CONSENT_KEY, "false");
+    }
+
+    setHasCompletedPreChat(true);
+    setErrorMessage("");
+  }, [locationConsent]);
+
+  const resetConversationState = useCallback(() => {
     disconnectSocket();
     setConversationId("");
     setMessages([]);
     setMessageText("");
     setUnreadCount(0);
     setErrorMessage("");
+    setHasCompletedPreChat(false);
     clearStoredValue(CONVERSATION_ID_KEY);
   }, [disconnectSocket]);
+
+  const handleEndChat = useCallback(async () => {
+    if (conversationId) {
+      try {
+        await liveChatWidgetServices.endConversation(widgetConfig, visitorToken, conversationId);
+      } catch (error) {
+        setErrorMessage(getErrorMessage(error));
+      }
+    }
+
+    resetConversationState();
+  }, [conversationId, resetConversationState, visitorToken, widgetConfig]);
 
   const messageSizeClass = useMemo(() => {
     if (textSize === "small") {
@@ -662,10 +745,23 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
 
   useEffect(() => {
     const syncConfig = () => {
-      setWidgetConfig(getResolvedConfig(initialConfig));
+      const resolvedConfig = getResolvedConfig(initialConfig);
+      setWidgetConfig(resolvedConfig);
+      if (!conversationId) {
+        setPreChatFullName(String(resolvedConfig.visitorName || ""));
+        setPreChatEmailAddress(String(resolvedConfig.visitorEmail || ""));
+        setPreChatPhoneNumber(String(resolvedConfig.visitorPhoneNumber || ""));
+      }
       setIsDarkMode(readStoredValue(WIDGET_DARK_MODE_KEY) === "true");
       setTextSize(parseTextSizePreference(readStoredValue(WIDGET_TEXT_SIZE_KEY, "default")));
       setIsMessageSoundsEnabled(readStoredValue(WIDGET_MESSAGE_SOUNDS_KEY, "true") !== "false");
+
+      const storedConsent = readStoredValue(LOCATION_CONSENT_KEY);
+      if (storedConsent === "true") {
+        setLocationConsent(true);
+      } else if (storedConsent === "false") {
+        setLocationConsent(false);
+      }
     };
 
     const handleOpenChat = () => {
@@ -683,7 +779,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
       window.removeEventListener("open-live-chat", handleOpenChat);
       window.removeEventListener("storage", handleStorage);
     };
-  }, [initialConfig]);
+  }, [conversationId, initialConfig]);
 
   useEffect(() => {
     if (isOpen) {
@@ -741,12 +837,11 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
     void syncQuickMessages();
 
     if (!conversationId) {
-      void startConversation();
       return;
     }
 
     void syncMessages(conversationId);
-  }, [conversationId, hasApiKey, isOpen, startConversation, syncMessages, syncQuickMessages, syncWidgetSettings]);
+  }, [conversationId, hasApiKey, isOpen, syncMessages, syncQuickMessages, syncWidgetSettings]);
 
   useEffect(() => {
     if (!isOpen || !apiKey || !conversationId) {
@@ -785,10 +880,36 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
 
       socket.addEventListener("message", (event) => {
         try {
-          const payload = JSON.parse(event.data) as { event?: string; data?: { senderType?: string } };
+          const payload = JSON.parse(event.data) as {
+            event?: string;
+            data?: {
+              senderType?: string;
+              messageIds?: string[];
+              status?: "DELIVERED" | "SEEN";
+            };
+          };
 
-          if (payload.event === "NEW_MESSAGE" || payload.event === "CONVERSATION_ASSIGNED") {
+          if (payload.event === "NEW_MESSAGE" || payload.event === "CONVERSATION_ASSIGNED" || payload.event === "CONVERSATION_TRANSFERRED") {
             void syncMessages(conversationId);
+          }
+
+          if (payload.event === "CONVERSATION_ENDED") {
+            resetConversationState();
+            return;
+          }
+
+          if (payload.event === "MESSAGE_STATUS_UPDATED" && Array.isArray(payload.data?.messageIds) && payload.data?.status) {
+            const messageIds = new Set(payload.data.messageIds.map((id) => String(id)));
+            setMessages((currentMessages) => currentMessages.map((message) => {
+              if (!messageIds.has(String(message._id))) {
+                return message;
+              }
+
+              return {
+                ...message,
+                status: payload.data?.status,
+              };
+            }));
           }
 
           if (payload.event === "NEW_MESSAGE" && payload.data?.senderType !== "VISITOR") {
@@ -818,7 +939,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
     return () => {
       disconnectSocket();
     };
-  }, [apiKey, conversationId, disconnectSocket, isOpen, playIncomingMessageSound, syncMessages, visitorToken]);
+  }, [apiKey, conversationId, disconnectSocket, isOpen, playIncomingMessageSound, resetConversationState, syncMessages, visitorToken]);
 
   useEffect(() => {
     if (!isOpen || messages.length === 0) {
@@ -837,8 +958,30 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
     const storedConversationId = readStoredValue(CONVERSATION_ID_KEY);
     if (storedConversationId && storedConversationId !== conversationId) {
       setConversationId(storedConversationId);
+      setHasCompletedPreChat(true);
     }
   }, [conversationId, visitorToken]);
+
+  const getVisitorMessageStatus = useCallback((message: LiveChatMessage) => {
+    if (String(message._id || "").startsWith("local-")) {
+      return {
+        label: "Sending",
+        toneClass: "text-white/70",
+      };
+    }
+
+    if (message.status === "SEEN") {
+      return {
+        label: "Seen",
+        toneClass: "text-cyan-100",
+      };
+    }
+
+    return {
+      label: "Delivered",
+      toneClass: "text-white/80",
+    };
+  }, []);
 
   const theme = isDarkMode
     ? {
@@ -1087,6 +1230,82 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                   </div>
                 ) : messages.length === 0 ? (
                   <div className={`rounded-2xl border-2 p-5 text-center ${theme.panel}`}>
+                    {!conversationId && !hasCompletedPreChat ? (
+                      <div className={`mb-4 rounded-2xl border px-4 py-3 text-left ${theme.settingsCard}`}>
+                        <p className={`font-semibold ${theme.settingsText}`}>Before we start (optional)</p>
+                        <p className={`mt-1 leading-relaxed ${theme.settingsMuted}`}>
+                          Share your details if you want faster support. You can leave everything blank and continue.
+                        </p>
+
+                        <div className="mt-3 grid gap-2">
+                          <input
+                            type="text"
+                            value={preChatFullName}
+                            onChange={(event) => setPreChatFullName(event.target.value)}
+                            placeholder="Full name (optional)"
+                            className={`w-full rounded-xl border px-3 py-2 text-sm outline-none ${theme.input}`}
+                          />
+                          <input
+                            type="email"
+                            value={preChatEmailAddress}
+                            onChange={(event) => setPreChatEmailAddress(event.target.value)}
+                            placeholder="Email address (optional)"
+                            className={`w-full rounded-xl border px-3 py-2 text-sm outline-none ${theme.input}`}
+                          />
+                          <input
+                            type="text"
+                            value={preChatPhoneNumber}
+                            onChange={(event) => setPreChatPhoneNumber(event.target.value)}
+                            placeholder="Phone number (optional)"
+                            className={`w-full rounded-xl border px-3 py-2 text-sm outline-none ${theme.input}`}
+                          />
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {!conversationId ? (
+                      <div className={`mb-4 rounded-2xl border px-4 py-3 text-left ${theme.settingsCard}`}>
+                        <p className={`font-semibold ${theme.settingsText}`}>Location consent</p>
+                        <p className={`mt-1 leading-relaxed ${theme.settingsMuted}`}>
+                          Allow us to estimate your city and country from your IP address. If you skip this, chat still works normally.
+                        </p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setLocationConsent(true);
+                              writeStoredValue(LOCATION_CONSENT_KEY, "true");
+                            }}
+                            className="rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors"
+                            style={{ backgroundColor: locationConsent === true ? resolvedAccent : accentSoftBackground, border: `1px solid ${accentSoftBorder}`, color: locationConsent === true ? "white" : resolvedAccent }}
+                          >
+                            Allow
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setLocationConsent(false);
+                              writeStoredValue(LOCATION_CONSENT_KEY, "false");
+                            }}
+                            className="rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors"
+                            style={{ backgroundColor: locationConsent === false ? resolvedAccent : accentSoftBackground, border: `1px solid ${accentSoftBorder}`, color: locationConsent === false ? "white" : resolvedAccent }}
+                          >
+                            Skip
+                          </button>
+                        </div>
+
+                        {!hasCompletedPreChat ? (
+                          <button
+                            type="button"
+                            onClick={handleCompletePreChat}
+                            className="mt-3 w-full rounded-xl px-3 py-2 text-sm font-semibold text-white"
+                            style={{ backgroundColor: resolvedAccent }}
+                          >
+                            Continue to chat
+                          </button>
+                        ) : null}
+                      </div>
+                    ) : null}
                     <div className="flex justify-center mb-3">
                       <div className="h-14 w-14 rounded-full bg-cyan-100/90 dark:bg-cyan-900/30 flex items-center justify-center ring-8 ring-cyan-50/60 dark:ring-cyan-900/30">
                         <MessageCircle className="h-7 w-7 text-cyan-600" />
@@ -1099,6 +1318,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                   <div className="flex flex-col gap-4">
                     {messages.map((message) => {
                       const isVisitorMessage = message.senderType === "VISITOR";
+                      const visitorMessageStatus = isVisitorMessage ? getVisitorMessageStatus(message) : null;
                       return (
                         <div key={message._id} className={`flex ${isVisitorMessage ? "justify-end" : "justify-start"} items-end gap-2`}>
                           {!isVisitorMessage && (
@@ -1113,7 +1333,14 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                             <p className={`px-4 py-2.5 whitespace-pre-wrap leading-relaxed ${messageSizeClass}`}>{message.message}</p>
                             <div className={`px-4 pb-1 flex items-center gap-1 ${isVisitorMessage ? "text-white/70" : theme.muted}`}>
                               <p className={messageMetaSizeClass}>{formatTime(message.createdAt)}</p>
-                              {isVisitorMessage && <CheckCheck className="h-3 w-3" />}
+                              {isVisitorMessage ? (
+                                <>
+                                  <CheckCheck className={`h-3 w-3 ${visitorMessageStatus?.toneClass || ""}`} />
+                                  <p className={`${messageMetaSizeClass} ${visitorMessageStatus?.toneClass || ""}`}>
+                                    {visitorMessageStatus?.label}
+                                  </p>
+                                </>
+                              ) : null}
                             </div>
                           </div>
                         </div>
@@ -1130,7 +1357,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                   <button
                     type="button"
                     onClick={() => setShowQuickMessages((current) => !current)}
-                    disabled={isActionBlocked}
+                    disabled={isComposerBlocked}
                     className="w-full flex items-center justify-center gap-2 text-sm font-semibold text-slate-400 hover:text-slate-500 dark:text-slate-300 dark:hover:text-slate-100 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <Zap className="h-4 w-4" />
@@ -1149,7 +1376,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                             setShowQuickMessages(false);
                             void handleSendMessage(qm.response);
                           }}
-                          disabled={isActionBlocked}
+                          disabled={isComposerBlocked}
                           className={`px-3 py-1.5 rounded-full border transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md font-medium ${theme.quickMsg} disabled:opacity-50 disabled:cursor-not-allowed ${textSize === "large" ? "text-sm" : textSize === "small" ? "text-[11px]" : "text-xs"}`}
                           style={{ backgroundColor: accentSoftBackground, borderColor: accentSoftBorder, color: resolvedAccent }}
                         >
@@ -1177,7 +1404,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    disabled={isActionBlocked}
+                    disabled={isComposerBlocked}
                     className={`flex h-11 w-11 items-center justify-center rounded-2xl flex-shrink-0 transition-all duration-200 hover:-translate-y-0.5 ${theme.buttonSecondary} disabled:opacity-50 disabled:cursor-not-allowed`}
                     aria-label="Attach file"
                     title="Attach file (coming soon)"
@@ -1204,7 +1431,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                         target.style.height = `${Math.min(target.scrollHeight, 84)}px`;
                       }}
                       onKeyDown={(event) => {
-                        if (isActionBlocked) {
+                        if (isComposerBlocked) {
                           return;
                         }
 
@@ -1213,8 +1440,14 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                           void handleSendMessage();
                         }
                       }}
-                      placeholder={hasApiKey ? (hasRuntimeError ? "Resolve the error to continue chatting..." : "Type a message...") : "Widget apiKey is missing..."}
-                      disabled={isActionBlocked}
+                      placeholder={
+                        hasApiKey
+                          ? (hasRuntimeError
+                            ? "Resolve the error to continue chatting..."
+                            : (isPreChatPending ? "Complete the optional pre-chat step to continue..." : "Type a message..."))
+                          : "Widget apiKey is missing..."
+                      }
+                      disabled={isComposerBlocked}
                       className={`w-full bg-transparent ${messageSizeClass} outline-none ${inputPaddingClass} disabled:opacity-50 resize-none overflow-y-auto leading-5 max-h-[84px] ${isDarkMode ? "text-slate-100" : "text-slate-900"}`}
                     />
                   </div>
@@ -1222,13 +1455,13 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                   <button
                     type="button"
                     onClick={() => {
-                      if (isActionBlocked) {
+                      if (isComposerBlocked) {
                         return;
                       }
 
                       void handleSendMessage();
                     }}
-                    disabled={isActionBlocked || !messageText.trim()}
+                    disabled={isComposerBlocked || !messageText.trim()}
                     className={`flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl transition-all duration-200 hover:-translate-y-0.5 ${theme.button} disabled:opacity-50 disabled:cursor-not-allowed`}
                     style={{ backgroundColor: resolvedAccent, boxShadow: accentShadow }}
                     aria-label="Send message"

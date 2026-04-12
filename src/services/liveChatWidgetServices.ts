@@ -4,6 +4,7 @@ import type {
   GetLiveChatMessagesResponse,
   GetWidgetQuickMessagesResponse,
   GetWidgetSettingsResponse,
+  LiveChatEndConversationResponse,
   LiveChatSendMessagePayload,
   LiveChatStartConversationResponse,
   LiveChatWidgetConfig,
@@ -24,12 +25,48 @@ const liveChatWidgetServices = {
   startConversation: async (
     config: LiveChatWidgetConfig,
     visitorToken: string,
-    payload: { name?: string; emailAddress?: string; message?: string } = {},
+    payload: {
+      fullName?: string;
+      name?: string;
+      emailAddress?: string;
+      phoneNumber?: string;
+      message?: string;
+      locationConsent?: boolean;
+      ipAddressConsent?: boolean;
+    } = {},
   ): Promise<LiveChatStartConversationResponse> => {
+    const normalizedPayload = Object.fromEntries(
+      Object.entries(payload).filter(([, value]) => {
+        if (typeof value === "string") {
+          return value.trim().length > 0;
+        }
+
+        return value !== undefined && value !== null;
+      }),
+    );
+
     const response = await axiosServices.post<LiveChatStartConversationResponse>(
       `${WIDGET_BASE_PATH}/conversations/start`,
       {
-        ...payload,
+        ...normalizedPayload,
+        visitorToken,
+      },
+      {
+        headers: buildHeaders(config, visitorToken),
+      },
+    );
+
+    return response.data;
+  },
+
+  endConversation: async (
+    config: LiveChatWidgetConfig,
+    visitorToken: string,
+    conversationId: string,
+  ): Promise<LiveChatEndConversationResponse> => {
+    const response = await axiosServices.post<LiveChatEndConversationResponse>(
+      `${WIDGET_BASE_PATH}/conversations/${conversationId}/end`,
+      {
         visitorToken,
       },
       {

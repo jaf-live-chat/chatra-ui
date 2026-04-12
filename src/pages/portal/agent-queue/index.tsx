@@ -1,113 +1,133 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { useNavigate } from "react-router";
 import QueueView from "../../../sections/chat/QueueView";
+import { useGetLiveChatQueue } from "../../../hooks/useLiveChat";
+import { useGetAgents } from "../../../services/agentServices";
+import liveChatServices from "../../../services/liveChatServices";
+import useAuth from "../../../hooks/useAuth";
+import { API_BASE_URL } from "../../../constants/constants";
 
-const initialMockQueue = [
-  { id: "Q-1001", name: "Alice Johnson", message: "I need help with upgrading my plan.", status: "Waiting", timeInQueue: "5m 20s" },
-  { id: "Q-1002", name: "Michael Smith", message: "Can I connect my own custom domain?", status: "Waiting", timeInQueue: "12m 45s" },
-  { id: "Q-1003", name: "Emily Davis", message: "My payment keeps failing. Please help.", status: "Assigned", timeInQueue: "2m 10s" },
-  { id: "Q-1004", name: "James Wilson", message: "How do I add more team members?", status: "Waiting", timeInQueue: "8m 05s" },
-  { id: "Q-1005", name: "Sarah Brown", message: "I am having trouble logging in.", status: "Waiting", timeInQueue: "15m 30s" },
-  { id: "Q-1006", name: "David Lee", message: "What are the limitations of the free tier?", status: "Assigned", timeInQueue: "1m 15s" },
-  { id: "Q-1007", name: "Sophia Martinez", message: "Is there a way to export my data?", status: "Waiting", timeInQueue: "4m 50s" },
-  { id: "Q-1008", name: "Daniel Taylor", message: "I want to cancel my subscription.", status: "Waiting", timeInQueue: "0m" },
-  { id: "Q-1009", name: "Emma Wilson", message: "How do I setup SSO?", status: "Waiting", timeInQueue: "11m 10s" },
-  { id: "Q-1010", name: "Oliver Garcia", message: "Can I get a refund for my last invoice?", status: "Waiting", timeInQueue: "6m 30s" },
-  { id: "Q-1011", name: "Mia Rodriguez", message: "The dashboard is not loading properly.", status: "Assigned", timeInQueue: "3m 45s" },
-  { id: "Q-1012", name: "William Martinez", message: "I need to update my billing address.", status: "Waiting", timeInQueue: "9m 20s" },
-  { id: "Q-1013", name: "Ava Hernandez", message: "Where can I find my API keys?", status: "Waiting", timeInQueue: "7m 50s" },
-  { id: "Q-1014", name: "Noah Lopez", message: "I forgot my password and the reset link isn't working.", status: "Waiting", timeInQueue: "14m 15s" },
-];
+const formatQueueDuration = (queuedAt?: string | null) => {
+  if (!queuedAt) {
+    return "0m";
+  }
 
-const AGENT_QUEUE_STORAGE_KEY = "jaf_agent_mock_queue_state";
+  const queuedTime = new Date(queuedAt).getTime();
+  if (Number.isNaN(queuedTime)) {
+    return "0m";
+  }
+
+  const elapsedSeconds = Math.max(0, Math.floor((Date.now() - queuedTime) / 1000));
+  const mins = Math.floor(elapsedSeconds / 60);
+  const secs = elapsedSeconds % 60;
+  return `${mins}m ${String(secs).padStart(2, "0")}s`;
+};
+
+const resolveSocketUrl = () => {
+  const apiBaseUrl = String(API_BASE_URL).trim().replace(/\/$/, "");
+  const rootUrl = apiBaseUrl.replace(/\/api\/v\d+\/?$/i, "");
+
+  if (rootUrl.startsWith("https://")) {
+    return `wss://${rootUrl.slice("https://".length)}`;
+  }
+
+  if (rootUrl.startsWith("http://")) {
+    return `ws://${rootUrl.slice("http://".length)}`;
+  }
+
+  return "";
+};
 
 const AgentQueuePage = () => {
   const navigate = useNavigate();
-  const [queueItems, setQueueItems] = useState<typeof initialMockQueue>(() => {
-    try {
-      const stored = localStorage.getItem(AGENT_QUEUE_STORAGE_KEY);
-      if (stored) return JSON.parse(stored);
-    } catch (e) {
-      // silently fail
-    }
-    return initialMockQueue;
-  });
-  const [liveQueueItems, setLiveQueueItems] = useState<any[]>([]);
+  const { tenant, user } = useAuth();
+  const { queue, mutate } = useGetLiveChatQueue({ page: 1, limit: 100 });
+  const { agents } = useGetAgents({ page: 1, limit: 100 });
+
+  const mappedQueue = useMemo(() => {
+    return (queue || []).map((entry: any) => {
+      const conversation = typeof entry.conversationId === "object" ? entry.conversationId : null;
+      const visitor = typeof entry.visitorId === "object" ? entry.visitorId : null;
+      const agent = typeof entry.agentId === "object" ? entry.agentId : null;
+      const conversationId = conversation?._id || entry.conversationId || entry._id;
+      const visitorLabel = visitor?.name || (visitor?.visitorToken ? `Visitor ${String(visitor.visitorToken).slice(-4)}` : "Website Visitor");
+      const locationCity = conversation?.locationCity || visitor?.locationCity || "Unknown";
+      const locationCountry = conversation?.locationCountry || visitor?.locationCountry || "Unknown";
+
+      return {
+        id: String(conversationId),
+        conversationId: String(conversationId),
+        sessionId: String(conversationId),
+        visitorId: visitor?._id || null,
+        name: visitorLabel,
+        message: "Visitor is waiting for support.",
+        status: conversation?.status === "OPEN" ? "Assigned" : "Waiting",
+        timeInQueue: formatQueueDuration(entry.queuedAt || conversation?.queuedAt),
+        agentId: agent?._id || entry.agentId || null,
+        agentName: agent?.fullName || "",
+        ipAddress: visitor?.ipAddress || conversation?.ipAddress || "",
+        location: locationCity,
+        country: locationCountry,
+      };
+    });
+  }, [queue]);
+
+  const mappedAgents = useMemo(() => {
+    return (agents || []).map((agent) => ({
+      id: agent._id,
+      name: agent.fullName,
+      status: String(agent.status || "").toUpperCase() === "AVAILABLE" ? "online" : "away",
+      activeChats: String(agent.status || "").toUpperCase() === "BUSY" ? 1 : 0,
+    }));
+  }, [agents]);
 
   useEffect(() => {
-    try {
-      localStorage.setItem(AGENT_QUEUE_STORAGE_KEY, JSON.stringify(queueItems));
-    } catch (e) {
-      // silently fail
+    const socketUrl = resolveSocketUrl();
+    if (!socketUrl || !tenant?.apiKey) {
+      return;
     }
-  }, [queueItems]);
 
-  useEffect(() => {
-    const loadLiveQueue = () => {
-      try {
-        const stored = localStorage.getItem("jaf_live_queue");
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          setLiveQueueItems(parsed);
-        } else {
-          setLiveQueueItems([]);
-        }
-      } catch (e) {
-        // silently fail
+    try {
+      const url = new URL(`${socketUrl.replace(/\/$/, "")}/ws/live-chat`);
+      url.searchParams.set("apiKey", tenant.apiKey);
+      if (user?.role) {
+        url.searchParams.set("role", user.role);
       }
-    };
+      if (user?._id) {
+        url.searchParams.set("agentId", user._id);
+      }
 
-    loadLiveQueue();
+      const socket = new WebSocket(url.toString());
+      socket.addEventListener("message", (event) => {
+        try {
+          const payload = JSON.parse(event.data) as { event?: string };
+          if (["NEW_CONVERSATION", "CONVERSATION_ASSIGNED", "CONVERSATION_TRANSFERRED", "CONVERSATION_ENDED"].includes(String(payload.event || ""))) {
+            void mutate();
+          }
+        } catch {
+          // Ignore malformed events.
+        }
+      });
 
-    const handleQueueUpdate = () => loadLiveQueue();
-    window.addEventListener("jaf_queue_updated", handleQueueUpdate);
-
-    const handleStorage = (e: StorageEvent) => {
-      if (e.key === "jaf_live_queue") loadLiveQueue();
-    };
-    window.addEventListener("storage", handleStorage);
-
-    const interval = setInterval(loadLiveQueue, 2000);
-
-    return () => {
-      window.removeEventListener("jaf_queue_updated", handleQueueUpdate);
-      window.removeEventListener("storage", handleStorage);
-      clearInterval(interval);
-    };
-  }, []);
-
-  const mergedQueue = useMemo(() => {
-    const liveIds = liveQueueItems.map((l: any) => l.id);
-    const mockFiltered = queueItems.filter((q) => !liveIds.includes(q.id));
-    return [...liveQueueItems, ...mockFiltered];
-  }, [queueItems, liveQueueItems]);
+      return () => {
+        socket.close();
+      };
+    } catch {
+      return;
+    }
+  }, [mutate, tenant?.apiKey, user?._id, user?.role]);
 
   return (
     <QueueView
-      queue={mergedQueue}
+      queue={mappedQueue}
+      agents={mappedAgents}
       isAgent={true}
-      currentAgentId="AGT-001"
+      currentAgentId={user?._id}
+      onAcceptAssignment={async (assignment) => {
+        await liveChatServices.acceptConversation(assignment.conversationId || assignment.visitorId);
+        await mutate();
+      }}
       onStartChat={(visitor) => {
-        setQueueItems((prev) =>
-          prev.map((q) => (q.id === visitor.id ? { ...q, status: "Assigned" } : q))
-        );
-
-        if (visitor.sessionId) {
-          try {
-            const stored = localStorage.getItem("jaf_live_queue");
-            if (stored) {
-              const liveQueue = JSON.parse(stored);
-              const updated = liveQueue.map((q: any) =>
-                q.id === visitor.id ? { ...q, status: "Assigned" } : q
-              );
-              localStorage.setItem("jaf_live_queue", JSON.stringify(updated));
-              window.dispatchEvent(new Event("jaf_queue_updated"));
-            }
-          } catch (e) {
-            // silently fail
-          }
-        }
-
         localStorage.setItem("jaf_active_chat_visitor", JSON.stringify(visitor));
         window.dispatchEvent(new Event("jaf_chat_session_start"));
         navigate("/portal/agent/chat-sessions");
