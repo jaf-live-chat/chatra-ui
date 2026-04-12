@@ -31,6 +31,7 @@ export interface ActiveChat {
   agent: string;
   location?: string;
   country?: string;
+  locationConsent?: boolean;
   ipAddress?: string;
   currentPage?: string;
   referrer?: string;
