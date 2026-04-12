@@ -15,12 +15,13 @@ import {
   Zap,
 } from "lucide-react";
 import { ActiveChat, ChatAttachmentUpload, ChatMessage, mapServerMessageToChatMessage, QuickReplyItem } from "../../models/ChatSessionManagementModel";
-import { LiveChatMessage, LiveChatParticipantRole, LiveChatQueueEntry } from "../../models/LiveChatModel";
+import { LiveChatConversationEndedEvent, LiveChatMessage, LiveChatParticipantRole, LiveChatQueueEntry } from "../../models/LiveChatModel";
 import { useDarkMode } from "../../providers/DarkModeContext";
 import useAuth from "../../hooks/useAuth";
 import liveChatWidgetServices from "../../services/liveChatWidgetServices";
 import liveChatServices from "../../services/liveChatServices";
 import MessageStatusBadge from "../../components/MessageStatusBadge";
+import { createLiveChatSocket } from "../../services/liveChatRealtimeClient";
 
 // Seeds for quick replies (assuming it's from constants)
 const SEED_REPLIES: QuickReplyItem[] = [
@@ -91,6 +92,7 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
   const [isSendingMessage, setIsSendingMessage] = useState(false);
   const [isEndingChat, setIsEndingChat] = useState(false);
   const [isSyncingMessages, setIsSyncingMessages] = useState(false);
+  const [endedChatNotice, setEndedChatNotice] = useState("");
 
   const [attachedFiles, setAttachedFiles] = useState<ChatAttachmentUpload[]>([]);
   const [showQuickReplies, setShowQuickReplies] = useState(false);
@@ -104,7 +106,7 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
   const quickRepliesRef = useRef<HTMLDivElement>(null);
 
   const { isDark } = useDarkMode();
-  const { user } = useAuth();
+  const { user, tenant } = useAuth();
 
   // Load quick replies
   useEffect(() => {
@@ -239,13 +241,6 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
     }
 
     void syncServerMessages(selectedChatSessionId, selectedChatResolvedId);
-    const interval = setInterval(() => {
-      void syncServerMessages(selectedChatSessionId, selectedChatResolvedId);
-    }, 3000);
-
-    return () => {
-      clearInterval(interval);
-    };
   }, [selectedChatSessionId, selectedChatResolvedId, syncServerMessages]);
 
   // Auto-scroll to bottom
@@ -257,6 +252,7 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
   useEffect(() => {
     if (selectedChatId) {
       setIsMobileChatPanelOpen(true);
+      setEndedChatNotice("");
     }
   }, [selectedChatId]);
 
@@ -337,11 +333,170 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
         String(user?._id || ""),
         { skipGlobalBlocking: true },
       );
-      await syncServerMessages(String(chat.sessionId), String(chat.id));
     } finally {
       setIsSendingMessage(false);
     }
   };
+
+  const resolveEndedByText = useCallback((payload: LiveChatConversationEndedEvent) => {
+    const endedByName = String(payload.endedBy?.displayName || "").trim();
+    if (!endedByName) {
+      return "This chat has ended.";
+    }
+
+    return `This chat has ended. Ended by ${endedByName}.`;
+  }, []);
+
+  useEffect(() => {
+    if (!tenant?.apiKey) {
+      return;
+    }
+
+    const socket = createLiveChatSocket({
+      apiKey: tenant.apiKey,
+      role: user?.role,
+      agentId: user?._id,
+    });
+
+    if (!socket) {
+      return;
+    }
+
+    socket.on("NEW_MESSAGE", (incomingMessage: LiveChatMessage) => {
+      const targetConversationId = String(incomingMessage?.conversationId || "");
+      if (!targetConversationId) {
+        return;
+      }
+
+      setActiveChats((currentChats) => currentChats.map((chat) => {
+        if (String(chat.sessionId || chat.id) !== targetConversationId) {
+          return chat;
+        }
+
+        const mappedIncoming = mapServerMessageToChatMessage(
+          incomingMessage,
+          `${targetConversationId}-${Date.now()}`,
+          getTime(),
+        );
+
+        const nextMessages = [...chat.messages];
+        const existingById = nextMessages.findIndex((message) => String(message.id) === String(mappedIncoming.id));
+
+        if (existingById >= 0) {
+          nextMessages[existingById] = {
+            ...nextMessages[existingById],
+            ...mappedIncoming,
+          };
+
+          return { ...chat, messages: nextMessages };
+        }
+
+        if (incomingMessage.senderType !== "VISITOR") {
+          const pendingIndex = nextMessages.findIndex(
+            (message) => message.sender === "agent"
+              && message.status === "SENDING"
+              && String(message.text).trim() === String(mappedIncoming.text).trim(),
+          );
+
+          if (pendingIndex >= 0) {
+            nextMessages[pendingIndex] = {
+              ...nextMessages[pendingIndex],
+              ...mappedIncoming,
+            };
+
+            return { ...chat, messages: nextMessages };
+          }
+        }
+
+        return {
+          ...chat,
+          messages: [...nextMessages, mappedIncoming],
+        };
+      }));
+    });
+
+    socket.on("MESSAGE_STATUS_UPDATED", (payload: { conversationId?: string; messageIds?: string[]; status?: "DELIVERED" | "SEEN"; seenByRole?: string | null }) => {
+      const targetConversationId = String(payload?.conversationId || "");
+      const messageIds = Array.isArray(payload?.messageIds) ? new Set(payload.messageIds.map((id) => String(id))) : null;
+
+      if (!targetConversationId || !messageIds || !payload.status) {
+        return;
+      }
+
+      setActiveChats((currentChats) => currentChats.map((chat) => {
+        if (String(chat.sessionId || chat.id) !== targetConversationId) {
+          return chat;
+        }
+
+        return {
+          ...chat,
+          messages: chat.messages.map((message) => {
+            if (!messageIds.has(String(message.id))) {
+              return message;
+            }
+
+            return {
+              ...message,
+              status: payload.status,
+              seenByRole: payload.seenByRole || message.seenByRole || null,
+            };
+          }),
+        };
+      }));
+    });
+
+    socket.on("CONVERSATION_ENDED", (payload: LiveChatConversationEndedEvent) => {
+      const targetConversationId = String(payload?.conversation?._id || "");
+      if (!targetConversationId) {
+        return;
+      }
+
+      const notice = resolveEndedByText(payload);
+      setEndedChatNotice(notice);
+
+      setActiveChats((currentChats) => currentChats.map((chat) => {
+        if (String(chat.sessionId || chat.id) !== targetConversationId) {
+          return chat;
+        }
+
+        const terminalMessage: ChatMessage = {
+          id: `ended-${targetConversationId}`,
+          sender: "agent",
+          text: notice,
+          timestamp: getTime(),
+          status: "DELIVERED",
+        };
+
+        if (chat.messages.some((message) => String(message.id) === terminalMessage.id)) {
+          return chat;
+        }
+
+        return {
+          ...chat,
+          status: "Ended",
+          messages: [...chat.messages, terminalMessage],
+        };
+      }));
+
+      void mutateQueue();
+    });
+
+    socket.on("CONVERSATION_ASSIGNED", () => {
+      void mutateQueue();
+    });
+
+    socket.on("CONVERSATION_TRANSFERRED", () => {
+      void mutateQueue();
+    });
+
+    socket.on("QUEUE_UPDATED", () => {
+      void mutateQueue();
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [mutateQueue, resolveEndedByText, tenant?.apiKey, user?._id, user?.role]);
 
   const handleEndChat = async () => {
     if (!selectedChatId) return;
@@ -504,6 +659,12 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
                     Syncing latest messages...
                   </div>
                 )}
+
+                {endedChatNotice ? (
+                  <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700 dark:border-amber-700/50 dark:bg-amber-900/20 dark:text-amber-300">
+                    {endedChatNotice}
+                  </div>
+                ) : null}
 
                 <div className="space-y-3">
                   {selectedChat.messages.map((msg) => (

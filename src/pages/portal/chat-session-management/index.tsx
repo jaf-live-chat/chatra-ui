@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useSearchParams } from "react-router";
 import { History, MessagesSquare } from "lucide-react";
 import { HistoryEntry, SubTab } from "../../../models/ChatSessionManagementModel";
@@ -9,6 +9,8 @@ import ChatHistorySection from "../../../sections/chat/ChatHistorySection";
 import ChatActiveSection from "../../../sections/chat/ChatActiveSection";
 import { useGetActiveLiveChat, useGetLiveChatHistory } from "../../../hooks/useLiveChat";
 import { LiveChatConversation } from "../../../models/LiveChatModel";
+import useAuth from "../../../hooks/useAuth";
+import { createLiveChatSocket } from "../../../services/liveChatRealtimeClient";
 
 const subTabs: { key: SubTab; label: string; icon: React.ReactNode }[] = [
   { key: "active-chats", label: "Active Chats", icon: <MessagesSquare className="w-4 h-4" /> },
@@ -22,8 +24,48 @@ const ChatSessionManagementPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
 
   const { isDark } = useDarkMode();
+  const { tenant, user } = useAuth();
   const { queue, mutate: mutateQueue } = useGetActiveLiveChat({ page: 1, limit: 100 });
   const { conversations: historyConversations, mutate: mutateHistory } = useGetLiveChatHistory({ page: 1, limit: 100 });
+
+  useEffect(() => {
+    if (!tenant?.apiKey) {
+      return;
+    }
+
+    const socket = createLiveChatSocket({
+      apiKey: tenant.apiKey,
+      role: user?.role,
+      agentId: user?._id,
+    });
+
+    if (!socket) {
+      return;
+    }
+
+    const refreshQueue = () => {
+      void mutateQueue();
+    };
+
+    const refreshHistory = () => {
+      void mutateHistory();
+    };
+
+    const refreshAll = () => {
+      refreshQueue();
+      refreshHistory();
+    };
+
+    socket.on("NEW_CONVERSATION", refreshQueue);
+    socket.on("CONVERSATION_ASSIGNED", refreshQueue);
+    socket.on("CONVERSATION_TRANSFERRED", refreshQueue);
+    socket.on("QUEUE_UPDATED", refreshQueue);
+    socket.on("CONVERSATION_ENDED", refreshAll);
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [mutateHistory, mutateQueue, tenant?.apiKey, user?._id, user?.role]);
 
   // Map history conversations to HistoryEntry format
   const historyEntries: HistoryEntry[] = historyConversations.map((conversation: LiveChatConversation) => {

@@ -145,6 +145,26 @@ export interface LiveChatStartConversationResponse {
   };
 }
 
+export interface LiveChatEndedBy {
+  role?: string | null;
+  id?: string | null;
+  displayName?: string | null;
+  endedAt?: string | null;
+}
+
+export interface LiveChatConversationEndedEvent extends LiveChatStartConversationResponse {
+  endedBy?: LiveChatEndedBy;
+  timestamp?: string;
+}
+
+export interface LiveChatQueueUpdatedEvent {
+  reason?: string;
+  conversationId?: string;
+  queueEntry?: LiveChatQueueEntry | null;
+  conversation?: LiveChatConversation | null;
+  timestamp?: string;
+}
+
 export interface LiveChatEndConversationResponse {
   success: boolean;
   message?: string;
@@ -159,6 +179,7 @@ export interface LiveChatEndConversationResponse {
     consentGranted?: boolean;
     resolvedAt?: string | null;
   };
+  endedBy?: LiveChatEndedBy;
 }
 
 export interface LiveChatSendMessagePayload {

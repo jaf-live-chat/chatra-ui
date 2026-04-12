@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Loader2, MessageCircle, Paperclip, Send, X, CheckCheck, Settings, Zap, ChevronUp, ChevronDown, ArrowLeft, Moon, Volume2, Shield, AlertCircle } from "lucide-react";
-import { API_BASE_URL } from "../../constants/constants";
+import type { Socket } from "socket.io-client";
 import type {
+  LiveChatConversationEndedEvent,
   LiveChatMessage,
   LiveChatWidgetConfig,
   LiveChatStartConversationResponse,
 } from "../../models/LiveChatModel";
 import liveChatWidgetServices from "../../services/liveChatWidgetServices";
+import { createLiveChatSocket } from "../../services/liveChatRealtimeClient";
 
 type SocketStatus = "idle" | "connecting" | "connected" | "closed" | "error" | "unsupported";
 
@@ -120,25 +122,6 @@ const getResolvedConfig = (initialConfig: LiveChatWidgetConfig = {}): LiveChatWi
       ? initialConfig.ipAddressConsent
       : (typeof windowConfig.ipAddressConsent === "boolean" ? windowConfig.ipAddressConsent : undefined),
   };
-};
-
-const resolveSocketUrl = () => {
-  const apiBaseUrl = String(API_BASE_URL).trim().replace(/\/$/, "");
-  const rootUrl = apiBaseUrl.replace(/\/api\/v\d+\/?$/i, "");
-
-  if (rootUrl.startsWith("https://")) {
-    return `wss://${rootUrl.slice("https://".length)}`;
-  }
-
-  if (rootUrl.startsWith("http://")) {
-    return `ws://${rootUrl.slice("http://".length)}`;
-  }
-
-  if (typeof window !== "undefined") {
-    return `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.host}`;
-  }
-
-  return "";
 };
 
 const formatTime = (value?: string) => {
@@ -269,8 +252,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
   const [quickMessages, setQuickMessages] = useState<QuickMessage[]>([]);
 
   const bottomRef = useRef<HTMLDivElement | null>(null);
-  const socketRef = useRef<WebSocket | null>(null);
-  const heartbeatRef = useRef<number | null>(null);
+  const socketRef = useRef<Socket | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const messageInputRef = useRef<HTMLTextAreaElement | null>(null);
@@ -319,21 +301,12 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
     }
   }, [socketStatus]);
 
-  const clearHeartbeat = useCallback(() => {
-    if (heartbeatRef.current !== null) {
-      window.clearInterval(heartbeatRef.current);
-      heartbeatRef.current = null;
-    }
-  }, []);
-
   const disconnectSocket = useCallback(() => {
-    clearHeartbeat();
-
     if (socketRef.current) {
-      socketRef.current.close();
+      socketRef.current.disconnect();
       socketRef.current = null;
     }
-  }, [clearHeartbeat]);
+  }, []);
 
   const playIncomingMessageSound = useCallback(() => {
     if (!isMessageSoundsEnabled || typeof window === "undefined") {
@@ -592,8 +565,6 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
         conversationId: resolvedConversationId,
         message: trimmedMessage,
       });
-
-      await syncMessages(resolvedConversationId);
     } catch (error) {
       setErrorMessage(getErrorMessage(error));
       await syncMessages(resolvedConversationId);
@@ -634,6 +605,28 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
 
     resetConversationState();
   }, [conversationId, resetConversationState, visitorToken, widgetConfig]);
+
+  const appendEndedMessage = useCallback((payload: LiveChatConversationEndedEvent) => {
+    const endedBy = payload.endedBy?.displayName ? ` Ended by ${payload.endedBy.displayName}.` : "";
+    const endedTimestamp = payload.endedBy?.endedAt || payload.conversation?.closedAt || new Date().toISOString();
+    const endedMessage: LiveChatMessage = {
+      _id: `ended-${String(payload.conversation?._id || conversationId || Date.now())}`,
+      conversationId: String(payload.conversation?._id || conversationId || ""),
+      senderType: "SUPPORT_AGENT",
+      senderId: String(payload.endedBy?.id || "SYSTEM"),
+      message: `This chat has ended.${endedBy}`,
+      status: "DELIVERED",
+      createdAt: endedTimestamp,
+    };
+
+    setMessages((currentMessages) => {
+      if (currentMessages.some((entry) => String(entry._id) === endedMessage._id)) {
+        return currentMessages;
+      }
+
+      return normalizeMessages([...currentMessages, endedMessage]);
+    });
+  }, [conversationId]);
 
   const messageSizeClass = useMemo(() => {
     if (textSize === "small") {
@@ -844,102 +837,117 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
   }, [conversationId, hasApiKey, isOpen, syncMessages, syncQuickMessages, syncWidgetSettings]);
 
   useEffect(() => {
-    if (!isOpen || !apiKey || !conversationId) {
+    if (!apiKey || !conversationId) {
       disconnectSocket();
       setSocketStatus(apiKey ? "closed" : "idle");
       return;
     }
 
-    const socketUrl = resolveSocketUrl();
-    if (!socketUrl) {
+    const socket = createLiveChatSocket({
+      apiKey,
+      visitorToken,
+      conversationId,
+      role: "VISITOR",
+    });
+
+    if (!socket) {
       setSocketStatus("unsupported");
       return;
     }
 
     disconnectSocket();
+    socketRef.current = socket;
+    setSocketStatus("connecting");
 
-    try {
-      const url = new URL(`${socketUrl.replace(/\/$/, "")}/ws/live-chat`);
-      url.searchParams.set("apiKey", apiKey);
-      url.searchParams.set("visitorToken", visitorToken);
-      url.searchParams.set("conversationId", conversationId);
+    socket.on("connect", () => {
+      setSocketStatus("connected");
+    });
 
-      const socket = new WebSocket(url.toString());
-      socketRef.current = socket;
-      setSocketStatus("connecting");
+    socket.on("disconnect", () => {
+      setSocketStatus("closed");
+    });
 
-      socket.addEventListener("open", () => {
-        setSocketStatus("connected");
-        clearHeartbeat();
-        heartbeatRef.current = window.setInterval(() => {
-          if (socket.readyState === WebSocket.OPEN) {
-            socket.send(JSON.stringify({ type: "PING" }));
-          }
-        }, 30000);
-      });
-
-      socket.addEventListener("message", (event) => {
-        try {
-          const payload = JSON.parse(event.data) as {
-            event?: string;
-            data?: {
-              senderType?: string;
-              messageIds?: string[];
-              status?: "DELIVERED" | "SEEN";
-            };
-          };
-
-          if (payload.event === "NEW_MESSAGE" || payload.event === "CONVERSATION_ASSIGNED" || payload.event === "CONVERSATION_TRANSFERRED") {
-            void syncMessages(conversationId);
-          }
-
-          if (payload.event === "CONVERSATION_ENDED") {
-            resetConversationState();
-            return;
-          }
-
-          if (payload.event === "MESSAGE_STATUS_UPDATED" && Array.isArray(payload.data?.messageIds) && payload.data?.status) {
-            const messageIds = new Set(payload.data.messageIds.map((id) => String(id)));
-            setMessages((currentMessages) => currentMessages.map((message) => {
-              if (!messageIds.has(String(message._id))) {
-                return message;
-              }
-
-              return {
-                ...message,
-                status: payload.data?.status,
-              };
-            }));
-          }
-
-          if (payload.event === "NEW_MESSAGE" && payload.data?.senderType !== "VISITOR") {
-            playIncomingMessageSound();
-          }
-
-          if (payload.event === "NEW_MESSAGE" && payload.data?.senderType !== "VISITOR" && !isOpen) {
-            setUnreadCount((currentCount) => currentCount + 1);
-          }
-        } catch {
-          // Ignore malformed socket payloads.
-        }
-      });
-
-      socket.addEventListener("error", () => {
-        setSocketStatus("error");
-      });
-
-      socket.addEventListener("close", () => {
-        clearHeartbeat();
-        setSocketStatus("closed");
-      });
-    } catch {
+    socket.on("connect_error", () => {
       setSocketStatus("error");
-    }
+    });
+
+    socket.on("NEW_MESSAGE", (incomingMessage: LiveChatMessage) => {
+      if (!incomingMessage || String(incomingMessage.conversationId || "") !== String(conversationId)) {
+        return;
+      }
+
+      setMessages((currentMessages) => {
+        const nextMessages = [...currentMessages];
+        const incomingId = String(incomingMessage._id || "");
+        const byIdIndex = incomingId ? nextMessages.findIndex((message) => String(message._id) === incomingId) : -1;
+
+        if (byIdIndex >= 0) {
+          nextMessages[byIdIndex] = {
+            ...nextMessages[byIdIndex],
+            ...incomingMessage,
+          };
+          return normalizeMessages(nextMessages);
+        }
+
+        if (incomingMessage.senderType === "VISITOR") {
+          const localMessageIndex = nextMessages.findIndex(
+            (message) => String(message._id).startsWith("local-")
+              && message.senderType === "VISITOR"
+              && message.message === incomingMessage.message,
+          );
+
+          if (localMessageIndex >= 0) {
+            nextMessages[localMessageIndex] = {
+              ...nextMessages[localMessageIndex],
+              ...incomingMessage,
+            };
+            return normalizeMessages(nextMessages);
+          }
+        }
+
+        nextMessages.push(incomingMessage);
+        return normalizeMessages(nextMessages);
+      });
+
+      if (incomingMessage.senderType !== "VISITOR") {
+        playIncomingMessageSound();
+
+        if (!isOpen) {
+          setUnreadCount((currentCount) => currentCount + 1);
+        }
+      }
+    });
+
+    socket.on("MESSAGE_STATUS_UPDATED", (payload: { messageIds?: string[]; status?: "DELIVERED" | "SEEN" }) => {
+      if (!Array.isArray(payload?.messageIds) || !payload.status) {
+        return;
+      }
+
+      const messageIds = new Set(payload.messageIds.map((id) => String(id)));
+      setMessages((currentMessages) => currentMessages.map((message) => {
+        if (!messageIds.has(String(message._id))) {
+          return message;
+        }
+
+        return {
+          ...message,
+          status: payload.status,
+        };
+      }));
+    });
+
+    socket.on("CONVERSATION_ENDED", (payload: LiveChatConversationEndedEvent) => {
+      appendEndedMessage(payload);
+      setConversationId("");
+      setHasCompletedPreChat(false);
+      clearStoredValue(CONVERSATION_ID_KEY);
+      setSocketStatus("closed");
+    });
 
     return () => {
       disconnectSocket();
     };
-  }, [apiKey, conversationId, disconnectSocket, isOpen, playIncomingMessageSound, resetConversationState, syncMessages, visitorToken]);
+  }, [apiKey, appendEndedMessage, conversationId, disconnectSocket, isOpen, playIncomingMessageSound, visitorToken]);
 
   useEffect(() => {
     if (!isOpen || messages.length === 0) {

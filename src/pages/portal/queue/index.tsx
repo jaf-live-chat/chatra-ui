@@ -5,7 +5,7 @@ import { useGetLiveChatQueue } from "../../../hooks/useLiveChat";
 import { useGetAgents } from "../../../services/agentServices";
 import liveChatServices from "../../../services/liveChatServices";
 import useAuth from "../../../hooks/useAuth";
-import { API_BASE_URL } from "../../../constants/constants";
+import { createLiveChatSocket } from "../../../services/liveChatRealtimeClient";
 
 const formatQueueDuration = (queuedAt?: string | null) => {
   if (!queuedAt) {
@@ -21,21 +21,6 @@ const formatQueueDuration = (queuedAt?: string | null) => {
   const mins = Math.floor(elapsedSeconds / 60);
   const secs = elapsedSeconds % 60;
   return `${mins}m ${String(secs).padStart(2, "0")}s`;
-};
-
-const resolveSocketUrl = () => {
-  const apiBaseUrl = String(API_BASE_URL).trim().replace(/\/$/, "");
-  const rootUrl = apiBaseUrl.replace(/\/api\/v\d+\/?$/i, "");
-
-  if (rootUrl.startsWith("https://")) {
-    return `wss://${rootUrl.slice("https://".length)}`;
-  }
-
-  if (rootUrl.startsWith("http://")) {
-    return `ws://${rootUrl.slice("http://".length)}`;
-  }
-
-  return "";
 };
 
 const QueuePage = () => {
@@ -82,39 +67,33 @@ const QueuePage = () => {
   }, [agents]);
 
   useEffect(() => {
-    const socketUrl = resolveSocketUrl();
-    if (!socketUrl || !tenant?.apiKey) {
+    if (!tenant?.apiKey) {
       return;
     }
 
-    try {
-      const url = new URL(`${socketUrl.replace(/\/$/, "")}/ws/live-chat`);
-      url.searchParams.set("apiKey", tenant.apiKey);
-      if (user?.role) {
-        url.searchParams.set("role", user.role);
-      }
-      if (user?._id) {
-        url.searchParams.set("agentId", user._id);
-      }
+    const socket = createLiveChatSocket({
+      apiKey: tenant.apiKey,
+      role: user?.role,
+      agentId: user?._id,
+    });
 
-      const socket = new WebSocket(url.toString());
-      socket.addEventListener("message", (event) => {
-        try {
-          const payload = JSON.parse(event.data) as { event?: string };
-          if (["NEW_CONVERSATION", "CONVERSATION_ASSIGNED", "CONVERSATION_TRANSFERRED", "CONVERSATION_ENDED"].includes(String(payload.event || ""))) {
-            void mutate();
-          }
-        } catch {
-          // Ignore malformed events.
-        }
-      });
-
-      return () => {
-        socket.close();
-      };
-    } catch {
+    if (!socket) {
       return;
     }
+
+    const onQueueMutation = () => {
+      void mutate();
+    };
+
+    socket.on("NEW_CONVERSATION", onQueueMutation);
+    socket.on("CONVERSATION_ASSIGNED", onQueueMutation);
+    socket.on("CONVERSATION_TRANSFERRED", onQueueMutation);
+    socket.on("CONVERSATION_ENDED", onQueueMutation);
+    socket.on("QUEUE_UPDATED", onQueueMutation);
+
+    return () => {
+      socket.disconnect();
+    };
   }, [mutate, tenant?.apiKey, user?._id, user?.role]);
 
   return (
