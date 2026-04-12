@@ -1361,9 +1361,10 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                       <div className={`mb-4 rounded-2xl border px-4 py-3 text-left ${theme.settingsCard}`}>
                         <p className={`font-semibold ${theme.settingsText}`}>Location consent</p>
                         <p className={`mt-1 leading-relaxed ${theme.settingsMuted}`}>
-                          Allow us to use your browser location for a more accurate city and country. If that is unavailable, we will fall back to IP-based lookup.
+                          Choose how we should estimate your city and country for faster support routing.
                         </p>
-                        <div className="mt-3 flex flex-wrap gap-2">
+
+                        <div className="mt-3 space-y-2.5">
                           <button
                             type="button"
                             onClick={() => {
@@ -1371,11 +1372,29 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                               writeStoredValue(LOCATION_CONSENT_KEY, "true");
                               requestBrowserLocation();
                             }}
-                            className="rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors"
-                            style={{ backgroundColor: locationConsent === true ? resolvedAccent : accentSoftBackground, border: `1px solid ${accentSoftBorder}`, color: locationConsent === true ? "white" : resolvedAccent }}
+                            className="w-full rounded-xl border px-3 py-2.5 transition-all"
+                            style={{
+                              borderColor: locationConsent === true ? resolvedAccent : accentSoftBorder,
+                              backgroundColor: locationConsent === true ? accentSoftBackground : "transparent",
+                            }}
                           >
-                            Allow location
+                            <div className="flex items-start gap-2.5 text-left">
+                              <span
+                                className="mt-0.5 inline-flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full border"
+                                style={{
+                                  borderColor: locationConsent === true ? resolvedAccent : "#94a3b8",
+                                  backgroundColor: locationConsent === true ? resolvedAccent : "transparent",
+                                }}
+                              >
+                                {locationConsent === true ? <span className="h-1.5 w-1.5 rounded-full bg-white" /> : null}
+                              </span>
+                              <span className="flex min-w-0 flex-col">
+                                <span className={`text-sm font-semibold ${theme.settingsText}`}>Precise location</span>
+                                <span className={`text-xs ${theme.settingsMuted}`}>Use browser location first, then IP fallback if needed.</span>
+                              </span>
+                            </div>
                           </button>
+
                           <button
                             type="button"
                             onClick={() => {
@@ -1384,12 +1403,49 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                               setBrowserLocation(null);
                               setBrowserLocationStatus("idle");
                             }}
-                            className="rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors"
-                            style={{ backgroundColor: locationConsent === false ? resolvedAccent : accentSoftBackground, border: `1px solid ${accentSoftBorder}`, color: locationConsent === false ? "white" : resolvedAccent }}
+                            className="w-full rounded-xl border px-3 py-2.5 transition-all"
+                            style={{
+                              borderColor: locationConsent === false ? resolvedAccent : accentSoftBorder,
+                              backgroundColor: locationConsent === false ? accentSoftBackground : "transparent",
+                            }}
                           >
-                            Skip
+                            <div className="flex items-start gap-2.5 text-left">
+                              <span
+                                className="mt-0.5 inline-flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full border"
+                                style={{
+                                  borderColor: locationConsent === false ? resolvedAccent : "#94a3b8",
+                                  backgroundColor: locationConsent === false ? resolvedAccent : "transparent",
+                                }}
+                              >
+                                {locationConsent === false ? <span className="h-1.5 w-1.5 rounded-full bg-white" /> : null}
+                              </span>
+                              <span className="flex min-w-0 flex-col">
+                                <span className={`text-sm font-semibold ${theme.settingsText}`}>Approximate location</span>
+                                <span className={`text-xs ${theme.settingsMuted}`}>Use IP-based region lookup only.</span>
+                              </span>
+                            </div>
                           </button>
                         </div>
+
+                        {locationConsent === true ? (
+                          <p className={`mt-2 text-xs font-medium ${browserLocationStatus === "resolved"
+                            ? "text-emerald-600 dark:text-emerald-400"
+                            : browserLocationStatus === "resolving"
+                              ? "text-cyan-600 dark:text-cyan-400"
+                              : "text-amber-600 dark:text-amber-400"}`}>
+                            {browserLocationStatus === "resolved"
+                              ? "Location captured."
+                              : browserLocationStatus === "resolving"
+                                ? "Requesting location permission..."
+                                : "Browser location unavailable. IP fallback will be used."}
+                          </p>
+                        ) : null}
+
+                        {locationConsent === false ? (
+                          <p className={`mt-2 text-xs font-medium ${theme.settingsMuted}`}>
+                            IP-based lookup selected.
+                          </p>
+                        ) : null}
 
                         {!hasCompletedPreChat ? (
                           <button
@@ -1399,7 +1455,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                             className="mt-3 w-full rounded-xl px-3 py-2 text-sm font-semibold text-white"
                             style={{ backgroundColor: locationConsent === null ? "#94a3b8" : resolvedAccent }}
                           >
-                            Continue to chat
+                            Start chat
                           </button>
                         ) : null}
                       </div>
