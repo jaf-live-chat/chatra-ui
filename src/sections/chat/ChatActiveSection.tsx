@@ -20,6 +20,8 @@ import { useDarkMode } from "../../providers/DarkModeContext";
 import useAuth from "../../hooks/useAuth";
 import liveChatWidgetServices from "../../services/liveChatWidgetServices";
 import liveChatServices from "../../services/liveChatServices";
+import Agents from "../../services/agentServices";
+import { USER_STATUS } from "../../constants/constants";
 import MessageStatusBadge from "../../components/MessageStatusBadge";
 import {
   Sheet,
@@ -594,6 +596,13 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
       if (chat.sessionId) {
         try {
           await liveChatServices.endConversation(String(chat.sessionId), { skipGlobalBlocking: true });
+
+          // Update agent status to available
+          try {
+            await Agents.updateMyStatus(USER_STATUS.AVAILABLE);
+          } catch {
+            // Continue even if status update fails
+          }
         } catch {
           // Remove local card even if API fails
         }
@@ -1028,7 +1037,7 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
                 <div className="p-5">
                   <h3 className="text-base font-semibold text-gray-900 dark:text-slate-100">End Chat</h3>
                   <p className="text-sm text-gray-500 dark:text-slate-400 mt-2">
-                    Are you sure you want to end this chat with <span className="font-semibold text-gray-700 dark:text-slate-300">{selectedChat.visitor}</span>? This will mark the conversation as resolved.
+                    Are you sure you want to end this chat with <span className="font-semibold text-gray-700 dark:text-slate-300">{selectedChat.visitor}</span>? This will mark the conversation as resolved. Your status will be changed to available.
                   </p>
                 </div>
                 <div className="flex items-center justify-end gap-2 px-5 py-3 bg-gray-50 dark:bg-slate-700/50 border-t border-gray-100 dark:border-slate-700">

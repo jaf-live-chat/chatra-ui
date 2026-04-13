@@ -1191,13 +1191,15 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
-              <button
-                type="button"
-                onClick={() => setIsEndChatModalOpen(true)}
-                className={`rounded-lg font-semibold transition-all duration-200 hover:-translate-y-0.5 whitespace-nowrap ${theme.headerAction} ${headerButtonClass}`}
-              >
-                End chat
-              </button>
+              {conversationId && (
+                <button
+                  type="button"
+                  onClick={() => setIsEndChatModalOpen(true)}
+                  className={`rounded-lg font-semibold transition-all duration-200 hover:-translate-y-0.5 whitespace-nowrap ${theme.headerAction} ${headerButtonClass}`}
+                >
+                  End Chat
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => setWidgetView((current) => (current === "settings" ? "chat" : "settings"))}
@@ -1664,7 +1666,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
 
                 <h3 className="text-center text-xl font-semibold">End this conversation?</h3>
                 <p className={`text-center mt-2 text-sm ${theme.settingsMuted}`}>
-                  Your conversation history will be cleared.
+                  Your conversation history will be cleared. Your status will be changed to available.
                 </p>
 
                 <div className="mt-5 grid grid-cols-2 gap-2.5">
