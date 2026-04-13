@@ -3,15 +3,20 @@ import type { Socket } from "socket.io-client";
 import { createLiveChatSocket } from "../services/liveChatRealtimeClient";
 import type { LiveChatMessage, LiveChatConversationEndedEvent } from "../models/LiveChatModel";
 
-interface StaffLiveChatHandlers {
+export interface StaffLiveChatHandlers {
   onNewMessage?: (message: LiveChatMessage) => void;
   onMessageStatusUpdated?: (payload: { conversationId?: string; messageIds?: string[]; status?: "DELIVERED" | "SEEN"; seenByRole?: string | null }) => void;
-  onConversationAssigned?: () => void;
-  onConversationTransferred?: () => void;
+  onConversationAssigned?: (payload: any) => void;
+  onConversationTransferred?: (payload: any) => void;
   onConversationEnded?: (payload: LiveChatConversationEndedEvent) => void;
-  onQueueUpdated?: () => void;
+  onQueueUpdated?: (payload: any) => void;
+  onAgentStatusUpdated?: (payload: any) => void;
+  onTyping?: (payload: { conversationId: string; senderId: string; senderRole: string }) => void;
+  onStopTyping?: (payload: { conversationId: string; senderId: string; senderRole: string }) => void;
   onConnect?: () => void;
+  onDisconnect?: () => void;
   onReconnect?: () => void;
+  onError?: (error: Error) => void;
 }
 
 let sharedStaffSocket: Socket | null = null;
@@ -58,20 +63,32 @@ export const useStaffLiveChat = (
         handlersRef.current.onMessageStatusUpdated?.(payload);
       };
 
-      const onConversationAssigned = () => {
-        handlersRef.current.onConversationAssigned?.();
+      const onConversationAssigned = (payload: any) => {
+        handlersRef.current.onConversationAssigned?.(payload);
       };
 
-      const onConversationTransferred = () => {
-        handlersRef.current.onConversationTransferred?.();
+      const onConversationTransferred = (payload: any) => {
+        handlersRef.current.onConversationTransferred?.(payload);
       };
 
       const onConversationEnded = (payload: LiveChatConversationEndedEvent) => {
         handlersRef.current.onConversationEnded?.(payload);
       };
 
-      const onQueueUpdated = () => {
-        handlersRef.current.onQueueUpdated?.();
+      const onQueueUpdated = (payload: any) => {
+        handlersRef.current.onQueueUpdated?.(payload);
+      };
+
+      const onAgentStatusUpdated = (payload: any) => {
+        handlersRef.current.onAgentStatusUpdated?.(payload);
+      };
+
+      const onTyping = (payload: any) => {
+        handlersRef.current.onTyping?.(payload);
+      };
+
+      const onStopTyping = (payload: any) => {
+        handlersRef.current.onStopTyping?.(payload);
       };
 
       const onConnect = () => {
@@ -79,9 +96,18 @@ export const useStaffLiveChat = (
         handlersRef.current.onConnect?.();
       };
 
+      const onDisconnect = () => {
+        isConnectedRef.current = false;
+        handlersRef.current.onDisconnect?.();
+      };
+
       const onReconnect = () => {
         isConnectedRef.current = true;
         handlersRef.current.onReconnect?.();
+      };
+
+      const onError = (error: any) => {
+        handlersRef.current.onError?.(error instanceof Error ? error : new Error(String(error)));
       };
 
       sharedStaffSocket.on("NEW_MESSAGE", onNewMessage);
@@ -90,8 +116,13 @@ export const useStaffLiveChat = (
       sharedStaffSocket.on("CONVERSATION_TRANSFERRED", onConversationTransferred);
       sharedStaffSocket.on("CONVERSATION_ENDED", onConversationEnded);
       sharedStaffSocket.on("QUEUE_UPDATED", onQueueUpdated);
+      sharedStaffSocket.on("AGENT_STATUS_UPDATED", onAgentStatusUpdated);
+      sharedStaffSocket.on("TYPING", onTyping);
+      sharedStaffSocket.on("STOP_TYPING", onStopTyping);
       sharedStaffSocket.on("connect", onConnect);
+      sharedStaffSocket.on("disconnect", onDisconnect);
       sharedStaffSocket.on("reconnect", onReconnect);
+      sharedStaffSocket.on("connect_error", onError);
 
       return () => {
         socketRefCount -= 1;
@@ -102,8 +133,13 @@ export const useStaffLiveChat = (
         sharedStaffSocket?.off("CONVERSATION_TRANSFERRED", onConversationTransferred);
         sharedStaffSocket?.off("CONVERSATION_ENDED", onConversationEnded);
         sharedStaffSocket?.off("QUEUE_UPDATED", onQueueUpdated);
+        sharedStaffSocket?.off("AGENT_STATUS_UPDATED", onAgentStatusUpdated);
+        sharedStaffSocket?.off("TYPING", onTyping);
+        sharedStaffSocket?.off("STOP_TYPING", onStopTyping);
         sharedStaffSocket?.off("connect", onConnect);
+        sharedStaffSocket?.off("disconnect", onDisconnect);
         sharedStaffSocket?.off("reconnect", onReconnect);
+        sharedStaffSocket?.off("connect_error", onError);
 
         // Disconnect shared socket if no more subscribers
         if (socketRefCount === 0 && sharedStaffSocket) {
@@ -113,8 +149,6 @@ export const useStaffLiveChat = (
       };
     }
 
-    // Create new shared socket
-    socketRefCount = 1;
     const socket = createLiveChatSocket({
       apiKey,
       databaseName,
@@ -127,6 +161,8 @@ export const useStaffLiveChat = (
       return;
     }
 
+    // Create new shared socket
+    socketRefCount = 1;
     sharedStaffSocket = socket;
 
     const onNewMessage = (message: LiveChatMessage) => {
@@ -137,20 +173,32 @@ export const useStaffLiveChat = (
       handlersRef.current.onMessageStatusUpdated?.(payload);
     };
 
-    const onConversationAssigned = () => {
-      handlersRef.current.onConversationAssigned?.();
+    const onConversationAssigned = (payload: any) => {
+      handlersRef.current.onConversationAssigned?.(payload);
     };
 
-    const onConversationTransferred = () => {
-      handlersRef.current.onConversationTransferred?.();
+    const onConversationTransferred = (payload: any) => {
+      handlersRef.current.onConversationTransferred?.(payload);
     };
 
     const onConversationEnded = (payload: LiveChatConversationEndedEvent) => {
       handlersRef.current.onConversationEnded?.(payload);
     };
 
-    const onQueueUpdated = () => {
-      handlersRef.current.onQueueUpdated?.();
+    const onQueueUpdated = (payload: any) => {
+      handlersRef.current.onQueueUpdated?.(payload);
+    };
+
+    const onAgentStatusUpdated = (payload: any) => {
+      handlersRef.current.onAgentStatusUpdated?.(payload);
+    };
+
+    const onTyping = (payload: any) => {
+      handlersRef.current.onTyping?.(payload);
+    };
+
+    const onStopTyping = (payload: any) => {
+      handlersRef.current.onStopTyping?.(payload);
     };
 
     const onConnect = () => {
@@ -158,9 +206,18 @@ export const useStaffLiveChat = (
       handlersRef.current.onConnect?.();
     };
 
+    const onDisconnect = () => {
+      isConnectedRef.current = false;
+      handlersRef.current.onDisconnect?.();
+    };
+
     const onReconnect = () => {
       isConnectedRef.current = true;
       handlersRef.current.onReconnect?.();
+    };
+
+    const onError = (error: any) => {
+      handlersRef.current.onError?.(error instanceof Error ? error : new Error(String(error)));
     };
 
     socket.on("NEW_MESSAGE", onNewMessage);
@@ -169,8 +226,13 @@ export const useStaffLiveChat = (
     socket.on("CONVERSATION_TRANSFERRED", onConversationTransferred);
     socket.on("CONVERSATION_ENDED", onConversationEnded);
     socket.on("QUEUE_UPDATED", onQueueUpdated);
+    socket.on("AGENT_STATUS_UPDATED", onAgentStatusUpdated);
+    socket.on("TYPING", onTyping);
+    socket.on("STOP_TYPING", onStopTyping);
     socket.on("connect", onConnect);
+    socket.on("disconnect", onDisconnect);
     socket.on("reconnect", onReconnect);
+    socket.on("connect_error", onError);
 
     return () => {
       socketRefCount -= 1;
@@ -181,8 +243,13 @@ export const useStaffLiveChat = (
       socket.off("CONVERSATION_TRANSFERRED", onConversationTransferred);
       socket.off("CONVERSATION_ENDED", onConversationEnded);
       socket.off("QUEUE_UPDATED", onQueueUpdated);
+      socket.off("AGENT_STATUS_UPDATED", onAgentStatusUpdated);
+      socket.off("TYPING", onTyping);
+      socket.off("STOP_TYPING", onStopTyping);
       socket.off("connect", onConnect);
+      socket.off("disconnect", onDisconnect);
       socket.off("reconnect", onReconnect);
+      socket.off("connect_error", onError);
 
       // Disconnect shared socket if no more subscribers
       if (socketRefCount === 0) {

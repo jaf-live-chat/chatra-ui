@@ -17,6 +17,7 @@ import {
 import { ActiveChat, ChatAttachmentUpload, ChatMessage, mapServerMessageToChatMessage, QuickReplyItem } from "../../models/ChatSessionManagementModel";
 import { LiveChatConversationEndedEvent, LiveChatMessage, LiveChatParticipantRole, LiveChatQueueEntry } from "../../models/LiveChatModel";
 import { useDarkMode } from "../../providers/DarkModeContext";
+import { useStaffLiveChat } from "../../hooks/useStaffLiveChat";
 import useAuth from "../../hooks/useAuth";
 import liveChatWidgetServices from "../../services/liveChatWidgetServices";
 import liveChatServices from "../../services/liveChatServices";
@@ -123,12 +124,164 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
   const [qrActiveCategory, setQrActiveCategory] = useState("All");
 
   const bottomRef = useRef<HTMLDivElement>(null);
-  const lastMessageSyncRef = useRef<Record<string, number>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
   const quickRepliesRef = useRef<HTMLDivElement>(null);
 
   const { isDark } = useDarkMode();
   const { user, tenant } = useAuth();
+
+  // WebSocket event handlers
+  const handleNewMessage = useCallback((message: LiveChatMessage) => {
+    const targetConversationId = String(message?.conversationId || "");
+    if (!targetConversationId) {
+      return;
+    }
+
+    console.log("[REALTIME] New message received:", message);
+
+    setActiveChats((currentChats) => currentChats.map((chat) => {
+      if (String(chat.sessionId || chat.id) !== targetConversationId) {
+        return chat;
+      }
+
+      const mappedIncoming = mapServerMessageToChatMessage(
+        message,
+        `${targetConversationId}-${Date.now()}`,
+        getTime(),
+      );
+
+      const nextMessages = [...chat.messages];
+      const existingById = nextMessages.findIndex((m) => String(m.id) === String(mappedIncoming.id));
+
+      if (existingById >= 0) {
+        nextMessages[existingById] = {
+          ...nextMessages[existingById],
+          ...mappedIncoming,
+        };
+        return { ...chat, messages: nextMessages };
+      }
+
+      if (message.senderType !== "VISITOR") {
+        const pendingIndex = nextMessages.findIndex(
+          (m) => m.sender === "agent"
+            && m.status === "SENDING"
+            && String(m.text).trim() === String(mappedIncoming.text).trim(),
+        );
+
+        if (pendingIndex >= 0) {
+          nextMessages[pendingIndex] = {
+            ...nextMessages[pendingIndex],
+            ...mappedIncoming,
+          };
+          return { ...chat, messages: nextMessages };
+        }
+      }
+
+      console.log("[REALTIME] Adding new message to chat");
+      return {
+        ...chat,
+        messages: [...nextMessages, mappedIncoming],
+      };
+    }));
+  }, []);
+
+  const handleMessageStatusUpdated = useCallback(
+    (payload: { conversationId?: string; messageIds?: string[]; status?: "DELIVERED" | "SEEN"; seenByRole?: string | null }) => {
+      const targetConversationId = String(payload?.conversationId || "");
+      const messageIds = Array.isArray(payload?.messageIds) ? new Set(payload.messageIds.map((id) => String(id))) : null;
+
+      if (!targetConversationId || !messageIds || !payload.status) {
+        return;
+      }
+
+      setActiveChats((currentChats) => currentChats.map((chat) => {
+        if (String(chat.sessionId || chat.id) !== targetConversationId) {
+          return chat;
+        }
+
+        return {
+          ...chat,
+          messages: chat.messages.map((message) => {
+            if (!messageIds.has(String(message.id))) {
+              return message;
+            }
+
+            return {
+              ...message,
+              status: payload.status,
+              seenByRole: payload.seenByRole || message.seenByRole || null,
+            };
+          }),
+        };
+      }));
+    },
+    []
+  );
+
+  const resolveEndedByText = useCallback((payload: LiveChatConversationEndedEvent) => {
+    const endedByName = String(payload.endedBy?.displayName || "").trim();
+    if (!endedByName) {
+      return "This chat has ended.";
+    }
+
+    return `This chat has ended. Ended by ${endedByName}.`;
+  }, []);
+
+  const handleConversationEnded = useCallback((payload: LiveChatConversationEndedEvent) => {
+    const targetConversationId = String(payload?.conversation?._id || "");
+    if (!targetConversationId) {
+      return;
+    }
+
+    const notice = resolveEndedByText(payload);
+    setEndedChatNotice(notice);
+
+    setActiveChats((currentChats) => currentChats.map((chat) => {
+      if (String(chat.sessionId || chat.id) !== targetConversationId) {
+        return chat;
+      }
+
+      const terminalMessage: ChatMessage = {
+        id: `ended-${targetConversationId}`,
+        sender: "agent",
+        text: notice,
+        timestamp: getTime(),
+        status: "DELIVERED",
+      };
+
+      if (chat.messages.some((message) => String(message.id) === terminalMessage.id)) {
+        return chat;
+      }
+
+      return {
+        ...chat,
+        status: "Ended",
+        messages: [...chat.messages, terminalMessage],
+      };
+    }));
+
+    void mutateQueue();
+  }, [mutateQueue, resolveEndedByText]);
+
+  const handleQueueUpdated = useCallback(() => {
+    console.log("[REALTIME] Queue updated");
+    void mutateQueue();
+  }, [mutateQueue]);
+
+  // Connect to WebSocket and listen for events
+  useStaffLiveChat(
+    tenant?.apiKey ?? undefined,
+    String(tenant?.databaseName || "") || undefined,
+    tenant?.id,
+    String(user?.role || "ADMIN"),
+    String(user?._id || ""),
+    {
+      onNewMessage: handleNewMessage,
+      onMessageStatusUpdated: handleMessageStatusUpdated,
+      onConversationEnded: handleConversationEnded,
+      onQueueUpdated: handleQueueUpdated,
+    }
+  );
 
   // Load quick replies
   useEffect(() => {
@@ -203,15 +356,6 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
   }, [selectedChat?.messages]);
 
   const syncServerMessages = useCallback(async (conversationId: string, chatId: string) => {
-    const now = Date.now();
-    const lastSyncedAt = lastMessageSyncRef.current[conversationId] ?? 0;
-
-    // Prevent duplicate sync bursts
-    if (now - lastSyncedAt < 900) {
-      return;
-    }
-
-    lastMessageSyncRef.current[conversationId] = now;
     setIsSyncingMessages(true);
     try {
       const response = await liveChatServices.getConversationMessages(conversationId, { page: 1, limit: 100 });
@@ -292,21 +436,14 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
     });
   }, [queue]);
 
-  // Auto-sync messages on chat selection and then keep refreshing
+  // Load initial messages when chat is selected
   useEffect(() => {
     if (!selectedChatSessionId || !selectedChatResolvedId) {
       return;
     }
 
-    // Initial sync when chat is selected
+    // Fetch initial message history from server
     void syncServerMessages(selectedChatSessionId, selectedChatResolvedId);
-
-    // Set up periodic syncing to catch any missed messages
-    const syncInterval = setInterval(() => {
-      void syncServerMessages(selectedChatSessionId, selectedChatResolvedId);
-    }, 3000); // Sync every 3 seconds to catch any missed messages
-
-    return () => clearInterval(syncInterval);
   }, [selectedChatSessionId, selectedChatResolvedId, syncServerMessages]);
 
   // Auto-scroll to bottom whenever messages update
@@ -400,190 +537,10 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
         { skipGlobalBlocking: true },
       );
 
-      void syncServerMessages(String(chat.sessionId), String(chat.id));
     } finally {
       setIsSendingMessage(false);
     }
   };
-
-  const resolveEndedByText = useCallback((payload: LiveChatConversationEndedEvent) => {
-    const endedByName = String(payload.endedBy?.displayName || "").trim();
-    if (!endedByName) {
-      return "This chat has ended.";
-    }
-
-    return `This chat has ended. Ended by ${endedByName}.`;
-  }, []);
-
-  useEffect(() => {
-    // Sync all open chats on connection
-    const syncAllOpenChats = () => {
-      setActiveChats((currentChats) => {
-        currentChats.forEach((chat) => {
-          const conversationId = String(chat.sessionId || chat.id || "").trim();
-          if (!conversationId) {
-            return;
-          }
-
-          void syncServerMessages(conversationId, String(chat.id));
-        });
-
-        return currentChats;
-      });
-    };
-
-    const onNewMessage = (incomingMessage: LiveChatMessage) => {
-      const targetConversationId = String(incomingMessage?.conversationId || "");
-      if (!targetConversationId) {
-        return;
-      }
-
-      console.log("[REALTIME] New message received:", incomingMessage);
-
-      setActiveChats((currentChats) => currentChats.map((chat) => {
-        if (String(chat.sessionId || chat.id) !== targetConversationId) {
-          return chat;
-        }
-
-        const mappedIncoming = mapServerMessageToChatMessage(
-          incomingMessage,
-          `${targetConversationId}-${Date.now()}`,
-          getTime(),
-        );
-
-        const nextMessages = [...chat.messages];
-        const existingById = nextMessages.findIndex((message) => String(message.id) === String(mappedIncoming.id));
-
-        if (existingById >= 0) {
-          nextMessages[existingById] = {
-            ...nextMessages[existingById],
-            ...mappedIncoming,
-          };
-
-          return { ...chat, messages: nextMessages };
-        }
-
-        if (incomingMessage.senderType !== "VISITOR") {
-          const pendingIndex = nextMessages.findIndex(
-            (message) => message.sender === "agent"
-              && message.status === "SENDING"
-              && String(message.text).trim() === String(mappedIncoming.text).trim(),
-          );
-
-          if (pendingIndex >= 0) {
-            nextMessages[pendingIndex] = {
-              ...nextMessages[pendingIndex],
-              ...mappedIncoming,
-            };
-
-            return { ...chat, messages: nextMessages };
-          }
-        }
-
-        console.log("[REALTIME] Adding new message to chat");
-        return {
-          ...chat,
-          messages: [...nextMessages, mappedIncoming],
-        };
-      }));
-    };
-
-    const onMessageStatusUpdated = (payload: { conversationId?: string; messageIds?: string[]; status?: "DELIVERED" | "SEEN"; seenByRole?: string | null }) => {
-      const targetConversationId = String(payload?.conversationId || "");
-      const messageIds = Array.isArray(payload?.messageIds) ? new Set(payload.messageIds.map((id) => String(id))) : null;
-
-      if (!targetConversationId || !messageIds || !payload.status) {
-        return;
-      }
-
-      setActiveChats((currentChats) => currentChats.map((chat) => {
-        if (String(chat.sessionId || chat.id) !== targetConversationId) {
-          return chat;
-        }
-
-        return {
-          ...chat,
-          messages: chat.messages.map((message) => {
-            if (!messageIds.has(String(message.id))) {
-              return message;
-            }
-
-            return {
-              ...message,
-              status: payload.status,
-              seenByRole: payload.seenByRole || message.seenByRole || null,
-            };
-          }),
-        };
-      }));
-    };
-
-    const onConversationEnded = (payload: LiveChatConversationEndedEvent) => {
-      const targetConversationId = String(payload?.conversation?._id || "");
-      if (!targetConversationId) {
-        return;
-      }
-
-      const notice = resolveEndedByText(payload);
-      setEndedChatNotice(notice);
-
-      setActiveChats((currentChats) => currentChats.map((chat) => {
-        if (String(chat.sessionId || chat.id) !== targetConversationId) {
-          return chat;
-        }
-
-        const terminalMessage: ChatMessage = {
-          id: `ended-${targetConversationId}`,
-          sender: "agent",
-          text: notice,
-          timestamp: getTime(),
-          status: "DELIVERED",
-        };
-
-        if (chat.messages.some((message) => String(message.id) === terminalMessage.id)) {
-          return chat;
-        }
-
-        return {
-          ...chat,
-          status: "Ended",
-          messages: [...chat.messages, terminalMessage],
-        };
-      }));
-
-      void mutateQueue();
-    };
-
-    const onWindowNewMessage = (event: Event) => {
-      const incomingMessage = (event as CustomEvent<LiveChatMessage>).detail;
-      console.log("[EVENT] Window event: jaf_live_chat_new_message", incomingMessage);
-      onNewMessage(incomingMessage);
-    };
-
-    const onWindowMessageStatusUpdated = (event: Event) => {
-      const payload = (event as CustomEvent<{ conversationId?: string; messageIds?: string[]; status?: "DELIVERED" | "SEEN"; seenByRole?: string | null }>).detail;
-      onMessageStatusUpdated(payload);
-    };
-
-    const onWindowConversationEnded = (event: Event) => {
-      const payload = (event as CustomEvent<LiveChatConversationEndedEvent>).detail;
-      onConversationEnded(payload);
-    };
-
-    // Listen to window events dispatched by the shared socket
-    window.addEventListener("jaf_live_chat_new_message", onWindowNewMessage);
-    window.addEventListener("jaf_live_chat_message_status_updated", onWindowMessageStatusUpdated);
-    window.addEventListener("jaf_live_chat_conversation_ended", onWindowConversationEnded);
-
-    // Initial sync when component mounts
-    syncAllOpenChats();
-
-    return () => {
-      window.removeEventListener("jaf_live_chat_new_message", onWindowNewMessage);
-      window.removeEventListener("jaf_live_chat_message_status_updated", onWindowMessageStatusUpdated);
-      window.removeEventListener("jaf_live_chat_conversation_ended", onWindowConversationEnded);
-    };
-  }, [mutateQueue, resolveEndedByText, syncServerMessages]);
 
   const handleEndChat = async () => {
     if (!selectedChatId) return;
