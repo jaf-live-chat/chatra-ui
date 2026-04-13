@@ -28,7 +28,6 @@ import {
   SheetHeader,
   SheetTitle,
 } from "../../components/Sheet";
-import { createLiveChatSocket } from "../../services/liveChatRealtimeClient";
 import getInitials from "../../utils/getInitials";
 
 // Seeds for quick replies (assuming it's from constants)
@@ -291,19 +290,27 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
     });
   }, [queue]);
 
-  // Auto-sync messages
+  // Auto-sync messages on chat selection and then keep refreshing
   useEffect(() => {
     if (!selectedChatSessionId || !selectedChatResolvedId) {
       return;
     }
 
+    // Initial sync when chat is selected
     void syncServerMessages(selectedChatSessionId, selectedChatResolvedId);
+
+    // Set up periodic syncing to catch any missed messages
+    const syncInterval = setInterval(() => {
+      void syncServerMessages(selectedChatSessionId, selectedChatResolvedId);
+    }, 3000); // Sync every 3 seconds to catch any missed messages
+
+    return () => clearInterval(syncInterval);
   }, [selectedChatSessionId, selectedChatResolvedId, syncServerMessages]);
 
-  // Auto-scroll to bottom
+  // Auto-scroll to bottom whenever messages update
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [activeChats, selectedChatId]);
+  }, [selectedChat?.messages]);
 
   // Open mobile chat panel
   useEffect(() => {
@@ -407,20 +414,7 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
   }, []);
 
   useEffect(() => {
-    if (!tenant?.apiKey) {
-      return;
-    }
-
-    const socket = createLiveChatSocket({
-      apiKey: tenant.apiKey,
-      role: user?.role,
-      agentId: user?._id,
-    });
-
-    if (!socket) {
-      return;
-    }
-
+    // Sync all open chats on connection
     const syncAllOpenChats = () => {
       setActiveChats((currentChats) => {
         currentChats.forEach((chat) => {
@@ -436,19 +430,13 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
       });
     };
 
-    const onConnect = () => {
-      syncAllOpenChats();
-    };
-
-    const onReconnect = () => {
-      syncAllOpenChats();
-    };
-
     const onNewMessage = (incomingMessage: LiveChatMessage) => {
       const targetConversationId = String(incomingMessage?.conversationId || "");
       if (!targetConversationId) {
         return;
       }
+
+      console.log("[REALTIME] New message received:", incomingMessage);
 
       setActiveChats((currentChats) => currentChats.map((chat) => {
         if (String(chat.sessionId || chat.id) !== targetConversationId) {
@@ -490,6 +478,7 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
           }
         }
 
+        console.log("[REALTIME] Adding new message to chat");
         return {
           ...chat,
           messages: [...nextMessages, mappedIncoming],
@@ -563,39 +552,36 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
       void mutateQueue();
     };
 
-    const onConversationAssigned = () => {
-      void mutateQueue();
+    const onWindowNewMessage = (event: Event) => {
+      const incomingMessage = (event as CustomEvent<LiveChatMessage>).detail;
+      console.log("[EVENT] Window event: jaf_live_chat_new_message", incomingMessage);
+      onNewMessage(incomingMessage);
     };
 
-    const onConversationTransferred = () => {
-      void mutateQueue();
+    const onWindowMessageStatusUpdated = (event: Event) => {
+      const payload = (event as CustomEvent<{ conversationId?: string; messageIds?: string[]; status?: "DELIVERED" | "SEEN"; seenByRole?: string | null }>).detail;
+      onMessageStatusUpdated(payload);
     };
 
-    const onQueueUpdated = () => {
-      void mutateQueue();
+    const onWindowConversationEnded = (event: Event) => {
+      const payload = (event as CustomEvent<LiveChatConversationEndedEvent>).detail;
+      onConversationEnded(payload);
     };
 
-    socket.on("connect", onConnect);
-    socket.on("reconnect", onReconnect);
-    socket.on("NEW_MESSAGE", onNewMessage);
-    socket.on("MESSAGE_STATUS_UPDATED", onMessageStatusUpdated);
-    socket.on("CONVERSATION_ENDED", onConversationEnded);
-    socket.on("CONVERSATION_ASSIGNED", onConversationAssigned);
-    socket.on("CONVERSATION_TRANSFERRED", onConversationTransferred);
-    socket.on("QUEUE_UPDATED", onQueueUpdated);
+    // Listen to window events dispatched by the shared socket
+    window.addEventListener("jaf_live_chat_new_message", onWindowNewMessage);
+    window.addEventListener("jaf_live_chat_message_status_updated", onWindowMessageStatusUpdated);
+    window.addEventListener("jaf_live_chat_conversation_ended", onWindowConversationEnded);
+
+    // Initial sync when component mounts
+    syncAllOpenChats();
 
     return () => {
-      socket.off("connect", onConnect);
-      socket.off("reconnect", onReconnect);
-      socket.off("NEW_MESSAGE", onNewMessage);
-      socket.off("MESSAGE_STATUS_UPDATED", onMessageStatusUpdated);
-      socket.off("CONVERSATION_ENDED", onConversationEnded);
-      socket.off("CONVERSATION_ASSIGNED", onConversationAssigned);
-      socket.off("CONVERSATION_TRANSFERRED", onConversationTransferred);
-      socket.off("QUEUE_UPDATED", onQueueUpdated);
-      socket.disconnect();
+      window.removeEventListener("jaf_live_chat_new_message", onWindowNewMessage);
+      window.removeEventListener("jaf_live_chat_message_status_updated", onWindowMessageStatusUpdated);
+      window.removeEventListener("jaf_live_chat_conversation_ended", onWindowConversationEnded);
     };
-  }, [mutateQueue, resolveEndedByText, syncServerMessages, tenant?.apiKey, user?._id, user?.role]);
+  }, [mutateQueue, resolveEndedByText, syncServerMessages]);
 
   const handleEndChat = async () => {
     if (!selectedChatId) return;

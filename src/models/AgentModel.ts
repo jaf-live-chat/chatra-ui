@@ -46,6 +46,7 @@ export type AuthTenant = {
   companyName: string;
   companyCode: string;
   apiKey?: string | null;
+  databaseName?: string | null;
   subscription?: Subscription | null;
   subscriptionData?: SubscriptionData | null;
 };

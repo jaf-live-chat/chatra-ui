@@ -4,7 +4,7 @@ import QueueView from "../../../sections/chat/QueueView";
 import { useGetActiveLiveChat, useGetLiveChatQueue } from "../../../hooks/useLiveChat";
 import { useGetAgents } from "../../../services/agentServices";
 import useAuth from "../../../hooks/useAuth";
-import { createLiveChatSocket } from "../../../services/liveChatRealtimeClient";
+import { useStaffLiveChat } from "../../../hooks/useStaffLiveChat";
 import liveChatServices from "../../../services/liveChatServices";
 import type { LiveChatAgent, LiveChatConversation, LiveChatQueueEntry, LiveChatVisitor } from "../../../models/LiveChatModel";
 import type { QueueAgentOption, QueueVisitorRow } from "../../../models/QueueViewModel";
@@ -54,6 +54,21 @@ const QueuePage = () => {
     void mutateActiveQueue();
   }, [mutateActiveQueue, mutateWaitingQueue]);
 
+  // Use shared staff realtime hook for queue updates
+  useStaffLiveChat(
+    tenant?.apiKey ?? undefined,
+    tenant?.databaseName ?? undefined,
+    tenant?.id ?? undefined,
+    user?.role ?? undefined,
+    user?._id ?? undefined,
+    {
+      onConversationAssigned: refreshQueue,
+      onConversationTransferred: refreshQueue,
+      onQueueUpdated: refreshQueue,
+      onConversationEnded: refreshQueue,
+    },
+  );
+
   const mappedQueue = useMemo<QueueVisitorRow[]>(() => {
     return (combinedQueue || []).map((entry) => {
       const conversation = isConversationObject(entry.conversationId) ? entry.conversationId : null;
@@ -97,39 +112,6 @@ const QueuePage = () => {
       activeChats: String(agent.status || "").toUpperCase() === "BUSY" ? 1 : 0,
     }));
   }, [agents]);
-
-  useEffect(() => {
-    if (!tenant?.apiKey) {
-      return;
-    }
-
-    const socket = createLiveChatSocket({
-      apiKey: tenant.apiKey,
-      role: user?.role,
-      agentId: user?._id,
-    });
-
-    if (!socket) {
-      return;
-    }
-
-    const queueEvents = [
-      "NEW_CONVERSATION",
-      "CONVERSATION_ASSIGNED",
-      "CONVERSATION_TRANSFERRED",
-      "CONVERSATION_ENDED",
-      "QUEUE_UPDATED",
-      "connect",
-      "reconnect",
-    ] as const;
-
-    queueEvents.forEach((eventName) => socket.on(eventName, refreshQueue));
-
-    return () => {
-      queueEvents.forEach((eventName) => socket.off(eventName, refreshQueue));
-      socket.disconnect();
-    };
-  }, [refreshQueue, tenant?.apiKey, user?._id, user?.role]);
 
   return (
     <QueueView
