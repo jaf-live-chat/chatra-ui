@@ -16,28 +16,11 @@ export type CompanyGeneralInformation = {
   phoneNumber: string;
 };
 
-export type CompanyAddress = {
-  streetAddress: string;
-  city: string;
-  stateProvince: string;
-  zipPostalCode: string;
-  country: string;
-};
-
-export type CompanyBusinessDetails = {
-  industry: string;
-  companySize: string;
-  timezone: string;
-  description: string;
-};
-
 export type CompanyInfoRecord = {
   _id?: string;
   companyLogo: CompanyLogoAsset;
   brandLogos?: CompanyBrandLogoMap;
   generalInformation: CompanyGeneralInformation;
-  address: CompanyAddress;
-  businessDetails: CompanyBusinessDetails;
   createdAt?: string;
   updatedAt?: string;
 };
@@ -50,8 +33,6 @@ export type CompanyInfoApiResponse = {
 
 export type UpdateCompanyInfoPayload = {
   generalInformation?: Partial<CompanyGeneralInformation>;
-  address?: Partial<CompanyAddress>;
-  businessDetails?: Partial<CompanyBusinessDetails>;
 };
 
 export type CompanyInfoFormData = {
@@ -59,14 +40,5 @@ export type CompanyInfoFormData = {
   website: string;
   email: string;
   phone: string;
-  address: string;
-  city: string;
-  state: string;
-  zip: string;
-  country: string;
-  industry: string;
-  size: string;
-  description: string;
-  timezone: string;
   logoUrl: string;
 };

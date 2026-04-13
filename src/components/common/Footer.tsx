@@ -22,9 +22,8 @@ const footerColumns = [
 ];
 
 const Footer = () => {
-  const { companyInfo, companyName, companyEmail, companyWebsite, companyPhone } = useCompanyBranding();
-  const companyDescription = companyInfo?.businessDetails?.description ||
-    "Real-time customer support made simple for businesses of all sizes.";
+  const { companyName, companyEmail, companyWebsite, companyPhone } = useCompanyBranding();
+  const companyDescription = "Real-time customer support made simple for businesses of all sizes.";
 
   return (
     <footer className="bg-white text-gray-500 border-t border-gray-200">
