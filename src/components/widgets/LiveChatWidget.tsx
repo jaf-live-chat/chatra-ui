@@ -18,6 +18,11 @@ interface QuickMessage {
   response: string;
 }
 
+type WidgetTranscriptMessage = LiveChatMessage & {
+  localKind?: "quick-question" | "quick-typing" | "quick-response";
+  quickReplyId?: string;
+};
+
 type WidgetView = "chat" | "settings";
 type TextSize = "small" | "default" | "large";
 
@@ -148,7 +153,7 @@ const formatTime = (value?: string) => {
   }).format(date);
 };
 
-const normalizeMessages = (messages: LiveChatMessage[]) => {
+const normalizeMessages = (messages: WidgetTranscriptMessage[]) => {
   return [...messages].sort((left, right) => {
     const leftTime = new Date(left.createdAt || left.updatedAt || 0).getTime();
     const rightTime = new Date(right.createdAt || right.updatedAt || 0).getTime();
@@ -244,7 +249,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
   const [hasCompletedPreChat, setHasCompletedPreChat] = useState(() => Boolean(readStoredValue(CONVERSATION_ID_KEY)));
   const [visitorToken] = useState(() => getVisitorToken());
   const [conversationId, setConversationId] = useState(() => readStoredValue(CONVERSATION_ID_KEY));
-  const [messages, setMessages] = useState<LiveChatMessage[]>([]);
+  const [messages, setMessages] = useState<WidgetTranscriptMessage[]>([]);
   const [messageText, setMessageText] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const [shouldRenderPanel, setShouldRenderPanel] = useState(false);
@@ -266,6 +271,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
   const [isEndChatModalOpen, setIsEndChatModalOpen] = useState(false);
   const [showQuickMessages, setShowQuickMessages] = useState(true);
   const [quickMessages, setQuickMessages] = useState<QuickMessage[]>([]);
+  const [activeQuickReplyId, setActiveQuickReplyId] = useState<string | null>(null);
 
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const socketRef = useRef<Socket | null>(null);
@@ -274,6 +280,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
   const messageInputRef = useRef<HTMLTextAreaElement | null>(null);
   const widgetSettingsRequestRef = useRef<Promise<void> | null>(null);
   const quickMessagesRequestRef = useRef<Promise<void> | null>(null);
+  const quickReplyTimerRef = useRef<number | null>(null);
   const conversationBootstrapRef = useRef(false);
 
   const apiKey = String(widgetConfig.apiKey || "").trim();
@@ -305,6 +312,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
   }, [conversationId, messages]);
   const isPreChatPending = !conversationId && !hasCompletedPreChat;
   const isComposerBlocked = isActionBlocked || isPreChatPending || hasEndedConversation;
+  const isQuickReplyBlocked = !hasApiKey || hasRuntimeError || isLoading || isSending || hasEndedConversation || Boolean(activeQuickReplyId);
   const displayErrorMessage = hasApiKey
     ? errorMessage
     : "This widget is not configured correctly. Missing apiKey.";
@@ -334,6 +342,13 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
     if (socketRef.current) {
       socketRef.current.disconnect();
       socketRef.current = null;
+    }
+  }, []);
+
+  const clearQuickReplyTimer = useCallback(() => {
+    if (quickReplyTimerRef.current !== null) {
+      window.clearTimeout(quickReplyTimerRef.current);
+      quickReplyTimerRef.current = null;
     }
   }, []);
 
@@ -618,7 +633,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
     setErrorMessage("");
 
     try {
-      const optimisticMessage: LiveChatMessage = {
+      const optimisticMessage: WidgetTranscriptMessage = {
         _id: `local-${Date.now()}`,
         conversationId: resolvedConversationId,
         senderType: "VISITOR",
@@ -648,12 +663,80 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
     }
   }, [conversationId, hasCompletedPreChat, isSending, messageText, startConversation, syncMessages, visitorToken, widgetConfig]);
 
+  const handleQuickMessageClick = useCallback((quickMessage: QuickMessage) => {
+    if (isQuickReplyBlocked) {
+      return;
+    }
+
+    const questionText = String(quickMessage.title || "").trim();
+    const responseText = String(quickMessage.response || "").trim();
+
+    if (!questionText || !responseText) {
+      return;
+    }
+
+    clearQuickReplyTimer();
+
+    const quickReplyId = quickMessage._id;
+    const now = Date.now();
+    const typingCreatedAt = new Date(now + 1).toISOString();
+    const questionMessage: WidgetTranscriptMessage = {
+      _id: `quick-question-${quickReplyId}-${now}`,
+      conversationId: quickReplyId,
+      senderType: "VISITOR",
+      senderId: `quick-${quickReplyId}`,
+      message: questionText,
+      status: "DELIVERED",
+      createdAt: new Date(now).toISOString(),
+      localKind: "quick-question",
+      quickReplyId,
+    };
+    const typingMessage: WidgetTranscriptMessage = {
+      _id: `quick-typing-${quickReplyId}-${now}`,
+      conversationId: quickReplyId,
+      senderType: "SUPPORT_AGENT",
+      senderId: "SYSTEM",
+      message: "",
+      status: "DELIVERED",
+      createdAt: typingCreatedAt,
+      localKind: "quick-typing",
+      quickReplyId,
+    };
+
+    setActiveQuickReplyId(quickReplyId);
+    setShowQuickMessages(false);
+    setMessages((currentMessages) => normalizeMessages([...currentMessages, questionMessage, typingMessage]));
+
+    quickReplyTimerRef.current = window.setTimeout(() => {
+      const responseMessage: WidgetTranscriptMessage = {
+        _id: `quick-response-${quickReplyId}-${Date.now()}`,
+        conversationId: quickReplyId,
+        senderType: "SUPPORT_AGENT",
+        senderId: "SYSTEM",
+        message: responseText,
+        status: "DELIVERED",
+        createdAt: new Date().toISOString(),
+        localKind: "quick-response",
+        quickReplyId,
+      };
+
+      setMessages((currentMessages) => {
+        const nextMessages = currentMessages.filter((message) => message.localKind !== "quick-typing" || message.quickReplyId !== quickReplyId);
+        return normalizeMessages([...nextMessages, responseMessage]);
+      });
+
+      setActiveQuickReplyId(null);
+      quickReplyTimerRef.current = null;
+    }, 1100);
+  }, [clearQuickReplyTimer, isQuickReplyBlocked]);
+
   const handleCompletePreChat = useCallback(() => {
     setHasCompletedPreChat(true);
     setErrorMessage("");
   }, []);
 
   const resetConversationState = useCallback(() => {
+    clearQuickReplyTimer();
     disconnectSocket();
     setConversationId("");
     setMessages([]);
@@ -661,8 +744,9 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
     setUnreadCount(0);
     setErrorMessage("");
     setHasCompletedPreChat(false);
+    setActiveQuickReplyId(null);
     clearStoredValue(CONVERSATION_ID_KEY);
-  }, [disconnectSocket]);
+  }, [clearQuickReplyTimer, disconnectSocket]);
 
   const handleEndChat = useCallback(async () => {
     if (conversationId) {
@@ -684,7 +768,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
   const appendEndedMessage = useCallback((payload: LiveChatConversationEndedEvent) => {
     const endedBy = payload.endedBy?.displayName ? ` Ended by ${payload.endedBy.displayName}.` : "";
     const endedTimestamp = payload.endedBy?.endedAt || payload.conversation?.closedAt || new Date().toISOString();
-    const endedMessage: LiveChatMessage = {
+    const endedMessage: WidgetTranscriptMessage = {
       _id: `ended-${String(payload.conversation?._id || conversationId || Date.now())}`,
       conversationId: String(payload.conversation?._id || conversationId || ""),
       senderType: "SUPPORT_AGENT",
@@ -1127,7 +1211,13 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
     }
   }, [conversationId, visitorToken]);
 
-  const getVisitorMessageStatus = useCallback((message: LiveChatMessage) => {
+  useEffect(() => {
+    return () => {
+      clearQuickReplyTimer();
+    };
+  }, [clearQuickReplyTimer]);
+
+  const getVisitorMessageStatus = useCallback((message: WidgetTranscriptMessage) => {
     if (String(message._id || "").startsWith("local-")) {
       return {
         label: "Sending",
@@ -1149,7 +1239,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
   }, []);
 
   const latestVisitorMessageId = useMemo(() => {
-    const latestMessage = [...messages].reverse().find((message) => message.senderType === "VISITOR");
+    const latestMessage = [...messages].reverse().find((message) => message.senderType === "VISITOR" && !message.localKind);
     return latestMessage ? String(latestMessage._id) : null;
   }, [messages]);
 
@@ -1458,8 +1548,9 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                 ) : (
                   <div className="flex flex-col gap-4">
                     {messages.map((message) => {
+                      const isTypingQuickReply = message.localKind === "quick-typing";
                       const isVisitorMessage = message.senderType === "VISITOR";
-                      const visitorMessageStatus = isVisitorMessage && String(message._id) === latestVisitorMessageId
+                      const visitorMessageStatus = isVisitorMessage && !message.localKind && String(message._id) === latestVisitorMessageId
                         ? getVisitorMessageStatus(message)
                         : null;
                       return (
@@ -1480,7 +1571,15 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                             className={`max-w-[80%] sm:max-w-[74%] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${isVisitorMessage ? theme.bubbleVisitor : theme.bubbleAgent}`}
                             style={isVisitorMessage ? { backgroundColor: resolvedAccent, borderColor: accentSoftBorder } : undefined}
                           >
-                            <p className={`${bubblePaddingClass} whitespace-pre-wrap ${messageSizeClass}`}>{message.message}</p>
+                            {isTypingQuickReply ? (
+                              <div className={`${bubblePaddingClass} flex items-center gap-1.5 min-h-[42px]`} aria-label="System is typing">
+                                <span className="h-2 w-2 rounded-full bg-current animate-bounce [animation-delay:-0.2s]" />
+                                <span className="h-2 w-2 rounded-full bg-current animate-bounce [animation-delay:-0.1s]" />
+                                <span className="h-2 w-2 rounded-full bg-current animate-bounce" />
+                              </div>
+                            ) : (
+                              <p className={`${bubblePaddingClass} whitespace-pre-wrap ${messageSizeClass}`}>{message.message}</p>
+                            )}
                             <div className={`px-4 pb-1 flex items-center gap-1 ${isVisitorMessage ? "text-white/70" : theme.muted}`}>
                               <p className={messageMetaSizeClass}>{formatTime(message.createdAt)}</p>
                               {visitorMessageStatus ? (
@@ -1525,7 +1624,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                   <button
                     type="button"
                     onClick={() => setShowQuickMessages((current) => !current)}
-                    disabled={isComposerBlocked}
+                    disabled={isQuickReplyBlocked}
                     className="w-full flex items-center justify-center gap-2 text-sm font-semibold text-slate-400 hover:text-slate-500 dark:text-slate-300 dark:hover:text-slate-100 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <Zap className="h-4 w-4" />
@@ -1540,11 +1639,10 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                           key={qm._id}
                           type="button"
                           onClick={() => {
-                            setMessageText(qm.response);
                             setShowQuickMessages(false);
-                            void handleSendMessage(qm.response);
+                            void handleQuickMessageClick(qm);
                           }}
-                          disabled={isComposerBlocked}
+                          disabled={isQuickReplyBlocked}
                           className={`px-3 py-1.5 rounded-full border transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md font-medium ${theme.quickMsg} disabled:opacity-50 disabled:cursor-not-allowed ${quickMessageTextClass}`}
                           style={{ backgroundColor: accentSoftBackground, borderColor: accentSoftBorder, color: resolvedAccent }}
                         >
