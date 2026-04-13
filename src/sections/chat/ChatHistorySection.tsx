@@ -6,6 +6,7 @@ import { HistoryEntry, TranscriptMessage } from "../../models/ChatSessionManagem
 import { type LiveChatMessage } from "../../models/LiveChatModel";
 import liveChatServices from "../../services/liveChatServices";
 import { calculateAverageDuration } from "../../utils/chatDurationCalculator";
+import getInitials from "../../utils/getInitials";
 
 export type ChatHistoryTranscriptMap = Record<string, TranscriptMessage[]>;
 
@@ -157,7 +158,7 @@ const ChatHistorySection = ({ searchQuery, setSearchQuery, endedChats, endedTran
                       className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0"
                       style={{ backgroundColor: getAvatarColor(chat.visitor) }}
                     >
-                      {chat.visitor.charAt(0)}
+                      {getInitials(chat.visitorFullName, "V")}
                     </div>
                     <span className="text-sm font-medium text-gray-900 dark:text-slate-100">{chat.visitor}</span>
                   </div>
@@ -213,7 +214,7 @@ const ChatHistorySection = ({ searchQuery, setSearchQuery, endedChats, endedTran
                   className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0"
                   style={{ backgroundColor: getAvatarColor(chat.visitor) }}
                 >
-                  {chat.visitor.charAt(0)}
+                  {getInitials(chat.visitorFullName, "V")}
                 </div>
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-gray-900 dark:text-slate-100 truncate">{chat.visitor}</p>
@@ -273,7 +274,7 @@ const ChatHistorySection = ({ searchQuery, setSearchQuery, endedChats, endedTran
                   className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-semibold"
                   style={{ backgroundColor: getAvatarColor(transcriptChat.visitor) }}
                 >
-                  {transcriptChat.visitor.charAt(0)}
+                  {getInitials(transcriptChat.visitorFullName, "V")}
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-gray-900 dark:text-slate-100">{transcriptChat.visitor}</p>
@@ -310,11 +311,11 @@ const ChatHistorySection = ({ searchQuery, setSearchQuery, endedChats, endedTran
                           className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] font-semibold shrink-0"
                           style={{ backgroundColor: getAvatarColor(transcriptChat.visitor) }}
                         >
-                          {transcriptChat.visitor.charAt(0)}
+                          {getInitials(transcriptChat.visitorFullName, "V")}
                         </div>
                       ) : (
                         <div className="w-6 h-6 rounded-full bg-gray-800 dark:bg-slate-600 flex items-center justify-center text-white text-[9px] font-semibold shrink-0">
-                          {transcriptChat.agent.charAt(0)}
+                          {getInitials(transcriptChat.agentFullName || transcriptChat.agent, "A")}
                         </div>
                       )}
                       <div className={`flex flex-col ${msg.sender === "agent" ? "items-end" : "items-start"}`}>

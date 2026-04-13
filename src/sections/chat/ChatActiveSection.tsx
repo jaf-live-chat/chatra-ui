@@ -29,6 +29,7 @@ import {
   SheetTitle,
 } from "../../components/Sheet";
 import { createLiveChatSocket } from "../../services/liveChatRealtimeClient";
+import getInitials from "../../utils/getInitials";
 
 // Seeds for quick replies (assuming it's from constants)
 const SEED_REPLIES: QuickReplyItem[] = [
@@ -171,6 +172,8 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
 
   const selectedChatSessionId = selectedChat?.sessionId ? String(selectedChat.sessionId) : null;
   const selectedChatResolvedId = selectedChat ? String(selectedChat.id) : null;
+  const selectedVisitorInitials = getInitials(selectedChat?.visitorFullName, "V");
+  const activeAgentInitials = getInitials(user?.fullName, "A");
   const visitorMapEmbedUrl = useMemo(() => {
     if (!selectedChat || selectedChat.locationConsent !== true) {
       return null;
@@ -240,7 +243,8 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
 
         return {
           id: String(conversationId),
-          visitor: visitor?.name || (visitor?.visitorToken ? `Visitor ${String(visitor.visitorToken).slice(-4)}` : "Website Visitor"),
+          visitor: visitor?.fullName || visitor?.name || (visitor?.visitorToken ? `Visitor ${String(visitor.visitorToken).slice(-4)}` : "Website Visitor"),
+          visitorFullName: visitor?.fullName || visitor?.name || undefined,
           sessionId: String(conversationId),
           message: "Active support conversation",
           status: "Active",
@@ -248,6 +252,7 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
           messages: [],
           startedAt: Date.now(),
           agent: agent?.fullName || "Assigned Agent",
+          agentFullName: agent?.fullName || undefined,
           location: conversation?.locationCity || visitor?.locationCity || "",
           country: conversation?.locationCountry || visitor?.locationCountry || "",
           locationConsent:
@@ -668,7 +673,7 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
                         className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0"
                         style={{ backgroundColor: getAvatarColor(chat.visitor) }}
                       >
-                        {chat.visitor.charAt(0)}
+                        {getInitials(chat.visitorFullName, "V")}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-gray-900 dark:text-slate-100 truncate">{chat.visitor}</p>
@@ -702,7 +707,7 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
                 className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-semibold"
                 style={{ backgroundColor: getAvatarColor(selectedChat.visitor) }}
               >
-                {selectedChat.visitor.charAt(0)}
+                {selectedVisitorInitials}
               </div>
               <div>
                 <p className="text-sm font-semibold text-gray-900 dark:text-slate-100">{selectedChat.visitor}</p>
@@ -769,7 +774,7 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
                             }`}
                           style={msg.sender === "visitor" ? { backgroundColor: getAvatarColor(selectedChat.visitor) } : undefined}
                         >
-                          {msg.sender === "agent" ? "A" : selectedChat.visitor.charAt(0)}
+                          {msg.sender === "agent" ? activeAgentInitials : selectedVisitorInitials}
                         </div>
                         <div className={`flex flex-col ${msg.sender === "agent" ? "items-end" : "items-start"}`}>
                           <div className="flex items-center gap-1 whitespace-nowrap">
@@ -944,7 +949,7 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
                       className="w-14 h-14 rounded-full flex items-center justify-center text-white text-xl font-semibold mx-auto mb-2"
                       style={{ backgroundColor: getAvatarColor(selectedChat.visitor) }}
                     >
-                      {selectedChat.visitor.charAt(0)}
+                      {selectedVisitorInitials}
                     </div>
                     <p className="text-sm font-semibold text-gray-900 dark:text-slate-100">{selectedChat.visitor}</p>
                     <div className="flex items-center gap-1 justify-center mt-1">

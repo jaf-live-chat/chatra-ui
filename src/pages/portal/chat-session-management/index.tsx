@@ -27,6 +27,50 @@ const ChatSessionManagementPage = () => {
   const { tenant, user } = useAuth();
   const { queue, mutate: mutateQueue } = useGetActiveLiveChat({ page: 1, limit: 100 });
   const { conversations: historyConversations, mutate: mutateHistory } = useGetLiveChatHistory({ page: 1, limit: 100 });
+  const isSupportAgent = String(user?.role || "").toUpperCase() === "SUPPORT_AGENT";
+
+  const assignedQueue = useMemo(() => {
+    if (!isSupportAgent) {
+      return queue || [];
+    }
+
+    const currentAgentId = String(user?._id || "").trim();
+    if (!currentAgentId) {
+      return [];
+    }
+
+    return (queue || []).filter((entry: LiveChatQueueEntry) => {
+      const directAgentId = typeof entry.agentId === "object" ? entry.agentId?._id : entry.agentId;
+      const conversation = typeof entry.conversationId === "object" ? entry.conversationId : null;
+      const conversationAgentId = conversation
+        ? typeof conversation.agentId === "object"
+          ? conversation.agentId?._id
+          : conversation.agentId
+        : null;
+
+      const resolvedAgentId = String(directAgentId || conversationAgentId || "").trim();
+      return resolvedAgentId === currentAgentId;
+    });
+  }, [isSupportAgent, queue, user?._id]);
+
+  const assignedHistoryConversations = useMemo(() => {
+    if (!isSupportAgent) {
+      return historyConversations;
+    }
+
+    const currentAgentId = String(user?._id || "").trim();
+    if (!currentAgentId) {
+      return [];
+    }
+
+    return historyConversations.filter((conversation: LiveChatConversation) => {
+      const conversationAgentId = typeof conversation.agentId === "object"
+        ? conversation.agentId?._id
+        : conversation.agentId;
+
+      return String(conversationAgentId || "").trim() === currentAgentId;
+    });
+  }, [historyConversations, isSupportAgent, user?._id]);
 
   useEffect(() => {
     if (!tenant?.apiKey) {
@@ -73,7 +117,7 @@ const ChatSessionManagementPage = () => {
   }, [mutateHistory, mutateQueue, tenant?.apiKey, user?._id, user?.role]);
 
   // Map history conversations to HistoryEntry format
-  const historyEntries: HistoryEntry[] = historyConversations.map((conversation: LiveChatConversation) => {
+  const historyEntries: HistoryEntry[] = assignedHistoryConversations.map((conversation: LiveChatConversation) => {
     const visitor = typeof conversation.visitorId === "object" ? conversation.visitorId : null;
     const agent = typeof conversation.agentId === "object" ? conversation.agentId : null;
     const startedAt = conversation.assignedAt || conversation.queuedAt || conversation.createdAt;
@@ -85,13 +129,16 @@ const ChatSessionManagementPage = () => {
     const mins = Math.floor(durationSeconds / 60);
     const secs = durationSeconds % 60;
     const displayDate = endedAt ? new Date(endedAt) : new Date();
-    const visitorName = String(visitor?.name || "").trim();
+    const visitorFullName = String(visitor?.fullName || visitor?.name || "").trim();
     const visitorToken = String(visitor?.visitorToken || "").trim();
+    const agentFullName = String(agent?.fullName || "").trim();
 
     return {
       id: String(conversation._id),
-      visitor: visitorName || (visitorToken ? `Visitor ${visitorToken.slice(-4)}` : "Website Visitor"),
-      agent: String(agent?.fullName || "Assigned Agent"),
+      visitor: visitorFullName || (visitorToken ? `Visitor ${visitorToken.slice(-4)}` : "Website Visitor"),
+      visitorFullName: visitorFullName || undefined,
+      agent: agentFullName || "Assigned Agent",
+      agentFullName: agentFullName || undefined,
       duration: `${mins}m ${String(secs).padStart(2, "0")}s`,
       messages: 0,
       rating: 0,
@@ -104,13 +151,13 @@ const ChatSessionManagementPage = () => {
   });
 
   const activeChatsBadgeCount = useMemo(
-    () => (queue || []).filter((entry: LiveChatQueueEntry) => {
+    () => assignedQueue.filter((entry: LiveChatQueueEntry) => {
       const conversation = typeof entry.conversationId === "object" ? entry.conversationId : null;
       const conversationId = conversation?._id || entry.conversationId || entry._id;
 
       return Boolean(conversation && conversationId && conversation.status === "OPEN");
     }).length,
-    [queue],
+    [assignedQueue],
   );
 
   return (
@@ -158,7 +205,7 @@ const ChatSessionManagementPage = () => {
         {/* Content */}
         <div className="flex-1 overflow-hidden">
           {activeSubTab === "active-chats" ? (
-            <ChatActiveSection queue={queue || []} mutateQueue={mutateQueue} searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
+            <ChatActiveSection queue={assignedQueue} mutateQueue={mutateQueue} searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
           ) : (
             <div className="max-w-7xl mx-auto px-3 sm:px-6 py-6 sm:py-8">
               {activeSubTab === "chat-history" && (

@@ -22,6 +22,7 @@ export interface ChatMessage {
 export interface ActiveChat {
   id: string;
   visitor: string;
+  visitorFullName?: string;
   sessionId?: string;
   message: string;
   status: string;
@@ -29,6 +30,7 @@ export interface ActiveChat {
   messages: ChatMessage[];
   startedAt: number;
   agent: string;
+  agentFullName?: string;
   location?: string;
   country?: string;
   locationConsent?: boolean;
@@ -43,7 +45,9 @@ export interface ActiveChat {
 export interface HistoryEntry {
   id: string;
   visitor: string;
+  visitorFullName?: string;
   agent: string;
+  agentFullName?: string;
   duration: string;
   messages: number;
   rating: number;
