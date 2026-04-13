@@ -141,3 +141,25 @@ export type VerifyPasswordResponse = {
   message: string;
   verified: boolean;
 };
+
+export type ForgotPasswordRequestData = {
+  companyCode: string;
+  emailAddress: string;
+};
+
+export type VerifyPasswordOTPData = {
+  companyCode: string;
+  emailAddress: string;
+  otp: string;
+};
+
+export type ResetPasswordData = {
+  companyCode: string;
+  emailAddress: string;
+  newPassword: string;
+};
+
+export type AuthMessageResponse = {
+  success: boolean;
+  message: string;
+};
