@@ -85,7 +85,7 @@ const QueuePage = () => {
   }, [combinedQueue]);
 
   const mappedAgents = useMemo<QueueAgentOption[]>(() => {
-    return (agents || []).map((agent) => ({
+    return (agents || []).filter((f) => f.status === "AVAILABLE").map((agent) => ({
       id: agent._id,
       name: agent.fullName,
       status: ["AVAILABLE", "BUSY", "OFFLINE", "AWAY"].includes(String(agent.status || "").toUpperCase())
