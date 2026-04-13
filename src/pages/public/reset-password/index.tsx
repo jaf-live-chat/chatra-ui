@@ -85,7 +85,7 @@ const ResetPasswordPage = () => {
         <div className="px-6 pt-6 md:px-10 md:pt-8">
           <Link to="/" className="inline-flex">
             <img
-              src={APP_LOGO.logoLight}
+              src={APP_LOGO.logoDark}
               alt="JAF Chatra"
               className="h-10 w-auto md:h-12"
             />
