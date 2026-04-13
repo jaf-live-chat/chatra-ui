@@ -11,9 +11,13 @@ export type CompanyBrandLogoMap = {
 
 export type CompanyGeneralInformation = {
   companyName: string;
-  website: string;
   contactEmail: string;
   phoneNumber: string;
+  socialLinks: {
+    facebook: string;
+    instagram: string;
+    website: string;
+  };
 };
 
 export type CompanyInfoRecord = {
@@ -37,8 +41,10 @@ export type UpdateCompanyInfoPayload = {
 
 export type CompanyInfoFormData = {
   name: string;
-  website: string;
   email: string;
   phone: string;
+  facebook: string;
+  instagram: string;
+  publicWebsite: string;
   logoUrl: string;
 };
