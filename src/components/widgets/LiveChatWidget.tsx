@@ -269,7 +269,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
     return parseLocationPermissionState(readStoredValue(LOCATION_PERMISSION_STATE_KEY));
   });
   const [isEndChatModalOpen, setIsEndChatModalOpen] = useState(false);
-  const [showQuickMessages, setShowQuickMessages] = useState(true);
+  const [showQuickMessages, setShowQuickMessages] = useState(false);
   const [quickMessages, setQuickMessages] = useState<QuickMessage[]>([]);
   const [activeQuickReplyId, setActiveQuickReplyId] = useState<string | null>(null);
 
@@ -312,7 +312,14 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
   }, [conversationId, messages]);
   const isPreChatPending = !conversationId && !hasCompletedPreChat;
   const isComposerBlocked = isActionBlocked || isPreChatPending || hasEndedConversation;
-  const isQuickReplyBlocked = !hasApiKey || hasRuntimeError || isLoading || isSending || hasEndedConversation || Boolean(activeQuickReplyId);
+  const hasConversationStarted = useMemo(() => {
+    if (conversationId) {
+      return true;
+    }
+
+    return messages.some((message) => !message.localKind);
+  }, [conversationId, messages]);
+  const isQuickReplyBlocked = !hasApiKey || hasRuntimeError || isLoading || isSending || hasEndedConversation || hasConversationStarted || Boolean(activeQuickReplyId);
   const displayErrorMessage = hasApiKey
     ? errorMessage
     : "This widget is not configured correctly. Missing apiKey.";
@@ -745,6 +752,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
     setErrorMessage("");
     setHasCompletedPreChat(false);
     setActiveQuickReplyId(null);
+    setShowQuickMessages(false);
     clearStoredValue(CONVERSATION_ID_KEY);
   }, [clearQuickReplyTimer, disconnectSocket]);
 
@@ -1046,6 +1054,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
     if (isOpen) {
       setWidgetView("chat");
       setIsEndChatModalOpen(false);
+      setShowQuickMessages(false);
     }
   }, [isOpen]);
 
@@ -1258,7 +1267,12 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
       button: "bg-cyan-600 hover:bg-cyan-700 text-white disabled:bg-slate-700 disabled:cursor-not-allowed",
       buttonSecondary: "bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-600/80",
       quickBar: "bg-slate-900/85 border-y border-slate-700/80",
-      quickMsg: "bg-slate-800/90 border border-slate-600/80 text-slate-100 hover:bg-slate-700 text-xs cursor-pointer shadow-sm",
+      quickDock: "relative w-full",
+      quickDockHeader: "text-slate-200/90 text-[11px] font-semibold tracking-[0.18em]",
+      quickDockHint: "text-slate-400 text-[11px]",
+      quickDockToggle: "w-full inline-flex items-center justify-center gap-2 rounded-[18px] border border-slate-700/80 bg-slate-900/92 px-4 py-2 text-[11px] font-semibold text-slate-200 shadow-[0_10px_22px_-18px_rgba(15,23,42,0.9)] transition-colors hover:bg-slate-800",
+      quickDockPanel: "absolute bottom-full mb-2 left-0 right-0 rounded-[18px] border border-slate-700/80 bg-slate-950/95 px-3 pb-3 pt-2.5 shadow-[0_20px_34px_-24px_rgba(15,23,42,0.95)] backdrop-blur-xl",
+      quickDockChip: "w-full rounded-full border border-slate-600/80 bg-slate-800/90 px-3.5 py-2 text-center text-[11px] font-medium text-slate-100 transition-colors hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed",
       error: "bg-red-950/50 text-red-200 border border-red-900/50",
       welcomeTitle: "text-slate-100 text-sm font-semibold",
       headerAction: "bg-white/15 text-white border border-white/20 hover:bg-white/25",
@@ -1294,7 +1308,12 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
       button: "bg-cyan-600 hover:bg-cyan-700 text-white disabled:bg-slate-200 disabled:cursor-not-allowed",
       buttonSecondary: "bg-cyan-50 hover:bg-cyan-100 text-cyan-700 border border-cyan-200",
       quickBar: "bg-white/92 border-y border-slate-200",
-      quickMsg: "bg-cyan-50 border border-cyan-200 text-cyan-700 hover:bg-cyan-100 text-xs cursor-pointer shadow-sm",
+      quickDock: "relative w-full",
+      quickDockHeader: "text-slate-500 text-[11px] font-semibold tracking-[0.18em]",
+      quickDockHint: "text-slate-500 text-[11px]",
+      quickDockToggle: "w-full inline-flex items-center justify-center gap-2 rounded-[18px] border border-slate-200 bg-white/96 px-4 py-2 text-[11px] font-semibold text-cyan-700 shadow-[0_10px_22px_-18px_rgba(15,23,42,0.16)] transition-colors hover:bg-white",
+      quickDockPanel: "absolute bottom-full mb-2 left-0 right-0 rounded-[18px] border border-slate-200 bg-white/98 px-3 pb-3 pt-2.5 shadow-[0_20px_34px_-24px_rgba(15,23,42,0.2)] backdrop-blur-xl",
+      quickDockChip: "w-full rounded-full border border-cyan-200 bg-cyan-50 px-3.5 py-2 text-center text-[11px] font-medium text-cyan-700 transition-colors hover:bg-cyan-100 disabled:opacity-50 disabled:cursor-not-allowed",
       error: "bg-red-50 text-red-700 border border-red-200",
       welcomeTitle: "text-slate-800 text-sm font-semibold",
       headerAction: "bg-white/90 text-cyan-700 border border-cyan-100 hover:bg-white",
@@ -1321,7 +1340,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
     <div className={`fixed bottom-3 right-3 sm:bottom-6 sm:right-6 z-[70] flex flex-col items-end ${panelSpacingClass}`} style={{ fontFamily: "Sora, Avenir Next, Segoe UI, sans-serif" }}>
       {shouldRenderPanel ? (
         <div
-          className={`w-[min(390px,calc(100vw-1rem))] sm:w-[378px] h-[min(640px,calc(100vh-1rem))] sm:h-[588px] overflow-hidden rounded-[24px] border-2 flex flex-col origin-bottom-right transition-[opacity,transform,filter] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${theme.shell}`}
+          className={`relative w-[min(390px,calc(100vw-1rem))] sm:w-[378px] h-[min(640px,calc(100vh-1rem))] sm:h-[588px] overflow-hidden rounded-[24px] border-2 flex flex-col origin-bottom-right transition-[opacity,transform,filter] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${theme.shell}`}
           style={{
             opacity: isPanelVisible ? 1 : 0,
             transform: isPanelVisible ? "translateY(0) scale(1)" : "translateY(22px) scale(0.9)",
@@ -1482,7 +1501,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
           ) : (
             <>
               {/* Messages Area */}
-              <div className={`flex-1 overflow-y-auto px-4 sm:px-5 py-4 flex flex-col ${theme.body}`}>
+              <div className={`flex-1 overflow-y-auto px-4 sm:px-5 py-4 flex flex-col relative pb-28 sm:pb-32 ${theme.body}`}>
                 {isLoading && messages.length === 0 ? (
                   <div className="flex items-center justify-center h-full">
                     <div className="flex flex-col items-center gap-3">
@@ -1597,7 +1616,48 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                     <div ref={bottomRef} />
                   </div>
                 )}
+
               </div>
+
+              {quickMessages.length > 0 && !hasEndedConversation && !hasConversationStarted && isPreChatPending ? (
+                <div className="absolute bottom-[98px] sm:bottom-[104px] left-4 right-4 z-30 pointer-events-none">
+                  <div className={`${theme.quickDock} pointer-events-auto`}>
+                    <button
+                      type="button"
+                      onClick={() => setShowQuickMessages((current) => !current)}
+                      disabled={isQuickReplyBlocked}
+                      className={`${theme.quickDockToggle} disabled:cursor-not-allowed disabled:opacity-60`}
+                      aria-expanded={showQuickMessages}
+                    >
+                      <Zap className="h-4 w-4" />
+                      <span className="leading-none">Quick Messages</span>
+                      {showQuickMessages ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                    </button>
+
+                    {showQuickMessages ? (
+                      <div className={`${theme.quickDockPanel} transition-all duration-200 ease-out`}>
+                        <div className="flex flex-col gap-2 w-full">
+                          {quickMessages.slice(0, 5).map((qm) => (
+                            <button
+                              key={qm._id}
+                              type="button"
+                              onClick={() => {
+                                setShowQuickMessages(false);
+                                void handleQuickMessageClick(qm);
+                              }}
+                              disabled={isQuickReplyBlocked}
+                              className={theme.quickDockChip}
+                              style={{ borderColor: accentSoftBorder }}
+                            >
+                              {qm.title}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
 
               {hasEndedConversation ? (
                 <div className={`${theme.quickBar} px-4 sm:px-5 py-3 flex-shrink-0`}>
@@ -1617,42 +1677,6 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                   </div>
                 </div>
               ) : null}
-
-              {/* Quick Messages */}
-              {quickMessages.length > 0 && !hasEndedConversation && (
-                <div className={`${theme.quickBar} px-4 sm:px-5 py-2.5 flex-shrink-0`}>
-                  <button
-                    type="button"
-                    onClick={() => setShowQuickMessages((current) => !current)}
-                    disabled={isQuickReplyBlocked}
-                    className="w-full flex items-center justify-center gap-2 text-sm font-semibold text-slate-400 hover:text-slate-500 dark:text-slate-300 dark:hover:text-slate-100 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    <Zap className="h-4 w-4" />
-                    <span>Quick Messages</span>
-                    {showQuickMessages ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                  </button>
-
-                  {showQuickMessages ? (
-                    <div className="mt-2.5 flex flex-wrap gap-2">
-                      {quickMessages.slice(0, 5).map((qm) => (
-                        <button
-                          key={qm._id}
-                          type="button"
-                          onClick={() => {
-                            setShowQuickMessages(false);
-                            void handleQuickMessageClick(qm);
-                          }}
-                          disabled={isQuickReplyBlocked}
-                          className={`px-3 py-1.5 rounded-full border transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md font-medium ${theme.quickMsg} disabled:opacity-50 disabled:cursor-not-allowed ${quickMessageTextClass}`}
-                          style={{ backgroundColor: accentSoftBackground, borderColor: accentSoftBorder, color: resolvedAccent }}
-                        >
-                          {qm.title}
-                        </button>
-                      ))}
-                    </div>
-                  ) : null}
-                </div>
-              )}
 
               {/* Input Area */}
               <div className={`border-t ${theme.composer} px-4 sm:px-5 py-3.5 flex-shrink-0`}>
