@@ -142,6 +142,7 @@ const QueuePage = () => {
       onTakeConversation={async (visitor) => {
         await liveChatServices.acceptConversation(visitor.conversationId || visitor.id);
         await Promise.all([mutateWaitingQueue(), mutateActiveQueue()]);
+        navigate("/portal/chat-sessions");
       }}
       onStartChat={(visitor) => {
         localStorage.setItem("jaf_active_chat_visitor", JSON.stringify(visitor));
