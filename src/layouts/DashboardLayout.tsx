@@ -211,7 +211,7 @@ function DashboardLayoutInner() {
   const userEmail = user?.emailAddress || "";
   const userProfilePicture = user?.profilePicture || "";
   const [profileImageFailed, setProfileImageFailed] = useState(false);
-  const companyName = companyProfileName || tenant?.companyName || "-";
+  const companyName = tenant?.companyName || "-";
   const userRole = user?.role || USER_ROLES.VISITOR.value;
   const subscription = tenant?.subscription ?? null;
   const planName = subscription?.planName || "No Plan";
