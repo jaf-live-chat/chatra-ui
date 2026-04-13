@@ -248,8 +248,8 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
           messages: [],
           startedAt: Date.now(),
           agent: agent?.fullName || "Assigned Agent",
-          location: conversation?.locationCity || visitor?.locationCity || "Unknown",
-          country: conversation?.locationCountry || visitor?.locationCountry || "Unknown",
+          location: conversation?.locationCity || visitor?.locationCity || "",
+          country: conversation?.locationCountry || visitor?.locationCountry || "",
           locationConsent:
             typeof conversation?.locationConsent === "boolean"
               ? conversation.locationConsent
