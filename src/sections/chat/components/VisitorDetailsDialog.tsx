@@ -23,7 +23,6 @@ interface VisitorDetailsDialogProps {
   now: number;
   actorRole?: QueueActorRole;
   actorStatus?: string;
-  selfPickEligible?: boolean;
   isProcessingAction?: boolean;
   onClose: () => void;
   onStartChat?: (visitor: QueueVisitorRow) => void;
@@ -52,7 +51,6 @@ const VisitorDetailsDialog = ({
   now,
   actorRole,
   actorStatus,
-  selfPickEligible = false,
   isProcessingAction = false,
   onClose,
   onStartChat,
@@ -115,7 +113,7 @@ const VisitorDetailsDialog = ({
   const isWaitingVisitor = visitor?.status === "Waiting";
   const isAdminOrMaster = actorRole === USER_ROLES.ADMIN.value || actorRole === USER_ROLES.MASTER_ADMIN.value;
   const isSupportAgent = actorRole === USER_ROLES.SUPPORT_AGENT.value;
-  const canSelfPick = isSupportAgent && actorStatus === USER_STATUS.AVAILABLE && selfPickEligible;
+  const canSelfPick = isSupportAgent && actorStatus === USER_STATUS.AVAILABLE;
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
@@ -249,7 +247,7 @@ const VisitorDetailsDialog = ({
           Close
         </Button>
 
-        {isWaitingVisitor && isAdminOrMaster && (
+        {isAdminOrMaster && (
           <>
             <Button
               variant="outlined"
@@ -263,39 +261,21 @@ const VisitorDetailsDialog = ({
             >
               Assign
             </Button>
-            <Button
-              variant="contained"
-              disabled={!visitor || !onTakeConversation || isProcessingAction}
-              onClick={() => {
-                if (visitor && onTakeConversation) {
-                  void onTakeConversation(visitor);
-                }
-              }}
-              sx={{ fontWeight: 700 }}
-            >
-              Take Chat
-            </Button>
           </>
         )}
 
-        {isWaitingVisitor && isSupportAgent && (
-          <Tooltip title={canSelfPick ? "Pick this waiting chat" : "Self-pick is allowed once after returning AVAILABLE from OFFLINE/AWAY."}>
-            <span>
-              <Button
-                variant="contained"
-                disabled={!visitor || !onSelfPickConversation || isProcessingAction || !canSelfPick}
-                onClick={() => {
-                  if (visitor && onSelfPickConversation) {
-                    void onSelfPickConversation(visitor);
-                  }
-                }}
-                sx={{ fontWeight: 700 }}
-              >
-                Self Pick
-              </Button>
-            </span>
-          </Tooltip>
-        )}
+        <Button
+          variant="contained"
+          disabled={!visitor || !onTakeConversation || isProcessingAction}
+          onClick={() => {
+            if (visitor && onTakeConversation) {
+              void onTakeConversation(visitor);
+            }
+          }}
+          sx={{ fontWeight: 700 }}
+        >
+          Take Chat
+        </Button>
 
         {!isWaitingVisitor && (
           <Button

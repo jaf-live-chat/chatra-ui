@@ -133,7 +133,6 @@ const QueuePage = () => {
       queue={mappedQueue}
       actorRole={user?.role}
       actorStatus={user?.status}
-      selfPickEligible={Boolean(user?.selfPickEligible)}
       agents={mappedAgents}
       onAssignConversation={async (visitor, agentId) => {
         await liveChatServices.assignConversation(visitor.conversationId || visitor.id, agentId);

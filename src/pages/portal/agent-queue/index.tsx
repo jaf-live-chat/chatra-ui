@@ -120,7 +120,6 @@ const AgentQueuePage = () => {
       queue={mappedQueue}
       actorRole={user?.role}
       actorStatus={user?.status}
-      selfPickEligible={Boolean(user?.selfPickEligible)}
       isAgent={true}
       currentAgentId={user?._id}
       onSelfPickConversation={async (visitor) => {

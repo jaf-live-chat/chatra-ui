@@ -24,7 +24,6 @@ interface QueueViewProps {
   queue: QueueVisitorRow[];
   actorRole?: QueueActorRole;
   actorStatus?: string;
-  selfPickEligible?: boolean;
   agents?: QueueAgentOption[];
   onAssignConversation?: (visitor: QueueVisitorRow, agentId: string) => Promise<void>;
   onTakeConversation?: (visitor: QueueVisitorRow) => Promise<void>;
@@ -44,7 +43,6 @@ const QueueView = ({
   queue,
   actorRole,
   actorStatus,
-  selfPickEligible = false,
   agents = [],
   onAssignConversation,
   onTakeConversation,
@@ -420,7 +418,6 @@ const QueueView = ({
         now={now}
         actorRole={actorRole}
         actorStatus={actorStatus}
-        selfPickEligible={selfPickEligible}
         isProcessingAction={isProcessingAction}
         onClose={() => setSelectedVisitor(null)}
         onStartChat={onStartChat}
