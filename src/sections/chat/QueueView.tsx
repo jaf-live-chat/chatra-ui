@@ -13,13 +13,22 @@ import type { ReusableTableColumn } from "../../components/ReusableTable";
 import PageTitle from "../../components/common/PageTitle";
 import TitleTag from "../../components/TitleTag";
 import useNowTick from "../../hooks/useNowTick";
-import type { QueueVisitorRow } from "../../models/QueueViewModel";
+import type { QueueActorRole, QueueAgentOption, QueueVisitorRow } from "../../models/QueueViewModel";
+import { toast } from "sonner";
+import QueueAssignDialog from "./components/QueueAssignDialog";
 import QueueRealtimeTable from "./components/QueueRealtimeTable";
 import VisitorDetailsDialog from "./components/VisitorDetailsDialog";
 import { formatElapsedTime, getQueueDisplayId } from "../../utils/liveChatQueueTime";
 
 interface QueueViewProps {
   queue: QueueVisitorRow[];
+  actorRole?: QueueActorRole;
+  actorStatus?: string;
+  selfPickEligible?: boolean;
+  agents?: QueueAgentOption[];
+  onAssignConversation?: (visitor: QueueVisitorRow, agentId: string) => Promise<void>;
+  onTakeConversation?: (visitor: QueueVisitorRow) => Promise<void>;
+  onSelfPickConversation?: (visitor: QueueVisitorRow) => Promise<void>;
   onStartChat?: (visitor: QueueVisitorRow) => void;
   isAgent?: boolean;
   currentAgentId?: string;
@@ -31,11 +40,25 @@ const getAvatarColor = (id: string) => {
   return avatarColors[charCode % avatarColors.length];
 };
 
-const QueueView = ({ queue, onStartChat, isAgent = false, currentAgentId }: QueueViewProps) => {
+const QueueView = ({
+  queue,
+  actorRole,
+  actorStatus,
+  selfPickEligible = false,
+  agents = [],
+  onAssignConversation,
+  onTakeConversation,
+  onSelfPickConversation,
+  onStartChat,
+  isAgent = false,
+  currentAgentId,
+}: QueueViewProps) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [waitingPage, setWaitingPage] = useState(1);
   const [activePage, setActivePage] = useState(1);
   const [selectedVisitor, setSelectedVisitor] = useState<QueueVisitorRow | null>(null);
+  const [assignTargetVisitor, setAssignTargetVisitor] = useState<QueueVisitorRow | null>(null);
+  const [isProcessingAction, setIsProcessingAction] = useState(false);
 
   const now = useNowTick();
 
@@ -212,6 +235,64 @@ const QueueView = ({ queue, onStartChat, isAgent = false, currentAgentId }: Queu
     [actionHeaderLabel, now],
   );
 
+  const handleTakeConversation = async (visitor: QueueVisitorRow) => {
+    if (!onTakeConversation) {
+      return;
+    }
+
+    setIsProcessingAction(true);
+
+    try {
+      await onTakeConversation(visitor);
+      toast.success("Chat taken successfully.");
+      setSelectedVisitor(null);
+    } catch (error) {
+      const message = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error(message || "Failed to take chat.");
+    } finally {
+      setIsProcessingAction(false);
+    }
+  };
+
+  const handleSelfPickConversation = async (visitor: QueueVisitorRow) => {
+    if (!onSelfPickConversation) {
+      return;
+    }
+
+    setIsProcessingAction(true);
+
+    try {
+      await onSelfPickConversation(visitor);
+      toast.success("Chat picked successfully.");
+      setSelectedVisitor(null);
+    } catch (error) {
+      const message = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error(message || "Failed to self-pick chat.");
+    } finally {
+      setIsProcessingAction(false);
+    }
+  };
+
+  const handleAssignConversation = async (agentId: string) => {
+    if (!assignTargetVisitor || !onAssignConversation) {
+      return;
+    }
+
+    setIsProcessingAction(true);
+
+    try {
+      await onAssignConversation(assignTargetVisitor, agentId);
+      toast.success("Chat assigned successfully.");
+      setAssignTargetVisitor(null);
+      setSelectedVisitor(null);
+    } catch (error) {
+      const message = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error(message || "Failed to assign chat.");
+    } finally {
+      setIsProcessingAction(false);
+    }
+  };
+
   return (
     <>
       <PageTitle
@@ -337,8 +418,24 @@ const QueueView = ({ queue, onStartChat, isAgent = false, currentAgentId }: Queu
         open={Boolean(selectedVisitor)}
         visitor={selectedVisitor}
         now={now}
+        actorRole={actorRole}
+        actorStatus={actorStatus}
+        selfPickEligible={selfPickEligible}
+        isProcessingAction={isProcessingAction}
         onClose={() => setSelectedVisitor(null)}
         onStartChat={onStartChat}
+        onTakeConversation={handleTakeConversation}
+        onSelfPickConversation={handleSelfPickConversation}
+        onOpenAssignDialog={(visitor) => setAssignTargetVisitor(visitor)}
+      />
+
+      <QueueAssignDialog
+        open={Boolean(assignTargetVisitor)}
+        visitor={assignTargetVisitor}
+        agents={agents}
+        loading={isProcessingAction}
+        onClose={() => setAssignTargetVisitor(null)}
+        onAssign={handleAssignConversation}
       />
     </>
   );

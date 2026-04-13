@@ -9,9 +9,11 @@ import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
+import { USER_ROLES, USER_STATUS } from "../../../constants/constants";
 import type { LiveChatMessage } from "../../../models/LiveChatModel";
-import type { QueueVisitorRow } from "../../../models/QueueViewModel";
+import type { QueueActorRole, QueueVisitorRow } from "../../../models/QueueViewModel";
 import liveChatServices from "../../../services/liveChatServices";
 import { formatElapsedTime } from "../../../utils/liveChatQueueTime";
 
@@ -19,8 +21,15 @@ interface VisitorDetailsDialogProps {
   open: boolean;
   visitor: QueueVisitorRow | null;
   now: number;
+  actorRole?: QueueActorRole;
+  actorStatus?: string;
+  selfPickEligible?: boolean;
+  isProcessingAction?: boolean;
   onClose: () => void;
   onStartChat?: (visitor: QueueVisitorRow) => void;
+  onTakeConversation?: (visitor: QueueVisitorRow) => Promise<void>;
+  onSelfPickConversation?: (visitor: QueueVisitorRow) => Promise<void>;
+  onOpenAssignDialog?: (visitor: QueueVisitorRow) => void;
 }
 
 const getAvatarColor = (id: string) => {
@@ -37,7 +46,20 @@ const getSenderLabel = (senderType: string) => {
   return "Agent";
 };
 
-const VisitorDetailsDialog = ({ open, visitor, now, onClose, onStartChat }: VisitorDetailsDialogProps) => {
+const VisitorDetailsDialog = ({
+  open,
+  visitor,
+  now,
+  actorRole,
+  actorStatus,
+  selfPickEligible = false,
+  isProcessingAction = false,
+  onClose,
+  onStartChat,
+  onTakeConversation,
+  onSelfPickConversation,
+  onOpenAssignDialog,
+}: VisitorDetailsDialogProps) => {
   const [messages, setMessages] = useState<LiveChatMessage[]>([]);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [messageError, setMessageError] = useState<string | null>(null);
@@ -89,6 +111,11 @@ const VisitorDetailsDialog = ({ open, visitor, now, onClose, onStartChat }: Visi
     const country = visitor?.country || "Unknown";
     return `${city}, ${country}`;
   }, [visitor?.country, visitor?.location]);
+
+  const isWaitingVisitor = visitor?.status === "Waiting";
+  const isAdminOrMaster = actorRole === USER_ROLES.ADMIN.value || actorRole === USER_ROLES.MASTER_ADMIN.value;
+  const isSupportAgent = actorRole === USER_ROLES.SUPPORT_AGENT.value;
+  const canSelfPick = isSupportAgent && actorStatus === USER_STATUS.AVAILABLE && selfPickEligible;
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
@@ -221,19 +248,70 @@ const VisitorDetailsDialog = ({ open, visitor, now, onClose, onStartChat }: Visi
         <Button onClick={onClose} color="inherit" sx={{ fontWeight: 600 }}>
           Close
         </Button>
-        <Button
-          variant="contained"
-          disabled={!visitor || !onStartChat}
-          onClick={() => {
-            if (visitor && onStartChat) {
-              onStartChat(visitor);
-              onClose();
-            }
-          }}
-          sx={{ fontWeight: 700 }}
-        >
-          Start Chat
-        </Button>
+
+        {isWaitingVisitor && isAdminOrMaster && (
+          <>
+            <Button
+              variant="outlined"
+              disabled={!visitor || !onOpenAssignDialog || isProcessingAction}
+              onClick={() => {
+                if (visitor && onOpenAssignDialog) {
+                  onOpenAssignDialog(visitor);
+                }
+              }}
+              sx={{ fontWeight: 700 }}
+            >
+              Assign
+            </Button>
+            <Button
+              variant="contained"
+              disabled={!visitor || !onTakeConversation || isProcessingAction}
+              onClick={() => {
+                if (visitor && onTakeConversation) {
+                  void onTakeConversation(visitor);
+                }
+              }}
+              sx={{ fontWeight: 700 }}
+            >
+              Take Chat
+            </Button>
+          </>
+        )}
+
+        {isWaitingVisitor && isSupportAgent && (
+          <Tooltip title={canSelfPick ? "Pick this waiting chat" : "Self-pick is allowed once after returning AVAILABLE from OFFLINE/AWAY."}>
+            <span>
+              <Button
+                variant="contained"
+                disabled={!visitor || !onSelfPickConversation || isProcessingAction || !canSelfPick}
+                onClick={() => {
+                  if (visitor && onSelfPickConversation) {
+                    void onSelfPickConversation(visitor);
+                  }
+                }}
+                sx={{ fontWeight: 700 }}
+              >
+                Self Pick
+              </Button>
+            </span>
+          </Tooltip>
+        )}
+
+        {!isWaitingVisitor && (
+          <Button
+            variant="contained"
+            disabled={!visitor || !onStartChat}
+            onClick={() => {
+              if (visitor && onStartChat) {
+                onStartChat(visitor);
+                onClose();
+              }
+            }}
+            sx={{ fontWeight: 700 }}
+          >
+            Start Chat
+          </Button>
+        )}
       </DialogActions>
     </Dialog>
   );

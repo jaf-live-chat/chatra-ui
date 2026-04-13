@@ -1,9 +1,10 @@
-import { useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router";
 import QueueView from "../../../sections/chat/QueueView";
-import { useGetLiveChatQueue } from "../../../hooks/useLiveChat";
+import { useGetActiveLiveChat, useGetLiveChatQueue } from "../../../hooks/useLiveChat";
 import useAuth from "../../../hooks/useAuth";
 import { createLiveChatSocket } from "../../../services/liveChatRealtimeClient";
+import liveChatServices from "../../../services/liveChatServices";
 import type { LiveChatAgent, LiveChatConversation, LiveChatQueueEntry, LiveChatVisitor } from "../../../models/LiveChatModel";
 import type { QueueVisitorRow } from "../../../models/QueueViewModel";
 
@@ -16,13 +17,43 @@ const isVisitorObject = (value: LiveChatQueueEntry["visitorId"]): value is LiveC
 const isAgentObject = (value: LiveChatQueueEntry["agentId"]): value is LiveChatAgent =>
   typeof value === "object" && value !== null;
 
+const isEndedQueueEntry = (entry: LiveChatQueueEntry) => {
+  const conversation = isConversationObject(entry.conversationId) ? entry.conversationId : null;
+  return Boolean(entry.endedAt) || String(conversation?.status || "").toUpperCase() === "ENDED";
+};
+
 const AgentQueuePage = () => {
   const navigate = useNavigate();
   const { tenant, user } = useAuth();
-  const { queue, mutate } = useGetLiveChatQueue({ page: 1, limit: 100 });
+  const { queue: waitingQueue, mutate: mutateWaitingQueue } = useGetLiveChatQueue({ page: 1, limit: 100 });
+  const { queue: activeQueue, mutate: mutateActiveQueue } = useGetActiveLiveChat({ page: 1, limit: 100 });
+
+  const combinedQueue = useMemo<LiveChatQueueEntry[]>(() => {
+    const source = [...(activeQueue || []), ...(waitingQueue || [])].filter((entry) => !isEndedQueueEntry(entry));
+    const seenConversationIds = new Set<string>();
+
+    return source.filter((entry) => {
+      const conversationValue = entry.conversationId;
+      const conversationId = typeof conversationValue === "object" && conversationValue
+        ? String(conversationValue._id || "")
+        : String(conversationValue || entry._id || "");
+
+      if (!conversationId || seenConversationIds.has(conversationId)) {
+        return false;
+      }
+
+      seenConversationIds.add(conversationId);
+      return true;
+    });
+  }, [activeQueue, waitingQueue]);
+
+  const refreshQueue = useCallback(() => {
+    void mutateWaitingQueue();
+    void mutateActiveQueue();
+  }, [mutateActiveQueue, mutateWaitingQueue]);
 
   const mappedQueue = useMemo<QueueVisitorRow[]>(() => {
-    return (queue || []).map((entry) => {
+    return (combinedQueue || []).map((entry) => {
       const conversation = isConversationObject(entry.conversationId) ? entry.conversationId : null;
       const visitor = isVisitorObject(entry.visitorId) ? entry.visitorId : null;
       const agent = isAgentObject(entry.agentId) ? entry.agentId : null;
@@ -49,7 +80,7 @@ const AgentQueuePage = () => {
         country: locationCountry,
       };
     });
-  }, [queue]);
+  }, [combinedQueue]);
 
   useEffect(() => {
     if (!tenant?.apiKey) {
@@ -66,31 +97,36 @@ const AgentQueuePage = () => {
       return;
     }
 
-    const onQueueMutation = () => {
-      void mutate();
-    };
+    const queueEvents = [
+      "NEW_CONVERSATION",
+      "CONVERSATION_ASSIGNED",
+      "CONVERSATION_TRANSFERRED",
+      "CONVERSATION_ENDED",
+      "QUEUE_UPDATED",
+      "connect",
+      "reconnect",
+    ] as const;
 
-    socket.on("NEW_CONVERSATION", onQueueMutation);
-    socket.on("CONVERSATION_ASSIGNED", onQueueMutation);
-    socket.on("CONVERSATION_TRANSFERRED", onQueueMutation);
-    socket.on("CONVERSATION_ENDED", onQueueMutation);
-    socket.on("QUEUE_UPDATED", onQueueMutation);
+    queueEvents.forEach((eventName) => socket.on(eventName, refreshQueue));
 
     return () => {
-      socket.off("NEW_CONVERSATION", onQueueMutation);
-      socket.off("CONVERSATION_ASSIGNED", onQueueMutation);
-      socket.off("CONVERSATION_TRANSFERRED", onQueueMutation);
-      socket.off("CONVERSATION_ENDED", onQueueMutation);
-      socket.off("QUEUE_UPDATED", onQueueMutation);
+      queueEvents.forEach((eventName) => socket.off(eventName, refreshQueue));
       socket.disconnect();
     };
-  }, [mutate, tenant?.apiKey, user?._id, user?.role]);
+  }, [refreshQueue, tenant?.apiKey, user?._id, user?.role]);
 
   return (
     <QueueView
       queue={mappedQueue}
+      actorRole={user?.role}
+      actorStatus={user?.status}
+      selfPickEligible={Boolean(user?.selfPickEligible)}
       isAgent={true}
       currentAgentId={user?._id}
+      onSelfPickConversation={async (visitor) => {
+        await liveChatServices.acceptConversation(visitor.conversationId || visitor.id);
+        await Promise.all([mutateWaitingQueue(), mutateActiveQueue()]);
+      }}
       onStartChat={(visitor) => {
         localStorage.setItem("jaf_active_chat_visitor", JSON.stringify(visitor));
         window.dispatchEvent(new Event("jaf_chat_session_start"));

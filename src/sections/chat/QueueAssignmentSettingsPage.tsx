@@ -44,8 +44,8 @@ const getRequestErrorMessage = (error: unknown): string => {
 };
 
 const ASSIGNMENT_MODE_DESCRIPTIONS: Record<QueueAssignmentMode, string> = {
-  ROUND_ROBIN: "Incoming visitors are automatically routed to the next available agent in rotation. Ensures balanced distribution.",
-  MANUAL: "You manually pick which agent handles each visitor from the queue. Gives you full control over assignments.",
+  ROUND_ROBIN: "Incoming visitors are automatically routed to support agents only in round-robin order. Admins can still manually assign or take any waiting chat.",
+  MANUAL: "Incoming visitors remain in waiting queue until staff action. Admins can manually assign or take chats at any time.",
 };
 
 const ASSIGNMENT_MODE_LABELS: Record<QueueAssignmentMode, string> = {

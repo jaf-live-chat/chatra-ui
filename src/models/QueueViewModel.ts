@@ -1,11 +1,12 @@
 import type { LiveChatParticipantRole } from "./LiveChatModel";
 
 export type QueueAssignmentMode = "auto" | "manual";
+export type QueueActorRole = "MASTER_ADMIN" | "ADMIN" | "SUPPORT_AGENT" | "VISITOR";
 
 export interface QueueAgentOption {
   id: string;
   name: string;
-  status: "online" | "away";
+  status: "AVAILABLE" | "BUSY" | "OFFLINE" | "AWAY";
   activeChats: number;
 }
 

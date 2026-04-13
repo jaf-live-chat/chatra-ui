@@ -36,6 +36,9 @@ export type AuthAgent = {
   phoneNumber?: string | null;
   profilePicture?: string | null;
   status?: string;
+  selfPickEligible?: boolean;
+  selfPickEligibleAt?: string | null;
+  selfPickConsumedAt?: string | null;
 };
 
 export type AuthTenant = {
