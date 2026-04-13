@@ -64,6 +64,8 @@ const QueuePage = () => {
       const locationCity = conversation?.locationCity || visitor?.locationCity || "Unknown";
       const locationCountry = conversation?.locationCountry || visitor?.locationCountry || "Unknown";
       const normalizedAgentId = agent?._id || (typeof entry.agentId === "string" ? entry.agentId : null);
+      const agentName = agent?.fullName || "";
+      const agentDisplayName = agent?.displayName || (agentName && normalizedAgentId ? `${agentName} (${normalizedAgentId})` : agentName);
 
       return {
         id: String(conversationId),
@@ -76,7 +78,8 @@ const QueuePage = () => {
         queuedAt: entry.queuedAt || conversation?.queuedAt || null,
         assignedAt: entry.assignedAt || conversation?.assignedAt || null,
         agentId: normalizedAgentId,
-        agentName: agent?.fullName || "",
+        agentName,
+        agentDisplayName,
         ipAddress: visitor?.ipAddress || conversation?.ipAddress || "",
         location: locationCity,
         country: locationCountry,

@@ -40,6 +40,7 @@ export interface LiveChatAgent {
   role: LiveChatParticipantRole;
   status?: string;
   profilePicture?: string | null;
+  displayName?: string;
 }
 
 export interface LiveChatConversation {

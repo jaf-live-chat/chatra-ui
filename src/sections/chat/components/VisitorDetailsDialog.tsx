@@ -187,6 +187,20 @@ const VisitorDetailsDialog = ({
             </Box>
           </Stack>
 
+          {visitor?.status === "Assigned" ? (
+            <Box sx={{ p: 1.5, borderRadius: 2, border: "1px solid", borderColor: "divider", bgcolor: "background.paper" }}>
+              <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5, color: "text.secondary" }}>
+                <UserRound size={14} />
+                <Typography variant="caption">Assigned to Agent</Typography>
+              </Stack>
+              <Tooltip title={visitor.agentDisplayName || visitor.agentName || "Unassigned"}>
+                <Typography variant="body2" sx={{ fontWeight: 700 }} noWrap>
+                  {visitor.agentName || "Unassigned"}
+                </Typography>
+              </Tooltip>
+            </Box>
+          ) : null}
+
           <Box sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, overflow: "hidden" }}>
             <Box sx={{ px: 2, py: 1.25, borderBottom: "1px solid", borderColor: "divider", bgcolor: "grey.50" }}>
               <Stack direction="row" alignItems="center" spacing={1}>
@@ -283,20 +297,6 @@ const VisitorDetailsDialog = ({
               sx={{ fontWeight: 700 }}
             >
               Take Chat
-            </Button>
-
-            <Button
-              variant="contained"
-              disabled={!visitor || !onStartChat}
-              onClick={() => {
-                if (visitor && onStartChat) {
-                  onStartChat(visitor);
-                  onClose();
-                }
-              }}
-              sx={{ fontWeight: 700 }}
-            >
-              Start Chat
             </Button>
           </>
         )}
