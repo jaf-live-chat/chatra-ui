@@ -43,7 +43,9 @@ const WIDGET_LOGO_KEY = "jaf_widget_logo";
 const WIDGET_DARK_MODE_KEY = "jaf_dark_mode";
 const WIDGET_TEXT_SIZE_KEY = "jaf_text_size";
 const WIDGET_MESSAGE_SOUNDS_KEY = "jaf_message_sounds";
-const LOCATION_CONSENT_KEY = "jaf_location_consent";
+const LOCATION_PERMISSION_STATE_KEY = "jaf_location_permission_state";
+
+type LocationPermissionState = "unknown" | "granted" | "denied" | "unavailable";
 
 const DEFAULT_TITLE = "Support";
 const DEFAULT_WELCOME = "Hi there. Welcome to JAF Chatra. How can I help you today?";
@@ -201,6 +203,22 @@ const parseTextSizePreference = (value: string): TextSize => {
   return "default";
 };
 
+const parseLocationPermissionState = (value: string): LocationPermissionState => {
+  if (value === "granted" || value === "denied" || value === "unavailable") {
+    return value;
+  }
+
+  if (value === "true") {
+    return "granted";
+  }
+
+  if (value === "false") {
+    return "denied";
+  }
+
+  return "unknown";
+};
+
 const getWidgetInitials = (value: string) => {
   const words = String(value || "")
     .trim()
@@ -242,18 +260,8 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
   const [isMessageSoundsEnabled, setIsMessageSoundsEnabled] = useState(() => readStoredValue(WIDGET_MESSAGE_SOUNDS_KEY, "true") !== "false");
   const [browserLocation, setBrowserLocation] = useState<BrowserLocationSnapshot | null>(null);
   const [browserLocationStatus, setBrowserLocationStatus] = useState<"idle" | "resolving" | "resolved" | "denied" | "unavailable" | "error">("idle");
-  const [locationConsent, setLocationConsent] = useState<boolean | null>(() => {
-    const storedConsent = readStoredValue(LOCATION_CONSENT_KEY);
-
-    if (storedConsent === "true") {
-      return true;
-    }
-
-    if (storedConsent === "false") {
-      return false;
-    }
-
-    return null;
+  const [locationPermissionState, setLocationPermissionState] = useState<LocationPermissionState>(() => {
+    return parseLocationPermissionState(readStoredValue(LOCATION_PERMISSION_STATE_KEY));
   });
   const [isEndChatModalOpen, setIsEndChatModalOpen] = useState(false);
   const [showQuickMessages, setShowQuickMessages] = useState(true);
@@ -316,7 +324,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
       case "error":
         return "Reconnect required";
       case "closed":
-        return "Offline";
+        return "Online";
       default:
         return "Support";
     }
@@ -370,6 +378,8 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
   const requestBrowserLocation = useCallback(() => {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
       setBrowserLocation(null);
+      setLocationPermissionState("unavailable");
+      writeStoredValue(LOCATION_PERMISSION_STATE_KEY, "unavailable");
       setBrowserLocationStatus("unavailable");
       return;
     }
@@ -383,16 +393,22 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
           longitude: position.coords.longitude,
           accuracy: typeof position.coords.accuracy === "number" ? position.coords.accuracy : null,
         });
+        setLocationPermissionState("granted");
+        writeStoredValue(LOCATION_PERMISSION_STATE_KEY, "granted");
         setBrowserLocationStatus("resolved");
       },
       (error) => {
         setBrowserLocation(null);
 
         if (error.code === error.PERMISSION_DENIED) {
+          setLocationPermissionState("denied");
+          writeStoredValue(LOCATION_PERMISSION_STATE_KEY, "denied");
           setBrowserLocationStatus("denied");
           return;
         }
 
+        setLocationPermissionState("unavailable");
+        writeStoredValue(LOCATION_PERMISSION_STATE_KEY, "unavailable");
         setBrowserLocationStatus("error");
       },
       {
@@ -458,10 +474,10 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
           fullName: preChatFullName.trim(),
           emailAddress: sanitizedEmail,
           phoneNumber: preChatPhoneNumber.trim(),
-          ipAddressConsent: locationConsent === true,
-          locationConsent: locationConsent === true,
-          browserLatitude: browserLocation?.latitude,
-          browserLongitude: browserLocation?.longitude,
+          ipAddressConsent: locationPermissionState === "granted" && Boolean(browserLocation),
+          locationConsent: locationPermissionState === "granted" && Boolean(browserLocation),
+          browserLatitude: locationPermissionState === "granted" ? browserLocation?.latitude : undefined,
+          browserLongitude: locationPermissionState === "granted" ? browserLocation?.longitude : undefined,
         },
       );
 
@@ -489,7 +505,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
     } finally {
       setIsLoading(false);
     }
-  }, [browserLocation?.latitude, browserLocation?.longitude, hasApiKey, locationConsent, preChatEmailAddress, preChatFullName, preChatPhoneNumber, syncMessages, visitorToken, widgetConfig]);
+  }, [browserLocation, hasApiKey, locationPermissionState, preChatEmailAddress, preChatFullName, preChatPhoneNumber, syncMessages, visitorToken, widgetConfig]);
 
   const syncWidgetSettings = useCallback(async () => {
     if (!hasApiKey) {
@@ -633,14 +649,9 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
   }, [conversationId, hasCompletedPreChat, isSending, messageText, startConversation, syncMessages, visitorToken, widgetConfig]);
 
   const handleCompletePreChat = useCallback(() => {
-    if (locationConsent === null) {
-      setErrorMessage("Choose Allow or Skip for location before continuing.");
-      return;
-    }
-
     setHasCompletedPreChat(true);
     setErrorMessage("");
-  }, [locationConsent]);
+  }, []);
 
   const resetConversationState = useCallback(() => {
     disconnectSocket();
@@ -873,16 +884,21 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
       setTextSize(parseTextSizePreference(readStoredValue(WIDGET_TEXT_SIZE_KEY, "default")));
       setIsMessageSoundsEnabled(readStoredValue(WIDGET_MESSAGE_SOUNDS_KEY, "true") !== "false");
 
-      const storedConsent = readStoredValue(LOCATION_CONSENT_KEY);
-      if (storedConsent === "true") {
-        setLocationConsent(true);
-        if (browserLocationStatus === "idle") {
-          requestBrowserLocation();
-        }
-      } else if (storedConsent === "false") {
-        setLocationConsent(false);
+      const storedPermissionState = parseLocationPermissionState(readStoredValue(LOCATION_PERMISSION_STATE_KEY));
+      setLocationPermissionState(storedPermissionState);
+
+      if (storedPermissionState === "denied") {
+        setBrowserLocationStatus("denied");
         setBrowserLocation(null);
-        setBrowserLocationStatus("idle");
+      }
+
+      if (storedPermissionState === "unavailable") {
+        setBrowserLocationStatus("unavailable");
+        setBrowserLocation(null);
+      }
+
+      if (storedPermissionState === "granted" && !browserLocation) {
+        requestBrowserLocation();
       }
     };
 
@@ -901,19 +917,19 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
       window.removeEventListener("open-live-chat", handleOpenChat);
       window.removeEventListener("storage", handleStorage);
     };
-  }, [browserLocationStatus, conversationId, initialConfig, requestBrowserLocation]);
+  }, [browserLocation, conversationId, initialConfig, requestBrowserLocation]);
 
   useEffect(() => {
-    if (!isOpen || locationConsent !== true) {
+    if (!isOpen || locationPermissionState !== "unknown") {
       return;
     }
 
-    if (browserLocation || browserLocationStatus === "resolving" || browserLocationStatus === "resolved") {
+    if (browserLocationStatus === "resolving") {
       return;
     }
 
     requestBrowserLocation();
-  }, [browserLocation, browserLocationStatus, isOpen, locationConsent, requestBrowserLocation]);
+  }, [browserLocationStatus, isOpen, locationPermissionState, requestBrowserLocation]);
 
   useEffect(() => {
     if (isOpen) {
@@ -1244,7 +1260,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
               <div className="min-w-0 flex-1">
                 <p className={`font-semibold leading-tight truncate whitespace-nowrap ${headerTitleClass}`}>{title}</p>
                 <div className="flex items-center gap-2 mt-0.5">
-                  <span className={`h-2.5 w-2.5 rounded-full ${socketStatus === "connected" ? "bg-emerald-400 animate-pulse" : socketStatus === "connecting" ? "bg-yellow-300" : "bg-slate-300"}`} />
+                  <span className={`h-2.5 w-2.5 rounded-full ${socketStatus === "connected" ? "bg-emerald-400 animate-pulse" : socketStatus === "connecting" ? "bg-yellow-300" : "bg-emerald-400 animate-pulse"}`} />
                   <p className={`${theme.subText} ${headerStatusClass}`}>{statusLabel}</p>
                 </div>
               </div>
@@ -1385,150 +1401,59 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                     </div>
                   </div>
                 ) : messages.length === 0 ? (
-                  <div className={`rounded-2xl border-2 p-5 text-center ${theme.panel}`}>
-                    {!conversationId && !hasCompletedPreChat ? (
-                      <div className={`mb-4 rounded-2xl border px-4 py-3 text-left ${theme.settingsCard}`}>
-                        <p className={`font-semibold ${theme.settingsText}`}>Before we start (optional)</p>
-                        <p className={`mt-1 leading-relaxed ${theme.settingsMuted}`}>
-                          Share your details if you want faster support. You can leave everything blank and continue.
-                        </p>
-
-                        <div className="mt-3 grid gap-2">
-                          <input
-                            type="text"
-                            value={preChatFullName}
-                            onChange={(event) => setPreChatFullName(event.target.value)}
-                            placeholder="Full name (optional)"
-                            className={`w-full rounded-xl border px-3 py-2 text-sm outline-none ${theme.input}`}
-                          />
-                          <input
-                            type="email"
-                            value={preChatEmailAddress}
-                            onChange={(event) => setPreChatEmailAddress(event.target.value)}
-                            placeholder="Email address (optional)"
-                            className={`w-full rounded-xl border px-3 py-2 text-sm outline-none ${theme.input}`}
-                          />
-                          <input
-                            type="text"
-                            value={preChatPhoneNumber}
-                            onChange={(event) => setPreChatPhoneNumber(event.target.value)}
-                            placeholder="Phone number (optional)"
-                            className={`w-full rounded-xl border px-3 py-2 text-sm outline-none ${theme.input}`}
-                          />
-                        </div>
-                      </div>
-                    ) : null}
-
-                    {!conversationId ? (
-                      <div className={`mb-4 rounded-2xl border px-4 py-3 text-left ${theme.settingsCard}`}>
-                        <p className={`font-semibold ${theme.settingsText}`}>Location consent</p>
-                        <p className={`mt-1 leading-relaxed ${theme.settingsMuted}`}>
-                          Choose how we should estimate your city and country for faster support routing.
-                        </p>
-
-                        <div className="mt-3 space-y-2.5">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setLocationConsent(true);
-                              writeStoredValue(LOCATION_CONSENT_KEY, "true");
-                              requestBrowserLocation();
-                            }}
-                            className="w-full rounded-xl border px-3 py-2.5 transition-all"
-                            style={{
-                              borderColor: locationConsent === true ? resolvedAccent : accentSoftBorder,
-                              backgroundColor: locationConsent === true ? accentSoftBackground : "transparent",
-                            }}
-                          >
-                            <div className="flex items-start gap-2.5 text-left">
-                              <span
-                                className="mt-0.5 inline-flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full border"
-                                style={{
-                                  borderColor: locationConsent === true ? resolvedAccent : "#94a3b8",
-                                  backgroundColor: locationConsent === true ? resolvedAccent : "transparent",
-                                }}
-                              >
-                                {locationConsent === true ? <span className="h-1.5 w-1.5 rounded-full bg-white" /> : null}
-                              </span>
-                              <span className="flex min-w-0 flex-col">
-                                <span className={`text-sm font-semibold ${theme.settingsText}`}>Precise location</span>
-                                <span className={`text-xs ${theme.settingsMuted}`}>Use browser location first, then IP fallback if needed.</span>
-                              </span>
-                            </div>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setLocationConsent(false);
-                              writeStoredValue(LOCATION_CONSENT_KEY, "false");
-                              setBrowserLocation(null);
-                              setBrowserLocationStatus("idle");
-                            }}
-                            className="w-full rounded-xl border px-3 py-2.5 transition-all"
-                            style={{
-                              borderColor: locationConsent === false ? resolvedAccent : accentSoftBorder,
-                              backgroundColor: locationConsent === false ? accentSoftBackground : "transparent",
-                            }}
-                          >
-                            <div className="flex items-start gap-2.5 text-left">
-                              <span
-                                className="mt-0.5 inline-flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full border"
-                                style={{
-                                  borderColor: locationConsent === false ? resolvedAccent : "#94a3b8",
-                                  backgroundColor: locationConsent === false ? resolvedAccent : "transparent",
-                                }}
-                              >
-                                {locationConsent === false ? <span className="h-1.5 w-1.5 rounded-full bg-white" /> : null}
-                              </span>
-                              <span className="flex min-w-0 flex-col">
-                                <span className={`text-sm font-semibold ${theme.settingsText}`}>Approximate location</span>
-                                <span className={`text-xs ${theme.settingsMuted}`}>Use IP-based region lookup only.</span>
-                              </span>
-                            </div>
-                          </button>
-                        </div>
-
-                        {locationConsent === true ? (
-                          <p className={`mt-2 text-xs font-medium ${browserLocationStatus === "resolved"
-                            ? "text-emerald-600 dark:text-emerald-400"
-                            : browserLocationStatus === "resolving"
-                              ? "text-cyan-600 dark:text-cyan-400"
-                              : "text-amber-600 dark:text-amber-400"}`}>
-                            {browserLocationStatus === "resolved"
-                              ? "Location captured."
-                              : browserLocationStatus === "resolving"
-                                ? "Requesting location permission..."
-                                : "Browser location unavailable. IP fallback will be used."}
-                          </p>
-                        ) : null}
-
-                        {locationConsent === false ? (
-                          <p className={`mt-2 text-xs font-medium ${theme.settingsMuted}`}>
-                            IP-based lookup selected.
-                          </p>
-                        ) : null}
-
-                        {!hasCompletedPreChat ? (
-                          <button
-                            type="button"
-                            onClick={handleCompletePreChat}
-                            disabled={locationConsent === null}
-                            className="mt-3 w-full rounded-xl px-3 py-2 text-sm font-semibold text-white"
-                            style={{ backgroundColor: locationConsent === null ? "#94a3b8" : resolvedAccent }}
-                          >
-                            Start chat
-                          </button>
-                        ) : null}
-                      </div>
-                    ) : null}
-                    <div className="flex justify-center mb-3">
-                      <div className="h-14 w-14 rounded-full bg-cyan-100/90 dark:bg-cyan-900/30 flex items-center justify-center ring-8 ring-cyan-50/60 dark:ring-cyan-900/30">
-                        <MessageCircle className="h-7 w-7 text-cyan-600" />
+                  <div className={`rounded-[22px] border-2 px-4 py-5 sm:px-5 sm:py-6 text-center ${theme.panel}`}>
+                    <div className="flex justify-center">
+                      <div className="h-[54px] w-[54px] rounded-full bg-slate-200/90 dark:bg-slate-700/60 flex items-center justify-center">
+                        <MessageCircle className="h-6 w-6 text-cyan-600" />
                       </div>
                     </div>
-                    <p className={`${theme.welcomeTitle} ${helperTextSizeClass} leading-snug`}>{welcomeMessage}</p>
+
+                    <p className={`mt-5 ${theme.welcomeTitle} ${helperTextSizeClass} leading-snug`}>{welcomeMessage}</p>
                     <p className={`mt-2 ${theme.muted} ${helperTextSizeClass} leading-snug`}>We&apos;re here to help. Send a message to get started.</p>
+
+                    {!conversationId && !hasCompletedPreChat ? (
+                      <>
+                        <div className={`my-4 border-t ${theme.settingsDivider}`} />
+                        <div className="text-left">
+                          <p className={`font-semibold ${theme.settingsText}`}>Before we start (optional)</p>
+                          <p className={`mt-1 leading-relaxed ${theme.settingsMuted}`}>
+                            Share your details if you want faster support. You can leave everything blank and continue.
+                          </p>
+
+                          <div className="mt-3 grid gap-2.5">
+                            <input
+                              type="text"
+                              value={preChatFullName}
+                              onChange={(event) => setPreChatFullName(event.target.value)}
+                              placeholder="Full name (optional)"
+                              className={`w-full rounded-xl border px-3.5 py-2.5 text-sm outline-none ${theme.input}`}
+                            />
+                            <input
+                              type="email"
+                              value={preChatEmailAddress}
+                              onChange={(event) => setPreChatEmailAddress(event.target.value)}
+                              placeholder="Email address (optional)"
+                              className={`w-full rounded-xl border px-3.5 py-2.5 text-sm outline-none ${theme.input}`}
+                            />
+                            <input
+                              type="text"
+                              value={preChatPhoneNumber}
+                              onChange={(event) => setPreChatPhoneNumber(event.target.value)}
+                              placeholder="Phone number (optional)"
+                              className={`w-full rounded-xl border px-3.5 py-2.5 text-sm outline-none ${theme.input}`}
+                            />
+                          </div>
+
+                          <p className={`mt-3 text-xs font-medium ${theme.settingsMuted}`}>
+                            {browserLocationStatus === "resolved"
+                              ? "Location access enabled for this session."
+                              : browserLocationStatus === "resolving"
+                                ? "Requesting location permission..."
+                                : "Location access is off. Chat will continue without location data."}
+                          </p>
+                        </div>
+                      </>
+                    ) : null}
                   </div>
                 ) : (
                   <div className="flex flex-col gap-4">
@@ -1643,81 +1568,101 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                   </div>
                 ) : null}
 
-                <div className={`flex items-end ${composerGapClass}`}>
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={isComposerBlocked}
-                    className={`flex ${composerButtonSizeClass} items-center justify-center rounded-2xl flex-shrink-0 transition-all duration-200 hover:-translate-y-0.5 ${theme.buttonSecondary} disabled:opacity-50 disabled:cursor-not-allowed`}
-                    aria-label="Attach file"
-                    title="Attach file (coming soon)"
-                    style={{ backgroundColor: accentSoftBackground, borderColor: accentSoftBorder, color: resolvedAccent }}
-                  >
-                    <Paperclip className="h-5 w-5" />
-                  </button>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    className="hidden"
-                    disabled
-                  />
+                {isPreChatPending ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleCompletePreChat}
+                      disabled={!hasApiKey || hasRuntimeError || isLoading}
+                      className="w-full rounded-full px-3 py-3 text-sm font-semibold text-white disabled:opacity-60 disabled:cursor-not-allowed"
+                      style={{ backgroundColor: resolvedAccent }}
+                    >
+                      Start chat
+                    </button>
 
-                  <div className={`flex-1 rounded-2xl border-2 px-1 py-1 ${theme.input} flex items-end`}>
-                    <textarea
-                      ref={messageInputRef}
-                      value={messageText}
-                      onChange={(event) => setMessageText(event.target.value)}
-                      rows={1}
-                      onInput={(event) => {
-                        const target = event.currentTarget;
-                        target.style.height = "auto";
-                        target.style.height = `${Math.min(target.scrollHeight, 84)}px`;
-                      }}
-                      onKeyDown={(event) => {
-                        if (isComposerBlocked) {
-                          return;
-                        }
+                    <p className={`text-xs mt-2.5 text-center font-medium ${theme.poweredText}`}>
+                      Powered by <span className={`font-bold text-[0.65rem] ${theme.poweredBrand}`}>JAF Chatra</span>
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <div className={`flex items-end ${composerGapClass}`}>
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isComposerBlocked}
+                        className={`flex ${composerButtonSizeClass} items-center justify-center rounded-2xl flex-shrink-0 transition-all duration-200 hover:-translate-y-0.5 ${theme.buttonSecondary} disabled:opacity-50 disabled:cursor-not-allowed`}
+                        aria-label="Attach file"
+                        title="Attach file (coming soon)"
+                        style={{ backgroundColor: accentSoftBackground, borderColor: accentSoftBorder, color: resolvedAccent }}
+                      >
+                        <Paperclip className="h-5 w-5" />
+                      </button>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        className="hidden"
+                        disabled
+                      />
 
-                        if (event.key === "Enter" && !event.shiftKey) {
-                          event.preventDefault();
+                      <div className={`flex-1 rounded-2xl border-2 px-1 py-1 ${theme.input} flex items-end`}>
+                        <textarea
+                          ref={messageInputRef}
+                          value={messageText}
+                          onChange={(event) => setMessageText(event.target.value)}
+                          rows={1}
+                          onInput={(event) => {
+                            const target = event.currentTarget;
+                            target.style.height = "auto";
+                            target.style.height = `${Math.min(target.scrollHeight, 84)}px`;
+                          }}
+                          onKeyDown={(event) => {
+                            if (isComposerBlocked) {
+                              return;
+                            }
+
+                            if (event.key === "Enter" && !event.shiftKey) {
+                              event.preventDefault();
+                              void handleSendMessage();
+                            }
+                          }}
+                          placeholder={
+                            hasApiKey
+                              ? (hasRuntimeError
+                                ? "Resolve the error to continue chatting..."
+                                : (hasEndedConversation
+                                  ? "This chat has ended. Tap Go back to start again..."
+                                  : (isPreChatPending ? "Complete the optional pre-chat step to continue..." : "Type a message...")))
+                              : "Widget apiKey is missing..."
+                          }
+                          disabled={isComposerBlocked}
+                          className={`w-full bg-transparent ${composerTextClass} outline-none ${inputPaddingClass} disabled:opacity-50 resize-none overflow-y-auto max-h-[84px] ${isDarkMode ? "text-slate-100" : "text-slate-900"}`}
+                        />
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (isComposerBlocked) {
+                            return;
+                          }
+
                           void handleSendMessage();
-                        }
-                      }}
-                      placeholder={
-                        hasApiKey
-                          ? (hasRuntimeError
-                            ? "Resolve the error to continue chatting..."
-                            : (hasEndedConversation
-                              ? "This chat has ended. Tap Go back to start again..."
-                              : (isPreChatPending ? "Complete the optional pre-chat step to continue..." : "Type a message...")))
-                          : "Widget apiKey is missing..."
-                      }
-                      disabled={isComposerBlocked}
-                      className={`w-full bg-transparent ${composerTextClass} outline-none ${inputPaddingClass} disabled:opacity-50 resize-none overflow-y-auto max-h-[84px] ${isDarkMode ? "text-slate-100" : "text-slate-900"}`}
-                    />
-                  </div>
+                        }}
+                        disabled={isComposerBlocked || !messageText.trim()}
+                        className={`flex ${composerButtonSizeClass} flex-shrink-0 items-center justify-center rounded-2xl transition-all duration-200 hover:-translate-y-0.5 ${theme.button} disabled:opacity-50 disabled:cursor-not-allowed`}
+                        style={{ backgroundColor: resolvedAccent, boxShadow: accentShadow }}
+                        aria-label="Send message"
+                      >
+                        {isSending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
+                      </button>
+                    </div>
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (isComposerBlocked) {
-                        return;
-                      }
-
-                      void handleSendMessage();
-                    }}
-                    disabled={isComposerBlocked || !messageText.trim()}
-                    className={`flex ${composerButtonSizeClass} flex-shrink-0 items-center justify-center rounded-2xl transition-all duration-200 hover:-translate-y-0.5 ${theme.button} disabled:opacity-50 disabled:cursor-not-allowed`}
-                    style={{ backgroundColor: resolvedAccent, boxShadow: accentShadow }}
-                    aria-label="Send message"
-                  >
-                    {isSending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
-                  </button>
-                </div>
-
-                <p className={`text-xs mt-2.5 text-center font-medium ${theme.poweredText}`}>
-                  Powered by <span className={`font-bold text-[0.65rem] ${theme.poweredBrand}`}>JAF Chatra</span>
-                </p>
+                    <p className={`text-xs mt-2.5 text-center font-medium ${theme.poweredText}`}>
+                      Powered by <span className={`font-bold text-[0.65rem] ${theme.poweredBrand}`}>JAF Chatra</span>
+                    </p>
+                  </>
+                )}
               </div>
             </>
           )}
