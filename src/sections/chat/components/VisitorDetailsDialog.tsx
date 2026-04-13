@@ -16,6 +16,8 @@ import type { LiveChatMessage } from "../../../models/LiveChatModel";
 import type { QueueActorRole, QueueVisitorRow } from "../../../models/QueueViewModel";
 import liveChatServices from "../../../services/liveChatServices";
 import { formatElapsedTime } from "../../../utils/liveChatQueueTime";
+import useAuth from "../../../hooks/useAuth";
+import { toast } from 'sonner'
 
 interface VisitorDetailsDialogProps {
   open: boolean;
@@ -55,12 +57,13 @@ const VisitorDetailsDialog = ({
   onClose,
   onStartChat,
   onTakeConversation,
-  onSelfPickConversation,
   onOpenAssignDialog,
 }: VisitorDetailsDialogProps) => {
   const [messages, setMessages] = useState<LiveChatMessage[]>([]);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [messageError, setMessageError] = useState<string | null>(null);
+
+  const { user } = useAuth()
 
   useEffect(() => {
     if (!open || !visitor?.conversationId) {
@@ -112,8 +115,6 @@ const VisitorDetailsDialog = ({
 
   const isWaitingVisitor = visitor?.status === "Waiting";
   const isAdminOrMaster = actorRole === USER_ROLES.ADMIN.value || actorRole === USER_ROLES.MASTER_ADMIN.value;
-  const isSupportAgent = actorRole === USER_ROLES.SUPPORT_AGENT.value;
-  const canSelfPick = isSupportAgent && actorStatus === USER_STATUS.AVAILABLE;
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
@@ -264,33 +265,40 @@ const VisitorDetailsDialog = ({
           </>
         )}
 
-        <Button
-          variant="contained"
-          disabled={!visitor || !onTakeConversation || isProcessingAction}
-          onClick={() => {
-            if (visitor && onTakeConversation) {
-              void onTakeConversation(visitor);
-            }
-          }}
-          sx={{ fontWeight: 700 }}
-        >
-          Take Chat
-        </Button>
+        {isWaitingVisitor && (
+          <>
+            <Button
+              variant="contained"
+              disabled={!visitor || !onTakeConversation || isProcessingAction}
+              onClick={() => {
+                if (user?.status !== USER_STATUS.AVAILABLE) {
+                  toast.error("You must be available to take this conversation.");
+                  return;
+                }
 
-        {!isWaitingVisitor && (
-          <Button
-            variant="contained"
-            disabled={!visitor || !onStartChat}
-            onClick={() => {
-              if (visitor && onStartChat) {
-                onStartChat(visitor);
-                onClose();
-              }
-            }}
-            sx={{ fontWeight: 700 }}
-          >
-            Start Chat
-          </Button>
+                if (visitor && onTakeConversation) {
+                  void onTakeConversation(visitor);
+                }
+              }}
+              sx={{ fontWeight: 700 }}
+            >
+              Take Chat
+            </Button>
+
+            <Button
+              variant="contained"
+              disabled={!visitor || !onStartChat}
+              onClick={() => {
+                if (visitor && onStartChat) {
+                  onStartChat(visitor);
+                  onClose();
+                }
+              }}
+              sx={{ fontWeight: 700 }}
+            >
+              Start Chat
+            </Button>
+          </>
         )}
       </DialogActions>
     </Dialog>
