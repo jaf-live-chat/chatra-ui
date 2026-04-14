@@ -429,13 +429,13 @@ function DashboardLayoutInner() {
           } w-[86vw] max-w-72 md:max-w-none bg-white dark:bg-slate-800 border-r border-gray-200 dark:border-slate-700 flex flex-col fixed top-0 left-0 h-screen shrink-0 z-30 transition-all duration-300`}
       >
         {/* Logo row */}
-        <div className={`h-16 flex items-center ${isSidebarOpen ? "justify-between px-4" : "justify-center px-2"} border-b border-gray-100 dark:border-slate-700`}>
+        <div className={`h-16 flex flex-col justify-center ${isSidebarOpen ? "px-4" : "px-2"} border-b border-gray-100 dark:border-slate-700 relative`}>
           {isSidebarOpen ? (
             <div className="flex w-full items-center justify-center overflow-hidden">
               <Logo
                 variant={sidebarLogoVariant}
                 alt="JAF Chatra Logo"
-                size="lg"
+                size="sm"
                 className="mx-auto"
               />
             </div>
@@ -443,7 +443,7 @@ function DashboardLayoutInner() {
             <Logo
               variant={sidebarLogoVariant}
               alt="JAF Chatra Minimized"
-              size="xl"
+              size="md"
               className="mx-auto"
             />
           )}
