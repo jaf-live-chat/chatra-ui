@@ -129,9 +129,9 @@ function LogoUploadCard({
       className={`rounded-lg sm:rounded-xl border p-3 sm:p-4 ${isDark ? "border-slate-700 bg-slate-900/40" : "border-gray-200 bg-gray-50"}`}
     >
       <div className="flex items-start gap-3 sm:gap-4">
-        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg sm:rounded-xl bg-gradient-to-br from-cyan-500 to-teal-500 flex items-center justify-center text-white text-lg sm:text-xl font-bold shadow-inner overflow-hidden shrink-0">
+        <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-lg sm:rounded-xl bg-gradient-to-br from-cyan-500 to-teal-500 flex items-center justify-center text-white text-lg sm:text-xl font-bold shadow-inner overflow-hidden shrink-0">
           {previewUrl ? (
-            <img src={previewUrl} alt={title} className="w-full h-full object-cover" />
+            <img src={previewUrl} alt={title} className="w-full h-full object-contain" />
           ) : (
             title
               .split(" ")

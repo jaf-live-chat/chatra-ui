@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ArrowLeft, MessageSquare, UserRound } from "lucide-react";
+import { ArrowLeft, MessageSquare, UserRound, Mail, Phone, MapPin, Clock } from "lucide-react";
 import { useNavigate, useParams } from "react-router";
 import Alert from "@mui/material/Alert";
 import Avatar from "@mui/material/Avatar";
@@ -235,120 +235,106 @@ const VisitorDetailsSection = () => {
 
   const columns: ReusableTableColumn<VisitorConversationHistory>[] = [
     {
-      id: "conversation",
-      label: "Conversation",
+      id: "timeline",
+      label: "TIMELINE",
       sortable: true,
       sortAccessor: (conversation) => new Date(conversation.updatedAt || conversation.createdAt || 0),
       renderCell: (conversation) => (
-        <Box sx={{ minWidth: 180 }}>
-          <Typography variant="body2" sx={{ fontWeight: 700, color: "text.primary" }}>
-            {getConversationCode(String(conversation._id || ""))}
+        <Stack direction="row" spacing={1.5} alignItems="center" sx={{ minWidth: 160 }}>
+          <Box
+            sx={{
+              width: 10,
+              height: 10,
+              borderRadius: 1,
+              bgcolor: resolveStatusColor(conversation.status) === "success" ? "success.main" : resolveStatusColor(conversation.status) === "warning" ? "warning.main" : "info.main",
+            }}
+          />
+          <Typography variant="body2" sx={{ color: "text.primary", fontWeight: 700, fontSize: 13 }}>
+            {toDateLabel(conversation.updatedAt || conversation.closedAt || conversation.createdAt || null)}
           </Typography>
-          <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.2 }}>
-            <Chip
-              label={resolveStatusLabel(conversation.status)}
-              size="small"
-              color={resolveStatusColor(conversation.status)}
-              sx={{ fontWeight: 700, height: 22 }}
-            />
-            <Typography variant="caption" sx={{ color: "text.secondary" }}>
-              {getDurationLabel(conversation)}
-            </Typography>
-          </Stack>
-        </Box>
+        </Stack>
       ),
     },
     {
-      id: "timeline",
-      label: "Timeline",
+      id: "conversation",
+      label: "CONVERSATION ID",
       sortable: true,
       sortAccessor: (conversation) => new Date(conversation.updatedAt || conversation.createdAt || 0),
       renderCell: (conversation) => (
-        <Box sx={{ minWidth: 200 }}>
-          <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-            Started
+        <Box sx={{ minWidth: 150 }}>
+          <Typography variant="body2" sx={{ fontWeight: 700, color: "text.primary", fontSize: 13 }}>
+            {getConversationCode(String(conversation._id || ""))}
           </Typography>
-          <Typography variant="body2" sx={{ color: "text.primary", fontWeight: 600 }}>
-            {toDateLabel(conversation.createdAt)}
-          </Typography>
-          <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 0.5 }}>
-            Last Activity
-          </Typography>
-          <Typography variant="body2" sx={{ color: "text.primary", fontWeight: 600 }}>
-            {toDateLabel(conversation.updatedAt || conversation.closedAt || null)}
+          <Typography variant="caption" sx={{ color: "text.secondary", mt: 0.2, display: "block", fontSize: 11 }}>
+            {conversation.history?.messageCount || 0} messages
           </Typography>
         </Box>
       ),
     },
     {
       id: "agent",
-      label: "Agent",
+      label: "AGENT",
       sortable: true,
       sortAccessor: (conversation) => resolveAgentName(conversation),
       renderCell: (conversation) => (
-        <Stack spacing={0.25}>
-          <Typography variant="body2" sx={{ color: "text.primary", fontWeight: 700 }}>
+        <Stack direction="row" spacing={1.5} alignItems="center">
+          <Avatar
+            sx={(theme) => ({
+              width: 28,
+              height: 28,
+              bgcolor: conversation.agentId ? theme.palette.primary.main : theme.palette.action.disabledBackground,
+              color: conversation.agentId ? theme.palette.primary.contrastText : theme.palette.text.secondary,
+              fontSize: 11,
+              fontWeight: 700,
+            })}
+          >
+            {getInitials(resolveAgentName(conversation))}
+          </Avatar>
+          <Typography variant="body2" sx={{ color: "text.primary", fontWeight: 700, fontSize: 13 }}>
             {resolveAgentName(conversation)}
-          </Typography>
-          <Typography variant="caption" sx={{ color: "text.secondary" }}>
-            {conversation.agentId ? "Assigned" : "Unassigned"}
           </Typography>
         </Stack>
       ),
     },
     {
       id: "history",
-      label: "Highlights",
+      label: "LAST MESSAGE",
       renderCell: (conversation) => (
-        <Box sx={{ minWidth: 260 }}>
-          <Typography variant="body2" sx={{ fontWeight: 700, color: "text.primary", lineHeight: 1.2 }}>
-            {conversation.history?.messageCount || 0} messages
-          </Typography>
-          <Typography
-            variant="caption"
-            sx={{
-              color: "text.secondary",
-              display: "inline-block",
-              maxWidth: 260,
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-            }}
-          >
-            Latest: {conversation.history?.lastMessage || "No messages"}
-          </Typography>
-          <Typography
-            variant="caption"
-            sx={{
-              color: "text.secondary",
-              display: "block",
-              maxWidth: 260,
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-            }}
-          >
-            Started with: {conversation.history?.firstMessage || "-"}
+        <Box
+          sx={{
+            py: 1,
+            px: 1.5,
+            border: "1px solid",
+            borderColor: "divider",
+            borderRadius: 1,
+            maxWidth: 300,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          <Typography variant="body2" sx={{ color: "text.secondary", fontSize: 13 }}>
+            "{conversation.history?.lastMessage || "No messages"}"
           </Typography>
         </Box>
       ),
     },
     {
       id: "action",
-      label: "",
+      label: "ACTION",
       align: "right",
       headerAlign: "right",
       renderCell: (conversation) => (
         <Button
           size="small"
-          variant="outlined"
+          variant="contained"
           onClick={() => {
             setMessageDialog({
               conversationId: String(conversation._id || ""),
               title: getConversationCode(String(conversation._id || "")),
             });
           }}
-          sx={{ textTransform: "none", fontWeight: 700, minWidth: 100 }}
+          sx={{ textTransform: "none", fontWeight: 700, borderRadius: 1, minWidth: 90, fontSize: 12 }}
         >
           View Chat
         </Button>
@@ -358,7 +344,7 @@ const VisitorDetailsSection = () => {
 
   if (!id) {
     return (
-      <Paper elevation={0} sx={{ p: 3, border: "1px solid", borderColor: "divider", borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ p: 3, border: "1px solid", borderColor: "divider", borderRadius: 1 }}>
         <Alert severity="error">Missing visitor id in route.</Alert>
       </Paper>
     );
@@ -377,7 +363,7 @@ const VisitorDetailsSection = () => {
           variant="outlined"
           startIcon={<ArrowLeft size={16} />}
           onClick={() => navigate("/portal/visitors")}
-          sx={{ textTransform: "none", fontWeight: 700 }}
+          sx={{ textTransform: "none", fontWeight: 700, borderRadius: 1}}
         >
           Back to Visitors
         </Button>
@@ -392,136 +378,164 @@ const VisitorDetailsSection = () => {
         sx={{
           border: "1px solid",
           borderColor: "divider",
-          borderRadius: 2,
-          p: { xs: 2.2, md: 2.8 },
-          background: (theme) =>
-            theme.palette.mode === "dark"
-              ? "linear-gradient(140deg, #082f49 0%, #0f172a 100%)"
-              : "linear-gradient(140deg, #ecfeff 0%, #f8fafc 100%)",
+          borderRadius: 1,
+          p: { xs: 2, md: 3 },
+          bgcolor: "background.paper",
         }}
       >
         {isLoading && !visitor ? (
           <Stack direction="row" spacing={1} alignItems="center">
             <CircularProgress size={18} />
-            <Typography variant="body2" sx={{ color: "text.secondary" }}>
+            <Typography variant="body2" sx={{ color: "text.secondary" }}>       
               Loading visitor profile...
             </Typography>
           </Stack>
         ) : (
-          <Stack spacing={2.2}>
+          <Stack spacing={3}>
             <Stack
               direction={{ xs: "column", lg: "row" }}
-              spacing={2}
+              spacing={3}
               alignItems={{ xs: "flex-start", lg: "center" }}
               justifyContent="space-between"
             >
-              <Stack direction="row" spacing={1.5} alignItems="center">
+              <Stack direction="row" spacing={2} alignItems="center">
                 <Avatar
                   sx={(theme) => ({
                     width: 58,
                     height: 58,
-                    bgcolor: theme.palette.primary.main,
-                    color: theme.palette.primary.contrastText,
+                    bgcolor: "teal",
+                    color: "white",
                     fontWeight: 700,
-                    fontSize: "1.1rem",
+                    fontSize: "1.25rem",
                   })}
                 >
                   {getInitials(visitorName)}
                 </Avatar>
 
-                <Stack spacing={0.4}>
+                <Stack spacing={0.5}>
                   <Typography variant="h6" sx={{ fontWeight: 800, color: "text.primary", lineHeight: 1.1 }}>
                     {visitorName}
                   </Typography>
-                  <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                    {idLabel(String(visitor?._id || ""), "VISITOR")}
-                  </Typography>
-                  <Stack direction="row" spacing={0.8} alignItems="center" flexWrap="wrap">
-                    <Chip size="small" label={`Location: ${locationLabel}`} sx={{ fontWeight: 600 }} />
+                  <Box>
                     <Chip
                       size="small"
-                      label={`Last Seen: ${toShortDateLabel(visitor?.lastSeenAt || visitor?.updatedAt || null)}`}
-                      variant="outlined"
-                      sx={{ fontWeight: 600 }}
+                      label={idLabel(String(visitor?._id || ""), "VISITOR")}
+                      sx={{ fontWeight: 700, borderRadius: 1 }}
                     />
-                  </Stack>
+                  </Box>
                 </Stack>
               </Stack>
 
-              <Stack direction={{ xs: "column", sm: "row" }} spacing={1.2}>
-                <Paper
-                  elevation={0}
-                  sx={{
-                    px: 1.5,
-                    py: 1,
-                    borderRadius: 1.5,
-                    border: "1px solid",
-                    borderColor: "divider",
-                    minWidth: 190,
-                  }}
-                >
-                  <Typography variant="caption" sx={{ color: "text.secondary" }}>Email</Typography>
-                  <Typography variant="body2" sx={{ color: "text.primary", fontWeight: 700 }}>
-                    {visitor?.emailAddress || "-"}
-                  </Typography>
-                </Paper>
+              <Box
+                display="grid"
+                gridTemplateColumns={{ xs: "1fr", sm: "1fr 1fr" }}
+                gap={2.5}
+              >
+                <Stack direction="row" spacing={2}>
+                  <Box sx={{ color: "text.secondary", mt: 0.5 }}>
+                    <Mail size={16} />
+                  </Box>
+                  <Stack>
+                    <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700, fontSize: "0.65rem", letterSpacing: 0.5 }}>
+                      EMAIL ADDRESS
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: "text.primary", fontWeight: 700, fontSize: "0.8rem" }}>
+                      {visitor?.emailAddress || "-"}
+                    </Typography>
+                  </Stack>
+                </Stack>
 
-                <Paper
-                  elevation={0}
-                  sx={{
-                    px: 1.5,
-                    py: 1,
-                    borderRadius: 1.5,
-                    border: "1px solid",
-                    borderColor: "divider",
-                    minWidth: 150,
-                  }}
-                >
-                  <Typography variant="caption" sx={{ color: "text.secondary" }}>Phone</Typography>
-                  <Typography variant="body2" sx={{ color: "text.primary", fontWeight: 700 }}>
-                    {visitor?.phoneNumber || "-"}
-                  </Typography>
-                </Paper>
-              </Stack>
+                <Stack direction="row" spacing={2}>
+                  <Box sx={{ color: "text.secondary", mt: 0.5 }}>
+                    <Phone size={16} />
+                  </Box>
+                  <Stack>
+                    <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700, fontSize: "0.65rem", letterSpacing: 0.5 }}>
+                      PHONE NUMBER
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: "text.primary", fontWeight: 700, fontSize: "0.8rem" }}>
+                      {visitor?.phoneNumber || "-"}
+                    </Typography>
+                  </Stack>
+                </Stack>
+
+                <Stack direction="row" spacing={2}>
+                  <Box sx={{ color: "text.secondary", mt: 0.5 }}>
+                    <MapPin size={16} />
+                  </Box>
+                  <Stack>
+                    <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700, fontSize: "0.65rem", letterSpacing: 0.5 }}>
+                      LOCATION
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: "text.primary", fontWeight: 700, fontSize: "0.8rem" }}>
+                      {locationLabel}
+                    </Typography>
+                  </Stack>
+                </Stack>
+
+                <Stack direction="row" spacing={2}>
+                  <Box sx={{ color: "text.secondary", mt: 0.5 }}>
+                    <Clock size={16} />
+                  </Box>
+                  <Stack>
+                    <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700, fontSize: "0.65rem", letterSpacing: 0.5 }}>
+                      LAST SEEN
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: "text.primary", fontWeight: 700, fontSize: "0.8rem" }}>
+                      {toShortDateLabel(visitor?.lastSeenAt || visitor?.updatedAt || null)}
+                    </Typography>
+                  </Stack>
+                </Stack>
+              </Box>
             </Stack>
 
-            <Stack direction={{ xs: "column", md: "row" }} spacing={1.2}>
-              <Paper elevation={0} sx={{ p: 1.3, borderRadius: 1.5, border: "1px solid", borderColor: "divider", flex: 1 }}>
-                <Typography variant="caption" sx={{ color: "text.secondary" }}>Conversations</Typography>
-                <Typography variant="h6" sx={{ fontWeight: 800, color: "text.primary", lineHeight: 1.1 }}>
+            <Box sx={{ borderTop: 1, borderColor: "divider" }} />
+
+            <Stack direction={{ xs: "column", md: "row" }} spacing={3} justifyContent="space-between">
+              <Stack flex={1}>
+                <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700, fontSize: "0.65rem", letterSpacing: 0.5 }}>
+                  CONVERSATIONS
+                </Typography>
+                <Typography variant="subtitle1" sx={{ fontWeight: 800, color: "text.primary", mt: 0.5 }}>
                   {pagination?.totalCount ?? stats.totalConversations}
                 </Typography>
-              </Paper>
+              </Stack>
 
-              <Paper elevation={0} sx={{ p: 1.3, borderRadius: 1.5, border: "1px solid", borderColor: "divider", flex: 1 }}>
-                <Typography variant="caption" sx={{ color: "text.secondary" }}>Total Messages</Typography>
-                <Typography variant="h6" sx={{ fontWeight: 800, color: "text.primary", lineHeight: 1.1 }}>
+              <Stack flex={1}>
+                <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700, fontSize: "0.65rem", letterSpacing: 0.5 }}>
+                  TOTAL MESSAGES
+                </Typography>
+                <Typography variant="subtitle1" sx={{ fontWeight: 800, color: "text.primary", mt: 0.5 }}>
                   {stats.totalMessages}
                 </Typography>
-              </Paper>
+              </Stack>
 
-              <Paper elevation={0} sx={{ p: 1.3, borderRadius: 1.5, border: "1px solid", borderColor: "divider", flex: 1 }}>
-                <Typography variant="caption" sx={{ color: "text.secondary" }}>Active Conversations</Typography>
-                <Typography variant="h6" sx={{ fontWeight: 800, color: "text.primary", lineHeight: 1.1 }}>
+              <Stack flex={1}>
+                <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700, fontSize: "0.65rem", letterSpacing: 0.5 }}>
+                  ACTIVE CONVERSATIONS
+                </Typography>
+                <Typography variant="subtitle1" sx={{ fontWeight: 800, color: "text.primary", mt: 0.5 }}>
                   {stats.activeConversations}
                 </Typography>
-              </Paper>
+              </Stack>
 
-              <Paper elevation={0} sx={{ p: 1.3, borderRadius: 1.5, border: "1px solid", borderColor: "divider", flex: 1 }}>
-                <Typography variant="caption" sx={{ color: "text.secondary" }}>Last Activity</Typography>
-                <Typography variant="body2" sx={{ color: "text.primary", fontWeight: 700 }}>
+              <Stack flex={1.5}>
+                <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700, fontSize: "0.65rem", letterSpacing: 0.5 }}>
+                  LAST ACTIVITY
+                </Typography>
+                <Typography variant="subtitle2" sx={{ fontWeight: 800, color: "text.primary", mt: 0.5 }}>
                   {toDateLabel(stats.latestConversation)}
                 </Typography>
-              </Paper>
+              </Stack>
             </Stack>
           </Stack>
         )}
       </Paper>
 
       <ReusableTable
-        title="Chat Histories"
-        subtitle="Timeline, ownership, and message highlights for each conversation"
-        headerIcon={<MessageSquare size={16} />}
+        title="Conversation Timeline"
+        subtitle="A compact history of all interactions with this visitor"
+        headerIcon={<MessageSquare size={16} className="text-cyan-600 dark:text-cyan-400" />}
         rows={conversations}
         columns={columns}
         getRowKey={(row) => String(row._id)}
@@ -597,7 +611,7 @@ const VisitorDetailsSection = () => {
                       sx={(theme) => ({
                         px: 1.5,
                         py: 1,
-                        borderRadius: 1.5,
+                        borderRadius: 1,
                         maxWidth: "86%",
                         border: "1px solid",
                         borderColor: "divider",
