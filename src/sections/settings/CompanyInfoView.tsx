@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import type { ChangeEvent, ReactNode } from "react";
 import {
   Building2,
+  Facebook,
   Globe,
+  Instagram,
   Mail,
   Phone,
   Save,
@@ -42,10 +44,12 @@ const LOGO_COPY: Record<LogoType, { title: string; description: string }> = {
 };
 
 const EMPTY_INFO: CompanyInfoFormData = {
-  name: "",
-  website: "",
-  email: "",
-  phone: "",
+  name: "JAF Chatra",
+  email: "jafchatra@gmail.com",
+  phone: "09554942621",
+  facebook: "https://www.facebook.com/jafdigital/",
+  instagram: "https://www.instagram.com/jafdigitalofficial/",
+  publicWebsite: "https://jafdigital.co/",
   logoUrl: "",
 };
 
@@ -72,9 +76,11 @@ const mapApiToForm = (companyInfo?: CompanyInfoRecord): CompanyInfoFormData => {
 
   return {
     name: companyInfo.generalInformation?.companyName || "",
-    website: companyInfo.generalInformation?.website || "",
     email: companyInfo.generalInformation?.contactEmail || "",
     phone: companyInfo.generalInformation?.phoneNumber || "",
+    facebook: companyInfo.generalInformation?.socialLinks?.facebook || EMPTY_INFO.facebook,
+    instagram: companyInfo.generalInformation?.socialLinks?.instagram || EMPTY_INFO.instagram,
+    publicWebsite: companyInfo.generalInformation?.socialLinks?.website || EMPTY_INFO.publicWebsite,
     logoUrl: getLogoUrl(companyInfo, "collapsed"),
   };
 };
@@ -182,9 +188,13 @@ function LogoUploadCard({
 const mapFormToUpdatePayload = (formData: CompanyInfoFormData): UpdateCompanyInfoPayload => ({
   generalInformation: {
     companyName: formData.name,
-    website: formData.website,
     contactEmail: formData.email,
     phoneNumber: formData.phone,
+    socialLinks: {
+      facebook: formData.facebook,
+      instagram: formData.instagram,
+      website: formData.publicWebsite,
+    },
   },
 });
 
@@ -564,18 +574,6 @@ const CompanyInfoView = () => {
           isDark={isDark}
         />
         <FieldRow
-          icon={<Globe className={`w-4 h-4 ${isDark ? "text-cyan-400" : "text-cyan-600"}`} />}
-          label="Website"
-          value={current.website}
-          name="website"
-          editing={editing}
-          onChange={handleChange}
-          type="url"
-          placeholder="https://example.com"
-          disabled={isBusy}
-          isDark={isDark}
-        />
-        <FieldRow
           icon={<Mail className={`w-4 h-4 ${isDark ? "text-cyan-400" : "text-cyan-600"}`} />}
           label="Contact Email"
           value={current.email}
@@ -594,6 +592,46 @@ const CompanyInfoView = () => {
           editing={editing}
           onChange={handleChange}
           type="tel"
+          disabled={isBusy}
+          isDark={isDark}
+        />
+      </div>
+
+      <div className={cardClass}>
+        <h2 className={sectionTitleClassSm}>Public Website & Social Links</h2>
+        <FieldRow
+          icon={<Facebook className={`w-4 h-4 ${isDark ? "text-cyan-400" : "text-cyan-600"}`} />}
+          label="Facebook"
+          value={current.facebook}
+          name="facebook"
+          editing={editing}
+          onChange={handleChange}
+          type="url"
+          placeholder="https://www.facebook.com/jafdigital/"
+          disabled={isBusy}
+          isDark={isDark}
+        />
+        <FieldRow
+          icon={<Instagram className={`w-4 h-4 ${isDark ? "text-cyan-400" : "text-cyan-600"}`} />}
+          label="Instagram"
+          value={current.instagram}
+          name="instagram"
+          editing={editing}
+          onChange={handleChange}
+          type="url"
+          placeholder="https://www.instagram.com/jafdigitalofficial/"
+          disabled={isBusy}
+          isDark={isDark}
+        />
+        <FieldRow
+          icon={<Globe className={`w-4 h-4 ${isDark ? "text-cyan-400" : "text-cyan-600"}`} />}
+          label="Public Website"
+          value={current.publicWebsite}
+          name="publicWebsite"
+          editing={editing}
+          onChange={handleChange}
+          type="url"
+          placeholder="https://jafdigital.co/"
           disabled={isBusy}
           isDark={isDark}
         />

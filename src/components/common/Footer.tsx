@@ -1,4 +1,4 @@
-import { Twitter, Github, Linkedin, Globe, Mail, Phone } from "lucide-react";
+import { Facebook, Globe, Instagram, Mail, Phone } from "lucide-react";
 import Logo from "./Logo";
 import useCompanyBranding from "../../hooks/useCompanyBranding";
 
@@ -22,8 +22,9 @@ const footerColumns = [
 ];
 
 const Footer = () => {
-  const { companyName, companyEmail, companyWebsite, companyPhone } = useCompanyBranding();
+  const { companyName, companyEmail, companyWebsite, companyPhone, companySocialLinks } = useCompanyBranding();
   const companyDescription = "Real-time customer support made simple for businesses of all sizes.";
+  const websiteLink = companySocialLinks.website || companyWebsite;
 
   return (
     <footer className="bg-white text-gray-500 border-t border-gray-200">
@@ -38,16 +39,16 @@ const Footer = () => {
               {companyDescription}
             </p>
             <div className="flex flex-wrap gap-x-2.5 gap-y-1 text-gray-600">
-              {companyWebsite && (
+              {websiteLink && (
                 <a
-                  href={companyWebsite}
+                  href={websiteLink}
                   target="_blank"
                   rel="noreferrer"
                   className="inline-flex items-center gap-1 hover:text-gray-900 transition-colors"
                   style={{ fontFamily: "Inter, sans-serif", fontSize: "0.76rem" }}
                 >
                   <Globe className="w-3 h-3" />
-                  {companyWebsite}
+                  {websiteLink}
                 </a>
               )}
               {companyEmail && (
@@ -120,13 +121,15 @@ const Footer = () => {
               </span>
               <div className="ml-1.5 flex items-center gap-1">
                 {[
-                  { Icon: Twitter, name: "Twitter" },
-                  { Icon: Github, name: "Github" },
-                  { Icon: Linkedin, name: "Linkedin" },
-                ].map(({ Icon, name }) => (
+                  { Icon: Facebook, name: "Facebook", href: companySocialLinks.facebook },
+                  { Icon: Instagram, name: "Instagram", href: companySocialLinks.instagram },
+                  { Icon: Globe, name: "Website", href: companySocialLinks.website || companyWebsite },
+                ].map(({ Icon, name, href }) => (
                   <a
                     key={name}
-                    href="#"
+                    href={href}
+                    target="_blank"
+                    rel="noreferrer"
                     title={name}
                     className="w-6 h-6 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-gray-800 transition-colors flex items-center justify-center"
                   >
