@@ -220,7 +220,7 @@ const AgentsManagementView = () => {
     if (isCurrentUserAdmin && isPrivilegedRole(agent.role)) {
       return "Only Master Admin can delete Admin or Master Admin accounts.";
     }
-    return "You do not have permission to delete this account.";
+    return "Delete agent";
   };
 
   useEffect(() => {
