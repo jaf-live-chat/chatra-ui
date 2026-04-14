@@ -153,7 +153,7 @@ const DashboardSetup = () => {
 
   const widgetInstallScript = useMemo(
     () =>
-      `<!-- Live Chat Widget -->\n<script>\n  window.LiveChatConfig = {\n    apiUrl: '${API_BASE_URL}',\n    socketUrl: '${socketUrl}',\n    apiKey: '${apiKey || ""}'\n  };\n</script>\n<script src=\"https://timora-live-chat.vercel.app/widget/live-chat-widget.js\"></script>`,
+    `<script src="${import.meta.env.MODE !== "LOCAL" ? "./client/dist/widget.js" : "https://jafchatra.com/widget.js"}" data-api-key="${apiKey}"></script>`,
     [apiKey, socketUrl]
   );
 
