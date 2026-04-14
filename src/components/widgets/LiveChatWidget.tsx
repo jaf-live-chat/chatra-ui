@@ -57,6 +57,8 @@ const DEFAULT_WELCOME = "Hi there. Welcome to JAF Chatra. How can I help you tod
 const DEFAULT_ACCENT = "#0891b2";
 const MESSAGE_PAGE_LIMIT = 100;
 const PANEL_CLOSE_ANIMATION_MS = 320;
+const TYPING_IDLE_TIMEOUT_MS = 1400;
+const TYPING_INDICATOR_GRACE_MS = 2200;
 
 const isHexColor = (value: string) => /^#([A-Fa-f0-9]{3}|[A-Fa-f0-9]{6})$/.test(value.trim());
 
@@ -271,6 +273,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [socketStatus, setSocketStatus] = useState<SocketStatus>("idle");
+  const [isAgentTyping, setIsAgentTyping] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [errorMessage, setErrorMessage] = useState("");
   const [isDarkMode, setIsDarkMode] = useState(() => readStoredValue(WIDGET_DARK_MODE_KEY) === "true");
@@ -306,6 +309,9 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
   const historyRequestRef = useRef<Promise<void> | null>(null);
   const profileRequestRef = useRef<Promise<void> | null>(null);
   const quickReplyTimerRef = useRef<number | null>(null);
+  const visitorTypingTimerRef = useRef<number | null>(null);
+  const agentTypingTimerRef = useRef<number | null>(null);
+  const isVisitorTypingRef = useRef(false);
   const conversationBootstrapRef = useRef(false);
 
   const apiKey = String(widgetConfig.apiKey || "").trim();
@@ -408,6 +414,72 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
       quickReplyTimerRef.current = null;
     }
   }, []);
+
+  const clearVisitorTypingTimer = useCallback(() => {
+    if (visitorTypingTimerRef.current !== null) {
+      window.clearTimeout(visitorTypingTimerRef.current);
+      visitorTypingTimerRef.current = null;
+    }
+  }, []);
+
+  const clearAgentTypingTimer = useCallback(() => {
+    if (agentTypingTimerRef.current !== null) {
+      window.clearTimeout(agentTypingTimerRef.current);
+      agentTypingTimerRef.current = null;
+    }
+  }, []);
+
+  const stopVisitorTyping = useCallback((notifyServer = true) => {
+    clearVisitorTypingTimer();
+
+    if (!isVisitorTypingRef.current) {
+      return;
+    }
+
+    const activeConversationId = String(conversationId || "").trim();
+    if (notifyServer && socketRef.current && activeConversationId) {
+      socketRef.current.emit("STOP_TYPING", { conversationId: activeConversationId });
+    }
+
+    isVisitorTypingRef.current = false;
+  }, [clearVisitorTypingTimer, conversationId]);
+
+  const markVisitorTyping = useCallback(() => {
+    const activeConversationId = String(conversationId || "").trim();
+    if (!activeConversationId || !socketRef.current) {
+      return;
+    }
+
+    if (!isVisitorTypingRef.current) {
+      socketRef.current.emit("TYPING", { conversationId: activeConversationId });
+      isVisitorTypingRef.current = true;
+    }
+
+    clearVisitorTypingTimer();
+    visitorTypingTimerRef.current = window.setTimeout(() => {
+      if (socketRef.current && String(conversationId || "").trim()) {
+        socketRef.current.emit("STOP_TYPING", { conversationId: activeConversationId });
+      }
+
+      isVisitorTypingRef.current = false;
+      visitorTypingTimerRef.current = null;
+    }, TYPING_IDLE_TIMEOUT_MS);
+  }, [clearVisitorTypingTimer, conversationId]);
+
+  const handleComposerTextChange = useCallback((nextValue: string) => {
+    setMessageText(nextValue);
+
+    if (!String(conversationId || "").trim()) {
+      return;
+    }
+
+    if (!nextValue.trim()) {
+      stopVisitorTyping();
+      return;
+    }
+
+    markVisitorTyping();
+  }, [conversationId, markVisitorTyping, stopVisitorTyping]);
 
   const playIncomingMessageSound = useCallback(() => {
     if (!isMessageSoundsEnabled || typeof window === "undefined") {
@@ -813,6 +885,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
 
     const resolvedConversationId = activeConversationId;
 
+    stopVisitorTyping();
     setIsSending(true);
     setErrorMessage("");
 
@@ -844,8 +917,22 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
       await syncMessages(resolvedConversationId);
     } finally {
       setIsSending(false);
+
+      // Keep typing flow uninterrupted after each send.
+      if (!presetMessage) {
+        window.requestAnimationFrame(() => {
+          const input = messageInputRef.current;
+          if (!input) {
+            return;
+          }
+
+          input.focus({ preventScroll: true });
+          const cursorPosition = input.value.length;
+          input.setSelectionRange(cursorPosition, cursorPosition);
+        });
+      }
     }
-  }, [conversationId, hasCompletedPreChat, isSending, messageText, startConversation, syncMessages, visitorToken, widgetConfig]);
+  }, [conversationId, hasCompletedPreChat, isSending, messageText, startConversation, stopVisitorTyping, syncMessages, visitorToken, widgetConfig]);
 
   const handleQuickMessageClick = useCallback((quickMessage: QuickMessage) => {
     if (isQuickReplyBlocked) {
@@ -921,6 +1008,8 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
 
   const resetConversationState = useCallback(() => {
     clearQuickReplyTimer();
+    stopVisitorTyping(false);
+    clearAgentTypingTimer();
     disconnectSocket();
     setConversationId("");
     setMessages([]);
@@ -932,8 +1021,9 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
     setShowQuickMessages(false);
     setSelectedHistoryConversationId("");
     setHistoryMessages([]);
+    setIsAgentTyping(false);
     clearStoredValue(CONVERSATION_ID_KEY);
-  }, [clearQuickReplyTimer, disconnectSocket]);
+  }, [clearAgentTypingTimer, clearQuickReplyTimer, disconnectSocket, stopVisitorTyping]);
 
   const handleEndChat = useCallback(async () => {
     if (conversationId) {
@@ -963,6 +1053,8 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
     }
 
     clearQuickReplyTimer();
+    stopVisitorTyping(false);
+    clearAgentTypingTimer();
     disconnectSocket();
     clearStoredValue(CONVERSATION_ID_KEY);
     clearStoredValue(VISITOR_TOKEN_KEY);
@@ -994,7 +1086,8 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
     setWidgetView("chat");
     setProfileStatusMessage("Session ended. You are logged out.");
     setIsEndChatModalOpen(false);
-  }, [clearQuickReplyTimer, conversationId, disconnectSocket, visitorToken, widgetConfig]);
+    setIsAgentTyping(false);
+  }, [clearAgentTypingTimer, clearQuickReplyTimer, conversationId, disconnectSocket, stopVisitorTyping, visitorToken, widgetConfig]);
 
   const appendEndedMessage = useCallback((payload: LiveChatConversationEndedEvent) => {
     const endedBy = payload.endedBy?.displayName ? ` Ended by ${payload.endedBy.displayName}.` : "";
@@ -1301,6 +1394,9 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
 
   useEffect(() => {
     if (!apiKey || !conversationId) {
+      stopVisitorTyping(false);
+      clearAgentTypingTimer();
+      setIsAgentTyping(false);
       disconnectSocket();
       setSocketStatus(apiKey ? "closed" : "idle");
       return;
@@ -1328,10 +1424,46 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
 
     socket.on("disconnect", () => {
       setSocketStatus("closed");
+      setIsAgentTyping(false);
+      clearAgentTypingTimer();
     });
 
     socket.on("connect_error", () => {
       setSocketStatus("error");
+      setIsAgentTyping(false);
+      clearAgentTypingTimer();
+    });
+
+    socket.on("TYPING", (payload: { conversationId?: string; senderRole?: string }) => {
+      const targetConversationId = String(payload?.conversationId || "");
+      if (!targetConversationId || targetConversationId !== String(conversationId)) {
+        return;
+      }
+
+      if (payload?.senderRole === "VISITOR") {
+        return;
+      }
+
+      setIsAgentTyping(true);
+      clearAgentTypingTimer();
+      agentTypingTimerRef.current = window.setTimeout(() => {
+        setIsAgentTyping(false);
+        agentTypingTimerRef.current = null;
+      }, TYPING_INDICATOR_GRACE_MS);
+    });
+
+    socket.on("STOP_TYPING", (payload: { conversationId?: string; senderRole?: string }) => {
+      const targetConversationId = String(payload?.conversationId || "");
+      if (!targetConversationId || targetConversationId !== String(conversationId)) {
+        return;
+      }
+
+      if (payload?.senderRole === "VISITOR") {
+        return;
+      }
+
+      setIsAgentTyping(false);
+      clearAgentTypingTimer();
     });
 
     socket.on("NEW_MESSAGE", (incomingMessage: LiveChatMessage) => {
@@ -1373,6 +1505,8 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
       });
 
       if (incomingMessage.senderType !== "VISITOR") {
+        setIsAgentTyping(false);
+        clearAgentTypingTimer();
         playIncomingMessageSound();
 
         if (!isOpen) {
@@ -1401,6 +1535,9 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
 
     socket.on("CONVERSATION_ENDED", (payload: LiveChatConversationEndedEvent) => {
       appendEndedMessage(payload);
+      stopVisitorTyping(false);
+      setIsAgentTyping(false);
+      clearAgentTypingTimer();
       setConversationId("");
       setHasCompletedPreChat(true);
       clearStoredValue(CONVERSATION_ID_KEY);
@@ -1409,9 +1546,12 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
     });
 
     return () => {
+      stopVisitorTyping();
+      setIsAgentTyping(false);
+      clearAgentTypingTimer();
       disconnectSocket();
     };
-  }, [apiKey, appendEndedMessage, conversationId, disconnectSocket, isOpen, playIncomingMessageSound, syncConversationHistory, visitorToken]);
+  }, [apiKey, appendEndedMessage, clearAgentTypingTimer, conversationId, disconnectSocket, isOpen, playIncomingMessageSound, stopVisitorTyping, syncConversationHistory, visitorToken]);
 
   useEffect(() => {
     if (!isOpen || messages.length === 0) {
@@ -1437,8 +1577,10 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
   useEffect(() => {
     return () => {
       clearQuickReplyTimer();
+      clearVisitorTypingTimer();
+      clearAgentTypingTimer();
     };
-  }, [clearQuickReplyTimer]);
+  }, [clearAgentTypingTimer, clearQuickReplyTimer, clearVisitorTypingTimer]);
 
   const getVisitorMessageStatus = useCallback((message: WidgetTranscriptMessage) => {
     if (String(message._id || "").startsWith("local-")) {
@@ -1986,6 +2128,32 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                         </div>
                       );
                     })}
+
+                    {isAgentTyping ? (
+                      <div className="flex justify-start items-end gap-2">
+                        <div
+                          className={`flex-shrink-0 rounded-full border flex items-center justify-center text-white font-bold ${avatarSizeClass}`}
+                          style={{
+                            background: accentHeaderBackground,
+                            borderColor: accentSoftBorder,
+                            boxShadow: accentShadow,
+                          }}
+                        >
+                          {getWidgetInitials(title)}
+                        </div>
+                        <div className={`max-w-[80%] sm:max-w-[74%] ${theme.bubbleAgent}`}>
+                          <div className={`${bubblePaddingClass} flex items-center gap-1.5 min-h-[42px]`} aria-label="Support is typing">
+                            <span className="h-2 w-2 rounded-full bg-current animate-bounce [animation-delay:-0.2s]" />
+                            <span className="h-2 w-2 rounded-full bg-current animate-bounce [animation-delay:-0.1s]" />
+                            <span className="h-2 w-2 rounded-full bg-current animate-bounce" />
+                          </div>
+                          <div className={`px-4 pb-2 ${theme.muted}`}>
+                            <p className={messageMetaSizeClass}>Support is typing...</p>
+                          </div>
+                        </div>
+                      </div>
+                    ) : null}
+
                     <div ref={bottomRef} />
                   </div>
                 )}
@@ -2104,7 +2272,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                         <textarea
                           ref={messageInputRef}
                           value={messageText}
-                          onChange={(event) => setMessageText(event.target.value)}
+                          onChange={(event) => handleComposerTextChange(event.target.value)}
                           rows={1}
                           onInput={(event) => {
                             const target = event.currentTarget;
@@ -2137,6 +2305,9 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
 
                       <button
                         type="button"
+                        onMouseDown={(event) => {
+                          event.preventDefault();
+                        }}
                         onClick={() => {
                           if (isComposerBlocked) {
                             return;

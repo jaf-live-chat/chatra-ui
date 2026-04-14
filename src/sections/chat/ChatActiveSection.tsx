@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router";
+import type { Socket } from "socket.io-client";
 import {
   ArrowLeft,
   Clock,
@@ -17,13 +18,14 @@ import {
 import { ActiveChat, ChatAttachmentUpload, ChatMessage, mapServerMessageToChatMessage, QuickReplyItem } from "../../models/ChatSessionManagementModel";
 import { LiveChatConversationEndedEvent, LiveChatMessage, LiveChatParticipantRole, LiveChatQueueEntry } from "../../models/LiveChatModel";
 import { useDarkMode } from "../../providers/DarkModeContext";
-import { useStaffLiveChat } from "../../hooks/useStaffLiveChat";
+import { emitStaffLiveChatTyping, useStaffLiveChat } from "../../hooks/useStaffLiveChat";
 import useAuth from "../../hooks/useAuth";
 import liveChatWidgetServices from "../../services/liveChatWidgetServices";
 import liveChatServices from "../../services/liveChatServices";
 import Agents from "../../services/agentServices";
 import { USER_STATUS } from "../../constants/constants";
 import MessageStatusBadge from "../../components/MessageStatusBadge";
+import { createLiveChatSocket } from "../../services/liveChatRealtimeClient";
 import {
   Sheet,
   SheetContent,
@@ -116,6 +118,7 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
   const [isEndingChat, setIsEndingChat] = useState(false);
   const [isSyncingMessages, setIsSyncingMessages] = useState(false);
   const [endedChatNotice, setEndedChatNotice] = useState("");
+  const [typingVisitorsByConversation, setTypingVisitorsByConversation] = useState<Record<string, boolean>>({});
 
   const [attachedFiles, setAttachedFiles] = useState<ChatAttachmentUpload[]>([]);
   const [showQuickReplies, setShowQuickReplies] = useState(false);
@@ -126,6 +129,10 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const quickRepliesRef = useRef<HTMLDivElement>(null);
+  const visitorTypingTimeoutsRef = useRef<Record<string, number>>({});
+  const agentTypingDebounceRef = useRef<number | null>(null);
+  const activeAgentTypingConversationRef = useRef<string | null>(null);
+  const typingSocketRef = useRef<Socket | null>(null);
 
   const { isDark } = useDarkMode();
   const { user, tenant } = useAuth();
@@ -135,6 +142,25 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
     const targetConversationId = String(message?.conversationId || "");
     if (!targetConversationId) {
       return;
+    }
+
+    if (message.senderType === "VISITOR") {
+      const existingTimeout = visitorTypingTimeoutsRef.current[targetConversationId];
+      if (typeof existingTimeout === "number") {
+        window.clearTimeout(existingTimeout);
+        delete visitorTypingTimeoutsRef.current[targetConversationId];
+      }
+
+      setTypingVisitorsByConversation((currentState) => {
+        if (!currentState[targetConversationId]) {
+          return currentState;
+        }
+
+        return {
+          ...currentState,
+          [targetConversationId]: false,
+        };
+      });
     }
 
     console.log("[REALTIME] New message received:", message);
@@ -233,6 +259,17 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
       return;
     }
 
+    const existingTimeout = visitorTypingTimeoutsRef.current[targetConversationId];
+    if (typeof existingTimeout === "number") {
+      window.clearTimeout(existingTimeout);
+      delete visitorTypingTimeoutsRef.current[targetConversationId];
+    }
+
+    setTypingVisitorsByConversation((currentState) => ({
+      ...currentState,
+      [targetConversationId]: false,
+    }));
+
     const notice = resolveEndedByText(payload);
     setEndedChatNotice(notice);
 
@@ -268,6 +305,88 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
     void mutateQueue();
   }, [mutateQueue]);
 
+  const handleTyping = useCallback((payload: { conversationId: string; senderId: string; senderRole: string }) => {
+    const targetConversationId = String(payload?.conversationId || "");
+    const senderRole = String(payload?.senderRole || "").trim().toUpperCase();
+    const isVisitorRole = !senderRole || senderRole === "VISITOR";
+
+    if (!targetConversationId || !isVisitorRole) {
+      return;
+    }
+
+    const existingTimeout = visitorTypingTimeoutsRef.current[targetConversationId];
+    if (typeof existingTimeout === "number") {
+      window.clearTimeout(existingTimeout);
+    }
+
+    setTypingVisitorsByConversation((currentState) => {
+      const nextState = {
+        ...currentState,
+        [targetConversationId]: true,
+      };
+
+      activeChats.forEach((chat) => {
+        if (String(chat.sessionId || "") === targetConversationId || String(chat.id || "") === targetConversationId) {
+          nextState[String(chat.sessionId || targetConversationId)] = true;
+          nextState[String(chat.id || targetConversationId)] = true;
+        }
+      });
+
+      return nextState;
+    });
+
+    visitorTypingTimeoutsRef.current[targetConversationId] = window.setTimeout(() => {
+      setTypingVisitorsByConversation((currentState) => {
+        const nextState = {
+          ...currentState,
+          [targetConversationId]: false,
+        };
+
+        activeChats.forEach((chat) => {
+          if (String(chat.sessionId || "") === targetConversationId || String(chat.id || "") === targetConversationId) {
+            nextState[String(chat.sessionId || targetConversationId)] = false;
+            nextState[String(chat.id || targetConversationId)] = false;
+          }
+        });
+
+        return nextState;
+      });
+      delete visitorTypingTimeoutsRef.current[targetConversationId];
+    }, 2200);
+  }, [activeChats]);
+
+  const handleStopTyping = useCallback((payload: { conversationId: string; senderId: string; senderRole: string }) => {
+    const targetConversationId = String(payload?.conversationId || "");
+    const senderRole = String(payload?.senderRole || "").trim().toUpperCase();
+    const isVisitorRole = !senderRole || senderRole === "VISITOR";
+
+    if (!targetConversationId || !isVisitorRole) {
+      return;
+    }
+
+    const existingTimeout = visitorTypingTimeoutsRef.current[targetConversationId];
+    if (typeof existingTimeout === "number") {
+      window.clearTimeout(existingTimeout);
+      delete visitorTypingTimeoutsRef.current[targetConversationId];
+    }
+
+    setTypingVisitorsByConversation((currentState) => {
+      const nextState = {
+        ...currentState,
+        [targetConversationId]: false,
+      };
+
+      activeChats.forEach((chat) => {
+        if (String(chat.sessionId || "") === targetConversationId || String(chat.id || "") === targetConversationId) {
+          nextState[String(chat.sessionId || targetConversationId)] = false;
+          nextState[String(chat.id || targetConversationId)] = false;
+        }
+      });
+
+      return nextState;
+    });
+  }, [activeChats]);
+
   // Connect to WebSocket and listen for events
   useStaffLiveChat(
     tenant?.apiKey ?? undefined,
@@ -280,6 +399,8 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
       onMessageStatusUpdated: handleMessageStatusUpdated,
       onConversationEnded: handleConversationEnded,
       onQueueUpdated: handleQueueUpdated,
+      onTyping: handleTyping,
+      onStopTyping: handleStopTyping,
     }
   );
 
@@ -326,6 +447,10 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
 
   const selectedChatSessionId = selectedChat?.sessionId ? String(selectedChat.sessionId) : null;
   const selectedChatResolvedId = selectedChat ? String(selectedChat.id) : null;
+  const isVisitorTyping = Boolean(
+    (selectedChatSessionId && typingVisitorsByConversation[selectedChatSessionId])
+    || (selectedChatResolvedId && typingVisitorsByConversation[selectedChatResolvedId])
+  );
   const selectedVisitorInitials = getInitials(selectedChat?.visitorFullName, "V");
   const activeAgentInitials = getInitials(user?.fullName, "A");
   const visitorMapEmbedUrl = useMemo(() => {
@@ -446,10 +571,10 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
     void syncServerMessages(selectedChatSessionId, selectedChatResolvedId);
   }, [selectedChatSessionId, selectedChatResolvedId, syncServerMessages]);
 
-  // Auto-scroll to bottom whenever messages update
+  // Auto-scroll to bottom whenever messages or typing state update
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [selectedChat?.messages]);
+  }, [isVisitorTyping, selectedChat?.messages]);
 
   // Open mobile chat panel
   useEffect(() => {
@@ -482,6 +607,71 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
     setChatMessage((prev) => (prev ? prev + " " + message : message));
     setShowQuickReplies(false);
   };
+
+  const emitAgentTypingEvent = useCallback((eventName: "TYPING" | "STOP_TYPING", conversationId: string) => {
+    emitStaffLiveChatTyping(eventName, conversationId);
+    if (typingSocketRef.current) {
+      typingSocketRef.current.emit(eventName, { conversationId });
+    }
+  }, []);
+
+  const emitAgentStopTyping = useCallback((conversationId?: string | null) => {
+    const resolvedConversationId = String(conversationId || activeAgentTypingConversationRef.current || "").trim();
+    if (!resolvedConversationId) {
+      return;
+    }
+
+    emitAgentTypingEvent("STOP_TYPING", resolvedConversationId);
+
+    if (agentTypingDebounceRef.current !== null) {
+      window.clearTimeout(agentTypingDebounceRef.current);
+      agentTypingDebounceRef.current = null;
+    }
+
+    if (activeAgentTypingConversationRef.current === resolvedConversationId) {
+      activeAgentTypingConversationRef.current = null;
+    }
+  }, []);
+
+  const markAgentTyping = useCallback((conversationId: string) => {
+    const activeConversationId = activeAgentTypingConversationRef.current;
+    if (activeConversationId !== conversationId) {
+      if (activeConversationId) {
+        emitAgentTypingEvent("STOP_TYPING", activeConversationId);
+      }
+
+      emitAgentTypingEvent("TYPING", conversationId);
+      activeAgentTypingConversationRef.current = conversationId;
+    }
+
+    if (agentTypingDebounceRef.current !== null) {
+      window.clearTimeout(agentTypingDebounceRef.current);
+    }
+
+    agentTypingDebounceRef.current = window.setTimeout(() => {
+      emitAgentTypingEvent("STOP_TYPING", conversationId);
+      if (activeAgentTypingConversationRef.current === conversationId) {
+        activeAgentTypingConversationRef.current = null;
+      }
+      agentTypingDebounceRef.current = null;
+    }, 1400);
+  }, [emitAgentTypingEvent]);
+
+  const handleAgentComposerChange = useCallback((nextValue: string) => {
+    setChatMessage(nextValue);
+
+    const conversationId = String(selectedChatSessionId || "").trim();
+    if (!conversationId) {
+      return;
+    }
+
+    if (!nextValue.trim()) {
+      emitAgentStopTyping(conversationId);
+      return;
+    }
+
+    markAgentTyping(conversationId);
+  }, [emitAgentStopTyping, markAgentTyping, selectedChatSessionId]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -523,8 +713,11 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
 
     const chat = activeChats.find((c) => c.id === selectedChatId);
     if (!chat?.sessionId || !newMsg.text.trim()) {
+      emitAgentStopTyping();
       return;
     }
+
+    emitAgentStopTyping(String(chat.sessionId));
 
     setIsSendingMessage(true);
 
@@ -576,6 +769,91 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
     }
   };
 
+  useEffect(() => {
+    const activeConversationId = activeAgentTypingConversationRef.current;
+    const nextConversationId = String(selectedChatSessionId || "").trim();
+
+    if (activeConversationId && activeConversationId !== nextConversationId) {
+      emitAgentTypingEvent("STOP_TYPING", activeConversationId);
+      activeAgentTypingConversationRef.current = null;
+    }
+  }, [emitAgentTypingEvent, selectedChatSessionId]);
+
+  useEffect(() => {
+    const conversationId = String(selectedChatSessionId || "").trim();
+
+    if (!conversationId) {
+      if (typingSocketRef.current) {
+        typingSocketRef.current.disconnect();
+        typingSocketRef.current = null;
+      }
+      return;
+    }
+
+    const socket = createLiveChatSocket({
+      apiKey: tenant?.apiKey ?? undefined,
+      databaseName: String(tenant?.databaseName || "") || undefined,
+      tenantId: tenant?.id,
+      role: String(user?.role || "ADMIN"),
+      agentId: String(user?._id || ""),
+      conversationId,
+    });
+
+    if (!socket) {
+      return;
+    }
+
+    if (typingSocketRef.current) {
+      typingSocketRef.current.disconnect();
+    }
+
+    typingSocketRef.current = socket;
+
+    const onTyping = (payload: { conversationId: string; senderId: string; senderRole: string }) => {
+      handleTyping(payload);
+    };
+
+    const onStopTyping = (payload: { conversationId: string; senderId: string; senderRole: string }) => {
+      handleStopTyping(payload);
+    };
+
+    socket.on("TYPING", onTyping);
+    socket.on("STOP_TYPING", onStopTyping);
+
+    return () => {
+      socket.off("TYPING", onTyping);
+      socket.off("STOP_TYPING", onStopTyping);
+      socket.disconnect();
+      if (typingSocketRef.current === socket) {
+        typingSocketRef.current = null;
+      }
+    };
+  }, [handleStopTyping, handleTyping, selectedChatSessionId, tenant?.apiKey, tenant?.databaseName, tenant?.id, user?._id, user?.role]);
+
+  useEffect(() => {
+    return () => {
+      Object.values(visitorTypingTimeoutsRef.current).forEach((timeoutId) => {
+        window.clearTimeout(timeoutId);
+      });
+      visitorTypingTimeoutsRef.current = {};
+
+      if (agentTypingDebounceRef.current !== null) {
+        window.clearTimeout(agentTypingDebounceRef.current);
+        agentTypingDebounceRef.current = null;
+      }
+
+      if (activeAgentTypingConversationRef.current) {
+        emitAgentTypingEvent("STOP_TYPING", activeAgentTypingConversationRef.current);
+        activeAgentTypingConversationRef.current = null;
+      }
+
+      if (typingSocketRef.current) {
+        typingSocketRef.current.disconnect();
+        typingSocketRef.current = null;
+      }
+    };
+  }, [emitAgentTypingEvent]);
+
   return (
     <div className="h-[calc(100vh-72px-64px)] sm:h-[calc(100vh-65px-64px)] flex flex-col lg:flex-row">
       {/* Chat List Sidebar */}
@@ -611,6 +889,12 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
               .map((chat) => {
                 const lastMsg = chat.messages[chat.messages.length - 1];
                 const isSelected = chat.id === selectedChatId;
+                const sessionConversationKey = String(chat.sessionId || "");
+                const rowConversationKey = String(chat.id || "");
+                const isRowTyping = Boolean(
+                  (sessionConversationKey && typingVisitorsByConversation[sessionConversationKey])
+                  || (rowConversationKey && typingVisitorsByConversation[rowConversationKey])
+                );
                 return (
                   <button
                     key={chat.id}
@@ -629,9 +913,18 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-gray-900 dark:text-slate-100 truncate">{chat.visitor}</p>
-                        <p className="text-xs text-gray-500 dark:text-slate-400 truncate">{lastMsg?.text || "No messages yet"}</p>
+                        <p className={`text-xs truncate ${isRowTyping ? "text-cyan-600 dark:text-cyan-400 font-medium" : "text-gray-500 dark:text-slate-400"}`}>
+                          {isRowTyping ? "Typing..." : (lastMsg?.text || "No messages yet")}
+                        </p>
                         <div className="flex items-center gap-1 mt-1">
                           <span className="text-[10px] text-gray-400 dark:text-slate-500">{chat.timeInQueue}</span>
+                          {isRowTyping ? (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-cyan-100 dark:bg-cyan-900/30 px-1.5 py-0.5">
+                              <span className="h-1 w-1 rounded-full bg-cyan-600 dark:bg-cyan-300 animate-bounce [animation-delay:-0.2s]" />
+                              <span className="h-1 w-1 rounded-full bg-cyan-600 dark:bg-cyan-300 animate-bounce [animation-delay:-0.1s]" />
+                              <span className="h-1 w-1 rounded-full bg-cyan-600 dark:bg-cyan-300 animate-bounce" />
+                            </span>
+                          ) : null}
                           <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
                         </div>
                       </div>
@@ -697,7 +990,7 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
           <div className="flex-1 flex overflow-hidden">
             {/* Messages */}
             <div className="flex-1 flex flex-col min-w-0 bg-gray-50 dark:bg-slate-900/50">
-              <div className="flex-1 overflow-y-auto px-3 sm:px-5 py-4" style={{ scrollbarWidth: "thin" }}>
+              <div className="flex-1 overflow-y-auto px-3 sm:px-5 py-4 pb-6" style={{ scrollbarWidth: "thin" }}>
                 <div className="text-center mb-6">
                   <span className="text-[11px] bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-slate-400 px-3 py-1 rounded-full">
                     Chat started from Queue
@@ -757,6 +1050,27 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
                       </div>
                     </div>
                   ))}
+
+                  {isVisitorTyping ? (
+                    <div className="flex justify-start">
+                      <div className="flex items-end gap-2 max-w-[88%] sm:max-w-[65%]">
+                        <div
+                          className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0"
+                          style={{ backgroundColor: getAvatarColor(selectedChat.visitor) }}
+                        >
+                          {selectedVisitorInitials}
+                        </div>
+                        <div className="flex flex-col items-start">
+                          <div className="px-3 py-2 rounded-2xl rounded-bl-[4px] bg-[#e5e7eb] dark:bg-slate-700 text-gray-900 dark:text-slate-100 shadow-sm min-h-[38px] flex items-center gap-1.5">
+                            <span className="h-1.5 w-1.5 rounded-full bg-gray-500 dark:bg-slate-300 animate-bounce [animation-delay:-0.2s]" />
+                            <span className="h-1.5 w-1.5 rounded-full bg-gray-500 dark:bg-slate-300 animate-bounce [animation-delay:-0.1s]" />
+                            <span className="h-1.5 w-1.5 rounded-full bg-gray-500 dark:bg-slate-300 animate-bounce" />
+                          </div>
+                          <span className="text-[11px] text-gray-400 dark:text-slate-500 mt-1">Visitor is typing...</span>
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
 
                 <div ref={bottomRef} />
@@ -863,7 +1177,7 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
                     <textarea
                       placeholder="Type your reply... (or use quick replies ⚡)"
                       value={chatMessage}
-                      onChange={(e) => setChatMessage(e.target.value)}
+                      onChange={(e) => handleAgentComposerChange(e.target.value)}
                       onKeyDown={(e) => {
                         if (e.key === "Enter" && !e.shiftKey) {
                           e.preventDefault();

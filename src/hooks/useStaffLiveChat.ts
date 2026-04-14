@@ -22,6 +22,18 @@ export interface StaffLiveChatHandlers {
 let sharedStaffSocket: Socket | null = null;
 let socketRefCount = 0;
 
+type StaffTypingEventName = "TYPING" | "STOP_TYPING";
+
+export const emitStaffLiveChatTyping = (eventName: StaffTypingEventName, conversationId?: string | null) => {
+  const resolvedConversationId = String(conversationId || "").trim();
+
+  if (!resolvedConversationId || !sharedStaffSocket || !sharedStaffSocket.connected) {
+    return;
+  }
+
+  sharedStaffSocket.emit(eventName, { conversationId: resolvedConversationId });
+};
+
 /**
  * Hook for staff portal to subscribe to live chat events.
  * Uses a shared singleton socket to prevent duplicate connections.
