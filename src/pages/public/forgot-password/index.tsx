@@ -65,12 +65,13 @@ const ForgotPasswordPage = () => {
         response.message ||
           "If the account exists, we sent a password reset email with a reset button and OTP."
       );
+      setCooldownEndsAt(Date.now() + RESET_REQUEST_COOLDOWN_SECONDS * 1000);
     } catch (error) {
       const axiosError = error as AxiosError<{ message?: string }>;
       setSubmitError(axiosError.response?.data?.message || "Unable to send reset email. Please try again.");
+      setCooldownEndsAt(null);
     } finally {
       setIsSubmitting(false);
-      setCooldownEndsAt(Date.now() + RESET_REQUEST_COOLDOWN_SECONDS * 1000);
     }
   };
 
