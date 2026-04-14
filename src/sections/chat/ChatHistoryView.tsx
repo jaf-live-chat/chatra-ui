@@ -36,7 +36,7 @@ const ChatHistoryView = ({ history }: { history: any[] }) => {
   );
 
   return (
-    <Box sx={{ p: { xs: 3, md: 4 }, maxWidth: 1200, mx: "auto", display: "flex", flexDirection: "column", gap: 4 }}>
+    <Box sx={{ p: { xs: 2, sm: 3, md: 4 }, maxWidth: 1200, mx: "auto", display: "flex", flexDirection: "column", gap: 4 }}>
       <Stack direction={{ xs: "column", md: "row" }} alignItems={{ xs: "flex-start", md: "center" }} justifyContent="space-between" spacing={2}>
         <Box>
           <Typography variant="h5" sx={{ fontWeight: 800, color: "grey.900" }}>Chat History</Typography>
@@ -65,8 +65,8 @@ const ChatHistoryView = ({ history }: { history: any[] }) => {
         </Box>
       </Stack>
 
-      <TableContainer component={Paper} elevation={0} sx={{ border: "1px solid", borderColor: "grey.200", borderRadius: 3 }}>
-        <Table sx={{ minWidth: 650 }}>
+      <TableContainer component={Paper} elevation={0} sx={{ border: "1px solid", borderColor: "grey.200", borderRadius: 3, overflowX: "auto" }}>
+        <Table sx={{ minWidth: { xs: 620, md: 650 } }}>
           <TableHead sx={{ bgcolor: "background.paper", borderBottom: "2px solid", borderColor: "grey.200" }}>
             <TableRow>
               <TableCell align="center" width="10%">VISITOR ID</TableCell>
@@ -146,7 +146,7 @@ const ChatHistoryView = ({ history }: { history: any[] }) => {
         
         {/* Pagination */}
         {totalPages > 1 && (
-          <Box sx={{ px: 3, py: 2, borderTop: "1px solid", borderColor: "grey.200", bgcolor: "background.paper", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <Box sx={{ px: { xs: 2, sm: 3 }, py: 2, borderTop: "1px solid", borderColor: "grey.200", bgcolor: "background.paper", display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 1.5, alignItems: { xs: "flex-start", sm: "center" }, justifyContent: "space-between" }}>
             <Typography variant="body2" color="text.secondary" fontWeight={500}>
               Showing <Typography component="span" variant="body2" fontWeight={600} color="grey.900">{(currentPage - 1) * itemsPerPage + 1}</Typography> to <Typography component="span" variant="body2" fontWeight={600} color="grey.900">{Math.min(currentPage * itemsPerPage, filteredHistory.length)}</Typography> of <Typography component="span" variant="body2" fontWeight={600} color="grey.900">{filteredHistory.length}</Typography> entries
             </Typography>
@@ -164,7 +164,7 @@ const ChatHistoryView = ({ history }: { history: any[] }) => {
                   key={i}
                   onClick={() => setCurrentPage(i + 1)}
                   sx={{ 
-                    minWidth: 32, p: 0, height: 32, borderRadius: 1.5,
+                    minWidth: { xs: 28, sm: 32 }, p: 0, height: { xs: 28, sm: 32 }, borderRadius: 1.5,
                     bgcolor: currentPage === i + 1 ? "secondary.light" : "transparent",
                     color: currentPage === i + 1 ? "secondary.dark" : "text.secondary",
                     fontWeight: currentPage === i + 1 ? 700 : 500,

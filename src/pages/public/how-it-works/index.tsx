@@ -31,9 +31,9 @@ const HowItWorksPage = () => {
         <HowItWorksSection />
 
         {/* Benefits */}
-        <section className="py-24 bg-white">
-          <div className="max-w-4xl mx-auto px-6 lg:px-8">
-            <div className="text-center mb-16">
+        <section className="py-16 md:py-24 bg-white">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12 md:mb-16">
               <h2
                 className="text-gray-900 mb-4"
                 style={{
@@ -48,7 +48,7 @@ const HowItWorksPage = () => {
               </h2>
             </div>
 
-            <div className="grid sm:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
               {[
                 "No installation headaches",
                 "Works with any website platform",
@@ -78,9 +78,9 @@ const HowItWorksPage = () => {
         </section>
 
         {/* FAQ */}
-        <section className="py-24 bg-gray-50">
-          <div className="max-w-3xl mx-auto px-6 lg:px-8">
-            <div className="text-center mb-16">
+        <section className="py-16 md:py-24 bg-gray-50">
+          <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12 md:mb-16">
               <h2
                 className="text-gray-900 mb-4"
                 style={{
@@ -98,7 +98,7 @@ const HowItWorksPage = () => {
               {faqs.map((faq) => (
                 <div
                   key={faq.q}
-                  className="bg-white border border-gray-100 rounded-xl p-6"
+                  className="bg-white border border-gray-100 rounded-xl p-4 sm:p-6"
                 >
                   <h3
                     className="text-gray-900 mb-2"
@@ -127,7 +127,7 @@ const HowItWorksPage = () => {
             <div className="text-center mt-12">
               <Link
                 to="/checkout/free"
-                className="inline-block bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl transition-colors"
+                className="inline-block w-full sm:w-auto text-center bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl transition-colors"
                 style={{
                   fontFamily: "Inter, sans-serif",
                   fontSize: "0.95rem",

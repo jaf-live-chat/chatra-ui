@@ -118,8 +118,8 @@ const FeaturesPage = () => {
           <FeaturesSection />
 
           {/* Extended Features */}
-          <section className="py-24 bg-gray-50">
-            <div className="max-w-7xl mx-auto px-6 lg:px-8">
+          <section className="py-16 md:py-24 bg-gray-50">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="text-center max-w-2xl mx-auto mb-16">
                 <h2
                   className="text-gray-900 mb-4"
@@ -151,10 +151,10 @@ const FeaturesPage = () => {
                   {extendedFeatures.map((feature) => (
                     <div
                       key={feature.title}
-                      className="py-8 flex flex-col sm:flex-row sm:items-center gap-6 sm:gap-8 group hover:bg-gray-100/50 px-6 -mx-6 rounded-2xl transition-colors duration-200"
+                      className="py-6 sm:py-8 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-8 group hover:bg-gray-100/50 px-4 sm:px-6 -mx-4 sm:-mx-6 rounded-2xl transition-colors duration-200"
                     >
                       <div
-                        className={`flex-shrink-0 w-16 h-16 ${feature.color} rounded-2xl flex items-center justify-center group-hover:scale-105 transition-transform duration-300`}
+                        className={`flex-shrink-0 w-14 h-14 sm:w-16 sm:h-16 ${feature.color} rounded-2xl flex items-center justify-center group-hover:scale-105 transition-transform duration-300`}
                       >
                         {feature.icon}
                       </div>
@@ -188,10 +188,10 @@ const FeaturesPage = () => {
               </div>
 
               {/* Feature Highlight Cards */}
-              <div className="grid lg:grid-cols-2 gap-8 mt-24 max-w-5xl mx-auto">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 mt-16 md:mt-24 max-w-5xl mx-auto">
                 {/* Integrations Card */}
-                <div className="bg-[#f8f9fa] rounded-[2rem] overflow-hidden flex flex-col items-center pt-12 relative border border-gray-100 shadow-sm">
-                  <div className="w-full flex justify-center mb-12 px-8">
+                <div className="bg-[#f8f9fa] rounded-[2rem] overflow-hidden flex flex-col items-center pt-8 sm:pt-12 relative border border-gray-100 shadow-sm">
+                  <div className="w-full flex justify-center mb-10 sm:mb-12 px-4 sm:px-8">
                     <div className="flex flex-wrap justify-center gap-3 w-full max-w-sm mx-auto">
                       {[
                         { name: "Google Ads", icon: "G", color: "text-blue-500", bg: "bg-blue-50" },
@@ -207,7 +207,7 @@ const FeaturesPage = () => {
                       ].map((app) => (
                         <div
                           key={app.name}
-                          className="bg-white rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] p-2.5 flex flex-col items-center justify-center w-[4.5rem] h-[4.5rem] gap-1.5 border border-gray-50 hover:shadow-md transition-shadow"
+                          className="bg-white rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] p-2 flex flex-col items-center justify-center w-[4rem] h-[4rem] sm:w-[4.5rem] sm:h-[4.5rem] gap-1.5 border border-gray-50 hover:shadow-md transition-shadow"
                         >
                           <div className={`w-8 h-8 rounded-lg ${app.bg} flex items-center justify-center font-bold text-lg ${app.color}`}>
                             {app.icon}
@@ -219,7 +219,7 @@ const FeaturesPage = () => {
                       ))}
                     </div>
                   </div>
-                  <div className="px-10 pb-10 w-full text-left bg-[#f8f9fa] mt-auto">
+                  <div className="px-6 sm:px-8 lg:px-10 pb-8 sm:pb-10 w-full text-left bg-[#f8f9fa] mt-auto">
                     <h3 className="text-[1.35rem] font-bold text-gray-900 mb-3" style={{ fontFamily: "Inter, sans-serif" }}>
                       200+ Integrations
                     </h3>
@@ -233,7 +233,7 @@ const FeaturesPage = () => {
                 </div>
 
                 {/* Quick Replies Card */}
-                <div className="bg-[#1c1d22] rounded-[2rem] overflow-hidden flex flex-col items-center pt-12 relative shadow-sm">
+                <div className="bg-[#1c1d22] rounded-[2rem] overflow-hidden flex flex-col items-center pt-8 sm:pt-12 relative shadow-sm">
                   <div className="absolute inset-0 bg-gradient-to-b from-[#2a2b36] to-[#1c1d22] opacity-80"></div>
                   {/* Background Icons */}
                   <div className="absolute top-6 left-12 text-white/30">
@@ -247,7 +247,7 @@ const FeaturesPage = () => {
                     </svg>
                   </div>
 
-                  <div className="w-full flex justify-center mb-12 px-8 z-10 mt-8">
+                  <div className="w-full flex justify-center mb-10 sm:mb-12 px-4 sm:px-8 z-10 mt-8">
                     {/* Quick Reply mockup */}
                     <div className="w-full max-w-sm relative">
                       {/* Autocomplete popover */}
@@ -287,7 +287,7 @@ const FeaturesPage = () => {
                     </div>
                   </div>
 
-                  <div className="px-10 pb-10 w-full text-left z-10 mt-auto">
+                  <div className="px-6 sm:px-8 lg:px-10 pb-8 sm:pb-10 w-full text-left z-10 mt-auto">
                     <h3 className="text-[1.35rem] font-bold text-white mb-3" style={{ fontFamily: "Inter, sans-serif" }}>
                       Lightning-fast responses.
                     </h3>
@@ -302,7 +302,7 @@ const FeaturesPage = () => {
               </div>
 
               {/* CTA Section */}
-              <div className="mt-32 pt-16 text-center">
+              <div className="mt-20 md:mt-32 pt-12 md:pt-16 text-center">
                 <h2
                   className="text-gray-900 mb-6"
                   style={{

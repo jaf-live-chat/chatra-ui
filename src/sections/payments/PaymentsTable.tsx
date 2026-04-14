@@ -88,12 +88,12 @@ const PaymentsTable = () => {
   const actionButtonSx = {
     textTransform: "none" as const,
     borderRadius: 9999,
-    px: 1.6,
+    px: { xs: 1.2, sm: 1.6 },
     borderColor: "divider",
     color: "text.primary",
     fontWeight: 600,
     height: 32,
-    minWidth: 72,
+    minWidth: { xs: 0, sm: 72 },
     backgroundColor: "background.paper",
     "&:hover": { bgcolor: "action.hover", borderColor: "divider" },
   };
