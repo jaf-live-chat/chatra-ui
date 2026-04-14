@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import {
   X,
+  Check,
   ArrowRight,
   Trash2,
   ListTodo,
@@ -12,7 +13,7 @@ import {
   User,
   Bell,
 } from 'lucide-react';
-import { Typography } from '@mui/material';
+import { Typography, Tooltip } from '@mui/material';
 import { formatDate } from '../../utils/dateFormatter';
 import { useDarkMode } from '../../providers/DarkModeContext';
 
@@ -32,6 +33,7 @@ interface NotificationPopupProps {
   onClose: () => void;
   onViewAll: () => void;
   onDelete: (notificationId: string) => void;
+  onMarkAsRead: (notificationId: string) => void;
   onNavigate: (notification: Notification) => void;
   isLoading?: boolean;
 }
@@ -42,6 +44,7 @@ const NotificationPopup: React.FC<NotificationPopupProps> = ({
   onClose,
   onViewAll,
   onDelete,
+  onMarkAsRead,
   onNavigate,
   isLoading = false,
 }) => {
@@ -75,6 +78,27 @@ const NotificationPopup: React.FC<NotificationPopupProps> = ({
         return <User {...iconProps} />;
       default:
         return null;
+    }
+  };
+
+  const getNotificationTypeLabel = (type: string) => {
+    switch (type) {
+      case 'QUEUE':
+        return 'Queue notification';
+      case 'CHATS':
+        return 'Chat notification';
+      case 'NEW_TENANT':
+        return 'New tenant notification';
+      case 'PLAN_CHANGE':
+        return 'Plan change notification';
+      case 'TENANT_STATUS':
+        return 'Tenant status notification';
+      case 'PAYMENT':
+        return 'Payment notification';
+      case 'AGENT_UPDATE':
+        return 'Agent update notification';
+      default:
+        return 'Notification';
     }
   };
 
@@ -149,7 +173,9 @@ const NotificationPopup: React.FC<NotificationPopupProps> = ({
                   <div className="flex items-start gap-3">
                     {/* Icon */}
                     <div className="shrink-0 flex items-center justify-center">
-                      {getNotificationIcon(notification.type)}
+                      <Tooltip title={getNotificationTypeLabel(notification.type)} arrow>
+                        <span>{getNotificationIcon(notification.type)}</span>
+                      </Tooltip>
                     </div>
 
                     {/* Content */}
@@ -206,29 +232,49 @@ const NotificationPopup: React.FC<NotificationPopupProps> = ({
 
                     {/* Actions */}
                     <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onNavigate(notification);
-                        }}
-                        className="p-1 text-gray-400 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
-                        aria-label="Open notification"
-                      >
-                        <ArrowRight className="w-3.5 h-3.5" />
-                      </button>
+                      {notification.status === 'UNREAD' && (
+                        <Tooltip title="Mark as read" arrow>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onMarkAsRead(notification._id);
+                            }}
+                            className="p-1 text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
+                            aria-label="Mark as read"
+                          >
+                            <Check className="w-3.5 h-3.5" />
+                          </button>
+                        </Tooltip>
+                      )}
 
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onDelete(notification._id);
-                        }}
-                        className="p-1 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
-                        aria-label="Delete notification"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                      <Tooltip title="Open notification" arrow>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onNavigate(notification);
+                          }}
+                          className="p-1 text-gray-400 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
+                          aria-label="Open notification"
+                        >
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </button>
+                      </Tooltip>
+
+                      <Tooltip title="Delete notification" arrow>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDelete(notification._id);
+                          }}
+                          className="p-1 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                          aria-label="Delete notification"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </Tooltip>
                     </div>
                   </div>
                 </div>

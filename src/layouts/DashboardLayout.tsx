@@ -723,8 +723,11 @@ function DashboardLayoutInner() {
                   setIsNotificationsOpen(false);
                 }}
                 onDelete={deleteNotification}
+                onMarkAsRead={(notificationId) => {
+                  void markAsRead(notificationId);
+                }}
                 onNavigate={(notification) => {
-                  markAsRead(notification._id);
+                  void markAsRead(notification._id);
                   setIsNotificationsOpen(false);
                   // Navigate based on notification type
                   const types: Record<string, { path: string; param?: string }> = {

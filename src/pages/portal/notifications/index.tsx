@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Trash2, ArrowLeft, Mail } from 'lucide-react';
-import { Typography, Checkbox } from '@mui/material';
+import { Trash2, ArrowLeft, Mail, Check } from 'lucide-react';
+import { Typography, Checkbox, Tooltip } from '@mui/material';
 import { useNavigate } from 'react-router';
 import useNotifications from '../../../hooks/useNotifications';
 import { formatDate } from '../../../utils/dateFormatter';
@@ -314,13 +314,30 @@ const NotificationsPage: React.FC = () => {
                   </>
                 )}
 
-                <button
-                  type="button"
-                  onClick={() => deleteNotification(notification._id)}
-                  className="p-1 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors shrink-0"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                <Tooltip title={notification.status === 'READ' ? 'Already read' : 'Mark as read'} arrow>
+                  <span>
+                    <button
+                      type="button"
+                      onClick={() => markAsRead(notification._id)}
+                      disabled={notification.status === 'READ'}
+                      className="p-1 text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 disabled:text-gray-300 dark:disabled:text-slate-600 disabled:hover:text-gray-300 dark:disabled:hover:text-slate-600 transition-colors shrink-0"
+                      aria-label="Mark notification as read"
+                    >
+                      <Check className="w-4 h-4" />
+                    </button>
+                  </span>
+                </Tooltip>
+
+                <Tooltip title="Delete notification" arrow>
+                  <button
+                    type="button"
+                    onClick={() => deleteNotification(notification._id)}
+                    className="p-1 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors shrink-0"
+                    aria-label="Delete notification"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </Tooltip>
               </div>
             ))}
           </div>

@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router';
 import useAuth from './useAuth';
 import useGetRole from './useGetRole';
 import { createLiveChatSocket } from '../services/liveChatRealtimeClient';
@@ -31,6 +32,16 @@ interface UseNotificationsReturn {
   refetch: () => Promise<void>;
 }
 
+const NOTIFICATION_ROUTE_MAP: Record<string, string> = {
+  QUEUE: '/portal/queue',
+  CHATS: '/portal/chat-sessions',
+  NEW_TENANT: '/portal/tenants',
+  PLAN_CHANGE: '/portal/subscriptions',
+  TENANT_STATUS: '/portal/tenants',
+  PAYMENT: '/portal/payments',
+  AGENT_UPDATE: '/portal/agents',
+};
+
 /**
  * Hook to manage notifications with real-time WebSocket updates
  * Fetches initial notifications and listens for new ones via WebSocket
@@ -38,6 +49,7 @@ interface UseNotificationsReturn {
 export const useNotifications = (): UseNotificationsReturn => {
   const { user, tenant, accessToken } = useAuth();
   const { isAdmin, isMasterAdmin, isSupportAgent } = useGetRole();
+  const location = useLocation();
 
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -46,6 +58,11 @@ export const useNotifications = (): UseNotificationsReturn => {
 
   const socketRef = useRef<Socket | null>(null);
   const isInitializedRef = useRef(false);
+  const currentPathRef = useRef(location.pathname);
+
+  useEffect(() => {
+    currentPathRef.current = location.pathname;
+  }, [location.pathname]);
 
   // Select the appropriate service based on role
   const getNotificationService = useCallback(() => {
@@ -115,6 +132,23 @@ export const useNotifications = (): UseNotificationsReturn => {
         }
 
         const newNotification = payload.notification;
+        const targetPath = NOTIFICATION_ROUTE_MAP[newNotification.type];
+        const shouldSuppress = Boolean(
+          targetPath && currentPathRef.current === targetPath
+        );
+
+        // Suppress page-specific notifications when user is already on that page.
+        if (shouldSuppress) {
+          if (newNotification.status === 'UNREAD') {
+            void getNotificationService()
+              .markAsRead(accessToken, newNotification._id)
+              .catch((err) => {
+                console.error('[NOTIFICATIONS] Auto mark as read error:', err);
+              });
+          }
+
+          return;
+        }
 
         // Add to the beginning of the list
         setNotifications((prev) => {
@@ -142,7 +176,15 @@ export const useNotifications = (): UseNotificationsReturn => {
     } catch (err) {
       console.error('[NOTIFICATIONS] WebSocket setup error:', err);
     }
-  }, [accessToken, user?._id, user?.role, tenant?.apiKey, tenant?.id, isMasterAdmin]);
+  }, [
+    accessToken,
+    user?._id,
+    user?.role,
+    tenant?.apiKey,
+    tenant?.id,
+    isMasterAdmin,
+    getNotificationService,
+  ]);
 
   // Fetch initial notifications on mount
   useEffect(() => {
