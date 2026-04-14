@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Loader2, MessageCircle, Paperclip, Send, X, Menu, Zap, ChevronUp, ChevronDown, ArrowLeft, Moon, Volume2, Shield, AlertCircle } from "lucide-react";
+import { Loader2, MessageCircle, Paperclip, Send, X, Menu, Zap, ChevronUp, ChevronDown, ArrowLeft, Moon, Volume2, Shield, AlertCircle, Save } from "lucide-react";
 import type { Socket } from "socket.io-client";
 import type {
   LiveChatConversation,
@@ -96,15 +96,19 @@ const clearStoredValue = (key: string) => {
   }
 };
 
+const createVisitorToken = () => {
+  return typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+    ? crypto.randomUUID()
+    : `visitor-${Math.random().toString(36).slice(2)}-${Date.now()}`;
+};
+
 const getVisitorToken = () => {
   const existingToken = readStoredValue(VISITOR_TOKEN_KEY);
   if (existingToken) {
     return existingToken;
   }
 
-  const token = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
-    ? crypto.randomUUID()
-    : `visitor-${Math.random().toString(36).slice(2)}-${Date.now()}`;
+  const token = createVisitorToken();
 
   writeStoredValue(VISITOR_TOKEN_KEY, token);
   return token;
@@ -249,8 +253,15 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
   const [preChatFullName, setPreChatFullName] = useState("");
   const [preChatEmailAddress, setPreChatEmailAddress] = useState("");
   const [preChatPhoneNumber, setPreChatPhoneNumber] = useState("");
-  const [hasCompletedPreChat, setHasCompletedPreChat] = useState(() => Boolean(readStoredValue(CONVERSATION_ID_KEY)));
-  const [visitorToken] = useState(() => getVisitorToken());
+  const [hasCompletedPreChat, setHasCompletedPreChat] = useState(() => {
+    const storedConversationId = readStoredValue(CONVERSATION_ID_KEY);
+    if (storedConversationId) {
+      return true;
+    }
+
+    return Boolean(readStoredValue(VISITOR_TOKEN_KEY));
+  });
+  const [visitorToken, setVisitorToken] = useState(() => getVisitorToken());
   const [conversationId, setConversationId] = useState(() => readStoredValue(CONVERSATION_ID_KEY));
   const [messages, setMessages] = useState<WidgetTranscriptMessage[]>([]);
   const [messageText, setMessageText] = useState("");
@@ -282,6 +293,8 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
   const [isHistoryTranscriptLoading, setIsHistoryTranscriptLoading] = useState(false);
   const [isReturningVisitor, setIsReturningVisitor] = useState(false);
   const [returningVisitorName, setReturningVisitorName] = useState("");
+  const [isProfileSaving, setIsProfileSaving] = useState(false);
+  const [profileStatusMessage, setProfileStatusMessage] = useState("");
 
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const socketRef = useRef<Socket | null>(null);
@@ -291,6 +304,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
   const widgetSettingsRequestRef = useRef<Promise<void> | null>(null);
   const quickMessagesRequestRef = useRef<Promise<void> | null>(null);
   const historyRequestRef = useRef<Promise<void> | null>(null);
+  const profileRequestRef = useRef<Promise<void> | null>(null);
   const quickReplyTimerRef = useRef<number | null>(null);
   const conversationBootstrapRef = useRef(false);
 
@@ -365,6 +379,21 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
 
     return historyConversations.find((entry) => String(entry._id) === selectedHistoryConversationId) || null;
   }, [historyConversations, selectedHistoryConversationId]);
+  const locationPermissionLabel = useMemo(() => {
+    if (locationPermissionState === "granted") {
+      return "Browser location permission is granted. Location can be attached to new sessions.";
+    }
+
+    if (locationPermissionState === "denied") {
+      return "Browser location permission is denied. Enable it in browser settings to share location.";
+    }
+
+    if (locationPermissionState === "unavailable") {
+      return "Location access is unavailable on this browser/device.";
+    }
+
+    return "Location permission has not been requested yet.";
+  }, [locationPermissionState]);
 
   const disconnectSocket = useCallback(() => {
     if (socketRef.current) {
@@ -670,6 +699,71 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
     return historyRequestRef.current;
   }, [apiKey, hasApiKey, visitorToken]);
 
+  const syncVisitorProfile = useCallback(async () => {
+    if (!hasApiKey) {
+      return;
+    }
+
+    if (profileRequestRef.current) {
+      return profileRequestRef.current;
+    }
+
+    profileRequestRef.current = (async () => {
+      try {
+        const response = await liveChatWidgetServices.getVisitorProfile({ apiKey }, visitorToken);
+        const visitor = response.visitor;
+
+        setPreChatFullName(String(visitor?.name || visitor?.fullName || ""));
+        setPreChatEmailAddress(String(visitor?.emailAddress || ""));
+        setPreChatPhoneNumber(String(visitor?.phoneNumber || ""));
+      } catch {
+        // Keep widget usable even if profile fetch fails.
+      } finally {
+        profileRequestRef.current = null;
+      }
+    })();
+
+    return profileRequestRef.current;
+  }, [apiKey, hasApiKey, visitorToken]);
+
+  const handleSaveProfile = useCallback(async () => {
+    if (!hasApiKey || isProfileSaving) {
+      return;
+    }
+
+    const sanitizedEmail = preChatEmailAddress.trim();
+    if (sanitizedEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(sanitizedEmail)) {
+      setProfileStatusMessage("Please enter a valid email address.");
+      return;
+    }
+
+    setIsProfileSaving(true);
+    setProfileStatusMessage("");
+
+    try {
+      const response = await liveChatWidgetServices.updateVisitorProfile(
+        { apiKey },
+        visitorToken,
+        {
+          fullName: preChatFullName,
+          emailAddress: sanitizedEmail,
+          phoneNumber: preChatPhoneNumber,
+        },
+      );
+
+      const visitor = response.visitor;
+      setPreChatFullName(String(visitor?.name || visitor?.fullName || ""));
+      setPreChatEmailAddress(String(visitor?.emailAddress || ""));
+      setPreChatPhoneNumber(String(visitor?.phoneNumber || ""));
+      setProfileStatusMessage("Profile saved.");
+      setErrorMessage("");
+    } catch (error) {
+      setProfileStatusMessage(getErrorMessage(error));
+    } finally {
+      setIsProfileSaving(false);
+    }
+  }, [apiKey, hasApiKey, isProfileSaving, preChatEmailAddress, preChatFullName, preChatPhoneNumber, visitorToken]);
+
   const loadHistoryTranscript = useCallback(async (targetConversationId: string) => {
     if (!hasApiKey || !targetConversationId) {
       return;
@@ -833,15 +927,9 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
     setMessageText("");
     setUnreadCount(0);
     setErrorMessage("");
-    setHasCompletedPreChat(false);
+    setHasCompletedPreChat(true);
     setActiveQuickReplyId(null);
     setShowQuickMessages(false);
-    setPreChatFullName("");
-    setPreChatEmailAddress("");
-    setPreChatPhoneNumber("");
-    setBrowserLocation(null);
-    setBrowserLocationStatus("idle");
-    setLocationPermissionState("unknown");
     setSelectedHistoryConversationId("");
     setHistoryMessages([]);
     clearStoredValue(CONVERSATION_ID_KEY);
@@ -864,6 +952,49 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
     resetConversationState();
     setWidgetView("chat");
   }, [resetConversationState]);
+
+  const handleEndSession = useCallback(async () => {
+    if (conversationId) {
+      try {
+        await liveChatWidgetServices.endConversation(widgetConfig, visitorToken, conversationId);
+      } catch {
+        // Continue logging out even if ending the active chat fails.
+      }
+    }
+
+    clearQuickReplyTimer();
+    disconnectSocket();
+    clearStoredValue(CONVERSATION_ID_KEY);
+    clearStoredValue(VISITOR_TOKEN_KEY);
+
+    const nextVisitorToken = createVisitorToken();
+    writeStoredValue(VISITOR_TOKEN_KEY, nextVisitorToken);
+    setVisitorToken(nextVisitorToken);
+
+    setConversationId("");
+    setMessages([]);
+    setMessageText("");
+    setUnreadCount(0);
+    setErrorMessage("");
+    setHasCompletedPreChat(false);
+    setActiveQuickReplyId(null);
+    setShowQuickMessages(false);
+    setPreChatFullName("");
+    setPreChatEmailAddress("");
+    setPreChatPhoneNumber("");
+    setBrowserLocation(null);
+    setBrowserLocationStatus("idle");
+    setLocationPermissionState("unknown");
+    setHistoryConversations([]);
+    setHistoryCount(0);
+    setHistoryMessages([]);
+    setSelectedHistoryConversationId("");
+    setIsReturningVisitor(false);
+    setReturningVisitorName("");
+    setWidgetView("chat");
+    setProfileStatusMessage("Session ended. You are logged out.");
+    setIsEndChatModalOpen(false);
+  }, [clearQuickReplyTimer, conversationId, disconnectSocket, visitorToken, widgetConfig]);
 
   const appendEndedMessage = useCallback((payload: LiveChatConversationEndedEvent) => {
     const endedBy = payload.endedBy?.displayName ? ` Ended by ${payload.endedBy.displayName}.` : "";
@@ -1125,6 +1256,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
       setWidgetView("chat");
       setIsEndChatModalOpen(false);
       setShowQuickMessages(false);
+      setProfileStatusMessage("");
     }
   }, [isOpen]);
 
@@ -1134,7 +1266,8 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
     }
 
     void syncConversationHistory();
-  }, [isOpen, syncConversationHistory, widgetView]);
+    void syncVisitorProfile();
+  }, [isOpen, syncConversationHistory, syncVisitorProfile, widgetView]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -1157,13 +1290,14 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
     void syncWidgetSettings();
     void syncQuickMessages();
     void syncConversationHistory();
+    void syncVisitorProfile();
 
     if (!conversationId) {
       return;
     }
 
     void syncMessages(conversationId);
-  }, [conversationId, hasApiKey, isOpen, syncConversationHistory, syncMessages, syncQuickMessages, syncWidgetSettings]);
+  }, [conversationId, hasApiKey, isOpen, syncConversationHistory, syncMessages, syncQuickMessages, syncVisitorProfile, syncWidgetSettings]);
 
   useEffect(() => {
     if (!apiKey || !conversationId) {
@@ -1268,13 +1402,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
     socket.on("CONVERSATION_ENDED", (payload: LiveChatConversationEndedEvent) => {
       appendEndedMessage(payload);
       setConversationId("");
-      setHasCompletedPreChat(false);
-      setPreChatFullName("");
-      setPreChatEmailAddress("");
-      setPreChatPhoneNumber("");
-      setBrowserLocation(null);
-      setBrowserLocationStatus("idle");
-      setLocationPermissionState("unknown");
+      setHasCompletedPreChat(true);
       clearStoredValue(CONVERSATION_ID_KEY);
       setSocketStatus("closed");
       void syncConversationHistory();
@@ -1546,6 +1674,50 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                     </button>
 
                     <div className={theme.settingsCard}>
+                      <p className={`${theme.settingsSectionTitle} mb-2`}>PROFILE</p>
+                      <div className="grid gap-2.5">
+                        <input
+                          type="text"
+                          value={preChatFullName}
+                          onChange={(event) => setPreChatFullName(event.target.value)}
+                          placeholder="Full name"
+                          className={`w-full rounded-xl border px-3.5 py-2.5 text-sm outline-none ${theme.input}`}
+                        />
+                        <input
+                          type="email"
+                          value={preChatEmailAddress}
+                          onChange={(event) => setPreChatEmailAddress(event.target.value)}
+                          placeholder="Email address"
+                          className={`w-full rounded-xl border px-3.5 py-2.5 text-sm outline-none ${theme.input}`}
+                        />
+                        <input
+                          type="text"
+                          value={preChatPhoneNumber}
+                          onChange={(event) => setPreChatPhoneNumber(event.target.value)}
+                          placeholder="Phone number"
+                          className={`w-full rounded-xl border px-3.5 py-2.5 text-sm outline-none ${theme.input}`}
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          void handleSaveProfile();
+                        }}
+                        disabled={isProfileSaving}
+                        className="mt-3 inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold text-white disabled:opacity-60 disabled:cursor-not-allowed"
+                        style={{ backgroundColor: resolvedAccent }}
+                      >
+                        {isProfileSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                        <span>{isProfileSaving ? "Saving..." : "Save profile"}</span>
+                      </button>
+                      {profileStatusMessage ? (
+                        <p className={`mt-2 ${theme.settingsMuted}`}>{profileStatusMessage}</p>
+                      ) : null}
+                    </div>
+
+                    <div className={`my-5 border-t ${theme.settingsDivider}`} />
+
+                    <div className={theme.settingsCard}>
                       <p className={`${theme.settingsSectionTitle} mb-2`}>TEXT SIZE</p>
                       <div className={`${theme.settingsControlShell} ${theme.settingsControlShellTone}`}>
                         {(["small", "default", "large"] as TextSize[]).map((size) => (
@@ -1614,15 +1786,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                       <div className="flex items-center justify-between gap-3">
                         <div>
                           <p className={`${theme.settingsSectionTitle} mb-1`}>LOCATION PERMISSION</p>
-                          <p className={`${theme.settingsMuted}`}>
-                            {locationPermissionState === "granted"
-                              ? "Location shared for this chat session."
-                              : locationPermissionState === "denied"
-                                ? "Location permission denied by browser."
-                                : locationPermissionState === "unavailable"
-                                  ? "Location is unavailable in this browser."
-                                  : "Location will be requested for each new chat."}
-                          </p>
+                          <p className={`${theme.settingsMuted}`}>{locationPermissionLabel}</p>
                         </div>
                         <button
                           type="button"
@@ -1631,7 +1795,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                           className="rounded-xl px-3 py-2 text-xs font-semibold text-white disabled:opacity-60 disabled:cursor-not-allowed"
                           style={{ backgroundColor: resolvedAccent }}
                         >
-                          {browserLocationStatus === "resolving" ? "Requesting..." : "Request"}
+                          {browserLocationStatus === "resolving" ? "Checking..." : "Check"}
                         </button>
                       </div>
                     </div>
@@ -1681,11 +1845,21 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                     <div className={theme.settingsCard}>
                       <div className="flex items-center gap-2 mb-2">
                         <Shield className={`h-4.5 w-4.5 ${theme.settingsMuted}`} />
-                        <p className={`font-semibold tracking-wide ${theme.settingsText}`}>SESSION & PRIVACY</p>
+                        <p className={`font-semibold tracking-wide ${theme.settingsText}`}>SESSION</p>
                       </div>
                       <p className={`leading-relaxed ${theme.settingsMuted}`}>
-                        We securely store your session so you do not lose your chat on reload. You can end and clear this session at any time.
+                        End session logs out this visitor profile on this browser. End chat only closes the current chat.
                       </p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          void handleEndSession();
+                        }}
+                        className="mt-3 w-full rounded-xl px-3 py-2 text-sm font-semibold text-white"
+                        style={{ backgroundColor: resolvedAccent }}
+                      >
+                        End session
+                      </button>
                     </div>
                   </>
                 )}
@@ -1723,9 +1897,9 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                       <>
                         <div className={`my-4 border-t ${theme.settingsDivider}`} />
                         <div className="text-left">
-                          <p className={`font-semibold ${theme.settingsText}`}>Before we start (optional)</p>
+                          <p className={`font-semibold ${theme.settingsText}`}>Before we start (first visit, optional)</p>
                           <p className={`mt-1 leading-relaxed ${theme.settingsMuted}`}>
-                            Share your details if you want faster support. You can leave everything blank and continue.
+                            Share profile details for faster support. You can leave everything blank and continue.
                           </p>
 
                           <div className="mt-3 grid gap-2.5">
@@ -1861,9 +2035,9 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
               {hasEndedConversation ? (
                 <div className={`${theme.quickBar} px-4 sm:px-5 py-3 flex-shrink-0`}>
                   <div className={`rounded-2xl border px-3.5 py-3 text-left ${theme.settingsCard}`}>
-                    <p className={`font-semibold ${theme.settingsText}`}>This conversation has ended.</p>
+                    <p className={`font-semibold ${theme.settingsText}`}>This session has ended.</p>
                     <p className={`mt-1 leading-relaxed ${theme.settingsMuted}`}>
-                      Go back to start a new chat.
+                      Start a new session when ready.
                     </p>
                     <button
                       type="button"
@@ -1871,7 +2045,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                       className="mt-3 w-full rounded-xl px-3 py-2 text-sm font-semibold text-white"
                       style={{ backgroundColor: resolvedAccent }}
                     >
-                      Go back
+                      Start new session
                     </button>
                   </div>
                 </div>
@@ -1997,9 +2171,9 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                   </div>
                 </div>
 
-                <h3 className="text-center text-xl font-semibold">End this conversation?</h3>
+                <h3 className="text-center text-xl font-semibold">End this chat?</h3>
                 <p className={`text-center mt-2 text-sm ${theme.settingsMuted}`}>
-                  Your conversation history will be cleared. Your status will be changed to available.
+                  This closes your current chat. Your visitor profile and session remain signed in.
                 </p>
 
                 <div className="mt-5 grid grid-cols-2 gap-2.5">
