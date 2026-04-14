@@ -80,7 +80,7 @@ function FaqAccordionItem({
         >
           <div ref={bodyRef}>
             <p
-              className="px-6 pb-5 text-gray-500"
+              className="px-6 pb-5 text-gray-500 whitespace-pre-line"
               style={{
                 fontFamily: "Inter, sans-serif",
                 fontSize: "0.9rem",

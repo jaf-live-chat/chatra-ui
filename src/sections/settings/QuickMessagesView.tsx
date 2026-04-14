@@ -7,6 +7,7 @@ import TitleTag from "../../components/TitleTag";
 import quickMessageServices, { useGetQuickMessages } from "../../services/quickMessageServices";
 import type { QuickMessageRecord } from "../../models/QuickMessageModel";
 import Skeleton from "../../components/skeleton";
+import Editor from "../../components/Editor";
 
 type QuickMessageItem = {
   id: string;
@@ -40,9 +41,11 @@ const getErrorMessage = (error: unknown, fallbackMessage: string) => {
 
 const normalizeSupportText = (value: string) =>
   value
-    .replace(/\s+/g, " ")
-    .replace(/\s+([.,!?])/g, "$1")
+    .replace(/[ \t\f\v]+/g, " ")
+    .replace(/[ \t]+([.,!?])/g, "$1")
     .trim();
+
+const safeText = (value: string | null | undefined) => (typeof value === "string" ? value : "");
 
 function DeleteConfirmModal({
   title,
@@ -187,12 +190,15 @@ function EditorRow({
                 <label className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">
                   Response
                 </label>
-                <textarea
-                  value={item.response}
-                  onChange={(event) => onUpdate({ ...item, response: event.target.value })}
+                <Editor
+                  id={`quick-message-response-${item.id}`}
+                  value={safeText(item.response)}
+                  onChange={(nextValue) => {
+                    onUpdate({ ...item, response: nextValue });
+                  }}
                   placeholder="Enter the response..."
-                  rows={4}
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent resize-y"
+                  minHeight={320}
+                  className="mt-1"
                 />
                 <p className="text-[11px] text-gray-400 dark:text-slate-500">
                   Write professional responses that include a clear next action.

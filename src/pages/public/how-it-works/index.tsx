@@ -111,7 +111,7 @@ const HowItWorksPage = () => {
                     {faq.q}
                   </h3>
                   <p
-                    className="text-gray-500"
+                    className="text-gray-500 whitespace-pre-line"
                     style={{
                       fontFamily: "Inter, sans-serif",
                       fontSize: "0.9rem",

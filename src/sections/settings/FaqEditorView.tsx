@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import PageTitle from "../../components/common/PageTitle";
 import TitleTag from "../../components/TitleTag";
 import Skeleton from "../../components/skeleton";
+import Editor from "../../components/Editor";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -122,9 +123,11 @@ const getErrorMessage = (error: unknown, fallbackMessage: string) => {
 
 const normalizeSupportText = (value: string) =>
   value
-    .replace(/\s+/g, " ")
-    .replace(/\s+([.,!?])/g, "$1")
+    .replace(/[ \t\f\v]+/g, " ")
+    .replace(/[ \t]+([.,!?])/g, "$1")
     .trim();
+
+const safeText = (value: string | null | undefined) => (typeof value === "string" ? value : "");
 
 function FaqRow({
   faq,
@@ -233,12 +236,15 @@ function FaqRow({
                 <label className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">
                   Answer
                 </label>
-                <textarea
-                  value={faq.a}
-                  onChange={(e) => onUpdate({ ...faq, a: e.target.value })}
+                <Editor
+                  id={`faq-answer-${faq.id}`}
+                  value={safeText(faq.a)}
+                  onChange={(nextValue) => {
+                    onUpdate({ ...faq, a: nextValue });
+                  }}
                   placeholder="Enter the answer..."
-                  rows={3}
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition resize-y"
+                  minHeight={320}
+                  className="mt-1"
                 />
                 <p className="text-[11px] text-gray-400 dark:text-slate-500">
                   Keep answers brief, clear, and include a concrete next step.
@@ -319,7 +325,7 @@ function PreviewPanel({ faqs }: { faqs: FaqItem[] }) {
                 transition={{ duration: 0.2 }}
                 style={{ overflow: "hidden" }}
               >
-                <p className="px-5 pb-4 text-sm text-gray-500 dark:text-slate-400 leading-relaxed">
+                <p className="px-5 pb-4 text-sm text-gray-500 dark:text-slate-400 leading-relaxed whitespace-pre-line">
                   {faq.a || <span className="italic">No answer set</span>}
                 </p>
               </motion.div>
