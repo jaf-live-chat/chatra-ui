@@ -24,7 +24,7 @@ const NOTIFICATION_ROUTE_MAP: Record<string, NotificationMapping> = {
   },
   CHATS: {
     type: 'CHATS',
-    path: '/portal/chats',
+    path: '/portal/chat-sessions',
     filterKey: 'conversationId',
   },
   NEW_TENANT: {

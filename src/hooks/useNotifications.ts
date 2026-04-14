@@ -22,8 +22,12 @@ interface UseNotificationsReturn {
   error: string | null;
   markAsRead: (notificationId: string) => Promise<void>;
   markMultipleAsRead: (notificationIds: string[]) => Promise<void>;
+  markAllAsRead: () => Promise<void>;
+  markAllUnreadAsRead: () => Promise<void>;
+  getUnreadCount: () => Promise<void>;
   deleteNotification: (notificationId: string) => Promise<void>;
   deleteMultiple: (notificationIds: string[]) => Promise<void>;
+  deleteAllForAgent: () => Promise<void>;
   refetch: () => Promise<void>;
 }
 
@@ -140,6 +144,11 @@ export const useNotifications = (): UseNotificationsReturn => {
     }
   }, [accessToken, user?._id, user?.role, tenant?.apiKey, tenant?.id, isMasterAdmin]);
 
+  // Fetch initial notifications on mount
+  useEffect(() => {
+    fetchNotifications();
+  }, [fetchNotifications]);
+
   // Mark notification as read
   const markAsRead = useCallback(
     async (notificationId: string) => {
@@ -255,10 +264,103 @@ export const useNotifications = (): UseNotificationsReturn => {
     [accessToken, notifications, getNotificationService]
   );
 
-  // Fetch initial notifications on mount
-  useEffect(() => {
-    fetchNotifications();
-  }, [fetchNotifications]);
+  // Mark all notifications as read for current user
+  const markAllAsRead = useCallback(
+    async () => {
+      if (!accessToken) {
+        return;
+      }
+
+      try {
+        const service = getNotificationService();
+        await service.markAllAsRead(accessToken);
+
+        // Update local state
+        setNotifications((prev) =>
+          prev.map((n) => ({ ...n, status: 'READ' }))
+        );
+
+        // Reset unread count
+        setUnreadCount(0);
+      } catch (err) {
+        console.error('[NOTIFICATIONS] Mark all as read error:', err);
+        throw err;
+      }
+    },
+    [accessToken, getNotificationService]
+  );
+
+  // Mark all unread notifications as read for current user
+  const markAllUnreadAsRead = useCallback(
+    async () => {
+      if (!accessToken) {
+        return;
+      }
+
+      try {
+        const service = getNotificationService();
+        await service.markAllUnreadAsRead(accessToken);
+
+        // Update local state
+        setNotifications((prev) =>
+          prev.map((n) =>
+            n.status === 'UNREAD' ? { ...n, status: 'READ' } : n
+          )
+        );
+
+        // Reset unread count
+        setUnreadCount(0);
+      } catch (err) {
+        console.error('[NOTIFICATIONS] Mark all unread as read error:', err);
+        throw err;
+      }
+    },
+    [accessToken, getNotificationService]
+  );
+
+  // Get unread count for current user
+  const getUnreadCountFn = useCallback(
+    async () => {
+      if (!accessToken) {
+        return;
+      }
+
+      try {
+        const service = getNotificationService();
+        const response = await service.getUnreadCount(accessToken);
+
+        if (response.success && response.data?.unreadCount !== undefined) {
+          setUnreadCount(response.data.unreadCount);
+        }
+      } catch (err) {
+        console.error('[NOTIFICATIONS] Get unread count error:', err);
+        throw err;
+      }
+    },
+    [accessToken, getNotificationService]
+  );
+
+  // Delete all notifications for current user
+  const deleteAllForAgent = useCallback(
+    async () => {
+      if (!accessToken) {
+        return;
+      }
+
+      try {
+        const service = getNotificationService();
+        await service.deleteAllForAgent(accessToken);
+
+        // Clear all notifications
+        setNotifications([]);
+        setUnreadCount(0);
+      } catch (err) {
+        console.error('[NOTIFICATIONS] Delete all error:', err);
+        throw err;
+      }
+    },
+    [accessToken, getNotificationService]
+  );
 
   // Cleanup Socket.IO connection on unmount
   useEffect(() => {
@@ -280,6 +382,10 @@ export const useNotifications = (): UseNotificationsReturn => {
     markMultipleAsRead,
     deleteNotification,
     deleteMultiple,
+    markAllAsRead,
+    markAllUnreadAsRead,
+    getUnreadCount: getUnreadCountFn,
+    deleteAllForAgent,
     refetch: fetchNotifications,
   };
 };

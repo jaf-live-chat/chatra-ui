@@ -52,6 +52,25 @@ const tenantNotificationServices = {
   },
 
   /**
+   * Get unread count for current agent
+   */
+  async getUnreadCount(accessToken: string) {
+    const response = await fetch(
+      `${API_BASE_URL}/agent-notifications/unread/count`,
+      {
+        method: 'GET',
+        headers: getHeaders(accessToken),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch unread count: ${response.statusText}`);
+    }
+
+    return response.json();
+  },
+
+  /**
    * Mark single notification as read
    */
   async markAsRead(accessToken: string, notificationId: string) {
@@ -91,6 +110,44 @@ const tenantNotificationServices = {
   },
 
   /**
+   * Mark all notifications as read for current agent
+   */
+  async markAllAsRead(accessToken: string) {
+    const response = await fetch(
+      `${API_BASE_URL}/agent-notifications/read/all`,
+      {
+        method: 'PATCH',
+        headers: getHeaders(accessToken),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to mark all notifications as read: ${response.statusText}`);
+    }
+
+    return response.json();
+  },
+
+  /**
+   * Mark all unread notifications as read for current agent
+   */
+  async markAllUnreadAsRead(accessToken: string) {
+    const response = await fetch(
+      `${API_BASE_URL}/agent-notifications/read/unread`,
+      {
+        method: 'PATCH',
+        headers: getHeaders(accessToken),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to mark unread notifications as read: ${response.statusText}`);
+    }
+
+    return response.json();
+  },
+
+  /**
    * Delete single notification
    */
   async deleteNotification(accessToken: string, notificationId: string) {
@@ -124,6 +181,25 @@ const tenantNotificationServices = {
 
     if (!response.ok) {
       throw new Error(`Failed to delete notifications: ${response.statusText}`);
+    }
+
+    return response.json();
+  },
+
+  /**
+   * Delete all notifications for current agent
+   */
+  async deleteAllForAgent(accessToken: string) {
+    const response = await fetch(
+      `${API_BASE_URL}/agent-notifications/all`,
+      {
+        method: 'DELETE',
+        headers: getHeaders(accessToken),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to delete all notifications: ${response.statusText}`);
     }
 
     return response.json();
@@ -172,6 +248,25 @@ const masterNotificationServices = {
   },
 
   /**
+   * Get unread count for master admin
+   */
+  async getUnreadCount(accessToken: string) {
+    const response = await fetch(
+      `${API_BASE_URL}/notifications/unread/count`,
+      {
+        method: 'GET',
+        headers: getHeaders(accessToken),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch unread count: ${response.statusText}`);
+    }
+
+    return response.json();
+  },
+
+  /**
    * Mark single notification as read
    */
   async markAsRead(accessToken: string, notificationId: string) {
@@ -211,6 +306,44 @@ const masterNotificationServices = {
   },
 
   /**
+   * Mark all notifications as read for master admin
+   */
+  async markAllAsRead(accessToken: string) {
+    const response = await fetch(
+      `${API_BASE_URL}/notifications/read/all`,
+      {
+        method: 'PATCH',
+        headers: getHeaders(accessToken),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to mark all notifications as read: ${response.statusText}`);
+    }
+
+    return response.json();
+  },
+
+  /**
+   * Mark all unread notifications as read for master admin
+   */
+  async markAllUnreadAsRead(accessToken: string) {
+    const response = await fetch(
+      `${API_BASE_URL}/notifications/read/unread`,
+      {
+        method: 'PATCH',
+        headers: getHeaders(accessToken),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to mark unread notifications as read: ${response.statusText}`);
+    }
+
+    return response.json();
+  },
+
+  /**
    * Delete single notification
    */
   async deleteNotification(accessToken: string, notificationId: string) {
@@ -244,6 +377,25 @@ const masterNotificationServices = {
 
     if (!response.ok) {
       throw new Error(`Failed to delete notifications: ${response.statusText}`);
+    }
+
+    return response.json();
+  },
+
+  /**
+   * Delete all notifications for master admin
+   */
+  async deleteAllForAgent(accessToken: string) {
+    const response = await fetch(
+      `${API_BASE_URL}/notifications/all`,
+      {
+        method: 'DELETE',
+        headers: getHeaders(accessToken),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to delete all notifications: ${response.statusText}`);
     }
 
     return response.json();

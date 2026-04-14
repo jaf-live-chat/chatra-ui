@@ -729,7 +729,7 @@ function DashboardLayoutInner() {
                   // Navigate based on notification type
                   const types: Record<string, { path: string; param?: string }> = {
                     QUEUE: { path: '/portal/queue' },
-                    CHATS: { path: '/portal/chats', param: 'conversationId' },
+                    CHATS: { path: '/portal/chat-sessions', param: 'conversationId' },
                     NEW_TENANT: { path: '/portal/tenants' },
                     PLAN_CHANGE: { path: '/portal/subscriptions' },
                     TENANT_STATUS: { path: '/portal/tenants' },
