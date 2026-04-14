@@ -6,19 +6,51 @@ import PageTitle from "../../../components/common/PageTitle";
 import Agents from "../../../services/agentServices";
 import { APP_LOGO } from "../../../constants/constants";
 
+const RESET_REQUEST_COOLDOWN_SECONDS = 30;
+
 const ForgotPasswordPage = () => {
   const [companyCode, setCompanyCode] = useState("");
   const [emailAddress, setEmailAddress] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [submitMessage, setSubmitMessage] = useState("");
+  const [cooldownEndsAt, setCooldownEndsAt] = useState<number | null>(null);
+  const [cooldownSecondsLeft, setCooldownSecondsLeft] = useState(0);
 
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
+  useEffect(() => {
+    if (!cooldownEndsAt) {
+      setCooldownSecondsLeft(0);
+      return;
+    }
+
+    const updateCountdown = () => {
+      const seconds = Math.max(0, Math.ceil((cooldownEndsAt - Date.now()) / 1000));
+      setCooldownSecondsLeft(seconds);
+
+      if (seconds <= 0) {
+        setCooldownEndsAt(null);
+      }
+    };
+
+    updateCountdown();
+    const intervalId = window.setInterval(updateCountdown, 1000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [cooldownEndsAt]);
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+
+    if (isSubmitting || cooldownSecondsLeft > 0) {
+      return;
+    }
+
     setIsSubmitting(true);
     setSubmitError("");
     setSubmitMessage("");
@@ -33,13 +65,17 @@ const ForgotPasswordPage = () => {
         response.message ||
           "If the account exists, we sent a password reset email with a reset button and OTP."
       );
+      setCooldownEndsAt(Date.now() + RESET_REQUEST_COOLDOWN_SECONDS * 1000);
     } catch (error) {
       const axiosError = error as AxiosError<{ message?: string }>;
       setSubmitError(axiosError.response?.data?.message || "Unable to send reset email. Please try again.");
+      setCooldownEndsAt(null);
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  const isCooldownActive = cooldownSecondsLeft > 0;
 
   return (
     <React.Fragment>
@@ -119,10 +155,14 @@ const ForgotPasswordPage = () => {
 
               <button
                 type="submit"
-                disabled={isSubmitting}
+                disabled={isSubmitting || isCooldownActive}
                 className="w-full rounded-xl bg-cyan-800 py-3 text-sm font-semibold uppercase tracking-wide text-white transition-all hover:bg-cyan-900 disabled:cursor-not-allowed disabled:opacity-70"
               >
-                {isSubmitting ? "Sending email..." : "Send reset link"}
+                {isSubmitting
+                  ? "Sending email..."
+                  : isCooldownActive
+                    ? `Try again in ${cooldownSecondsLeft}s`
+                    : "Send reset link"}
               </button>
             </form>
 
