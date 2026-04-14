@@ -21,6 +21,7 @@ import {
   CircularProgress,
 } from "@mui/material";
 import Logo from "./Logo";
+import useAuth from "../../hooks/useAuth";
 
 const NAV_LINKS = [
   { label: "Features", to: "/features" },
@@ -37,6 +38,7 @@ const STARTER_FEATURES = [
 ];
 
 const Navbar = () => {
+  const { isLoggedIn } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -314,45 +316,66 @@ const Navbar = () => {
               spacing={1.25}
               sx={{ display: { xs: "none", md: "flex" }, alignItems: "center" }}
             >
-              <Button
-                component={Link}
-                to="/login"
-                sx={{
-                  color: navColor,
-                  fontFamily: "Inter, sans-serif",
-                  fontWeight: 600,
-                  textTransform: "none",
-                  fontSize: "0.95rem",
-                  "&:hover": {
-                    bgcolor: "transparent",
-                    color: btnColor
-                  }
-                }}
-              >
-                Log in
-              </Button>
-              <Button
-                component={Link}
-                to="/checkout/free"
-                variant="contained"
-                sx={{
-                  bgcolor: btnColor,
-                  color: "#FFFFFFFF",
-                  fontFamily: "Inter, sans-serif",
-                  fontWeight: 600,
-                  textTransform: "none",
-                  fontSize: "0.9rem",
-                  boxShadow: "none",
-                  borderRadius: "8px",
-                  padding: "7px 16px",
-                  "&:hover": {
-                    bgcolor: btnHover,
+              {isLoggedIn ? (
+                <Button
+                  component={Link}
+                  to="/portal"
+                  variant="outlined"
+                  sx={{
+                    fontFamily: "Inter, sans-serif",
+                    fontWeight: 600,
+                    textTransform: "none",
+                    fontSize: "0.9rem",
                     boxShadow: "none",
-                  }
-                }}
-              >
-                Sign up free
-              </Button>
+                    borderRadius: "8px",
+                    padding: "7px 16px",
+                  }}
+                >
+                  Go to App
+                </Button>
+              ) : (
+                <>
+                  <Button
+                    component={Link}
+                    to="/login"
+                    sx={{
+                      color: navColor,
+                      fontFamily: "Inter, sans-serif",
+                      fontWeight: 600,
+                      textTransform: "none",
+                      fontSize: "0.95rem",
+                      "&:hover": {
+                        bgcolor: "transparent",
+                        color: btnColor
+                      }
+                    }}
+                  >
+                    Log in
+                  </Button>
+                  <Button
+                    component={Link}
+                    to="/checkout/free"
+                    variant="contained"
+                    sx={{
+                      bgcolor: btnColor,
+                      color: "#FFFFFFFF",
+                      fontFamily: "Inter, sans-serif",
+                      fontWeight: 600,
+                      textTransform: "none",
+                      fontSize: "0.9rem",
+                      boxShadow: "none",
+                      borderRadius: "8px",
+                      padding: "7px 16px",
+                      "&:hover": {
+                        bgcolor: btnHover,
+                        boxShadow: "none",
+                      }
+                    }}
+                  >
+                    Sign up free
+                  </Button>
+                </>
+              )}
             </Stack>
 
             {/* Mobile Toggle */}
@@ -422,42 +445,67 @@ const Navbar = () => {
             ))}
           </List>
           <Stack spacing={2} sx={{ mt: 2, px: 2 }}>
-            <Button
-              component={Link}
-              to="/login"
-              fullWidth
-              variant="outlined"
-              onClick={handleDrawerToggle}
-              sx={{
-                borderColor: "#E5E7EBFF",
-                color: navColor,
-                fontFamily: "Inter, sans-serif",
-                fontWeight: 600,
-                textTransform: "none",
-                borderRadius: "8px",
-                py: 1
-              }}
-            >
-              Log in
-            </Button>
-            <Button
-              fullWidth
-              variant="contained"
-              onClick={() => { handleDrawerToggle(); setSignupOpen(true); }}
-              sx={{
-                bgcolor: btnColor,
-                color: "#FFFFFFFF",
-                fontFamily: "Inter, sans-serif",
-                fontWeight: 600,
-                textTransform: "none",
-                borderRadius: "8px",
-                py: 1,
-                boxShadow: "none",
-                "&:hover": { bgcolor: btnHover, boxShadow: "none" }
-              }}
-            >
-              Sign up free
-            </Button>
+            {isLoggedIn ? (
+              <Button
+                component={Link}
+                to="/portal"
+                fullWidth
+                variant="contained"
+                onClick={handleDrawerToggle}
+                sx={{
+                  bgcolor: btnColor,
+                  color: "#FFFFFFFF",
+                  fontFamily: "Inter, sans-serif",
+                  fontWeight: 600,
+                  textTransform: "none",
+                  borderRadius: "8px",
+                  py: 1,
+                  boxShadow: "none",
+                  "&:hover": { bgcolor: btnHover, boxShadow: "none" }
+                }}
+              >
+                Go to App
+              </Button>
+            ) : (
+              <>
+                <Button
+                  component={Link}
+                  to="/login"
+                  fullWidth
+                  variant="outlined"
+                  onClick={handleDrawerToggle}
+                  sx={{
+                    borderColor: "#E5E7EBFF",
+                    color: navColor,
+                    fontFamily: "Inter, sans-serif",
+                    fontWeight: 600,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    py: 1
+                  }}
+                >
+                  Log in
+                </Button>
+                <Button
+                  fullWidth
+                  variant="contained"
+                  onClick={() => { handleDrawerToggle(); setSignupOpen(true); }}
+                  sx={{
+                    bgcolor: btnColor,
+                    color: "#FFFFFFFF",
+                    fontFamily: "Inter, sans-serif",
+                    fontWeight: 600,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    py: 1,
+                    boxShadow: "none",
+                    "&:hover": { bgcolor: btnHover, boxShadow: "none" }
+                  }}
+                >
+                  Sign up free
+                </Button>
+              </>
+            )}
           </Stack>
         </Box>
       </Drawer>
