@@ -5,6 +5,7 @@ import type {
   LiveChatConversation,
   LiveChatConversationEndedEvent,
   LiveChatMessage,
+  LiveChatQueuePositionChangedEvent,
   LiveChatWidgetConfig,
   LiveChatStartConversationResponse,
 } from "../../models/LiveChatModel";
@@ -20,7 +21,7 @@ interface QuickMessage {
 }
 
 type WidgetTranscriptMessage = LiveChatMessage & {
-  localKind?: "quick-question" | "quick-typing" | "quick-response";
+  localKind?: "quick-question" | "quick-typing" | "quick-response" | "queue-update" | "assignment-update" | "system-typing";
   quickReplyId?: string;
 };
 
@@ -49,6 +50,7 @@ const WIDGET_LOGO_KEY = "jaf_widget_logo";
 const WIDGET_DARK_MODE_KEY = "jaf_dark_mode";
 const WIDGET_TEXT_SIZE_KEY = "jaf_text_size";
 const WIDGET_MESSAGE_SOUNDS_KEY = "jaf_message_sounds";
+const SYSTEM_AUTO_MESSAGES_KEY = "jaf_widget_system_auto_messages";
 
 type LocationPermissionState = "unknown" | "granted" | "denied" | "unavailable";
 
@@ -59,6 +61,7 @@ const MESSAGE_PAGE_LIMIT = 100;
 const PANEL_CLOSE_ANIMATION_MS = 320;
 const TYPING_IDLE_TIMEOUT_MS = 1400;
 const TYPING_INDICATOR_GRACE_MS = 2200;
+const SYSTEM_AUTO_REPLY_TYPING_MS = 850;
 
 const isHexColor = (value: string) => /^#([A-Fa-f0-9]{3}|[A-Fa-f0-9]{6})$/.test(value.trim());
 
@@ -165,6 +168,37 @@ const normalizeMessages = (messages: WidgetTranscriptMessage[]) => {
     const rightTime = new Date(right.createdAt || right.updatedAt || 0).getTime();
     return leftTime - rightTime;
   });
+};
+
+const getNextOrderedTimestamp = (messages: WidgetTranscriptMessage[]) => {
+  const latestMessageTime = messages.reduce((latest, message) => {
+    const timestamp = new Date(message.createdAt || message.updatedAt || 0).getTime();
+    if (!Number.isFinite(timestamp)) {
+      return latest;
+    }
+
+    return Math.max(latest, timestamp);
+  }, 0);
+
+  return new Date(Math.max(Date.now(), latestMessageTime + 1)).toISOString();
+};
+
+const resolveConversationIdFromAssignedEvent = (payload: LiveChatStartConversationResponse) => {
+  const directConversationId = String(payload.conversation?._id || "").trim();
+  if (directConversationId) {
+    return directConversationId;
+  }
+
+  const queuedConversation = payload.queueEntry?.conversationId;
+  if (typeof queuedConversation === "string") {
+    return queuedConversation;
+  }
+
+  if (queuedConversation && typeof queuedConversation === "object" && "_id" in queuedConversation) {
+    return String(queuedConversation._id || "").trim();
+  }
+
+  return "";
 };
 
 const getErrorMessage = (error: unknown) => {
@@ -311,6 +345,11 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
   const quickReplyTimerRef = useRef<number | null>(null);
   const visitorTypingTimerRef = useRef<number | null>(null);
   const agentTypingTimerRef = useRef<number | null>(null);
+  const latestQueuePositionRef = useRef<number | null>(null);
+  const pendingQueuePositionRef = useRef<LiveChatQueuePositionChangedEvent | null>(null);
+  const assignmentNoticeConversationIdRef = useRef<string>("");
+  const messagesRef = useRef<WidgetTranscriptMessage[]>([]);
+  const systemAutoReplyTimersRef = useRef<number[]>([]);
   const isVisitorTypingRef = useRef(false);
   const conversationBootstrapRef = useRef(false);
 
@@ -401,6 +440,25 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
     return "Location permission has not been requested yet.";
   }, [locationPermissionState]);
 
+  const visitorGreetingName = useMemo(() => {
+    const fromPreChat = String(preChatFullName || "").trim();
+    if (fromPreChat) {
+      return fromPreChat;
+    }
+
+    const fromReturning = String(returningVisitorName || "").trim();
+    if (fromReturning) {
+      return fromReturning;
+    }
+
+    const fromConfig = String(widgetConfig.visitorName || "").trim();
+    if (fromConfig) {
+      return fromConfig;
+    }
+
+    return "there";
+  }, [preChatFullName, returningVisitorName, widgetConfig.visitorName]);
+
   const disconnectSocket = useCallback(() => {
     if (socketRef.current) {
       socketRef.current.disconnect();
@@ -426,6 +484,97 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
     if (agentTypingTimerRef.current !== null) {
       window.clearTimeout(agentTypingTimerRef.current);
       agentTypingTimerRef.current = null;
+    }
+  }, []);
+
+  const clearSystemAutoReplyTimers = useCallback(() => {
+    if (systemAutoReplyTimersRef.current.length === 0) {
+      return;
+    }
+
+    systemAutoReplyTimersRef.current.forEach((timerId) => {
+      window.clearTimeout(timerId);
+    });
+    systemAutoReplyTimersRef.current = [];
+  }, []);
+
+  const readPersistedSystemMessages = useCallback((targetConversationId: string) => {
+    if (typeof window === "undefined" || !targetConversationId) {
+      return [] as WidgetTranscriptMessage[];
+    }
+
+    try {
+      const rawValue = window.localStorage.getItem(SYSTEM_AUTO_MESSAGES_KEY);
+      if (!rawValue) {
+        return [] as WidgetTranscriptMessage[];
+      }
+
+      const parsed = JSON.parse(rawValue);
+      if (!Array.isArray(parsed)) {
+        return [] as WidgetTranscriptMessage[];
+      }
+
+      return parsed
+        .filter((entry) => entry && typeof entry === "object")
+        .filter((entry) => String(entry.conversationId || "") === targetConversationId)
+        .map((entry): WidgetTranscriptMessage => ({
+          _id: String(entry._id || ""),
+          conversationId: String(entry.conversationId || ""),
+          senderType: "SUPPORT_AGENT",
+          senderId: "SYSTEM",
+          message: String(entry.message || ""),
+          status: "DELIVERED",
+          createdAt: String(entry.createdAt || ""),
+          localKind: entry.localKind === "assignment-update"
+            ? "assignment-update"
+            : "queue-update",
+        }))
+        .filter((entry) => Boolean(entry._id && entry.conversationId && entry.message));
+    } catch {
+      return [] as WidgetTranscriptMessage[];
+    }
+  }, []);
+
+  const persistSystemMessage = useCallback((message: WidgetTranscriptMessage) => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    if (message.localKind !== "queue-update" && message.localKind !== "assignment-update") {
+      return;
+    }
+
+    try {
+      const rawValue = window.localStorage.getItem(SYSTEM_AUTO_MESSAGES_KEY);
+      const parsed = rawValue ? JSON.parse(rawValue) : [];
+      const safeEntries = Array.isArray(parsed) ? parsed.filter((entry) => entry && typeof entry === "object") : [];
+
+      const nextEntries = [
+        ...safeEntries.filter((entry) => String(entry._id || "") !== String(message._id)),
+        {
+          _id: String(message._id),
+          conversationId: String(message.conversationId || ""),
+          message: String(message.message || ""),
+          createdAt: String(message.createdAt || new Date().toISOString()),
+          localKind: message.localKind,
+        },
+      ];
+
+      window.localStorage.setItem(SYSTEM_AUTO_MESSAGES_KEY, JSON.stringify(nextEntries));
+    } catch {
+      // Ignore storage errors in embedded contexts.
+    }
+  }, []);
+
+  const clearPersistedSystemMessages = useCallback(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    try {
+      window.localStorage.removeItem(SYSTEM_AUTO_MESSAGES_KEY);
+    } catch {
+      // Ignore storage errors in embedded contexts.
     }
   }, []);
 
@@ -574,8 +723,13 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
 
       try {
         const response = await responsePromise;
+        const persistedSystemMessages = readPersistedSystemMessages(targetConversationId);
+        const mergedMessages = [...response.messages, ...persistedSystemMessages];
+        const dedupedMessages = mergedMessages.filter((message, index, source) => {
+          return source.findIndex((entry) => String(entry._id) === String(message._id)) === index;
+        });
 
-        setMessages(normalizeMessages(response.messages));
+        setMessages(normalizeMessages(dedupedMessages));
       } catch (error) {
         if (targetConversationId === conversationId && isConversationNotFoundError(error)) {
           setConversationId("");
@@ -588,8 +742,86 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
         setErrorMessage(getErrorMessage(error));
       }
     },
-    [apiKey, conversationId, visitorToken, widgetConfig],
+    [apiKey, conversationId, readPersistedSystemMessages, visitorToken, widgetConfig],
   );
+
+  const appendQueuePositionMessage = useCallback((
+    payload: LiveChatQueuePositionChangedEvent | null | undefined,
+    overrideConversationId?: string,
+  ) => {
+    const targetConversationId = String(overrideConversationId || conversationId || "").trim();
+    const payloadConversationId = String(payload?.conversationId || "").trim();
+
+    if (!targetConversationId || !payloadConversationId || payloadConversationId !== targetConversationId) {
+      return;
+    }
+
+    const position = Number(payload?.position);
+    if (!Number.isFinite(position) || position < 1) {
+      return;
+    }
+
+    const hasVisitorInitiated = messagesRef.current.some((entry) => entry.senderType === "VISITOR");
+    if (!hasVisitorInitiated && String(payload?.reason || "").toUpperCase() === "ENTERED_QUEUE") {
+      pendingQueuePositionRef.current = {
+        ...payload,
+        conversationId: targetConversationId,
+        position,
+      };
+      return;
+    }
+
+    if (latestQueuePositionRef.current === position) {
+      return;
+    }
+
+    latestQueuePositionRef.current = position;
+
+    const targetMessage = `Hi ${visitorGreetingName} kindly wait while you're in queue and you're in Queue ${position}`;
+    const replyToken = `${targetConversationId}-${position}-${Date.now()}`;
+    const typingId = `queue-update-typing-${replyToken}`;
+    const messageId = `queue-update-${replyToken}`;
+
+    setMessages((currentMessages) => {
+      const typingMessage: WidgetTranscriptMessage = {
+        _id: typingId,
+        conversationId: targetConversationId,
+        senderType: "SUPPORT_AGENT",
+        senderId: "SYSTEM",
+        message: "",
+        status: "DELIVERED",
+        createdAt: getNextOrderedTimestamp(currentMessages),
+        localKind: "system-typing",
+      };
+
+      return normalizeMessages([...currentMessages, typingMessage]);
+    });
+
+    const timerId = window.setTimeout(() => {
+      setMessages((currentMessages) => {
+        const withoutTyping = currentMessages.filter((entry) => String(entry._id) !== typingId);
+
+        const queueMessage: WidgetTranscriptMessage = {
+          _id: messageId,
+          conversationId: targetConversationId,
+          senderType: "SUPPORT_AGENT",
+          senderId: "SYSTEM",
+          message: targetMessage,
+          status: "DELIVERED",
+          createdAt: getNextOrderedTimestamp(withoutTyping),
+          localKind: "queue-update",
+        };
+
+        persistSystemMessage(queueMessage);
+
+        return normalizeMessages([...withoutTyping, queueMessage]);
+      });
+
+      systemAutoReplyTimersRef.current = systemAutoReplyTimersRef.current.filter((activeTimerId) => activeTimerId !== timerId);
+    }, SYSTEM_AUTO_REPLY_TYPING_MS);
+
+    systemAutoReplyTimersRef.current.push(timerId);
+  }, [conversationId, persistSystemMessage, visitorGreetingName]);
 
   const startConversation = useCallback(async (): Promise<string | null> => {
     if (!hasApiKey) {
@@ -638,6 +870,14 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
       }
 
       await syncMessages(nextConversationId);
+
+      if (response.queueEntry?.status === "WAITING" && response.queuePosition) {
+        pendingQueuePositionRef.current = {
+          ...response.queuePosition,
+          conversationId: nextConversationId,
+        };
+      }
+
       return nextConversationId;
     } catch (error) {
       setErrorMessage(getErrorMessage(error));
@@ -900,7 +1140,28 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
         createdAt: new Date().toISOString(),
       };
 
-      setMessages((currentMessages) => normalizeMessages([...currentMessages, optimisticMessage]));
+      setMessages((currentMessages) => {
+        const nextMessages = [...currentMessages, optimisticMessage];
+        const pendingQueuePosition = pendingQueuePositionRef.current;
+
+        if (
+          pendingQueuePosition
+          && String(pendingQueuePosition.conversationId || "") === String(resolvedConversationId)
+        ) {
+          const pendingPosition = Number(pendingQueuePosition.position);
+          if (Number.isFinite(pendingPosition) && pendingPosition >= 1 && latestQueuePositionRef.current !== pendingPosition) {
+            void appendQueuePositionMessage({
+              conversationId: resolvedConversationId,
+              position: pendingPosition,
+              reason: "POSITION_UPDATED",
+            }, resolvedConversationId);
+          }
+
+          pendingQueuePositionRef.current = null;
+        }
+
+        return normalizeMessages(nextMessages);
+      });
       if (!presetMessage) {
         setMessageText("");
         if (messageInputRef.current) {
@@ -932,7 +1193,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
         });
       }
     }
-  }, [conversationId, hasCompletedPreChat, isSending, messageText, startConversation, stopVisitorTyping, syncMessages, visitorToken, widgetConfig]);
+  }, [appendQueuePositionMessage, conversationId, hasCompletedPreChat, isSending, messageText, startConversation, stopVisitorTyping, syncMessages, visitorGreetingName, visitorToken, widgetConfig]);
 
   const handleQuickMessageClick = useCallback((quickMessage: QuickMessage) => {
     if (isQuickReplyBlocked) {
@@ -1007,6 +1268,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
   }, []);
 
   const resetConversationState = useCallback(() => {
+    clearSystemAutoReplyTimers();
     clearQuickReplyTimer();
     stopVisitorTyping(false);
     clearAgentTypingTimer();
@@ -1022,8 +1284,11 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
     setSelectedHistoryConversationId("");
     setHistoryMessages([]);
     setIsAgentTyping(false);
+    latestQueuePositionRef.current = null;
+    pendingQueuePositionRef.current = null;
+    assignmentNoticeConversationIdRef.current = "";
     clearStoredValue(CONVERSATION_ID_KEY);
-  }, [clearAgentTypingTimer, clearQuickReplyTimer, disconnectSocket, stopVisitorTyping]);
+  }, [clearAgentTypingTimer, clearQuickReplyTimer, clearSystemAutoReplyTimers, disconnectSocket, stopVisitorTyping]);
 
   const handleEndChat = useCallback(async () => {
     if (conversationId) {
@@ -1052,6 +1317,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
       }
     }
 
+    clearSystemAutoReplyTimers();
     clearQuickReplyTimer();
     stopVisitorTyping(false);
     clearAgentTypingTimer();
@@ -1087,7 +1353,10 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
     setProfileStatusMessage("Session ended. You are logged out.");
     setIsEndChatModalOpen(false);
     setIsAgentTyping(false);
-  }, [clearAgentTypingTimer, clearQuickReplyTimer, conversationId, disconnectSocket, stopVisitorTyping, visitorToken, widgetConfig]);
+    latestQueuePositionRef.current = null;
+    pendingQueuePositionRef.current = null;
+    assignmentNoticeConversationIdRef.current = "";
+  }, [clearAgentTypingTimer, clearQuickReplyTimer, clearSystemAutoReplyTimers, conversationId, disconnectSocket, stopVisitorTyping, visitorToken, widgetConfig]);
 
   const appendEndedMessage = useCallback((payload: LiveChatConversationEndedEvent) => {
     const endedBy = payload.endedBy?.displayName ? ` Ended by ${payload.endedBy.displayName}.` : "";
@@ -1420,6 +1689,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
 
     socket.on("connect", () => {
       setSocketStatus("connected");
+      clearPersistedSystemMessages();
     });
 
     socket.on("disconnect", () => {
@@ -1492,9 +1762,12 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
           );
 
           if (localMessageIndex >= 0) {
+            const localMessage = nextMessages[localMessageIndex];
             nextMessages[localMessageIndex] = {
-              ...nextMessages[localMessageIndex],
+              ...localMessage,
               ...incomingMessage,
+              // Keep optimistic client timestamp so ordering does not jump on server ack.
+              createdAt: localMessage.createdAt || incomingMessage.createdAt,
             };
             return normalizeMessages(nextMessages);
           }
@@ -1533,6 +1806,76 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
       }));
     });
 
+    socket.on("QUEUE_POSITION_CHANGED", (payload: LiveChatQueuePositionChangedEvent) => {
+      appendQueuePositionMessage(payload);
+    });
+
+    socket.on("CONVERSATION_ASSIGNED", (payload: LiveChatStartConversationResponse) => {
+      const assignedConversationId = resolveConversationIdFromAssignedEvent(payload);
+      const activeConversationId = String(conversationId || "").trim();
+
+      if (!assignedConversationId || !activeConversationId || assignedConversationId !== activeConversationId) {
+        return;
+      }
+
+      if (assignmentNoticeConversationIdRef.current === assignedConversationId) {
+        return;
+      }
+
+      assignmentNoticeConversationIdRef.current = assignedConversationId;
+      latestQueuePositionRef.current = null;
+      pendingQueuePositionRef.current = null;
+
+      const assignedAgentName = String(payload.agent?.fullName || payload.agent?.displayName || "").trim();
+      const assignmentMessage = assignedAgentName
+        ? `Hi ${visitorGreetingName} you are now connected with ${assignedAgentName}.`
+        : `Hi ${visitorGreetingName} you are now connected with an agent.`;
+
+      const replyToken = `${assignedConversationId}-${Date.now()}`;
+      const typingId = `assignment-update-typing-${replyToken}`;
+      const messageId = `assignment-update-${replyToken}`;
+
+      setMessages((currentMessages) => {
+        const typingMessage: WidgetTranscriptMessage = {
+          _id: typingId,
+          conversationId: assignedConversationId,
+          senderType: "SUPPORT_AGENT",
+          senderId: "SYSTEM",
+          message: "",
+          status: "DELIVERED",
+          createdAt: getNextOrderedTimestamp(currentMessages),
+          localKind: "system-typing",
+        };
+
+        return normalizeMessages([...currentMessages, typingMessage]);
+      });
+
+      const timerId = window.setTimeout(() => {
+        setMessages((currentMessages) => {
+          const withoutTyping = currentMessages.filter((entry) => String(entry._id) !== typingId);
+
+          const assignedMessage: WidgetTranscriptMessage = {
+            _id: messageId,
+            conversationId: assignedConversationId,
+            senderType: "SUPPORT_AGENT",
+            senderId: "SYSTEM",
+            message: assignmentMessage,
+            status: "DELIVERED",
+            createdAt: getNextOrderedTimestamp(withoutTyping),
+            localKind: "assignment-update",
+          };
+
+          persistSystemMessage(assignedMessage);
+
+          return normalizeMessages([...withoutTyping, assignedMessage]);
+        });
+
+        systemAutoReplyTimersRef.current = systemAutoReplyTimersRef.current.filter((activeTimerId) => activeTimerId !== timerId);
+      }, SYSTEM_AUTO_REPLY_TYPING_MS);
+
+      systemAutoReplyTimersRef.current.push(timerId);
+    });
+
     socket.on("CONVERSATION_ENDED", (payload: LiveChatConversationEndedEvent) => {
       appendEndedMessage(payload);
       stopVisitorTyping(false);
@@ -1551,7 +1894,20 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
       clearAgentTypingTimer();
       disconnectSocket();
     };
-  }, [apiKey, appendEndedMessage, clearAgentTypingTimer, conversationId, disconnectSocket, isOpen, playIncomingMessageSound, stopVisitorTyping, syncConversationHistory, visitorToken]);
+  }, [apiKey, appendEndedMessage, appendQueuePositionMessage, clearAgentTypingTimer, clearPersistedSystemMessages, conversationId, disconnectSocket, isOpen, persistSystemMessage, playIncomingMessageSound, stopVisitorTyping, syncConversationHistory, visitorGreetingName, visitorToken]);
+
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
+
+  useEffect(() => {
+    if (!conversationId) {
+      clearSystemAutoReplyTimers();
+      latestQueuePositionRef.current = null;
+      pendingQueuePositionRef.current = null;
+      assignmentNoticeConversationIdRef.current = "";
+    }
+  }, [clearSystemAutoReplyTimers, conversationId]);
 
   useEffect(() => {
     if (!isOpen || messages.length === 0) {
@@ -1576,11 +1932,12 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
 
   useEffect(() => {
     return () => {
+      clearSystemAutoReplyTimers();
       clearQuickReplyTimer();
       clearVisitorTypingTimer();
       clearAgentTypingTimer();
     };
-  }, [clearAgentTypingTimer, clearQuickReplyTimer, clearVisitorTypingTimer]);
+  }, [clearAgentTypingTimer, clearQuickReplyTimer, clearSystemAutoReplyTimers, clearVisitorTypingTimer]);
 
   const getVisitorMessageStatus = useCallback((message: WidgetTranscriptMessage) => {
     if (String(message._id || "").startsWith("local-")) {
@@ -2082,7 +2439,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                 ) : (
                   <div className="flex flex-col gap-4">
                     {messages.map((message) => {
-                      const isTypingQuickReply = message.localKind === "quick-typing";
+                      const isTypingQuickReply = message.localKind === "quick-typing" || message.localKind === "system-typing";
                       const isVisitorMessage = message.senderType === "VISITOR";
                       const visitorMessageStatus = isVisitorMessage && !message.localKind && String(message._id) === latestVisitorMessageId
                         ? getVisitorMessageStatus(message)

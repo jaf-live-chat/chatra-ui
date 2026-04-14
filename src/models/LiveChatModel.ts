@@ -135,6 +135,7 @@ export interface LiveChatStartConversationResponse {
   visitor: LiveChatVisitor;
   agent: LiveChatAgent | null;
   initialMessage: LiveChatMessage | null;
+  queuePosition?: LiveChatQueuePositionChangedEvent | null;
   location?: {
     city?: string | null;
     country?: string | null;
@@ -161,6 +162,14 @@ export interface LiveChatQueueUpdatedEvent {
   conversationId?: string;
   queueEntry?: LiveChatQueueEntry | null;
   conversation?: LiveChatConversation | null;
+  timestamp?: string;
+}
+
+export interface LiveChatQueuePositionChangedEvent {
+  conversationId?: string;
+  position?: number;
+  positionsAhead?: number;
+  reason?: string;
   timestamp?: string;
 }
 
