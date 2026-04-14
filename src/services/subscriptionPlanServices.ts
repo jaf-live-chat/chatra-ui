@@ -17,6 +17,15 @@ export interface SubscriptionPlanApiModel {
   features: string[];
   isMostPopular: boolean;
   isPosted: boolean;
+  comparison?: {
+    agentLimit: number | null;
+    analytics: "Standard" | "Advanced";
+    fileSharing: boolean;
+    visitorTracking: boolean;
+    customIntegrations: boolean;
+    apiAccess: boolean;
+    clientSupport: boolean;
+  };
 }
 
 interface SubscriptionPlanListResponse {

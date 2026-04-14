@@ -57,6 +57,21 @@ const centerMostPopularPlan = <T extends { popular: boolean }>(items: T[]) => {
   return plans;
 };
 
+const normalizeFeatureKey = (value: string) => value.toLowerCase().trim().replace(/\s+/g, " ");
+
+const isMappedComparisonFeature = (featureName: string) => {
+  const normalized = normalizeFeatureKey(featureName);
+  return [
+    "agent limit",
+    "analytics",
+    "file sharing",
+    "visitor tracking",
+    "custom integration",
+    "api access",
+    "client support",
+  ].some((term) => normalized.includes(term));
+};
+
 const teamAvatars = [
   "https://images.unsplash.com/photo-1655249493799-9cee4fe983bb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwcm9mZXNzaW9uYWwlMjB3b21hbiUyMGhlYWRzaG90JTIwcG9ydHJhaXR8ZW58MXx8fHwxNzczNzU1MzAwfDA&ixlib=rb-4.1.0&q=80&w=1080",
   "https://images.unsplash.com/photo-1672685667592-0392f458f46f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwcm9mZXNzaW9uYWwlMjBtYW4lMjBoZWFkc2hvdCUyMHBvcnRyYWl0fGVufDF8fHx8MTc3MzY4NjY2MHww&ixlib=rb-4.1.0&q=80&w=1080",
@@ -70,8 +85,6 @@ const PricingSection = () => {
   const cyanBtnColor = "#0EA5E9FF";
   const cyanBtnHover = "#0284C7FF";
   const greenCheck = "#10B981FF";
-  const lightGrayBtn = "#F1F5F9FF";
-  const lightGrayBtnHover = "#E2E8F0FF";
 
   const [contactOpen, setContactOpen] = useState(false);
   const [contactForm, setContactForm] = useState({ fullName: "", email: "", company: "", phone: "", message: "" });
@@ -98,10 +111,82 @@ const PricingSection = () => {
       buttonVariant: plan.isMostPopular ? "primary" : "light",
       popular: plan.isMostPopular,
       link: `/checkout/${plan._id}`,
+      comparison: {
+        agentLimit: plan.comparison?.agentLimit ?? plan.limits?.maxAgents ?? null,
+        analytics: plan.comparison?.analytics ?? (plan.limits?.hasAdvancedAnalytics ? "Advanced" : "Standard"),
+        fileSharing: plan.comparison?.fileSharing ?? false,
+        visitorTracking: plan.comparison?.visitorTracking ?? false,
+        customIntegrations: plan.comparison?.customIntegrations ?? false,
+        apiAccess: plan.comparison?.apiAccess ?? false,
+        clientSupport: plan.comparison?.clientSupport ?? false,
+      },
     }));
 
     return centerMostPopularPlan(mappedPlans);
   }, [fetchedPlans]);
+
+  const comparisonPlans = useMemo(() => {
+    return [...plans].sort((a, b) => a.priceValue - b.priceValue);
+  }, [plans]);
+
+  const comparisonRows = useMemo(() => {
+    const buildBooleanRow = (
+      label: string,
+      selector: (plan: (typeof comparisonPlans)[number]) => boolean,
+      section: "features" | "support"
+    ) => ({
+      section,
+      label,
+      type: "boolean" as const,
+      values: comparisonPlans.map(selector),
+    });
+
+    const dynamicFeatureLabelByKey = new Map<string, string>();
+
+    comparisonPlans.forEach((plan) => {
+      plan.features.forEach((feature) => {
+        const label = String(feature || "").trim();
+        if (!label || isMappedComparisonFeature(label)) {
+          return;
+        }
+
+        const key = normalizeFeatureKey(label);
+        if (!dynamicFeatureLabelByKey.has(key)) {
+          dynamicFeatureLabelByKey.set(key, label);
+        }
+      });
+    });
+
+    const dynamicFeatureRows = Array.from(dynamicFeatureLabelByKey.entries()).map(([featureKey, label]) => ({
+      section: "features" as const,
+      label,
+      type: "boolean" as const,
+      values: comparisonPlans.map((plan) =>
+        plan.features.some((feature) => normalizeFeatureKey(String(feature || "")) === featureKey)
+      ),
+    }));
+
+    return [
+      {
+        section: "features" as const,
+        label: "Agent Limit",
+        type: "text" as const,
+        values: comparisonPlans.map((plan) => String(plan.comparison.agentLimit ?? "Unlimited")),
+      },
+      buildBooleanRow("File Sharing", (plan) => plan.comparison.fileSharing, "features"),
+      buildBooleanRow("Visitor Tracking", (plan) => plan.comparison.visitorTracking, "features"),
+      {
+        section: "features" as const,
+        label: "Analytics",
+        type: "text" as const,
+        values: comparisonPlans.map((plan) => plan.comparison.analytics),
+      },
+      buildBooleanRow("Custom Integrations", (plan) => plan.comparison.customIntegrations, "features"),
+      buildBooleanRow("API Access", (plan) => plan.comparison.apiAccess, "features"),
+      ...dynamicFeatureRows,
+      buildBooleanRow("Client Support", (plan) => plan.comparison.clientSupport, "support"),
+    ];
+  }, [comparisonPlans]);
 
   // Cleanup timeouts on unmount
   useEffect(() => {
@@ -184,7 +269,6 @@ const PricingSection = () => {
             const chipTitleColor = isPro ? "#93C5FD" : "#64748B";
             const chipValueColor = isPro ? "#FFFFFF" : "#0F172A";
             const visibleFeatures = plan.features;
-            const hiddenFeatureCount = Math.max(plan.features.length - visibleFeatures.length, 0);
 
             return (
               <Grid size={{ xs: 12, md: 4 }} key={plan.name}>
@@ -295,9 +379,6 @@ const PricingSection = () => {
                       mb: 3,
                       p: 1.5,
                       borderRadius: "14px",
-                      border: "1px solid",
-                      borderColor: chipBorder,
-                      background: isPro ? "linear-gradient(180deg, #0D2747 0%, #0B213D 100%)" : "#F8FAFC",
                       display: "grid",
                       gridTemplateColumns: "1fr",
                       gap: 1,
@@ -305,85 +386,39 @@ const PricingSection = () => {
                   >
                     <Stack direction="row" alignItems="center" spacing={1}>
                       <CalendarDays size={15} color={isPro ? "#7DD3FC" : "#0284C7"} />
-                      <Typography sx={{ color: chipTitleColor, fontSize: "0.78rem", fontWeight: 700, letterSpacing: "0.02em" }}>
-                        BILLING
-                      </Typography>
-                      <Typography sx={{ color: chipValueColor, fontSize: "0.84rem", fontWeight: 800 }}>
-                        {plan.priceValue === 0 ? "No upfront payment" : "Cancel anytime"}
-                      </Typography>
+                      <Box>
+                        <Typography sx={{ color: chipTitleColor, fontSize: "0.78rem", fontWeight: 700, letterSpacing: "0.02em" }}>
+                          BILLING
+                        </Typography>
+                        <Typography sx={{ color: chipValueColor, fontSize: ".78rem", fontWeight: 700 }}>
+                          {plan.priceValue === 0 ? "No upfront payment" : "Cancel anytime"}
+                        </Typography>
+                      </Box>
                     </Stack>
 
                     <Stack direction="row" alignItems="center" spacing={1}>
                       <Users size={15} color={isPro ? "#7DD3FC" : "#0284C7"} />
-                      <Typography sx={{ color: chipTitleColor, fontSize: "0.78rem", fontWeight: 700, letterSpacing: "0.02em" }}>
-                        AGENT LIMIT
-                      </Typography>
-                      <Typography sx={{ color: chipValueColor, fontSize: "0.84rem", fontWeight: 800 }}>
-                        {plan.maxAgents ?? "Unlimited"}
-                      </Typography>
+                      <Box>
+                        <Typography sx={{ color: chipTitleColor, fontSize: "0.78rem", fontWeight: 700, letterSpacing: "0.02em" }}>
+                          AGENT LIMIT
+                        </Typography>
+                        <Typography sx={{ color: chipValueColor, fontSize: "0.78rem", fontWeight: 700 }}>
+                          {plan.maxAgents ?? "Unlimited"}
+                        </Typography>
+                      </Box>
                     </Stack>
 
                     <Stack direction="row" alignItems="center" spacing={1}>
                       <BarChart3 size={15} color={isPro ? "#7DD3FC" : "#0284C7"} />
-                      <Typography sx={{ color: chipTitleColor, fontSize: "0.78rem", fontWeight: 700, letterSpacing: "0.02em" }}>
-                        ANALYTICS
-                      </Typography>
-                      <Typography sx={{ color: chipValueColor, fontSize: "0.84rem", fontWeight: 800 }}>
-                        {plan.hasAdvancedAnalytics ? "Advanced included" : "Standard"}
-                      </Typography>
-                    </Stack>
-                  </Box>
-
-                  <Box sx={{ flexGrow: 1, mb: 4 }}>
-                    <Stack direction="row" alignItems="center" spacing={0.75} sx={{ mb: 1.25 }}>
-                      <Sparkles size={15} color={isPro ? "#7DD3FC" : "#0284C7"} />
-                      <Typography sx={{ color: isPro ? "#BAE6FD" : "#0369A1", fontSize: "0.78rem", fontWeight: 800, letterSpacing: "0.04em" }}>
-                        INCLUDED FEATURES
-                      </Typography>
-                    </Stack>
-
-                    <Box component="ul" sx={{ listStyle: "none", p: 0, m: 0, display: "flex", flexDirection: "column", gap: 1.1 }}>
-                      {visibleFeatures.map((feat) => (
-                        <Box
-                          component="li"
-                          key={feat}
-                          sx={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 1.1,
-                            p: 1,
-                            borderRadius: "10px",
-                            background: isPro ? "#FFFFFF0F" : "#F8FAFC",
-                            border: "1px solid",
-                            borderColor: isPro ? "#334155" : "#E2E8F0",
-                          }}
-                        >
-                          <Box
-                            sx={{
-                              width: 22,
-                              height: 22,
-                              borderRadius: "9999px",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              backgroundColor: isPro ? "#0EA5E933" : "#10B98122",
-                              flexShrink: 0,
-                            }}
-                          >
-                            <Check color={checkColor} size={14} strokeWidth={3} />
-                          </Box>
-                          <Typography sx={{ color: isPro ? "#E2E8F0FF" : "#334155FF", fontSize: "0.9rem", fontFamily: "inherit", fontWeight: 600 }}>
-                            {feat}
-                          </Typography>
-                        </Box>
-                      ))}
-
-                      {hiddenFeatureCount > 0 && (
-                        <Typography sx={{ color: descColor, fontSize: "0.84rem", fontWeight: 700, pt: 0.35, pl: 0.5 }}>
-                          +{hiddenFeatureCount} more included
+                      <Box>
+                        <Typography sx={{ color: chipTitleColor, fontSize: "0.78rem", fontWeight: 700, letterSpacing: "0.02em" }}>
+                          ANALYTICS
                         </Typography>
-                      )}
-                    </Box>
+                        <Typography sx={{ color: chipValueColor, fontSize: ".78rem", fontWeight: 700 }}>
+                          {plan.hasAdvancedAnalytics ? "Advanced included" : "Standard"}
+                        </Typography>
+                      </Box>
+                    </Stack>
                   </Box>
 
                   <Button
@@ -393,12 +428,13 @@ const PricingSection = () => {
                     variant={plan.buttonVariant === "primary" ? "contained" : "outlined"}
                     disableElevation
                     sx={{
-                      py: 1.5,
-                      borderRadius: "9999px",
+                      py: 1.4,
+                      borderRadius: "12px",
                       textTransform: "none",
                       fontSize: "1rem",
                       fontWeight: 700,
                       fontFamily: "inherit",
+                      mb: 3,
                       ...(plan.buttonVariant === "primary"
                         ? {
                           bgcolor: cyanBtnColor,
@@ -415,11 +451,177 @@ const PricingSection = () => {
                   >
                     {plan.buttonText}
                   </Button>
+
+                  <Box sx={{ flexGrow: 1 }}>
+                    <Stack direction="row" alignItems="center" spacing={0.75} sx={{ mb: 1.25 }}>
+                      <Sparkles size={15} color={isPro ? "#7DD3FC" : "#0284C7"} />
+                      <Typography sx={{ color: isPro ? "#BAE6FD" : "#0369A1", fontSize: "0.78rem", fontWeight: 800, letterSpacing: "0.04em" }}>
+                        INCLUDED FEATURES
+                      </Typography>
+                    </Stack>
+
+                    <Box component="ul" sx={{ listStyle: "none", p: 0, m: 0, display: "flex", flexDirection: "column", gap: 1.1 }}>
+                      {visibleFeatures.map((feat) => (
+                        <Box
+                          component="li"
+                          key={feat}
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 1.1,
+                            py: 0.2,
+                          }}
+                        >
+                          <Box
+                            sx={{
+                              width: 18,
+                              height: 18,
+                              borderRadius: "9999px",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              backgroundColor: isPro ? "#0EA5E933" : "#10B98122",
+                              flexShrink: 0,
+                            }}
+                          >
+                            <Check color={checkColor} size={12} strokeWidth={3} />
+                          </Box>
+                          <Typography sx={{ color: isPro ? "#E2E8F0FF" : "#334155FF", fontSize: "0.9rem", fontFamily: "inherit", fontWeight: 600 }}>
+                            {feat}
+                          </Typography>
+                        </Box>
+                      ))}
+                    </Box>
+                  </Box>
                 </Box>
               </Grid>
             );
           })}
         </Grid>
+
+        {comparisonPlans.length > 0 && (
+          <Box sx={{ mt: { xs: 8, md: 10 } }}>
+            <Box sx={{ textAlign: "center", mb: { xs: 4, md: 5 } }}>
+              <Typography
+                sx={{
+                  color: navyColor,
+                  fontWeight: 700,
+                  fontSize: { xs: "2rem", md: "3rem" },
+                  letterSpacing: "-0.02em",
+                  fontFamily: "inherit",
+                }}
+              >
+                Compare features across plans
+              </Typography>
+            </Box>
+
+            <Box
+              sx={{
+                borderRadius: "20px",
+                border: "1px solid #E2E8F0",
+                bgcolor: "#FFFFFF",
+                overflow: "hidden",
+              }}
+            >
+              <Box
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: { xs: "1.4fr repeat(3, minmax(96px, 1fr))", md: "2fr repeat(3, 1fr)" },
+                  alignItems: "center",
+                  px: { xs: 2, md: 4 },
+                  py: 2.2,
+                  borderBottom: "1px solid #E2E8F0",
+                  columnGap: 1.5,
+                }}
+              >
+                <Typography sx={{ fontWeight: 700, fontSize: { xs: "0.98rem", md: "1.1rem" }, color: "#1E293B" }}>
+                  Features and capabilities
+                </Typography>
+                {comparisonPlans.map((plan) => (
+                  <Box key={`plan-pill-${plan.name}`} sx={{ display: "flex", justifyContent: "center" }}>
+                    <Box
+                      sx={{
+                        px: 1.8,
+                        py: 0.42,
+                        borderRadius: "9999px",
+                        fontSize: { xs: "0.75rem", md: "0.85rem" },
+                        fontWeight: 700,
+                        bgcolor: plan.popular ? "#0F172A" : "#EFF3F8",
+                        color: plan.popular ? "#FFFFFF" : "#64748B",
+                        minWidth: { xs: 62, md: 86 },
+                        textAlign: "center",
+                      }}
+                    >
+                      {plan.name}
+                    </Box>
+                  </Box>
+                ))}
+              </Box>
+
+              {(["features", "support"] as const).map((section) => {
+                const sectionTitle = section === "features" ? "Features and capabilities" : "Support and administration";
+                const rows = comparisonRows.filter((row) => row.section === section);
+
+                return (
+                  <Box key={`section-${section}`} sx={{ px: { xs: 1.5, md: 2.5 }, py: section === "features" ? 1.8 : 2.2 }}>
+                    <Box
+                      sx={{
+                        px: { xs: 2, md: 2.2 },
+                        py: 1.15,
+                        borderRadius: "10px",
+                        bgcolor: "#F1F5F9",
+                        color: "#0F172A",
+                        fontWeight: 700,
+                        fontSize: "0.95rem",
+                        mb: 0.9,
+                      }}
+                    >
+                      {sectionTitle}
+                    </Box>
+
+                    {rows.map((row) => (
+                      <Box
+                        key={`comparison-row-${section}-${row.label}`}
+                        sx={{
+                          display: "grid",
+                          gridTemplateColumns: { xs: "1.4fr repeat(3, minmax(96px, 1fr))", md: "2fr repeat(3, 1fr)" },
+                          alignItems: "center",
+                          columnGap: 1.5,
+                          px: { xs: 2, md: 2.2 },
+                          py: 1.55,
+                          borderBottom: "1px solid #EEF2F7",
+                          "&:last-of-type": {
+                            borderBottom: "none",
+                          },
+                        }}
+                      >
+                        <Typography sx={{ color: "#334155", fontWeight: 500, fontSize: { xs: "0.92rem", md: "1.04rem" } }}>
+                          {row.label}
+                        </Typography>
+
+                        {row.values.map((value, valueIndex) => (
+                          <Box key={`comparison-value-${row.label}-${valueIndex}`} sx={{ display: "flex", justifyContent: "center" }}>
+                            {row.type === "boolean" ? (
+                              value ? (
+                                <Check size={19} color="#10B981" />
+                              ) : (
+                                <X size={19} color="#EF4444" />
+                              )
+                            ) : (
+                              <Typography sx={{ color: "#334155", fontWeight: 600, fontSize: { xs: "0.9rem", md: "1rem" } }}>
+                                {String(value)}
+                              </Typography>
+                            )}
+                          </Box>
+                        ))}
+                      </Box>
+                    ))}
+                  </Box>
+                );
+              })}
+            </Box>
+          </Box>
+        )}
 
         {/* Contact Sales Dialog */}
         <Dialog
