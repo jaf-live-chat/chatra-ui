@@ -24,7 +24,7 @@ import TitleTag from "../../components/TitleTag";
 import TenantSubscriptionAccordion from "./TenantSubscriptionAccordion";
 import TenantPlanChangeDrawer from "./TenantPlanChangeDrawer";
 import TenantManageSubscriptionDrawer from "./TenantManageSubscriptionDrawer";
-import { toast } from "sonner";
+import { toast } from "../../components/sonner";
 
 const EMPTY_LABEL = "-";
 

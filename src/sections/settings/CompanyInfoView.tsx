@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { useDarkMode } from "../../providers/DarkModeContext";
 import TitleTag from "../../components/TitleTag";
-import { toast } from "sonner";
+import { toast } from "../../components/sonner";
 import type {
   CompanyBrandLogoMap,
   CompanyInfoFormData,

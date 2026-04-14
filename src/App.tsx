@@ -1,7 +1,7 @@
 import { router } from "./routes";
 import { RouterProvider } from "react-router";
 import { HelmetProvider } from "react-helmet-async";
-import { Toaster } from "sonner";
+import { Toaster } from "./components/sonner";
 import { AuthProvider } from "./providers/AuthContext";
 import { AppLoadingProvider } from "./providers/AppLoadingProvider";
 import GlobalLoadingOverlay from "./components/GlobalLoadingOverlay";

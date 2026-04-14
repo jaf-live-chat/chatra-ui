@@ -45,8 +45,8 @@ import PageTitle from "../../components/common/PageTitle";
 import idLabel from "../../utils/idUtils";
 import getAvatarColor from "../../utils/getAvatarColor";
 import TitleTag from "../../components/TitleTag";
+import { toast } from "../../components/sonner";
 import { USER_ROLES } from "../../constants/constants";
-import { toast } from "sonner";
 
 interface Agent extends AuthAgent {
   id: string;

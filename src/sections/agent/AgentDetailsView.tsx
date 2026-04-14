@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { useNavigate, useParams } from "react-router";
-import { toast } from "sonner";
+import { toast } from "../../components/sonner";
 import ArrowBackRounded from "@mui/icons-material/ArrowBackRounded";
 import AlternateEmailRounded from "@mui/icons-material/AlternateEmailRounded";
 import ChatBubbleOutlineRounded from "@mui/icons-material/ChatBubbleOutlineRounded";

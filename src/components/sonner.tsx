@@ -1,28 +1,33 @@
-"use client";
+import { useTheme } from "@mui/material/styles";
+import { Toaster as Sonner, type ToasterProps } from "sonner";
+import cn from "../utils/cn";
 
-import { useTheme } from "next-themes";
-import { Toaster as Sonner, ToasterProps } from "sonner";
-
-const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "system" } = useTheme();
+const Toaster = ({ closeButton = true, theme, ...props }: ToasterProps) => {
+  const muiTheme = useTheme();
+  const toastOptions: ToasterProps["toastOptions"] = {
+    ...props.toastOptions,
+    classNames: {
+      ...props.toastOptions?.classNames,
+      toast: cn("pr-14", props.toastOptions?.classNames?.toast),
+      closeButton: cn(
+        "!left-auto !right-2 !top-[68%] !-translate-y-1/2 !h-8 !w-8 !p-0 !inline-flex !items-center !justify-center [&>svg]:!h-4 [&>svg]:!w-4 [&>svg]:!m-0",
+        props.toastOptions?.classNames?.closeButton,
+      ),
+    },
+  };
 
   return (
     <Sonner
-      theme={theme as ToasterProps["theme"]}
-      className="toaster group"
-      style={
-        {
-          "--normal-bg": "var(--popover)",
-          "--normal-text": "var(--popover-foreground)",
-          "--normal-border": "var(--border)",
-        } as React.CSSProperties
-      }
+      closeButton={closeButton}
+      theme={theme ?? (muiTheme.palette.mode === "dark" ? "dark" : "light")}
+      toastOptions={toastOptions}
       {...props}
     />
   );
 };
 
 export { Toaster };
+export { toast } from "sonner";
 
 export default Toaster;
 
