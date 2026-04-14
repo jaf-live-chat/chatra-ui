@@ -57,6 +57,7 @@ const VisitorDetailsDialog = ({
   onClose,
   onStartChat,
   onTakeConversation,
+  onSelfPickConversation,
   onOpenAssignDialog,
 }: VisitorDetailsDialogProps) => {
   const [messages, setMessages] = useState<LiveChatMessage[]>([]);
@@ -114,7 +115,16 @@ const VisitorDetailsDialog = ({
   }, [visitor?.country, visitor?.location]);
 
   const isWaitingVisitor = visitor?.status === "Waiting";
+  const isAssignedVisitor = visitor?.status === "Assigned";
   const isAdminOrMaster = actorRole === USER_ROLES.ADMIN.value || actorRole === USER_ROLES.MASTER_ADMIN.value;
+  const isSupportAgent = actorRole === USER_ROLES.SUPPORT_AGENT.value;
+  const isAssignedToLoggedInAgent =
+    isAssignedVisitor
+    && Boolean(visitor?.agentId)
+    && Boolean(user?._id)
+    && String(visitor?.agentId) === String(user?._id);
+  const timeLabel = isWaitingVisitor ? "Waiting Time" : "Session Time";
+  const elapsedFrom = isWaitingVisitor ? visitor?.queuedAt : visitor?.assignedAt || visitor?.queuedAt;
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
@@ -179,15 +189,15 @@ const VisitorDetailsDialog = ({
             <Box sx={{ flex: 1, p: 1.5, borderRadius: 2, border: "1px solid", borderColor: "divider", bgcolor: "background.paper" }}>
               <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5, color: "text.secondary" }}>
                 <Clock size={14} />
-                <Typography variant="caption">Waiting Time</Typography>
+                <Typography variant="caption">{timeLabel}</Typography>
               </Stack>
               <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                {formatElapsedTime(visitor?.queuedAt, now)}
+                {formatElapsedTime(elapsedFrom, now)}
               </Typography>
             </Box>
           </Stack>
 
-          {visitor?.status === "Assigned" ? (
+          {isAssignedVisitor ? (
             <Box sx={{ p: 1.5, borderRadius: 2, border: "1px solid", borderColor: "divider", bgcolor: "background.paper" }}>
               <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5, color: "text.secondary" }}>
                 <UserRound size={14} />
@@ -262,7 +272,7 @@ const VisitorDetailsDialog = ({
           Close
         </Button>
 
-        {isAdminOrMaster && (
+        {isWaitingVisitor && isAdminOrMaster && (
           <>
             <Button
               variant="outlined"
@@ -283,10 +293,15 @@ const VisitorDetailsDialog = ({
           <>
             <Button
               variant="contained"
-              disabled={!visitor || !onTakeConversation || isProcessingAction}
+              disabled={!visitor || (!(isSupportAgent ? onSelfPickConversation : onTakeConversation)) || isProcessingAction}
               onClick={() => {
                 if (user?.status !== USER_STATUS.AVAILABLE) {
                   toast.error("You must be available to take this conversation.");
+                  return;
+                }
+
+                if (visitor && isSupportAgent && onSelfPickConversation) {
+                  void onSelfPickConversation(visitor);
                   return;
                 }
 
@@ -300,6 +315,21 @@ const VisitorDetailsDialog = ({
             </Button>
           </>
         )}
+
+        {isAssignedToLoggedInAgent && onStartChat ? (
+          <Button
+            variant="contained"
+            disabled={!visitor || isProcessingAction}
+            onClick={() => {
+              if (visitor) {
+                onStartChat(visitor);
+              }
+            }}
+            sx={{ fontWeight: 700 }}
+          >
+            Open
+          </Button>
+        ) : null}
       </DialogActions>
     </Dialog>
   );
