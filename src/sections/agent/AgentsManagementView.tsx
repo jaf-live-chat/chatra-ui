@@ -45,6 +45,7 @@ import PageTitle from "../../components/common/PageTitle";
 import idLabel from "../../utils/idUtils";
 import getAvatarColor from "../../utils/getAvatarColor";
 import TitleTag from "../../components/TitleTag";
+import { USER_ROLES } from "../../constants/constants";
 import { toast } from "sonner";
 
 interface Agent extends AuthAgent {
@@ -183,6 +184,45 @@ const AgentsManagementView = () => {
     ? Math.min((currentAgentCount / maxAgentsLimit) * 100, 100)
     : 100;
 
+  const currentAgentRole = user?.role;
+  const isCurrentUserMasterAdmin = currentAgentRole === USER_ROLES.MASTER_ADMIN.value;
+  const isCurrentUserAdmin = currentAgentRole === USER_ROLES.ADMIN.value;
+
+  const isPrivilegedRole = (role?: string) =>
+    role === USER_ROLES.ADMIN.value || role === USER_ROLES.MASTER_ADMIN.value;
+
+  const canEditAgent = (agent: Agent): boolean => {
+    if (!user?._id || user._id === agent.id) return false;
+    if (isCurrentUserMasterAdmin) return true;
+    if (isCurrentUserAdmin) return !isPrivilegedRole(agent.role);
+    return false;
+  };
+
+  const canDeleteAgent = (agent: Agent): boolean => {
+    if (!user?._id || user._id === agent.id) return false;
+    if (isCurrentUserMasterAdmin) return true;
+    if (isCurrentUserAdmin) return !isPrivilegedRole(agent.role);
+    return false;
+  };
+
+  const getEditRestrictionMessage = (agent: Agent): string => {
+    if (isOwnAccount(agent.id)) return "You cannot update your own account from here.";
+    if (isCurrentUserMasterAdmin) return "Edit agent";
+    if (isCurrentUserAdmin && isPrivilegedRole(agent.role)) {
+      return "Only Master Admin can update Admin or Master Admin accounts.";
+    }
+    return "You do not have permission to update this account.";
+  };
+
+  const getDeleteRestrictionMessage = (agent: Agent): string => {
+    if (isOwnAccount(agent.id)) return "You cannot delete your own account.";
+    if (isCurrentUserMasterAdmin) return "Remove agent";
+    if (isCurrentUserAdmin && isPrivilegedRole(agent.role)) {
+      return "Only Master Admin can delete Admin or Master Admin accounts.";
+    }
+    return "You do not have permission to delete this account.";
+  };
+
   useEffect(() => {
     if (agentsError) {
       showSnackbar(getApiErrorMessage(agentsError, "Failed to load agents"), "error");
@@ -204,15 +244,15 @@ const AgentsManagementView = () => {
     "&:hover": { bgcolor: "action.hover", borderColor: "divider" },
   };
 
-  const handleRemoveAgent = async (agentId: string) => {
-    if (user?._id && user._id === agentId) {
-      showSnackbar("Admin cannot remove its own account.", "error");
+  const handleRemoveAgent = async (agent: Agent) => {
+    if (!canDeleteAgent(agent)) {
+      showSnackbar(getDeleteRestrictionMessage(agent), "error");
       return;
     }
 
     try {
       setIsDeletingAgent(true);
-      await Agents.deleteAgent(agentId);
+      await Agents.deleteAgent(agent.id);
       if (agents.length === 1 && page > 1) {
         setPage((prev) => Math.max(1, prev - 1));
       }
@@ -234,6 +274,11 @@ const AgentsManagementView = () => {
   const isOwnAccount = (agentId: string) => Boolean(user?._id && user._id === agentId);
 
   const handleEditOpen = (agent: Agent) => {
+    if (!canEditAgent(agent)) {
+      showSnackbar(getEditRestrictionMessage(agent), "error");
+      return;
+    }
+
     setEditAgent(agent);
     setEditForm({
       fullName: agent.name || agent.fullName || "",
@@ -245,6 +290,17 @@ const AgentsManagementView = () => {
 
   const handleEditSave = async () => {
     if (!editAgent) return;
+
+    if (!canEditAgent(editAgent)) {
+      showSnackbar(getEditRestrictionMessage(editAgent), "error");
+      return;
+    }
+
+    if (isCurrentUserAdmin && editForm.role !== USER_ROLES.SUPPORT_AGENT.value) {
+      showSnackbar("Only Master Admin can assign Admin or Master Admin roles.", "error");
+      return;
+    }
+
     try {
       const agentId = editAgent.id || editAgent._id;
       if (!agentId) return;
@@ -503,7 +559,8 @@ const AgentsManagementView = () => {
         headerAlign: "right",
         renderCell: (agent) => {
           const ownAccount = isOwnAccount(agent.id);
-          const deleteDisabled = ownAccount || isDeletingAgent;
+          const editDisabled = !canEditAgent(agent);
+          const deleteDisabled = !canDeleteAgent(agent) || isDeletingAgent;
 
           return (
             <Stack direction="row" spacing={1} justifyContent="flex-end" alignItems="center" rowGap={0.5}>
@@ -527,6 +584,7 @@ const AgentsManagementView = () => {
                     size="small"
                     variant="outlined"
                     onClick={() => handleEditOpen(agent)}
+                    disabled={editDisabled}
                     sx={actionButtonSx}
                     startIcon={<Pencil size={16} />}
                   >
@@ -536,7 +594,7 @@ const AgentsManagementView = () => {
               </Tooltip>
 
               <Tooltip
-                title={ownAccount ? "Owner cannot delete its own account." : "Remove agent"}
+                title={getDeleteRestrictionMessage(agent)}
                 placement="bottom"
               >
                 <span>
@@ -544,7 +602,7 @@ const AgentsManagementView = () => {
                     size="small"
                     variant="outlined"
                     onClick={() => {
-                      if (ownAccount) return;
+                      if (!canDeleteAgent(agent)) return;
                       setAgentToDelete(agent);
                     }}
                     disabled={deleteDisabled}
@@ -570,7 +628,7 @@ const AgentsManagementView = () => {
         },
       },
     ],
-    [agents, page, user?._id, isDeletingAgent],
+    [isDeletingAgent, user?._id, user?.role],
   );
 
   return (
@@ -1083,9 +1141,9 @@ const AgentsManagementView = () => {
               </Typography>
               ? This action cannot be undone.
             </Typography>
-            {agentToDelete && isOwnAccount(agentToDelete.id) && (
+            {agentToDelete && !canDeleteAgent(agentToDelete) && (
               <Typography variant="caption" sx={{ color: "error.main", mt: 1.5, display: "block", fontWeight: 600 }}>
-                Admin cannot remove its own account.
+                {getDeleteRestrictionMessage(agentToDelete)}
               </Typography>
             )}
           </DialogContent>
@@ -1098,10 +1156,10 @@ const AgentsManagementView = () => {
               Cancel
             </Button>
             <Button
-              onClick={() => agentToDelete && handleRemoveAgent(agentToDelete.id)}
+              onClick={() => agentToDelete && handleRemoveAgent(agentToDelete)}
               variant="contained"
               color="error"
-              disabled={isDeletingAgent || (agentToDelete ? isOwnAccount(agentToDelete.id) : false)}
+              disabled={isDeletingAgent || (agentToDelete ? !canDeleteAgent(agentToDelete) : false)}
             >
               {isDeletingAgent ? "Deleting..." : "Delete"}
             </Button>

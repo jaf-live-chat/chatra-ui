@@ -23,6 +23,7 @@ import HomepageFaqsPage from "../pages/portal/homepage-faqs";
 import QuickRepliesPage from "../pages/portal/quick-replies";
 import QuickMessagesPage from "../pages/portal/quick-messages";
 import QueueAssignmentPage from "../pages/portal/queue-assignment";
+import NotificationsPage from "../pages/portal/notifications";
 import Tenants from "../pages/portal/tenants";
 import TenantDetails from "../pages/portal/tenants/details";
 import Payments from "../pages/portal/payments";
@@ -141,6 +142,16 @@ const PortalRoutes: RouteObject[] = [
                     allowedRoles={[USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value, USER_ROLES.SUPPORT_AGENT.value]}
                   >
                     <AccountSettingsPage />
+                  </AuthGuard>
+                ),
+              },
+              {
+                path: "notifications",
+                element: (
+                  <AuthGuard
+                    allowedRoles={[USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value, USER_ROLES.SUPPORT_AGENT.value]}
+                  >
+                    <NotificationsPage />
                   </AuthGuard>
                 ),
               },
