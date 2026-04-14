@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Loader2, MessageCircle, Paperclip, Send, X, Settings, Zap, ChevronUp, ChevronDown, ArrowLeft, Moon, Volume2, Shield, AlertCircle } from "lucide-react";
+import { Loader2, MessageCircle, Paperclip, Send, X, Menu, Zap, ChevronUp, ChevronDown, ArrowLeft, Moon, Volume2, Shield, AlertCircle } from "lucide-react";
 import type { Socket } from "socket.io-client";
 import type {
+  LiveChatConversation,
   LiveChatConversationEndedEvent,
   LiveChatMessage,
   LiveChatWidgetConfig,
@@ -48,7 +49,6 @@ const WIDGET_LOGO_KEY = "jaf_widget_logo";
 const WIDGET_DARK_MODE_KEY = "jaf_dark_mode";
 const WIDGET_TEXT_SIZE_KEY = "jaf_text_size";
 const WIDGET_MESSAGE_SOUNDS_KEY = "jaf_message_sounds";
-const LOCATION_PERMISSION_STATE_KEY = "jaf_location_permission_state";
 
 type LocationPermissionState = "unknown" | "granted" | "denied" | "unavailable";
 
@@ -208,20 +208,23 @@ const parseTextSizePreference = (value: string): TextSize => {
   return "default";
 };
 
-const parseLocationPermissionState = (value: string): LocationPermissionState => {
-  if (value === "granted" || value === "denied" || value === "unavailable") {
-    return value;
+const formatDateTime = (value?: string | null) => {
+  if (!value) {
+    return "";
   }
 
-  if (value === "true") {
-    return "granted";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "";
   }
 
-  if (value === "false") {
-    return "denied";
-  }
-
-  return "unknown";
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
 };
 
 const getWidgetInitials = (value: string) => {
@@ -243,9 +246,9 @@ const getWidgetInitials = (value: string) => {
 
 const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
   const [widgetConfig, setWidgetConfig] = useState<LiveChatWidgetConfig>(() => getResolvedConfig(initialConfig));
-  const [preChatFullName, setPreChatFullName] = useState(() => String(getResolvedConfig(initialConfig).visitorName || ""));
-  const [preChatEmailAddress, setPreChatEmailAddress] = useState(() => String(getResolvedConfig(initialConfig).visitorEmail || ""));
-  const [preChatPhoneNumber, setPreChatPhoneNumber] = useState(() => String(getResolvedConfig(initialConfig).visitorPhoneNumber || ""));
+  const [preChatFullName, setPreChatFullName] = useState("");
+  const [preChatEmailAddress, setPreChatEmailAddress] = useState("");
+  const [preChatPhoneNumber, setPreChatPhoneNumber] = useState("");
   const [hasCompletedPreChat, setHasCompletedPreChat] = useState(() => Boolean(readStoredValue(CONVERSATION_ID_KEY)));
   const [visitorToken] = useState(() => getVisitorToken());
   const [conversationId, setConversationId] = useState(() => readStoredValue(CONVERSATION_ID_KEY));
@@ -265,13 +268,20 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
   const [isMessageSoundsEnabled, setIsMessageSoundsEnabled] = useState(() => readStoredValue(WIDGET_MESSAGE_SOUNDS_KEY, "true") !== "false");
   const [browserLocation, setBrowserLocation] = useState<BrowserLocationSnapshot | null>(null);
   const [browserLocationStatus, setBrowserLocationStatus] = useState<"idle" | "resolving" | "resolved" | "denied" | "unavailable" | "error">("idle");
-  const [locationPermissionState, setLocationPermissionState] = useState<LocationPermissionState>(() => {
-    return parseLocationPermissionState(readStoredValue(LOCATION_PERMISSION_STATE_KEY));
-  });
+  const [locationPermissionState, setLocationPermissionState] = useState<LocationPermissionState>("unknown");
   const [isEndChatModalOpen, setIsEndChatModalOpen] = useState(false);
   const [showQuickMessages, setShowQuickMessages] = useState(false);
   const [quickMessages, setQuickMessages] = useState<QuickMessage[]>([]);
   const [activeQuickReplyId, setActiveQuickReplyId] = useState<string | null>(null);
+  const [historyConversations, setHistoryConversations] = useState<LiveChatConversation[]>([]);
+  const [historyCount, setHistoryCount] = useState(0);
+  const [isHistoryLoading, setIsHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState("");
+  const [selectedHistoryConversationId, setSelectedHistoryConversationId] = useState("");
+  const [historyMessages, setHistoryMessages] = useState<WidgetTranscriptMessage[]>([]);
+  const [isHistoryTranscriptLoading, setIsHistoryTranscriptLoading] = useState(false);
+  const [isReturningVisitor, setIsReturningVisitor] = useState(false);
+  const [returningVisitorName, setReturningVisitorName] = useState("");
 
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const socketRef = useRef<Socket | null>(null);
@@ -280,6 +290,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
   const messageInputRef = useRef<HTMLTextAreaElement | null>(null);
   const widgetSettingsRequestRef = useRef<Promise<void> | null>(null);
   const quickMessagesRequestRef = useRef<Promise<void> | null>(null);
+  const historyRequestRef = useRef<Promise<void> | null>(null);
   const quickReplyTimerRef = useRef<number | null>(null);
   const conversationBootstrapRef = useRef(false);
 
@@ -344,6 +355,16 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
         return "Support";
     }
   }, [socketStatus]);
+  const welcomeTitleMessage = isReturningVisitor
+    ? `Welcome back${returningVisitorName ? `, ${returningVisitorName}` : ""}.`
+    : welcomeMessage;
+  const selectedHistoryConversation = useMemo(() => {
+    if (!selectedHistoryConversationId) {
+      return null;
+    }
+
+    return historyConversations.find((entry) => String(entry._id) === selectedHistoryConversationId) || null;
+  }, [historyConversations, selectedHistoryConversationId]);
 
   const disconnectSocket = useCallback(() => {
     if (socketRef.current) {
@@ -401,7 +422,6 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
       setBrowserLocation(null);
       setLocationPermissionState("unavailable");
-      writeStoredValue(LOCATION_PERMISSION_STATE_KEY, "unavailable");
       setBrowserLocationStatus("unavailable");
       return;
     }
@@ -416,7 +436,6 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
           accuracy: typeof position.coords.accuracy === "number" ? position.coords.accuracy : null,
         });
         setLocationPermissionState("granted");
-        writeStoredValue(LOCATION_PERMISSION_STATE_KEY, "granted");
         setBrowserLocationStatus("resolved");
       },
       (error) => {
@@ -424,13 +443,11 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
 
         if (error.code === error.PERMISSION_DENIED) {
           setLocationPermissionState("denied");
-          writeStoredValue(LOCATION_PERMISSION_STATE_KEY, "denied");
           setBrowserLocationStatus("denied");
           return;
         }
 
         setLocationPermissionState("unavailable");
-        writeStoredValue(LOCATION_PERMISSION_STATE_KEY, "unavailable");
         setBrowserLocationStatus("error");
       },
       {
@@ -613,6 +630,72 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
     return quickMessagesRequestRef.current;
   }, [apiKey, hasApiKey, visitorToken]);
 
+  const syncConversationHistory = useCallback(async () => {
+    if (!hasApiKey) {
+      setHistoryConversations([]);
+      setHistoryCount(0);
+      setIsReturningVisitor(false);
+      setReturningVisitorName("");
+      return;
+    }
+
+    if (historyRequestRef.current) {
+      return historyRequestRef.current;
+    }
+
+    setIsHistoryLoading(true);
+    setHistoryError("");
+
+    historyRequestRef.current = (async () => {
+      try {
+        const response = await liveChatWidgetServices.getConversationHistory({ apiKey }, visitorToken, {
+          page: 1,
+          limit: 20,
+        });
+
+        setHistoryConversations(response.conversations || []);
+        setHistoryCount(response.historyCount || 0);
+        setIsReturningVisitor(Boolean(response.isReturningVisitor));
+        setReturningVisitorName(String(response.visitor?.name || response.visitor?.fullName || "").trim());
+      } catch {
+        setHistoryConversations([]);
+        setHistoryCount(0);
+        setHistoryError("Unable to load chat history.");
+      } finally {
+        setIsHistoryLoading(false);
+        historyRequestRef.current = null;
+      }
+    })();
+
+    return historyRequestRef.current;
+  }, [apiKey, hasApiKey, visitorToken]);
+
+  const loadHistoryTranscript = useCallback(async (targetConversationId: string) => {
+    if (!hasApiKey || !targetConversationId) {
+      return;
+    }
+
+    setSelectedHistoryConversationId(targetConversationId);
+    setIsHistoryTranscriptLoading(true);
+
+    try {
+      const response = await liveChatWidgetServices.getConversationMessages(
+        widgetConfig,
+        visitorToken,
+        targetConversationId,
+        { page: 1, limit: MESSAGE_PAGE_LIMIT },
+      );
+
+      setHistoryMessages(normalizeMessages(response.messages));
+      setHistoryError("");
+    } catch {
+      setHistoryMessages([]);
+      setHistoryError("Unable to load transcript.");
+    } finally {
+      setIsHistoryTranscriptLoading(false);
+    }
+  }, [hasApiKey, visitorToken, widgetConfig]);
+
   const handleSendMessage = useCallback(async (presetMessage?: string) => {
     const trimmedMessage = String(presetMessage ?? messageText).trim();
 
@@ -753,6 +836,14 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
     setHasCompletedPreChat(false);
     setActiveQuickReplyId(null);
     setShowQuickMessages(false);
+    setPreChatFullName("");
+    setPreChatEmailAddress("");
+    setPreChatPhoneNumber("");
+    setBrowserLocation(null);
+    setBrowserLocationStatus("idle");
+    setLocationPermissionState("unknown");
+    setSelectedHistoryConversationId("");
+    setHistoryMessages([]);
     clearStoredValue(CONVERSATION_ID_KEY);
   }, [clearQuickReplyTimer, disconnectSocket]);
 
@@ -766,7 +857,8 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
     }
 
     resetConversationState();
-  }, [conversationId, resetConversationState, visitorToken, widgetConfig]);
+    void syncConversationHistory();
+  }, [conversationId, resetConversationState, syncConversationHistory, visitorToken, widgetConfig]);
 
   const handleGoBackToStart = useCallback(() => {
     resetConversationState();
@@ -967,31 +1059,9 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
     const syncConfig = () => {
       const resolvedConfig = getResolvedConfig(initialConfig);
       setWidgetConfig(resolvedConfig);
-      if (!conversationId) {
-        setPreChatFullName(String(resolvedConfig.visitorName || ""));
-        setPreChatEmailAddress(String(resolvedConfig.visitorEmail || ""));
-        setPreChatPhoneNumber(String(resolvedConfig.visitorPhoneNumber || ""));
-      }
       setIsDarkMode(readStoredValue(WIDGET_DARK_MODE_KEY) === "true");
       setTextSize(parseTextSizePreference(readStoredValue(WIDGET_TEXT_SIZE_KEY, "default")));
       setIsMessageSoundsEnabled(readStoredValue(WIDGET_MESSAGE_SOUNDS_KEY, "true") !== "false");
-
-      const storedPermissionState = parseLocationPermissionState(readStoredValue(LOCATION_PERMISSION_STATE_KEY));
-      setLocationPermissionState(storedPermissionState);
-
-      if (storedPermissionState === "denied") {
-        setBrowserLocationStatus("denied");
-        setBrowserLocation(null);
-      }
-
-      if (storedPermissionState === "unavailable") {
-        setBrowserLocationStatus("unavailable");
-        setBrowserLocation(null);
-      }
-
-      if (storedPermissionState === "granted" && !browserLocation) {
-        requestBrowserLocation();
-      }
     };
 
     const handleOpenChat = () => {
@@ -1009,7 +1079,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
       window.removeEventListener("open-live-chat", handleOpenChat);
       window.removeEventListener("storage", handleStorage);
     };
-  }, [browserLocation, conversationId, initialConfig, requestBrowserLocation]);
+  }, [initialConfig]);
 
   useEffect(() => {
     if (!isOpen || locationPermissionState !== "unknown") {
@@ -1059,6 +1129,14 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
   }, [isOpen]);
 
   useEffect(() => {
+    if (!isOpen || widgetView !== "settings") {
+      return;
+    }
+
+    void syncConversationHistory();
+  }, [isOpen, syncConversationHistory, widgetView]);
+
+  useEffect(() => {
     if (!isOpen) {
       conversationBootstrapRef.current = false;
       return;
@@ -1078,13 +1156,14 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
 
     void syncWidgetSettings();
     void syncQuickMessages();
+    void syncConversationHistory();
 
     if (!conversationId) {
       return;
     }
 
     void syncMessages(conversationId);
-  }, [conversationId, hasApiKey, isOpen, syncMessages, syncQuickMessages, syncWidgetSettings]);
+  }, [conversationId, hasApiKey, isOpen, syncConversationHistory, syncMessages, syncQuickMessages, syncWidgetSettings]);
 
   useEffect(() => {
     if (!apiKey || !conversationId) {
@@ -1190,14 +1269,21 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
       appendEndedMessage(payload);
       setConversationId("");
       setHasCompletedPreChat(false);
+      setPreChatFullName("");
+      setPreChatEmailAddress("");
+      setPreChatPhoneNumber("");
+      setBrowserLocation(null);
+      setBrowserLocationStatus("idle");
+      setLocationPermissionState("unknown");
       clearStoredValue(CONVERSATION_ID_KEY);
       setSocketStatus("closed");
+      void syncConversationHistory();
     });
 
     return () => {
       disconnectSocket();
     };
-  }, [apiKey, appendEndedMessage, conversationId, disconnectSocket, isOpen, playIncomingMessageSound, visitorToken]);
+  }, [apiKey, appendEndedMessage, conversationId, disconnectSocket, isOpen, playIncomingMessageSound, syncConversationHistory, visitorToken]);
 
   useEffect(() => {
     if (!isOpen || messages.length === 0) {
@@ -1389,9 +1475,9 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                 type="button"
                 onClick={() => setWidgetView((current) => (current === "settings" ? "chat" : "settings"))}
                 className="h-9 w-9 rounded-lg border border-white/30 bg-white/10 text-white flex items-center justify-center transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/20"
-                aria-label="Toggle quick replies"
+                aria-label="Toggle menu"
               >
-                <Settings className="h-4.5 w-4.5" />
+                <Menu className="h-4.5 w-4.5" />
               </button>
               <button
                 type="button"
@@ -1407,89 +1493,202 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
           {widgetView === "settings" ? (
             <>
               <div className={`flex-1 overflow-y-auto px-5 py-5 ${theme.body}`}>
-                <button
-                  type="button"
-                  onClick={() => setWidgetView("chat")}
-                  className={`inline-flex items-center gap-2 text-[11px] font-semibold mb-4 transition-colors ${theme.settingsText}`}
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                  <span>Back to chat</span>
-                </button>
+                {selectedHistoryConversation ? (
+                  <div className="h-full flex flex-col">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedHistoryConversationId("");
+                        setHistoryMessages([]);
+                      }}
+                      className={`inline-flex items-center gap-2 text-[11px] font-semibold mb-4 transition-colors ${theme.settingsText}`}
+                    >
+                      <ArrowLeft className="h-4 w-4" />
+                      <span>Back</span>
+                    </button>
 
-                <div className={theme.settingsCard}>
-                  <p className={`${theme.settingsSectionTitle} mb-2`}>TEXT SIZE</p>
-                  <div className={`${theme.settingsControlShell} ${theme.settingsControlShellTone}`}>
-                    {(["small", "default", "large"] as TextSize[]).map((size) => (
+                    <div className={`${theme.settingsCard} flex-1 min-h-0 p-4 sm:p-5`}>
+                      {isHistoryTranscriptLoading ? (
+                        <div className="h-full flex items-center justify-center">
+                          <p className={theme.settingsMuted}>Loading transcript...</p>
+                        </div>
+                      ) : historyMessages.length === 0 ? (
+                        <div className="h-full flex items-center justify-center">
+                          <p className={theme.settingsMuted}>No messages found in this conversation.</p>
+                        </div>
+                      ) : (
+                        <div className="h-full overflow-y-auto space-y-2 pr-1">
+                          {historyMessages.map((message) => (
+                            <div
+                              key={message._id}
+                              className={`rounded-xl px-3 py-2 ${message.senderType === "VISITOR" ? "bg-cyan-50 border border-cyan-100" : "bg-slate-100 border border-slate-200"}`}
+                            >
+                              <p className="text-[10px] font-semibold tracking-wide text-slate-500">
+                                {message.senderType === "VISITOR" ? "You" : "Support"}
+                              </p>
+                              <p className={`mt-0.5 whitespace-pre-wrap ${messageSizeClass}`}>{message.message}</p>
+                              <p className={`mt-1 ${theme.settingsMuted}`}>{formatDateTime(message.createdAt)}</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setWidgetView("chat")}
+                      className={`inline-flex items-center gap-2 text-[11px] font-semibold mb-4 transition-colors ${theme.settingsText}`}
+                    >
+                      <ArrowLeft className="h-4 w-4" />
+                      <span>Back to chat</span>
+                    </button>
+
+                    <div className={theme.settingsCard}>
+                      <p className={`${theme.settingsSectionTitle} mb-2`}>TEXT SIZE</p>
+                      <div className={`${theme.settingsControlShell} ${theme.settingsControlShellTone}`}>
+                        {(["small", "default", "large"] as TextSize[]).map((size) => (
+                          <button
+                            key={size}
+                            type="button"
+                            onClick={() => {
+                              setTextSize(size);
+                              writeStoredValue(WIDGET_TEXT_SIZE_KEY, size);
+                            }}
+                            className={`px-2 py-1.5 rounded-lg text-[11px] font-semibold capitalize transition-all ${textSize === size ? theme.settingsControlActive : theme.settingsControlIdle}`}
+                          >
+                            {size}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className={`my-5 border-t ${theme.settingsDivider}`} />
+
+                    <div className={`flex items-center justify-between ${theme.settingsCard}`}>
+                      <div className="flex items-center gap-2.5">
+                        <Moon className={`h-4.5 w-4.5 ${theme.settingsMuted}`} />
+                        <p className={theme.settingsText}>Dark Mode</p>
+                      </div>
                       <button
-                        key={size}
                         type="button"
                         onClick={() => {
-                          setTextSize(size);
-                          writeStoredValue(WIDGET_TEXT_SIZE_KEY, size);
+                          const next = !isDarkMode;
+                          setIsDarkMode(next);
+                          writeStoredValue(WIDGET_DARK_MODE_KEY, String(next));
                         }}
-                        className={`px-2 py-1.5 rounded-lg text-[11px] font-semibold capitalize transition-all ${textSize === size ? theme.settingsControlActive : theme.settingsControlIdle}`}
+                        className={`relative h-7 w-14 rounded-full transition-colors ${isDarkMode ? theme.toggleOn : theme.toggleOff}`}
+                        aria-label="Toggle dark mode"
                       >
-                        {size}
+                        <span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-all ${isDarkMode ? "left-8" : "left-1"}`} />
                       </button>
-                    ))}
-                  </div>
-                </div>
+                    </div>
 
-                <div className={`my-5 border-t ${theme.settingsDivider}`} />
+                    <div className={`my-5 border-t ${theme.settingsDivider}`} />
 
-                <div className={`flex items-center justify-between ${theme.settingsCard}`}>
-                  <div className="flex items-center gap-2.5">
-                    <Moon className={`h-4.5 w-4.5 ${theme.settingsMuted}`} />
-                    <p className={theme.settingsText}>Dark Mode</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const next = !isDarkMode;
-                      setIsDarkMode(next);
-                      writeStoredValue(WIDGET_DARK_MODE_KEY, String(next));
-                    }}
-                    className={`relative h-7 w-14 rounded-full transition-colors ${isDarkMode ? theme.toggleOn : theme.toggleOff}`}
-                    aria-label="Toggle dark mode"
-                  >
-                    <span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-all ${isDarkMode ? "left-8" : "left-1"}`} />
-                  </button>
-                </div>
+                    <div className={`flex items-center justify-between ${theme.settingsCard}`}>
+                      <div className="flex items-center gap-2.5">
+                        <Volume2 className={`h-4.5 w-4.5 ${theme.settingsMuted}`} />
+                        <p className={theme.settingsText}>Message Sounds</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsMessageSoundsEnabled((current) => {
+                            const next = !current;
+                            writeStoredValue(WIDGET_MESSAGE_SOUNDS_KEY, String(next));
+                            return next;
+                          });
+                        }}
+                        className={`relative h-7 w-14 rounded-full transition-colors ${isMessageSoundsEnabled ? theme.toggleOn : theme.toggleOff}`}
+                        aria-label="Toggle message sounds"
+                      >
+                        <span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-all ${isMessageSoundsEnabled ? "left-8" : "left-1"}`} />
+                      </button>
+                    </div>
 
-                <div className={`my-5 border-t ${theme.settingsDivider}`} />
+                    <div className={`my-5 border-t ${theme.settingsDivider}`} />
 
-                <div className={`flex items-center justify-between ${theme.settingsCard}`}>
-                  <div className="flex items-center gap-2.5">
-                    <Volume2 className={`h-4.5 w-4.5 ${theme.settingsMuted}`} />
-                    <p className={theme.settingsText}>Message Sounds</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsMessageSoundsEnabled((current) => {
-                        const next = !current;
-                        writeStoredValue(WIDGET_MESSAGE_SOUNDS_KEY, String(next));
-                        return next;
-                      });
-                    }}
-                    className={`relative h-7 w-14 rounded-full transition-colors ${isMessageSoundsEnabled ? theme.toggleOn : theme.toggleOff}`}
-                    aria-label="Toggle message sounds"
-                  >
-                    <span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-all ${isMessageSoundsEnabled ? "left-8" : "left-1"}`} />
-                  </button>
-                </div>
+                    <div className={theme.settingsCard}>
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className={`${theme.settingsSectionTitle} mb-1`}>LOCATION PERMISSION</p>
+                          <p className={`${theme.settingsMuted}`}>
+                            {locationPermissionState === "granted"
+                              ? "Location shared for this chat session."
+                              : locationPermissionState === "denied"
+                                ? "Location permission denied by browser."
+                                : locationPermissionState === "unavailable"
+                                  ? "Location is unavailable in this browser."
+                                  : "Location will be requested for each new chat."}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={requestBrowserLocation}
+                          disabled={browserLocationStatus === "resolving"}
+                          className="rounded-xl px-3 py-2 text-xs font-semibold text-white disabled:opacity-60 disabled:cursor-not-allowed"
+                          style={{ backgroundColor: resolvedAccent }}
+                        >
+                          {browserLocationStatus === "resolving" ? "Requesting..." : "Request"}
+                        </button>
+                      </div>
+                    </div>
 
-                <div className={`my-5 border-t ${theme.settingsDivider}`} />
+                    <div className={`my-5 border-t ${theme.settingsDivider}`} />
 
-                <div className={theme.settingsCard}>
-                  <div className="flex items-center gap-2 mb-2">
-                    <Shield className={`h-4.5 w-4.5 ${theme.settingsMuted}`} />
-                    <p className={`font-semibold tracking-wide ${theme.settingsText}`}>SESSION & PRIVACY</p>
-                  </div>
-                  <p className={`leading-relaxed ${theme.settingsMuted}`}>
-                    We securely store your session so you do not lose your chat on reload. You can end and clear this session at any time.
-                  </p>
-                </div>
+                    <div className={theme.settingsCard}>
+                      <div className="flex items-center justify-between gap-3">
+                        <p className={`${theme.settingsSectionTitle}`}>CHAT HISTORY</p>
+                        <span className={`${theme.settingsMuted}`}>{historyCount} ended chat{historyCount === 1 ? "" : "s"}</span>
+                      </div>
+
+                      {isHistoryLoading ? (
+                        <p className={`mt-2 ${theme.settingsMuted}`}>Loading chat history...</p>
+                      ) : historyConversations.length === 0 ? (
+                        <p className={`mt-2 ${theme.settingsMuted}`}>No previous conversations found for this visitor.</p>
+                      ) : (
+                        <div className="mt-3 grid gap-2">
+                          {historyConversations.slice(0, 6).map((conversation) => {
+                            const conversationLabel = formatDateTime(conversation.closedAt || conversation.updatedAt || conversation.createdAt) || "Ended conversation";
+                            const isSelected = String(conversation._id) === selectedHistoryConversationId;
+
+                            return (
+                              <button
+                                key={conversation._id}
+                                type="button"
+                                onClick={() => {
+                                  void loadHistoryTranscript(String(conversation._id));
+                                }}
+                                className={`w-full rounded-xl border px-3 py-2 text-left transition-colors ${isSelected ? "border-cyan-400 bg-cyan-50/80" : "border-slate-300 hover:bg-slate-50"}`}
+                              >
+                                <p className={`text-xs font-semibold ${theme.settingsText}`}>{conversationLabel}</p>
+                                <p className={`mt-0.5 text-[11px] ${theme.settingsMuted}`}>Transcript only</p>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {historyError ? (
+                        <p className="mt-2 text-xs text-red-500">{historyError}</p>
+                      ) : null}
+                    </div>
+
+                    <div className={`my-5 border-t ${theme.settingsDivider}`} />
+
+                    <div className={theme.settingsCard}>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Shield className={`h-4.5 w-4.5 ${theme.settingsMuted}`} />
+                        <p className={`font-semibold tracking-wide ${theme.settingsText}`}>SESSION & PRIVACY</p>
+                      </div>
+                      <p className={`leading-relaxed ${theme.settingsMuted}`}>
+                        We securely store your session so you do not lose your chat on reload. You can end and clear this session at any time.
+                      </p>
+                    </div>
+                  </>
+                )}
               </div>
 
               <div className={`border-t ${theme.composer} px-4 py-3.5 flex-shrink-0`}>
@@ -1517,7 +1716,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                       </div>
                     </div>
 
-                    <p className={`mt-5 ${theme.welcomeTitle} ${helperTextSizeClass} leading-snug`}>{welcomeMessage}</p>
+                    <p className={`mt-5 ${theme.welcomeTitle} ${helperTextSizeClass} leading-snug`}>{welcomeTitleMessage}</p>
                     <p className={`mt-2 ${theme.muted} ${helperTextSizeClass} leading-snug`}>We&apos;re here to help. Send a message to get started.</p>
 
                     {!conversationId && !hasCompletedPreChat ? (

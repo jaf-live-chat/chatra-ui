@@ -1,6 +1,7 @@
 import axiosServices from "../utils/axios";
 import type {
   GetConversationMessagesParams,
+  GetWidgetConversationHistoryResponse,
   GetLiveChatMessagesResponse,
   GetWidgetQuickMessagesResponse,
   GetWidgetSettingsResponse,
@@ -114,6 +115,22 @@ const liveChatWidgetServices = {
     });
 
     return messagesResponse.data;
+  },
+
+  getConversationHistory: async (
+    config: LiveChatWidgetConfig,
+    visitorToken: string,
+    params: GetConversationMessagesParams = {},
+  ): Promise<GetWidgetConversationHistoryResponse> => {
+    const response = await axiosServices.get<GetWidgetConversationHistoryResponse>(`${WIDGET_BASE_PATH}/conversations/history`, {
+      params: {
+        page: params.page ?? 1,
+        limit: params.limit ?? 20,
+      },
+      headers: buildHeaders(config, visitorToken),
+    });
+
+    return response.data;
   },
 
   getQuickMessages: async (

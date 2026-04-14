@@ -22,7 +22,6 @@ export interface LiveChatVisitor {
   phoneNumber?: string | null;
   ipAddressConsent?: boolean;
   ipAddress?: string | null;
-  userAgent?: string | null;
   locationCity?: string | null;
   locationCountry?: string | null;
   locationSource?: string | null;
@@ -49,7 +48,6 @@ export interface LiveChatConversation {
   agentId: string | LiveChatAgent | null;
   visitorToken?: string | null;
   ipAddress?: string | null;
-  userAgent?: string | null;
   locationCity?: string | null;
   locationCountry?: string | null;
   locationSource?: string | null;
@@ -229,4 +227,13 @@ export interface WidgetSettingsRecord {
 export interface GetWidgetSettingsResponse {
   success: boolean;
   widgetSettings: WidgetSettingsRecord;
+}
+
+export interface GetWidgetConversationHistoryResponse {
+  success: boolean;
+  conversations: LiveChatConversation[];
+  pagination: LiveChatPagination;
+  historyCount: number;
+  isReturningVisitor: boolean;
+  visitor: LiveChatVisitor | null;
 }
