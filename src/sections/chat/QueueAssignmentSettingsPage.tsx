@@ -15,7 +15,7 @@ import PageTitle from "../../components/common/PageTitle";
 import TitleTag from "../../components/TitleTag";
 import chatSettingsServices, { useGetQueueAssignmentMode } from "../../services/chatSettingsServices";
 import type { QueueAssignmentMode } from "../../models/ChatSettingsModel";
-import { toast } from "sonner";
+import { toast } from "../../components/sonner";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 

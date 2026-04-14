@@ -3,7 +3,7 @@ import { useNavigate } from "react-router";
 import QueueView from "../../../sections/chat/QueueView";
 import { useGetActiveLiveChat, useGetLiveChatQueue } from "../../../hooks/useLiveChat";
 import useAuth from "../../../hooks/useAuth";
-import { createLiveChatSocket } from "../../../services/liveChatRealtimeClient";
+import { useStaffLiveChat } from "../../../hooks/useStaffLiveChat";
 import liveChatServices from "../../../services/liveChatServices";
 import type { LiveChatAgent, LiveChatConversation, LiveChatQueueEntry, LiveChatVisitor } from "../../../models/LiveChatModel";
 import type { QueueVisitorRow } from "../../../models/QueueViewModel";
@@ -62,6 +62,8 @@ const AgentQueuePage = () => {
       const locationCity = conversation?.locationCity || visitor?.locationCity || "Unknown";
       const locationCountry = conversation?.locationCountry || visitor?.locationCountry || "Unknown";
       const normalizedAgentId = agent?._id || (typeof entry.agentId === "string" ? entry.agentId : null);
+      const agentName = agent?.fullName || "";
+      const agentDisplayName = agent?.displayName || (agentName && normalizedAgentId ? `${agentName} (${normalizedAgentId})` : agentName);
 
       return {
         id: String(conversationId),
@@ -74,7 +76,8 @@ const AgentQueuePage = () => {
         queuedAt: entry.queuedAt || conversation?.queuedAt || null,
         assignedAt: entry.assignedAt || conversation?.assignedAt || null,
         agentId: normalizedAgentId,
-        agentName: agent?.fullName || "",
+        agentName,
+        agentDisplayName,
         ipAddress: visitor?.ipAddress || conversation?.ipAddress || "",
         location: locationCity,
         country: locationCountry,
@@ -82,45 +85,26 @@ const AgentQueuePage = () => {
     });
   }, [combinedQueue]);
 
-  useEffect(() => {
-    if (!tenant?.apiKey) {
-      return;
-    }
-
-    const socket = createLiveChatSocket({
-      apiKey: tenant.apiKey,
-      role: user?.role,
-      agentId: user?._id,
-    });
-
-    if (!socket) {
-      return;
-    }
-
-    const queueEvents = [
-      "NEW_CONVERSATION",
-      "CONVERSATION_ASSIGNED",
-      "CONVERSATION_TRANSFERRED",
-      "CONVERSATION_ENDED",
-      "QUEUE_UPDATED",
-      "connect",
-      "reconnect",
-    ] as const;
-
-    queueEvents.forEach((eventName) => socket.on(eventName, refreshQueue));
-
-    return () => {
-      queueEvents.forEach((eventName) => socket.off(eventName, refreshQueue));
-      socket.disconnect();
-    };
-  }, [refreshQueue, tenant?.apiKey, user?._id, user?.role]);
+  // Use shared staff realtime hook for queue updates
+  useStaffLiveChat(
+    tenant?.apiKey ?? undefined,
+    tenant?.databaseName ?? undefined,
+    tenant?.id ?? undefined,
+    user?.role ?? undefined,
+    user?._id ?? undefined,
+    {
+      onConversationAssigned: refreshQueue,
+      onConversationTransferred: refreshQueue,
+      onQueueUpdated: refreshQueue,
+      onConversationEnded: refreshQueue,
+    },
+  );
 
   return (
     <QueueView
       queue={mappedQueue}
       actorRole={user?.role}
       actorStatus={user?.status}
-      selfPickEligible={Boolean(user?.selfPickEligible)}
       isAgent={true}
       currentAgentId={user?._id}
       onSelfPickConversation={async (visitor) => {

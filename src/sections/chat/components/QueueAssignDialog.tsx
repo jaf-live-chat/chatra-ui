@@ -13,6 +13,8 @@ import Select from "@mui/material/Select";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import type { QueueAgentOption, QueueVisitorRow } from "../../../models/QueueViewModel";
+import toTitleCase from "../../../utils/toTitleCase";
+import { Chip } from "@mui/material";
 
 interface QueueAssignDialogProps {
   open: boolean;
@@ -94,9 +96,11 @@ const QueueAssignDialog = ({
               <MenuItem key={agent.id} value={agent.id}>
                 <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between" sx={{ width: "100%" }}>
                   <Typography variant="body2">{agent.name}</Typography>
-                  <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                    {agent.status}
-                  </Typography>
+                  <Chip
+                    label={toTitleCase(agent.status)}
+                    size="small"
+                    color={agent.status === "AVAILABLE" ? "success" : agent.status === "BUSY" ? "warning" : "default"}
+                  />
                 </Stack>
               </MenuItem>
             ))}

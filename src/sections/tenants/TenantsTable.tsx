@@ -22,7 +22,7 @@ import Box from "@mui/material/Box";
 import getAvatarColor from "../../utils/getAvatarColor";
 import TitleTag from "../../components/TitleTag";
 import type { Theme } from "@mui/material/styles";
-import { toast } from "sonner";
+import { toast } from "../../components/sonner";
 import useAuth from "../../hooks/useAuth";
 import useGetRole from "../../hooks/useGetRole";
 

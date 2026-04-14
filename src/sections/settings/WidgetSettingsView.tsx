@@ -11,7 +11,7 @@ import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import AvatarUpload from "../../components/uploads/AvatarUpload";
 import TitleTag from "../../components/TitleTag";
-import { toast } from "sonner";
+import { toast } from "../../components/sonner";
 import widgetSettingsServices from "../../services/widgetSettingsServices";
 
 const DEFAULT_SETTINGS = {

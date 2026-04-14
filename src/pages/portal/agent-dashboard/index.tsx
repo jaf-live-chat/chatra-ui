@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import {
   ListOrdered,
   ArrowRight,
@@ -8,6 +8,8 @@ import {
   Zap,
 } from "lucide-react";
 import { useNavigate } from "react-router";
+import useAuth from "../../../hooks/useAuth";
+import { useStaffLiveChat } from "../../../hooks/useStaffLiveChat";
 
 const initialMockQueue = [
   { id: "Q-1001", name: "Alice Johnson", message: "I need help with upgrading my plan.", status: "Waiting", timeInQueue: "5m 20s" },
@@ -30,6 +32,7 @@ const AGENT_QUEUE_STORAGE_KEY = "jaf_agent_mock_queue_state";
 
 const AgentDashboard = () => {
   const navigate = useNavigate();
+  const { user, tenant } = useAuth();
   const [queueItems, setQueueItems] = useState<typeof initialMockQueue>(() => {
     // Rehydrate from localStorage so state survives navigation away from this route
     try {
@@ -47,40 +50,50 @@ const AgentDashboard = () => {
     } catch (e) { /* silently fail */ }
   }, [queueItems]);
 
-  // Load live visitor chats from shared localStorage queue
+  const loadLiveQueue = useCallback(() => {
+    try {
+      const stored = localStorage.getItem("jaf_live_queue");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        setLiveQueueItems(parsed);
+      } else {
+        setLiveQueueItems([]);
+      }
+    } catch {
+      // silently fail
+    }
+  }, []);
+
+  // Load live visitor chats once and keep them in sync via socket events
   useEffect(() => {
-    const loadLiveQueue = () => {
-      try {
-        const stored = localStorage.getItem("jaf_live_queue");
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          setLiveQueueItems(parsed);
-        } else {
-          setLiveQueueItems([]);
-        }
-      } catch (e) {
-        // silently fail
+    loadLiveQueue();
+
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === "jaf_live_queue") {
+        loadLiveQueue();
       }
     };
 
-    loadLiveQueue();
-
-    const handleQueueUpdate = () => loadLiveQueue();
-    window.addEventListener("jaf_queue_updated", handleQueueUpdate);
-
-    const handleStorage = (e: StorageEvent) => {
-      if (e.key === "jaf_live_queue") loadLiveQueue();
-    };
     window.addEventListener("storage", handleStorage);
 
-    const interval = setInterval(loadLiveQueue, 2000);
-
     return () => {
-      window.removeEventListener("jaf_queue_updated", handleQueueUpdate);
       window.removeEventListener("storage", handleStorage);
-      clearInterval(interval);
     };
-  }, []);
+  }, [loadLiveQueue]);
+
+  useStaffLiveChat(
+    tenant?.apiKey ?? undefined,
+    tenant?.databaseName,
+    tenant?.id,
+    user?.role,
+    user?._id,
+    {
+      onQueueUpdated: loadLiveQueue,
+      onConversationAssigned: loadLiveQueue,
+      onConversationTransferred: loadLiveQueue,
+      onConversationEnded: loadLiveQueue,
+    },
+  );
 
   // Merge mock queue + live visitor queue
   const mergedQueue = useMemo(() => {

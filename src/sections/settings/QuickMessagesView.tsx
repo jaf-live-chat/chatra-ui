@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Plus, Trash2, Save, MessageCircle, PencilLine } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import { toast } from "sonner";
+import { toast } from "../../components/sonner";
 import PageTitle from "../../components/common/PageTitle";
 import TitleTag from "../../components/TitleTag";
 import quickMessageServices, { useGetQuickMessages } from "../../services/quickMessageServices";

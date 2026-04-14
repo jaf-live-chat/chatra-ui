@@ -43,7 +43,7 @@ import {
   type SubscriptionPlanApiModel,
 } from "../../services/subscriptionPlanServices";
 import TitleTag from "../../components/TitleTag";
-import { toast } from "sonner";
+import { toast } from "../../components/sonner";
 
 type BillingCycle = "daily" | "weekly" | "monthly" | "yearly";
 

@@ -14,7 +14,7 @@ import PageTitle from "../../components/common/PageTitle";
 import TitleTag from "../../components/TitleTag";
 import useNowTick from "../../hooks/useNowTick";
 import type { QueueActorRole, QueueAgentOption, QueueVisitorRow } from "../../models/QueueViewModel";
-import { toast } from "sonner";
+import { toast } from "../../components/sonner";
 import QueueAssignDialog from "./components/QueueAssignDialog";
 import QueueRealtimeTable from "./components/QueueRealtimeTable";
 import VisitorDetailsDialog from "./components/VisitorDetailsDialog";
@@ -24,7 +24,6 @@ interface QueueViewProps {
   queue: QueueVisitorRow[];
   actorRole?: QueueActorRole;
   actorStatus?: string;
-  selfPickEligible?: boolean;
   agents?: QueueAgentOption[];
   onAssignConversation?: (visitor: QueueVisitorRow, agentId: string) => Promise<void>;
   onTakeConversation?: (visitor: QueueVisitorRow) => Promise<void>;
@@ -44,7 +43,6 @@ const QueueView = ({
   queue,
   actorRole,
   actorStatus,
-  selfPickEligible = false,
   agents = [],
   onAssignConversation,
   onTakeConversation,
@@ -125,7 +123,7 @@ const QueueView = ({
 
   const actionHeaderLabel = <span style={visuallyHidden}>Actions</span>;
 
-  const buildVisitorCell = (row: QueueVisitorRow) => (
+  const buildVisitorCell = (row: QueueVisitorRow, showAssignedAgent = false) => (
     <Stack direction="row" alignItems="center" spacing={1.5}>
       <Avatar sx={{ width: 30, height: 30, bgcolor: getAvatarColor(row.id), fontSize: "0.78rem", fontWeight: 700 }}>
         {row.name.charAt(0).toUpperCase()}
@@ -140,6 +138,27 @@ const QueueView = ({
       </Box>
     </Stack>
   );
+
+  const buildAgentCell = (row: QueueVisitorRow) => {
+    if (!row.agentName) {
+      return <Typography variant="body2" sx={{ color: "text.secondary" }}>Unassigned</Typography>;
+    }
+
+    return (
+      <Stack direction="row" alignItems="center" spacing={1.5}>
+        <Avatar sx={{ width: 30, height: 30, bgcolor: getAvatarColor(row.agentId || ""), fontSize: "0.78rem", fontWeight: 700 }}>
+          {row.agentName.charAt(0).toUpperCase()}
+        </Avatar>
+        <Box sx={{ minWidth: 0 }}>
+          <Tooltip title={row.agentDisplayName || row.agentName || "Unassigned"}>
+            <Typography variant="body2" sx={{ fontWeight: 700, color: "grey.900", lineHeight: 1.2 }} noWrap>
+              {row.agentName}
+            </Typography>
+          </Tooltip>
+        </Box>
+      </Stack>
+    );
+  };
 
   const waitingColumns = useMemo<ReusableTableColumn<QueueVisitorRow>[]>(
     () => [
@@ -199,6 +218,11 @@ const QueueView = ({
         id: "visitor",
         label: "Visitor",
         renderCell: (row) => buildVisitorCell(row),
+      },
+      {
+        id: "assignedTo",
+        label: "Assigned To",
+        renderCell: (row) => buildAgentCell(row),
       },
       {
         id: "sessionTime",
@@ -428,7 +452,6 @@ const QueueView = ({
         now={now}
         actorRole={actorRole}
         actorStatus={actorStatus}
-        selfPickEligible={selfPickEligible}
         isProcessingAction={isProcessingAction}
         onClose={() => setSelectedVisitor(null)}
         onStartChat={onStartChat}

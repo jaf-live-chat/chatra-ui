@@ -10,7 +10,8 @@ import {
   MessagesSquare,
   Settings2,
   Zap,
-  CreditCardIcon
+  CreditCardIcon,
+  User
 } from "lucide-react";
 import type { ReactNode } from "react";
 
@@ -79,6 +80,13 @@ const MODULE_GROUPS: ModuleGroup[] = [
         label: "Chat Sessions",
         path: "/portal/chat-sessions",
         icon: <MessagesSquare className="w-5 h-5" />,
+        allowedRoles: [USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value, USER_ROLES.SUPPORT_AGENT.value],
+      },
+      {
+        id: "visitors",
+        label: "Visitors",
+        path: "/portal/visitors",
+        icon: <User className="w-5 h-5" />,
         allowedRoles: [USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value, USER_ROLES.SUPPORT_AGENT.value],
       },
     ],

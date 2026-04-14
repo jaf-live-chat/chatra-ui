@@ -22,6 +22,7 @@ export interface QueueVisitorRow {
   assignedAt?: string | null;
   agentId?: string | null;
   agentName?: string;
+  agentDisplayName?: string;
   ipAddress?: string;
   location?: string;
   country?: string;
