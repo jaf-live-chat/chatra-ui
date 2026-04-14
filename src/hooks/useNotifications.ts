@@ -22,7 +22,9 @@ interface UseNotificationsReturn {
   isLoading: boolean;
   error: string | null;
   markAsRead: (notificationId: string) => Promise<void>;
+  markAsUnread: (notificationId: string) => Promise<void>;
   markMultipleAsRead: (notificationIds: string[]) => Promise<void>;
+  markMultipleAsUnread: (notificationIds: string[]) => Promise<void>;
   markAllAsRead: () => Promise<void>;
   markAllUnreadAsRead: () => Promise<void>;
   getUnreadCount: () => Promise<void>;
@@ -219,6 +221,37 @@ export const useNotifications = (): UseNotificationsReturn => {
     [accessToken, getNotificationService]
   );
 
+  // Mark notification as unread
+  const markAsUnread = useCallback(
+    async (notificationId: string) => {
+      if (!accessToken) {
+        return;
+      }
+
+      try {
+        const service = getNotificationService();
+        await service.markAsUnread(accessToken, notificationId);
+
+        // Update local state
+        setNotifications((prev) =>
+          prev.map((n) =>
+            n._id === notificationId ? { ...n, status: 'UNREAD' } : n
+          )
+        );
+
+        // Update unread count
+        const target = notifications.find((n) => n._id === notificationId);
+        if (target?.status === 'READ') {
+          setUnreadCount((prev) => prev + 1);
+        }
+      } catch (err) {
+        console.error('[NOTIFICATIONS] Mark as unread error:', err);
+        throw err;
+      }
+    },
+    [accessToken, notifications, getNotificationService]
+  );
+
   // Mark multiple notifications as read
   const markMultipleAsRead = useCallback(
     async (notificationIds: string[]) => {
@@ -244,6 +277,37 @@ export const useNotifications = (): UseNotificationsReturn => {
         setUnreadCount((prev) => Math.max(0, prev - unreadInBatch));
       } catch (err) {
         console.error('[NOTIFICATIONS] Mark multiple as read error:', err);
+        throw err;
+      }
+    },
+    [accessToken, notifications, getNotificationService]
+  );
+
+  // Mark multiple notifications as unread
+  const markMultipleAsUnread = useCallback(
+    async (notificationIds: string[]) => {
+      if (!accessToken || notificationIds.length === 0) {
+        return;
+      }
+
+      try {
+        const service = getNotificationService();
+        await service.markMultipleAsUnread(accessToken, notificationIds);
+
+        // Update local state
+        setNotifications((prev) =>
+          prev.map((n) =>
+            notificationIds.includes(n._id) ? { ...n, status: 'UNREAD' } : n
+          )
+        );
+
+        // Update unread count
+        const readInBatch = notifications.filter(
+          (n) => notificationIds.includes(n._id) && n.status === 'READ'
+        ).length;
+        setUnreadCount((prev) => prev + readInBatch);
+      } catch (err) {
+        console.error('[NOTIFICATIONS] Mark multiple as unread error:', err);
         throw err;
       }
     },
@@ -421,7 +485,9 @@ export const useNotifications = (): UseNotificationsReturn => {
     isLoading,
     error,
     markAsRead,
+    markAsUnread,
     markMultipleAsRead,
+    markMultipleAsUnread,
     deleteNotification,
     deleteMultiple,
     markAllAsRead,

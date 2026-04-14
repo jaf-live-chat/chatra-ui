@@ -90,6 +90,25 @@ const tenantNotificationServices = {
   },
 
   /**
+   * Mark single notification as unread
+   */
+  async markAsUnread(accessToken: string, notificationId: string) {
+    const response = await fetch(
+      `${API_BASE_URL}/agent-notifications/${notificationId}/unread`,
+      {
+        method: 'PATCH',
+        headers: getHeaders(accessToken),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to mark notification as unread: ${response.statusText}`);
+    }
+
+    return response.json();
+  },
+
+  /**
    * Mark multiple notifications as read
    */
   async markMultipleAsRead(accessToken: string, notificationIds: string[]) {
@@ -104,6 +123,26 @@ const tenantNotificationServices = {
 
     if (!response.ok) {
       throw new Error(`Failed to mark notifications as read: ${response.statusText}`);
+    }
+
+    return response.json();
+  },
+
+  /**
+   * Mark multiple notifications as unread
+   */
+  async markMultipleAsUnread(accessToken: string, notificationIds: string[]) {
+    const response = await fetch(
+      `${API_BASE_URL}/agent-notifications/unread-multiple`,
+      {
+        method: 'PATCH',
+        headers: getHeaders(accessToken),
+        body: JSON.stringify({ notificationIds }),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to mark notifications as unread: ${response.statusText}`);
     }
 
     return response.json();
@@ -286,6 +325,25 @@ const masterNotificationServices = {
   },
 
   /**
+   * Mark single notification as unread
+   */
+  async markAsUnread(accessToken: string, notificationId: string) {
+    const response = await fetch(
+      `${API_BASE_URL}/notifications/${notificationId}/unread`,
+      {
+        method: 'PATCH',
+        headers: getHeaders(accessToken),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to mark notification as unread: ${response.statusText}`);
+    }
+
+    return response.json();
+  },
+
+  /**
    * Mark multiple notifications as read
    */
   async markMultipleAsRead(accessToken: string, notificationIds: string[]) {
@@ -300,6 +358,26 @@ const masterNotificationServices = {
 
     if (!response.ok) {
       throw new Error(`Failed to mark notifications as read: ${response.statusText}`);
+    }
+
+    return response.json();
+  },
+
+  /**
+   * Mark multiple notifications as unread
+   */
+  async markMultipleAsUnread(accessToken: string, notificationIds: string[]) {
+    const response = await fetch(
+      `${API_BASE_URL}/notifications/unread-multiple`,
+      {
+        method: 'PATCH',
+        headers: getHeaders(accessToken),
+        body: JSON.stringify({ notificationIds }),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to mark notifications as unread: ${response.statusText}`);
     }
 
     return response.json();

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Trash2, ArrowLeft, Mail, Check } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { Trash2, ArrowLeft, Mail, Check, MailOpen, SlidersHorizontal, RotateCcw } from 'lucide-react';
 import { Typography, Checkbox, Tooltip } from '@mui/material';
 import { useNavigate } from 'react-router';
 import useNotifications from '../../../hooks/useNotifications';
@@ -32,7 +32,16 @@ const NotificationsPage: React.FC = () => {
   const { isDark } = useDarkMode();
   const isMobile = useIsMobile();
 
-  const { notifications, unreadCount, markAsRead, deleteNotification, deleteMultiple, markMultipleAsRead } = useNotifications();
+  const {
+    notifications,
+    unreadCount,
+    markAsRead,
+    markAsUnread,
+    deleteNotification,
+    deleteMultiple,
+    markMultipleAsRead,
+    markMultipleAsUnread,
+  } = useNotifications();
 
   const [selectedNotifications, setSelectedNotifications] = useState<Set<string>>(new Set());
   const [filterStatus, setFilterStatus] = useState<'ALL' | 'READ' | 'UNREAD'>('ALL');
@@ -40,6 +49,19 @@ const NotificationsPage: React.FC = () => {
   const [page, setPage] = useState(1);
 
   const itemsPerPage = 10;
+  const hasActiveFilters = filterStatus !== 'ALL' || filterType !== 'ALL';
+
+  const notificationStats = useMemo(() => {
+    const total = notifications.length;
+    const unread = notifications.filter((n) => n.status === 'UNREAD').length;
+    const read = total - unread;
+
+    return {
+      total,
+      unread,
+      read,
+    };
+  }, [notifications]);
 
   // Filter notifications
   const filteredNotifications = notifications.filter((n) => {
@@ -101,6 +123,29 @@ const NotificationsPage: React.FC = () => {
     }
   };
 
+  const handleMarkSelectedAsUnread = async () => {
+    if (selectedNotifications.size === 0) return;
+
+    try {
+      await markMultipleAsUnread(Array.from(selectedNotifications));
+      setSelectedNotifications(new Set());
+    } catch (err) {
+      console.error('Failed to mark notifications as unread:', err);
+    }
+  };
+
+  const handleToggleReadStatus = async (notification: Notification) => {
+    try {
+      if (notification.status === 'READ') {
+        await markAsUnread(notification._id);
+      } else {
+        await markAsRead(notification._id);
+      }
+    } catch (err) {
+      console.error('Failed to toggle notification status:', err);
+    }
+  };
+
   const getTypeColor = (type: string) => {
     const typeInfo = NOTIFICATION_TYPES[type as keyof typeof NOTIFICATION_TYPES];
     return typeInfo?.color || 'bg-gray-100 text-gray-700 dark:bg-gray-900/25 dark:text-gray-300';
@@ -109,6 +154,12 @@ const NotificationsPage: React.FC = () => {
   const getTypeLabel = (type: string) => {
     const typeInfo = NOTIFICATION_TYPES[type as keyof typeof NOTIFICATION_TYPES];
     return typeInfo?.label || type;
+  };
+
+  const clearFilters = () => {
+    setFilterStatus('ALL');
+    setFilterType('ALL');
+    setPage(1);
   };
 
   return (
@@ -136,38 +187,97 @@ const NotificationsPage: React.FC = () => {
 
       {/* Filters & Actions */}
       <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-4 space-y-4">
-        {/* Filter Row */}
-        <div className="flex flex-wrap gap-3">
-          {/* Status Filter */}
-          <select
-            value={filterStatus}
-            onChange={(e) => {
-              setFilterStatus(e.target.value as any);
-              setPage(1);
-            }}
-            className="px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-sm font-medium text-gray-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-          >
-            <option value="ALL">All statuses</option>
-            <option value="UNREAD">Unread</option>
-            <option value="READ">Read</option>
-          </select>
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2 text-gray-600 dark:text-slate-300">
+            <SlidersHorizontal className="w-4 h-4" />
+            <Typography variant="body2" sx={{ color: 'inherit', fontWeight: 600 }}>
+              Filters
+            </Typography>
+          </div>
 
-          {/* Type Filter */}
-          <select
-            value={filterType}
-            onChange={(e) => {
-              setFilterType(e.target.value);
-              setPage(1);
-            }}
-            className="px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-sm font-medium text-gray-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-          >
-            <option value="ALL">All types</option>
-            {Object.entries(NOTIFICATION_TYPES).map(([key, { label }]) => (
-              <option key={key} value={key}>
-                {label}
-              </option>
-            ))}
-          </select>
+          {hasActiveFilters && (
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-300 border border-gray-200 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              Reset filters
+            </button>
+          )}
+        </div>
+
+        <div className="space-y-3">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-400 mb-2">
+              Status
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {(['ALL', 'UNREAD', 'READ'] as const).map((status) => {
+                const isActive = filterStatus === status;
+                const label = status === 'ALL' ? 'All statuses' : status === 'UNREAD' ? 'Unread' : 'Read';
+
+                return (
+                  <button
+                    key={status}
+                    type="button"
+                    onClick={() => {
+                      setFilterStatus(status);
+                      setPage(1);
+                    }}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${isActive
+                      ? 'bg-cyan-50 border-cyan-300 text-cyan-700 dark:bg-cyan-900/30 dark:border-cyan-700 dark:text-cyan-300'
+                      : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700'
+                      }`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-400 mb-2">
+              Type
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setFilterType('ALL');
+                  setPage(1);
+                }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${filterType === 'ALL'
+                  ? 'bg-cyan-50 border-cyan-300 text-cyan-700 dark:bg-cyan-900/30 dark:border-cyan-700 dark:text-cyan-300'
+                  : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700'
+                  }`}
+              >
+                All types
+              </button>
+
+              {Object.entries(NOTIFICATION_TYPES).map(([key, { label }]) => {
+                const isActive = filterType === key;
+
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => {
+                      setFilterType(key);
+                      setPage(1);
+                    }}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${isActive
+                      ? 'bg-cyan-50 border-cyan-300 text-cyan-700 dark:bg-cyan-900/30 dark:border-cyan-700 dark:text-cyan-300'
+                      : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700'
+                      }`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
 
         {/* Action Bar */}
@@ -182,7 +292,14 @@ const NotificationsPage: React.FC = () => {
                 onClick={handleMarkSelectedAsRead}
                 className="px-3 py-1.5 text-sm font-medium text-cyan-600 dark:text-cyan-400 hover:bg-cyan-50 dark:hover:bg-cyan-900/20 rounded-lg transition-colors"
               >
-                Mark as read
+                Mark selected read
+              </button>
+              <button
+                type="button"
+                onClick={handleMarkSelectedAsUnread}
+                className="px-3 py-1.5 text-sm font-medium text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg transition-colors"
+              >
+                Mark selected unread
               </button>
               <button
                 type="button"
@@ -264,7 +381,14 @@ const NotificationsPage: React.FC = () => {
                   }}
                 />
 
-                <div className="flex-1 min-w-0 cursor-pointer" onClick={() => markAsRead(notification._id)}>
+                <div
+                  className="flex-1 min-w-0 cursor-pointer"
+                  onClick={() => {
+                    if (notification.status === 'UNREAD') {
+                      void markAsRead(notification._id);
+                    }
+                  }}
+                >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
                       <Typography
@@ -285,8 +409,9 @@ const NotificationsPage: React.FC = () => {
                           color: isDark ? '#94A3B8' : '#6B7280',
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                          display: 'block',
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical',
                           mt: 0.5,
                         }}
                       >
@@ -314,16 +439,22 @@ const NotificationsPage: React.FC = () => {
                   </>
                 )}
 
-                <Tooltip title={notification.status === 'READ' ? 'Already read' : 'Mark as read'} arrow>
+                <Tooltip title={notification.status === 'READ' ? 'Mark as unread' : 'Mark as read'} arrow>
                   <span>
                     <button
                       type="button"
-                      onClick={() => markAsRead(notification._id)}
-                      disabled={notification.status === 'READ'}
-                      className="p-1 text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 disabled:text-gray-300 dark:disabled:text-slate-600 disabled:hover:text-gray-300 dark:disabled:hover:text-slate-600 transition-colors shrink-0"
-                      aria-label="Mark notification as read"
+                      onClick={() => handleToggleReadStatus(notification)}
+                      className={`p-1 transition-colors shrink-0 ${notification.status === 'READ'
+                        ? 'text-gray-400 hover:text-amber-600 dark:hover:text-amber-400'
+                        : 'text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400'
+                        }`}
+                      aria-label={notification.status === 'READ' ? 'Mark notification as unread' : 'Mark notification as read'}
                     >
-                      <Check className="w-4 h-4" />
+                      {notification.status === 'READ' ? (
+                        <MailOpen className="w-4 h-4" />
+                      ) : (
+                        <Check className="w-4 h-4" />
+                      )}
                     </button>
                   </span>
                 </Tooltip>
