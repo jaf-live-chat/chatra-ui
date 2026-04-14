@@ -7,15 +7,10 @@ import AuthGuard from "../components/guards/AuthGuard";
 import Dashboard from "../pages/portal/dashboard";
 import AnalyticsPage from "../pages/portal/analytics";
 import QueuePage from "../pages/portal/queue";
-import HistoryPage from "../pages/portal/history";
-import ConversationsPage from "../pages/portal/conversations";
-import BillingPage from "../pages/portal/billing";
-import AssignmentPage from "../pages/portal/assignment";
 import AccountSettingsPage from "../pages/portal/account-settings";
 import WidgetSettingsPage from "../pages/portal/widget-settings";
 import AgentDetailsPage from "../pages/portal/agent-details";
 import AgentsPage from "../pages/portal/agents";
-import CustomerDashboard from "../pages/portal/customer-dashboard";
 import ChatSessionManagementPage from "../pages/portal/chat-session-management";
 import CompanyInfoPage from "../pages/portal/company-info";
 import SubscriptionPlansPage from "../pages/portal/subscription-plans";
@@ -27,6 +22,8 @@ import NotificationsPage from "../pages/portal/notifications";
 import Tenants from "../pages/portal/tenants";
 import TenantDetails from "../pages/portal/tenants/details";
 import Payments from "../pages/portal/payments";
+import Visitors from "../pages/portal/visitors";
+import VisitorDetails from "../pages/portal/visitors/details";
 
 const PortalRoutes: RouteObject[] = [
   {
@@ -96,44 +93,39 @@ const PortalRoutes: RouteObject[] = [
                 ),
               },
               {
-                path: "history",
+                path: "queue",
                 element: (
                   <AuthGuard
-                    allowedRoles={[USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value]}
+                    allowedRoles={[USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value, USER_ROLES.SUPPORT_AGENT.value]}
                   >
-                    <HistoryPage />
+                    <QueuePage />
                   </AuthGuard>
                 ),
               },
               {
-                path: "conversations",
-                element: (
-                  <AuthGuard
-                    allowedRoles={[USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value]}
-                  >
-                    <ConversationsPage />
-                  </AuthGuard>
-                ),
-              },
-              {
-                path: "billing",
-                element: (
-                  <AuthGuard
-                    allowedRoles={[USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value]}
-                  >
-                    <BillingPage />
-                  </AuthGuard>
-                ),
-              },
-              {
-                path: "assignment",
-                element: (
-                  <AuthGuard
-                    allowedRoles={[USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value]}
-                  >
-                    <AssignmentPage />
-                  </AuthGuard>
-                ),
+                path: "visitors",
+                children: [
+                  {
+                    index: true,
+                    element: (
+                      <AuthGuard
+                        allowedRoles={[USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value]}
+                      >
+                        <Visitors />
+                      </AuthGuard>
+                    ),
+                  },
+                  {
+                    path: ":id",
+                    element: (
+                      <AuthGuard
+                        allowedRoles={[USER_ROLES.MASTER_ADMIN.value, USER_ROLES.ADMIN.value]}
+                      >
+                        <VisitorDetails />
+                      </AuthGuard>
+                    ),
+                  }
+                ]
               },
               {
                 path: "account-settings",
@@ -286,36 +278,6 @@ const PortalRoutes: RouteObject[] = [
               }
             ],
           },
-          {
-            path: "agent",
-            children: [
-              {
-                index: true,
-                element: <Navigate to="/portal/dashboard" replace />,
-              },
-              {
-                path: "queue",
-                element: <Navigate to="/portal/queue" replace />,
-              },
-              {
-                path: "history",
-                element: <Navigate to="/portal/dashboard" replace />,
-              },
-              {
-                path: "quick-replies",
-                element: <Navigate to="/portal/quick-replies" replace />,
-              },
-              {
-                path: "chat-sessions",
-                element: <Navigate to="/portal/chat-sessions" replace />,
-              },
-              {
-                path: "settings",
-                element: <Navigate to="/portal/account-settings" replace />,
-              },
-            ],
-          },
-          { path: "account", element: <CustomerDashboard /> },
         ],
       },
     ],
