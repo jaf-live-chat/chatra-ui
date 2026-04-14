@@ -46,8 +46,9 @@ const QueueRealtimeTable = <T,>({
       rows={rows}
       columns={columns}
       getRowKey={getRowKey}
-      tableLayout="fixed"
-      noHorizontalScroll
+      compact
+      tableLayout="auto"
+      tableMinWidth={520}
       search={{ show: false }}
       headerIcon={icon}
       headerBadges={(

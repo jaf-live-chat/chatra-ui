@@ -515,26 +515,114 @@ const PricingSection = () => {
               </Typography>
             </Box>
 
+            <Box sx={{ display: { xs: "block", md: "none" }, gap: 1.5 }}>
+              {(["features", "support"] as const).map((section) => {
+                const sectionTitle = section === "features" ? "Features and capabilities" : "Support and administration";
+                const rows = comparisonRows.filter((row) => row.section === section);
+
+                return (
+                  <Box
+                    key={`comparison-mobile-${section}`}
+                    sx={{
+                      borderRadius: "16px",
+                      border: "1px solid #E2E8F0",
+                      bgcolor: "#FFFFFF",
+                      p: 1.5,
+                      mb: 1.5,
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        px: 1.5,
+                        py: 1,
+                        borderRadius: "10px",
+                        bgcolor: "#F1F5F9",
+                        color: "#0F172A",
+                        fontWeight: 700,
+                        fontSize: "0.92rem",
+                        mb: 1,
+                      }}
+                    >
+                      {sectionTitle}
+                    </Box>
+
+                    <Stack spacing={1}>
+                      {rows.map((row) => (
+                        <Box
+                          key={`comparison-mobile-row-${section}-${row.label}`}
+                          sx={{
+                            border: "1px solid #E2E8F0",
+                            borderRadius: "10px",
+                            px: 1.25,
+                            py: 1,
+                          }}
+                        >
+                          <Typography sx={{ color: "#334155", fontWeight: 700, fontSize: "0.86rem", mb: 0.8 }}>
+                            {row.label}
+                          </Typography>
+
+                          <Stack spacing={0.7}>
+                            {comparisonPlans.map((plan, valueIndex) => (
+                              <Box
+                                key={`comparison-mobile-value-${row.label}-${plan.name}`}
+                                sx={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "space-between",
+                                  gap: 1,
+                                }}
+                              >
+                                <Typography sx={{ color: "#64748B", fontWeight: 600, fontSize: "0.78rem" }}>
+                                  {plan.name}
+                                </Typography>
+
+                                <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", minWidth: 28 }}>
+                                  {row.type === "boolean" ? (
+                                    row.values[valueIndex] ? (
+                                      <Check size={18} color="#10B981" />
+                                    ) : (
+                                      <X size={18} color="#EF4444" />
+                                    )
+                                  ) : (
+                                    <Typography sx={{ color: "#334155", fontWeight: 700, fontSize: "0.82rem" }}>
+                                      {String(row.values[valueIndex])}
+                                    </Typography>
+                                  )}
+                                </Box>
+                              </Box>
+                            ))}
+                          </Stack>
+                        </Box>
+                      ))}
+                    </Stack>
+                  </Box>
+                );
+              })}
+            </Box>
+
             <Box
               sx={{
+                display: { xs: "none", md: "block" },
                 borderRadius: "20px",
                 border: "1px solid #E2E8F0",
                 bgcolor: "#FFFFFF",
-                overflow: "hidden",
+                overflowX: "auto",
+                overflowY: "hidden",
               }}
             >
               <Box
                 sx={{
                   display: "grid",
-                  gridTemplateColumns: { xs: "1.4fr repeat(3, minmax(96px, 1fr))", md: "2fr repeat(3, 1fr)" },
+                  gridTemplateColumns: "2fr repeat(3, 1fr)",
                   alignItems: "center",
-                  px: { xs: 2, md: 4 },
+                  px: { md: 4 },
                   py: 2.2,
                   borderBottom: "1px solid #E2E8F0",
                   columnGap: 1.5,
+                  minWidth: "100%",
                 }}
               >
-                <Typography sx={{ fontWeight: 700, fontSize: { xs: "0.98rem", md: "1.1rem" }, color: "#1E293B" }}>
+                <Typography sx={{ fontWeight: 700, fontSize: { md: "1.1rem" }, color: "#1E293B" }}>
                   Features and capabilities
                 </Typography>
                 {comparisonPlans.map((plan) => (
@@ -544,11 +632,11 @@ const PricingSection = () => {
                         px: 1.8,
                         py: 0.42,
                         borderRadius: "9999px",
-                        fontSize: { xs: "0.75rem", md: "0.85rem" },
+                        fontSize: { md: "0.85rem" },
                         fontWeight: 700,
                         bgcolor: plan.popular ? "#0F172A" : "#EFF3F8",
                         color: plan.popular ? "#FFFFFF" : "#64748B",
-                        minWidth: { xs: 62, md: 86 },
+                        minWidth: { md: 86 },
                         textAlign: "center",
                       }}
                     >
@@ -563,10 +651,10 @@ const PricingSection = () => {
                 const rows = comparisonRows.filter((row) => row.section === section);
 
                 return (
-                  <Box key={`section-${section}`} sx={{ px: { xs: 1.5, md: 2.5 }, py: section === "features" ? 1.8 : 2.2 }}>
+                  <Box key={`section-${section}`} sx={{ px: { md: 2.5 }, py: section === "features" ? 1.8 : 2.2 }}>
                     <Box
                       sx={{
-                        px: { xs: 2, md: 2.2 },
+                        px: { md: 2.2 },
                         py: 1.15,
                         borderRadius: "10px",
                         bgcolor: "#F1F5F9",
@@ -584,18 +672,19 @@ const PricingSection = () => {
                         key={`comparison-row-${section}-${row.label}`}
                         sx={{
                           display: "grid",
-                          gridTemplateColumns: { xs: "1.4fr repeat(3, minmax(96px, 1fr))", md: "2fr repeat(3, 1fr)" },
+                          gridTemplateColumns: "2fr repeat(3, 1fr)",
                           alignItems: "center",
                           columnGap: 1.5,
-                          px: { xs: 2, md: 2.2 },
+                          px: { md: 2.2 },
                           py: 1.55,
+                          minWidth: "100%",
                           borderBottom: "1px solid #EEF2F7",
                           "&:last-of-type": {
                             borderBottom: "none",
                           },
                         }}
                       >
-                        <Typography sx={{ color: "#334155", fontWeight: 500, fontSize: { xs: "0.92rem", md: "1.04rem" } }}>
+                        <Typography sx={{ color: "#334155", fontWeight: 500, fontSize: { md: "1.04rem" } }}>
                           {row.label}
                         </Typography>
 
@@ -608,7 +697,7 @@ const PricingSection = () => {
                                 <X size={19} color="#EF4444" />
                               )
                             ) : (
-                              <Typography sx={{ color: "#334155", fontWeight: 600, fontSize: { xs: "0.9rem", md: "1rem" } }}>
+                              <Typography sx={{ color: "#334155", fontWeight: 600, fontSize: { md: "1rem" } }}>
                                 {String(value)}
                               </Typography>
                             )}

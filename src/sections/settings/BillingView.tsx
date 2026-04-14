@@ -324,7 +324,7 @@ const BillingView = () => {
   ];
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-8">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 sm:space-y-8">
       {/* ── Page Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
@@ -348,7 +348,7 @@ const BillingView = () => {
       </div>
 
       {/* ── Summary Stats ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {summaryStats.map((s) => (
           <div key={s.label} className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
             <div className={`w-10 h-10 rounded-xl ${s.bg} ${s.color} flex items-center justify-center mb-3`}>{s.icon}</div>
@@ -545,11 +545,11 @@ const BillingView = () => {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between mt-4">
-            <p className="text-xs text-slate-400">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mt-4">
+              <p className="text-xs text-slate-400">
               Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(currentPage * ITEMS_PER_PAGE, filteredInvoices.length)} of {filteredInvoices.length}
             </p>
-            <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
               <button
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
@@ -583,12 +583,12 @@ const BillingView = () => {
       {/* ── Billing Settings ── */}
       <SectionCard title="Billing Settings" subtitle="Manage payment methods, taxes, and currency" icon={<CreditCard className="w-4 h-4" />}>
         {/* Tabs */}
-        <div className="flex gap-1 border-b border-slate-200 mb-6">
+        <div className="flex gap-1 border-b border-slate-200 mb-6 overflow-x-auto pb-1">
           {(["payment", "tax", "currency"] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveSettingsTab(tab)}
-              className={`px-4 py-2.5 text-sm font-medium capitalize border-b-2 transition-all cursor-pointer -mb-px ${
+              className={`px-4 py-2.5 text-sm font-medium capitalize border-b-2 transition-all cursor-pointer -mb-px whitespace-nowrap ${
                 activeSettingsTab === tab ? "border-sky-600 text-sky-700" : "border-transparent text-slate-500 hover:text-slate-700"
               }`}
             >
@@ -601,12 +601,12 @@ const BillingView = () => {
         {activeSettingsTab === "payment" && (
           <div className="space-y-3">
             {paymentMethods.map((pm) => (
-              <div key={pm.id} className="flex items-center justify-between p-4 border border-slate-200 rounded-xl hover:border-sky-200 transition-all">
-                <div className="flex items-center gap-3">
+              <div key={pm.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 border border-slate-200 rounded-xl hover:border-sky-200 transition-all">
+                <div className="flex items-center gap-3 min-w-0">
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white text-xs font-bold ${pm.type === "Visa" ? "bg-blue-600" : "bg-sky-500"}`}>
                     {pm.type === "Visa" ? "VISA" : "PP"}
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     {pm.type === "Visa" ? (
                       <>
                         <p className="text-sm font-semibold text-slate-900">Visa ending in {pm.last4}</p>
@@ -620,7 +620,7 @@ const BillingView = () => {
                     )}
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 self-start sm:self-auto">
                   {pm.isDefault && (
                     <span className="text-xs bg-sky-50 text-sky-700 border border-sky-200 px-2.5 py-1 rounded-full font-medium">Default</span>
                   )}
@@ -674,7 +674,7 @@ const BillingView = () => {
           <div className="space-y-5 max-w-md">
             <div>
               <label className="text-sm font-medium text-slate-700 block mb-2">Default Currency</label>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {[
                   { code: "USD", symbol: "$", name: "US Dollar" },
                   { code: "PHP", symbol: "₱", name: "Philippine Peso" },

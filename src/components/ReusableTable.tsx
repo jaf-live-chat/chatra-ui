@@ -348,7 +348,7 @@ const ReusableTable = <T,>({
       <Box
         sx={{
           px: compact ? 2 : 3,
-          py: compact ? 1.25 : 2,
+          py: { xs: compact ? 1 : 1.5, sm: compact ? 1.25 : 2 },
           borderBottom: "1px solid",
           borderColor: "divider",
           background: (theme) =>
@@ -359,11 +359,11 @@ const ReusableTable = <T,>({
       >
         <Stack
           direction={{ xs: "column", md: "row" }}
-          spacing={compact ? 1 : 2}
+          spacing={{ xs: compact ? 0.75 : 1.1, md: compact ? 1 : 2 }}
           alignItems={{ xs: "flex-start", md: "center" }}
           justifyContent="space-between"
         >
-          <Stack direction="row" alignItems="center" spacing={compact ? 1 : 1.5} gap={1} flexWrap="wrap">
+          <Stack direction="row" alignItems="center" spacing={compact ? 1 : 1.5} gap={1} flexWrap="wrap" sx={{ width: { xs: "100%", md: "auto" } }}>
             <Box
               sx={{
                 width: compact ? 30 : 34,
@@ -396,9 +396,9 @@ const ReusableTable = <T,>({
           </Stack>
 
           <Stack
-            direction="row"
+            direction={{ xs: "column", sm: "row" }}
             spacing={1}
-            alignItems="center"
+            alignItems={{ xs: "stretch", sm: "center" }}
             sx={{ width: { xs: "100%", md: "auto" }, flexWrap: "wrap", rowGap: 1 }}
           >
             {headerActions}
@@ -407,6 +407,7 @@ const ReusableTable = <T,>({
                 label={`${totalRecords} ${totalLabel}`}
                 size="small"
                 sx={{
+                  alignSelf: { xs: "flex-start", sm: "center" },
                   bgcolor: (theme) => (theme.palette.mode === "dark" ? "#164e63" : "#e0f2fe"),
                   color: (theme) => (theme.palette.mode === "dark" ? "#67e8f9" : "#0e7490"),
                   fontWeight: 700,
@@ -528,7 +529,7 @@ const ReusableTable = <T,>({
 
             {!loading && pagedRows.length === 0 && (
               <TableRow>
-                <TableCell colSpan={columns.length} align="center" sx={{ py: 7 }}>
+                <TableCell colSpan={columns.length} align="center" sx={{ py: compact ? 4.5 : 7 }}>
                   <Stack alignItems="center" spacing={1}>
                     <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "text.primary" }}>
                       {emptyStateTitle}
@@ -581,7 +582,9 @@ const ReusableTable = <T,>({
             py: compact ? 0.75 : 1.5,
             bgcolor: (theme) => (theme.palette.mode === "dark" ? "#1f2937" : "grey.50"),
             display: "flex",
-            alignItems: "center",
+            flexDirection: { xs: "column", sm: "row" },
+            alignItems: { xs: "flex-start", sm: "center" },
+            gap: { xs: 1, sm: 0 },
             justifyContent: "space-between",
           }}
         >
@@ -612,7 +615,7 @@ const ReusableTable = <T,>({
             </Typography>
           </Typography>
 
-          <Stack direction="row" alignItems="center" spacing={0.5}>
+          <Stack direction="row" alignItems="center" spacing={0.5} sx={{ flexWrap: "wrap", rowGap: 0.5 }}>
             <IconButton
               onClick={() => setPageValue(Math.max(1, resolvedPage - 1))}
               disabled={resolvedPage === 1}

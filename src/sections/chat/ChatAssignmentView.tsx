@@ -180,7 +180,7 @@ const ChatAssignmentView = () => {
   const avatarColors = ["#0891b2", "#B48600", "#111111", "#FF5A1F", "#A855F7"];
 
   return (
-    <Box sx={{ p: { xs: 3, md: 4 }, maxWidth: 1200, mx: "auto", display: "flex", flexDirection: "column", gap: 4, height: "calc(100vh - 64px)", overflowY: "auto" }}>
+    <Box sx={{ p: { xs: 2, sm: 3, md: 4 }, maxWidth: 1200, mx: "auto", display: "flex", flexDirection: "column", gap: 4, height: "calc(100vh - 64px)", overflowY: "auto" }}>
       {/* Header */}
       <Stack direction={{ xs: "column", md: "row" }} alignItems={{ xs: "flex-start", md: "flex-end" }} justifyContent="space-between" spacing={2}>
         <Box>
@@ -257,8 +257,8 @@ const ChatAssignmentView = () => {
       </Grid>
 
       {/* Chat Assignment Table */}
-      <TableContainer component={Paper} elevation={0} sx={{ border: "1px solid", borderColor: "grey.200", borderRadius: 3, overflow: "visible" }}>
-        <Table sx={{ minWidth: 700 }}>
+      <TableContainer component={Paper} elevation={0} sx={{ border: "1px solid", borderColor: "grey.200", borderRadius: 3, overflowX: "auto" }}>
+        <Table sx={{ minWidth: { xs: 640, md: 700 } }}>
           <TableHead sx={{ bgcolor: "background.paper", borderBottom: "2px solid", borderColor: "grey.200" }}>
             <TableRow>
               <TableCell width="20%">VISITOR</TableCell>

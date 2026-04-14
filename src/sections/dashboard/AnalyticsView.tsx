@@ -597,49 +597,51 @@ const AnalyticsView = () => {
           <h3 className="font-bold text-gray-900 dark:text-slate-100">Top Agents</h3>
           <p className="text-sm text-gray-500 dark:text-slate-400 mt-0.5">Ranked by conversations resolved this week</p>
         </div>
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="bg-gray-50 dark:bg-slate-700/50 border-b border-gray-100 dark:border-slate-700">
-              <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Agent</th>
-              <th className="text-center px-6 py-3 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Resolved</th>
-              <th className="text-center px-6 py-3 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Avg. Response</th>
-              <th className="text-center px-6 py-3 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Satisfaction</th>
-            </tr>
-          </thead>
-          <motion.tbody
-            className="divide-y divide-gray-100 dark:divide-slate-700"
-            variants={staggerContainer}
-            initial="hidden"
-            animate="show"
-          >
-            {topAgents.map((agent, i) => (
-              <motion.tr
-                key={`agent-${agent.name}`}
-                className="hover:bg-gray-50/60 dark:hover:bg-slate-700/40 transition-colors"
-                transition={{ duration: 0.3, delay: 0.42 + i * 0.07, ease: "easeOut" }}
-              >
-                <td className="px-6 py-4 flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-cyan-100 dark:bg-cyan-900/40 text-cyan-600 dark:text-cyan-400 flex items-center justify-center font-bold text-xs shrink-0">
-                    {agent.name.charAt(0)}
-                  </div>
-                  <span className="font-medium text-gray-900 dark:text-slate-100">{agent.name}</span>
-                  {i === 0 && (
-                    <span className="ml-1 text-xs font-semibold bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 px-2 py-0.5 rounded-full">
-                      Top
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[640px] text-sm">
+            <thead>
+              <tr className="bg-gray-50 dark:bg-slate-700/50 border-b border-gray-100 dark:border-slate-700">
+                <th className="text-left px-4 sm:px-6 py-3 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Agent</th>
+                <th className="text-center px-4 sm:px-6 py-3 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Resolved</th>
+                <th className="text-center px-4 sm:px-6 py-3 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Avg. Response</th>
+                <th className="text-center px-4 sm:px-6 py-3 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Satisfaction</th>
+              </tr>
+            </thead>
+            <motion.tbody
+              className="divide-y divide-gray-100 dark:divide-slate-700"
+              variants={staggerContainer}
+              initial="hidden"
+              animate="show"
+            >
+              {topAgents.map((agent, i) => (
+                <motion.tr
+                  key={`agent-${agent.name}`}
+                  className="hover:bg-gray-50/60 dark:hover:bg-slate-700/40 transition-colors"
+                  transition={{ duration: 0.3, delay: 0.42 + i * 0.07, ease: "easeOut" }}
+                >
+                  <td className="px-4 sm:px-6 py-4 flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-cyan-100 dark:bg-cyan-900/40 text-cyan-600 dark:text-cyan-400 flex items-center justify-center font-bold text-xs shrink-0">
+                      {agent.name.charAt(0)}
+                    </div>
+                    <span className="font-medium text-gray-900 dark:text-slate-100">{agent.name}</span>
+                    {i === 0 && (
+                      <span className="ml-1 text-xs font-semibold bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 px-2 py-0.5 rounded-full">
+                        Top
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-4 sm:px-6 py-4 text-center font-semibold text-gray-900 dark:text-slate-100">{agent.resolved}</td>
+                  <td className="px-4 sm:px-6 py-4 text-center text-gray-600 dark:text-slate-400">{agent.avg}</td>
+                  <td className="px-4 sm:px-6 py-4 text-center">
+                    <span className="font-semibold text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-2.5 py-0.5 rounded-full text-xs">
+                      {agent.sat}
                     </span>
-                  )}
-                </td>
-                <td className="px-6 py-4 text-center font-semibold text-gray-900 dark:text-slate-100">{agent.resolved}</td>
-                <td className="px-6 py-4 text-center text-gray-600 dark:text-slate-400">{agent.avg}</td>
-                <td className="px-6 py-4 text-center">
-                  <span className="font-semibold text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-2.5 py-0.5 rounded-full text-xs">
-                    {agent.sat}
-                  </span>
-                </td>
-              </motion.tr>
-            ))}
-          </motion.tbody>
-        </table>
+                  </td>
+                </motion.tr>
+              ))}
+            </motion.tbody>
+          </table>
+        </div>
       </motion.div>
       </div>
     </>

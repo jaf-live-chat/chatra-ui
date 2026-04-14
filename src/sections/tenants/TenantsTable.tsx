@@ -115,6 +115,10 @@ const TenantsTable = () => {
 
   const isActionProcessing = (tenantId: string) => processingTenantId === tenantId;
 
+  const totalTenantCount = isMasterAdmin
+    ? visibleTenants.length
+    : (pagination?.totalRecords ?? visibleTenants.length);
+
   const refreshTenants = async () => {
     await mutateTenants();
   };
@@ -172,12 +176,12 @@ const TenantsTable = () => {
   const actionButtonSx = {
     textTransform: "none" as const,
     borderRadius: 9999,
-    px: 1.6,
+    px: { xs: 1.2, sm: 1.6 },
     borderColor: "divider",
     color: "text.primary",
     fontWeight: 700,
     height: 34,
-    minWidth: 76,
+    minWidth: { xs: 0, sm: 76 },
     backgroundColor: "background.paper",
     "&:hover": { bgcolor: "action.hover", borderColor: "divider" },
   };
@@ -309,7 +313,7 @@ const TenantsTable = () => {
   ];
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <TitleTag
         title="Tenants Management"
         subtitle="View tenant subscriptions and status overview."
@@ -319,6 +323,20 @@ const TenantsTable = () => {
       <ReusableTable
         title="Tenants"
         subtitle="View tenant subscriptions and status overview."
+        compact
+        headerBadges={(
+          <Chip
+            label={`${totalTenantCount} tenants`}
+            size="small"
+            sx={{
+              bgcolor: "#e0f2fe",
+              color: "#0e7490",
+              fontWeight: 700,
+              height: 28,
+              borderRadius: 1,
+            }}
+          />
+        )}
         rows={visibleTenants}
         columns={tenantColumns}
         getRowKey={(tenant) => tenant.id}
@@ -334,12 +352,11 @@ const TenantsTable = () => {
           rowsPerPage: ROWS_PER_PAGE,
           page: currentPage,
           onPageChange: setCurrentPage,
-          totalRows: isMasterAdmin
-            ? visibleTenants.length
-            : pagination?.totalRecords,
+          totalRows: totalTenantCount,
         }}
-        tableMinWidth={1150}
+        tableMinWidth={980}
         totalLabel="tenants"
+        showTotalBadge={false}
       />
 
       <Dialog open={confirmDialog.open} onClose={handleCloseConfirmDialog} fullWidth maxWidth="xs">

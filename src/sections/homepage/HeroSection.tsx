@@ -17,7 +17,7 @@ function ChatBubble({ text, isAgent, time }: { text: string; isAgent: boolean; t
         )}
       </div>
       <div
-        className={`max-w-[160px] px-3 py-2 rounded-2xl ${isAgent
+        className={`max-w-[150px] sm:max-w-[170px] px-3 py-2 rounded-2xl ${isAgent
           ? "bg-blue-600 text-white rounded-br-sm"
           : "bg-white text-gray-700 border border-gray-100 rounded-bl-sm shadow-sm"
           }`}
@@ -40,8 +40,8 @@ const HeroSection = () => {
         background: "linear-gradient(90deg, #e0f2fe 0%, #ffffff 50%, #e0f2fe 100%)",
       }}
     >
-      <div className="max-w-7xl mx-auto px-6 lg:px-8 py-20 w-full">
-        <div className="grid lg:grid-cols-2 gap-16 items-center">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-20 w-full">
+        <div className="grid md:grid-cols-2 gap-10 lg:gap-16 items-center">
           {/* Left Content */}
           <div>
             <div

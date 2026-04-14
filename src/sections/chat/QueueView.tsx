@@ -150,7 +150,12 @@ const QueueView = ({
       },
       {
         id: "waitTime",
-        label: "Wait Time",
+        label: (
+          <>
+            <Box component="span" sx={{ display: { xs: "inline", sm: "none" } }}>Wait</Box>
+            <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>Wait Time</Box>
+          </>
+        ),
         align: "center",
         headerAlign: "center",
         renderCell: (row) => (
@@ -197,7 +202,12 @@ const QueueView = ({
       },
       {
         id: "sessionTime",
-        label: "Session Time",
+        label: (
+          <>
+            <Box component="span" sx={{ display: { xs: "inline", sm: "none" } }}>Session</Box>
+            <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>Session Time</Box>
+          </>
+        ),
         align: "center",
         headerAlign: "center",
         renderCell: (row) => (
@@ -301,12 +311,12 @@ const QueueView = ({
         canonical="/portal/queue-management"
       />
 
-      <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5, overflowX: "hidden" }}>
+      <Box sx={{ display: "flex", flexDirection: "column", gap: { xs: 2, md: 2.5 } }}>
         <Stack
           direction={{ xs: "column", md: "row" }}
           alignItems={{ xs: "flex-start", md: "center" }}
           justifyContent="space-between"
-          spacing={2}
+          spacing={{ xs: 1.25, md: 2 }}
         >
           <TitleTag
             title={isAgent ? "Your Queue" : "Customer Queue"}
@@ -314,8 +324,8 @@ const QueueView = ({
             icon={<MessageSquare className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />}
           />
 
-          <Stack direction="row" alignItems="center" spacing={1.25} sx={{ flexWrap: "wrap", width: { xs: "100%", md: "auto" } }}>
-            <Stack direction="row" spacing={1}>
+          <Stack direction={{ xs: "column", sm: "row" }} alignItems={{ xs: "stretch", sm: "center" }} spacing={1} sx={{ flexWrap: "wrap", width: { xs: "100%", md: "auto" } }}>
+            <Stack direction="row" spacing={0.8} sx={{ flexWrap: "wrap", rowGap: 0.8 }}>
               <Chip
                 icon={<Box sx={{ width: 7, height: 7, borderRadius: "50%", bgcolor: "warning.main", ml: 0.5 }} />}
                 label={`${waitingCount} Waiting`}
@@ -323,13 +333,11 @@ const QueueView = ({
                 sx={{ fontWeight: 600, bgcolor: "#eab30814", color: "#7a5d00", "& .MuiChip-icon": { ml: 0.5 } }}
               />
               <Chip
-                icon={<Box sx={{ width: 7, height: 7, borderRadius: "50%", bgcolor: "success.main", ml: 0.5 }} />}
                 label={`${servedCount} Active`}
                 size="small"
                 sx={{ fontWeight: 600, bgcolor: "#16a34a14", color: "#15803d", "& .MuiChip-icon": { ml: 0.5 } }}
               />
               <Chip
-                icon={<Box sx={{ width: 7, height: 7, borderRadius: "50%", bgcolor: "grey.400", ml: 0.5 }} />}
                 label={`${queue.length} Total`}
                 size="small"
                 sx={{ fontWeight: 600, "& .MuiChip-icon": { ml: 0.5 } }}
@@ -361,7 +369,7 @@ const QueueView = ({
                   width: "100%",
                   pl: 4.5,
                   pr: 2,
-                  py: 1,
+                  py: 0.9,
                   bgcolor: "background.paper",
                   border: "1px solid",
                   borderColor: "grey.300",
@@ -375,7 +383,7 @@ const QueueView = ({
           </Stack>
         </Stack>
 
-        <Grid container spacing={2} alignItems="stretch">
+        <Grid container spacing={{ xs: 1.5, md: 2 }} alignItems="stretch">
           <Grid size={{ xs: 12, md: 6 }} sx={{ display: "flex" }}>
             <Box sx={{ width: "100%" }}>
               <QueueRealtimeTable

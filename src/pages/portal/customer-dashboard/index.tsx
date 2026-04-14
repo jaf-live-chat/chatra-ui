@@ -224,7 +224,7 @@ function OverviewView({ setActiveTab }: { setActiveTab: (t: string) => void }) {
       </div>
 
       {/* Usage Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {USAGE_STATS.map((s) => (
           <div key={s.label} className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
             <div className={`w-10 h-10 rounded-xl ${s.bg} ${s.color} flex items-center justify-center mb-3`}>{s.icon}</div>
@@ -240,7 +240,7 @@ function OverviewView({ setActiveTab }: { setActiveTab: (t: string) => void }) {
         {/* Chat Summary */}
         <div className="lg:col-span-2">
           <Card title="Chat Dashboard" subtitle="Today's performance at a glance" icon={<Activity className="w-4 h-4" />}>
-            <div className="grid grid-cols-2 gap-4 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
               {CHAT_SUMMARY.map((s) => (
                 <div key={s.label} className="rounded-xl border border-slate-100 bg-slate-50 p-4">
                   <div className={`w-1.5 h-1.5 rounded-full ${s.color} mb-2`} />
@@ -328,8 +328,8 @@ function OverviewView({ setActiveTab }: { setActiveTab: (t: string) => void }) {
           </button>
         }
       >
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+        <div className="overflow-x-auto rounded-xl border border-slate-200">
+          <table className="w-full min-w-[720px] text-sm">
             <thead>
               <tr className="border-b border-slate-100">
                 <th className="text-left pb-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Visitor</th>
@@ -473,7 +473,7 @@ function ChatHistoryView() {
         </div>
 
         <div className="overflow-x-auto rounded-xl border border-slate-200">
-          <table className="w-full text-sm">
+          <table className="w-full min-w-[940px] text-sm">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200">
                 <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Chat ID</th>
@@ -589,7 +589,7 @@ function BillingView({ setActiveTab }: { setActiveTab: (t: string) => void }) {
         <div className="lg:col-span-2">
           <Card title="Payment History" subtitle="All past invoices and charges" icon={<FileText className="w-4 h-4" />}>
             <div className="overflow-x-auto rounded-xl border border-slate-200">
-              <table className="w-full text-sm">
+              <table className="w-full min-w-[720px] text-sm">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200">
                     <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Invoice</th>
@@ -995,6 +995,7 @@ function SupportView() {
 const CustomerDashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
 
@@ -1009,9 +1010,18 @@ const CustomerDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex font-sans">
+    <div className="min-h-screen bg-slate-50 flex font-sans overflow-x-hidden">
+      {mobileSidebarOpen && (
+        <button
+          type="button"
+          aria-label="Close sidebar"
+          onClick={() => setMobileSidebarOpen(false)}
+          className="fixed inset-0 bg-slate-900/40 z-20 lg:hidden"
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className={`${sidebarOpen ? "w-60" : "w-16"} bg-white border-r border-slate-200 flex flex-col fixed h-full z-20 transition-all duration-300 shadow-sm`}>
+      <aside className={`${mobileSidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0 ${sidebarOpen ? "lg:w-60" : "lg:w-16"} w-72 bg-white border-r border-slate-200 flex flex-col fixed inset-y-0 left-0 z-30 transition-all duration-300 shadow-sm`}>
         {/* Logo */}
         <div className="h-16 flex items-center justify-between px-3 border-b border-slate-100 overflow-hidden">
           {sidebarOpen ? (
@@ -1036,7 +1046,7 @@ const CustomerDashboard = () => {
           )}
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors shrink-0"
+            className="hidden lg:inline-flex p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors shrink-0"
           >
             {sidebarOpen ? <ChevronLeft className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4 rotate-180" />}
           </button>
@@ -1048,7 +1058,10 @@ const CustomerDashboard = () => {
           {NAV_ITEMS.map((item) => (
             <button
               key={item.id}
-              onClick={() => setActiveTab(item.id)}
+              onClick={() => {
+                setActiveTab(item.id);
+                setMobileSidebarOpen(false);
+              }}
               title={item.label}
               className={`flex items-center ${sidebarOpen ? "px-3 gap-3" : "justify-center px-0"} py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer ${activeTab === item.id
                 ? "bg-sky-50 text-sky-700 shadow-sm"
@@ -1076,11 +1089,11 @@ const CustomerDashboard = () => {
       </aside>
 
       {/* Main */}
-      <div className={`flex-1 flex flex-col transition-all duration-300 ${sidebarOpen ? "ml-60" : "ml-16"}`}>
+      <div className={`flex-1 flex flex-col transition-all duration-300 ml-0 ${sidebarOpen ? "lg:ml-60" : "lg:ml-16"}`}>
         {/* Header */}
-        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 sticky top-0 z-10 shadow-sm">
+        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-6 sticky top-0 z-10 shadow-sm">
           <div className="flex items-center gap-3">
-            <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors lg:hidden cursor-pointer">
+            <button onClick={() => setMobileSidebarOpen(true)} className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors lg:hidden cursor-pointer">
               <Menu className="w-5 h-5" />
             </button>
             <div>
@@ -1169,7 +1182,7 @@ const CustomerDashboard = () => {
         </header>
 
         {/* Content */}
-        <main className="flex-1 p-6 max-w-7xl w-full mx-auto" onClick={() => { setProfileOpen(false); setNotifOpen(false); }}>
+        <main className="flex-1 p-4 sm:p-6 max-w-7xl w-full mx-auto" onClick={() => { setProfileOpen(false); setNotifOpen(false); setMobileSidebarOpen(false); }}>
           {activeTab === "overview" && <OverviewView setActiveTab={setActiveTab} />}
           {activeTab === "chats" && <ChatHistoryView />}
           {activeTab === "billing" && <BillingView setActiveTab={setActiveTab} />}
