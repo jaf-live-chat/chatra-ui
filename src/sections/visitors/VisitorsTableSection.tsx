@@ -121,7 +121,7 @@ const VisitorsTableSection = () => {
     },
     {
       id: "action",
-      label: "CTA",
+      label: "",
       align: "right",
       headerAlign: "right",
       renderCell: (visitor) => (
