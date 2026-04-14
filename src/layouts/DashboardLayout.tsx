@@ -14,6 +14,7 @@ import { USER_ROLES, USER_STATUS } from "../constants/constants";
 import useAuth from "../hooks/useAuth";
 import useGetRole from "../hooks/useGetRole";
 import useIsMobile from "../hooks/useMobile";
+import useNotifications from "../hooks/useNotifications";
 import Agents from "../services/agentServices";
 import { createLiveChatSocket } from "../services/liveChatRealtimeClient";
 import { MODULE_GROUPS } from "../constants/modules";
@@ -23,6 +24,8 @@ import type { AuthUser } from "../models/AgentModel";
 import toTitleCase from "../utils/toTitleCase";
 import getAvatarColor from "../utils/getAvatarColor";
 import AutoLogoutModal from "../components/common/AutoLogoutModal";
+import NotificationIcon from "../components/common/NotificationIcon";
+import NotificationPopup from "../components/common/NotificationPopup";
 import Logo from "../components/common/Logo";
 import useCompanyBranding from "../hooks/useCompanyBranding";
 
@@ -39,11 +42,14 @@ function DashboardLayoutInner() {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isPlanPopupOpen, setIsPlanPopupOpen] = useState(false);
   const [isStatusOpen, setIsStatusOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [timeTick, setTimeTick] = useState(() => Date.now());
   const [isAutoLogoutOpen, setIsAutoLogoutOpen] = useState(false);
   const [autoLogoutSecondsLeft, setAutoLogoutSecondsLeft] = useState(AUTO_LOGOUT_WARNING_SECONDS);
   const inactivityTimeoutRef = useRef<number | null>(null);
   const countdownIntervalRef = useRef<number | null>(null);
+
+  const { notifications, unreadCount, deleteNotification, markAsRead } = useNotifications();
 
   useEffect(() => {
     setIsSidebarOpen(!isMobile);
@@ -696,6 +702,53 @@ function DashboardLayoutInner() {
                   </div>
                 </>
               )}
+            </div>
+
+            <div className="h-6 w-px bg-gray-200 dark:bg-slate-700 mx-1 hidden sm:block"></div>
+
+            {/* Notifications */}
+            <div className="relative">
+              <NotificationIcon
+                unreadCount={unreadCount}
+                onClick={() => setIsNotificationsOpen((prev) => !prev)}
+                isOpen={isNotificationsOpen}
+              />
+
+              <NotificationPopup
+                notifications={notifications}
+                isOpen={isNotificationsOpen}
+                onClose={() => setIsNotificationsOpen(false)}
+                onViewAll={() => {
+                  navigate('/portal/notifications');
+                  setIsNotificationsOpen(false);
+                }}
+                onDelete={deleteNotification}
+                onMarkAsRead={(notificationId) => {
+                  void markAsRead(notificationId);
+                }}
+                onNavigate={(notification) => {
+                  void markAsRead(notification._id);
+                  setIsNotificationsOpen(false);
+                  // Navigate based on notification type
+                  const types: Record<string, { path: string; param?: string }> = {
+                    QUEUE: { path: '/portal/queue' },
+                    CHATS: { path: '/portal/chat-sessions', param: 'conversationId' },
+                    NEW_TENANT: { path: '/portal/tenants' },
+                    PLAN_CHANGE: { path: '/portal/subscriptions' },
+                    TENANT_STATUS: { path: '/portal/tenants' },
+                    PAYMENT: { path: '/portal/payments' },
+                    AGENT_UPDATE: { path: '/portal/agents' },
+                  };
+                  const typeInfo = types[notification.type];
+                  if (typeInfo) {
+                    if (typeInfo.param && notification.relatedData?.[typeInfo.param]) {
+                      navigate(`${typeInfo.path}?${typeInfo.param}=${notification.relatedData[typeInfo.param]}`);
+                    } else {
+                      navigate(typeInfo.path);
+                    }
+                  }
+                }}
+              />
             </div>
 
             <div className="h-6 w-px bg-gray-200 dark:bg-slate-700 mx-1 hidden sm:block"></div>

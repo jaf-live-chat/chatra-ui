@@ -374,7 +374,7 @@ const DashboardPage = () => {
               headerActions={
                 <Tooltip title="View waiting queue" placement="top">
                   <button
-                    onClick={() => navigate("/portal/chats")}
+                    onClick={() => navigate("/portal/chat-sessions")}
                     className="text-xs font-bold text-blue-600 hover:text-blue-700 tracking-wide px-3 py-1.5 rounded-md hover:bg-blue-50 transition-colors border border-transparent hover:border-blue-100 uppercase"
                   >
                     View all
