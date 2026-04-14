@@ -8,9 +8,9 @@ import PageTitle from "../../../components/common/PageTitle";
 import ChatHistorySection from "../../../sections/chat/ChatHistorySection";
 import ChatActiveSection from "../../../sections/chat/ChatActiveSection";
 import { useGetActiveLiveChat, useGetLiveChatHistory } from "../../../hooks/useLiveChat";
-import { LiveChatConversation, LiveChatQueueEntry } from "../../../models/LiveChatModel";
+import { LiveChatConversation, LiveChatQueueEntry, LiveChatConversationEndedEvent, LiveChatMessage } from "../../../models/LiveChatModel";
 import useAuth from "../../../hooks/useAuth";
-import { createLiveChatSocket } from "../../../services/liveChatRealtimeClient";
+import { useStaffLiveChat } from "../../../hooks/useStaffLiveChat";
 
 const subTabs: { key: SubTab; label: string; icon: React.ReactNode }[] = [
   { key: "active-chats", label: "Active Chats", icon: <MessagesSquare className="w-4 h-4" /> },
@@ -72,49 +72,60 @@ const ChatSessionManagementPage = () => {
     });
   }, [historyConversations, isSupportAgent, user?._id]);
 
-  useEffect(() => {
-    if (!tenant?.apiKey) {
-      return;
-    }
+  // Set up event dispatchers for custom events
+  const dispatchLiveChatEvent = <T,>(eventName: string, detail: T) => {
+    console.log(`[DISPATCH] ${eventName}`, detail);
+    window.dispatchEvent(new CustomEvent(eventName, { detail }));
+  };
 
-    const socket = createLiveChatSocket({
-      apiKey: tenant.apiKey,
-      role: user?.role,
-      agentId: user?._id,
-    });
+  const refreshQueue = () => {
+    void mutateQueue();
+  };
 
-    if (!socket) {
-      return;
-    }
+  const refreshHistory = () => {
+    void mutateHistory();
+  };
 
-    const refreshQueue = () => {
-      void mutateQueue();
-    };
+  const refreshAll = () => {
+    refreshQueue();
+    refreshHistory();
+  };
 
-    const refreshHistory = () => {
-      void mutateHistory();
-    };
-
-    const refreshAll = () => {
-      refreshQueue();
-      refreshHistory();
-    };
-
-    socket.on("NEW_CONVERSATION", refreshQueue);
-    socket.on("CONVERSATION_ASSIGNED", refreshQueue);
-    socket.on("CONVERSATION_TRANSFERRED", refreshQueue);
-    socket.on("QUEUE_UPDATED", refreshQueue);
-    socket.on("CONVERSATION_ENDED", refreshAll);
-
-    return () => {
-      socket.off("NEW_CONVERSATION", refreshQueue);
-      socket.off("CONVERSATION_ASSIGNED", refreshQueue);
-      socket.off("CONVERSATION_TRANSFERRED", refreshQueue);
-      socket.off("QUEUE_UPDATED", refreshQueue);
-      socket.off("CONVERSATION_ENDED", refreshAll);
-      socket.disconnect();
-    };
-  }, [mutateHistory, mutateQueue, tenant?.apiKey, user?._id, user?.role]);
+  // Use shared staff realtime hook
+  useStaffLiveChat(
+    tenant?.apiKey ?? undefined,
+    tenant?.databaseName ?? undefined,
+    tenant?.id ?? undefined,
+    user?.role ?? undefined,
+    user?._id ?? undefined,
+    {
+      onNewMessage: (message: LiveChatMessage) => {
+        console.log("[WEBSOCKET] New message received from socket:", message);
+        dispatchLiveChatEvent("jaf_live_chat_new_message", message);
+      },
+      onMessageStatusUpdated: (payload) => {
+        console.log("[WEBSOCKET] Message status updated from socket:", payload);
+        dispatchLiveChatEvent("jaf_live_chat_message_status_updated", payload);
+      },
+      onConversationAssigned: () => {
+        console.log("[WEBSOCKET] Conversation assigned from socket");
+        refreshQueue();
+      },
+      onConversationTransferred: () => {
+        console.log("[WEBSOCKET] Conversation transferred from socket");
+        refreshQueue();
+      },
+      onQueueUpdated: () => {
+        console.log("[WEBSOCKET] Queue updated from socket");
+        refreshQueue();
+      },
+      onConversationEnded: (payload) => {
+        console.log("[WEBSOCKET] Conversation ended from socket:", payload);
+        dispatchLiveChatEvent("jaf_live_chat_conversation_ended", payload);
+        refreshAll();
+      },
+    },
+  );
 
   // Map history conversations to HistoryEntry format
   const historyEntries: HistoryEntry[] = assignedHistoryConversations.map((conversation: LiveChatConversation) => {

@@ -15,6 +15,7 @@ import useAuth from "../hooks/useAuth";
 import useGetRole from "../hooks/useGetRole";
 import useIsMobile from "../hooks/useMobile";
 import Agents from "../services/agentServices";
+import { createLiveChatSocket } from "../services/liveChatRealtimeClient";
 import { MODULE_GROUPS } from "../constants/modules";
 import filterModulesByRole from "../utils/filterModules";
 import { formatDate } from "../utils/dateFormatter";
@@ -217,13 +218,14 @@ function DashboardLayoutInner() {
   const planName = subscription?.planName || "No Plan";
   const subscriptionLifecycleStatus = String(tenant?.subscriptionData?.status || "").toUpperCase();
   const currentAgentStatus = user?.status || USER_STATUS.OFFLINE;
+  const isBusyStatus = currentAgentStatus === USER_STATUS.BUSY;
 
   const statusBadge = (() => {
     switch (currentAgentStatus) {
       case USER_STATUS.AVAILABLE:
         return { label: "Available", color: "bg-green-500" };
       case USER_STATUS.BUSY:
-        return { label: "Busy", color: "bg-amber-500" };
+        return { label: "Busy", color: "bg-red-500" };
       case USER_STATUS.AWAY:
         return { label: "Away", color: "bg-yellow-500" };
       case USER_STATUS.OFFLINE:
@@ -359,6 +361,50 @@ function DashboardLayoutInner() {
   useEffect(() => {
     setProfileImageFailed(false);
   }, [userProfilePicture]);
+
+  useEffect(() => {
+    if (isBusyStatus) {
+      setIsStatusOpen(false);
+    }
+  }, [isBusyStatus]);
+
+  useEffect(() => {
+    const tenantScope = tenant?.apiKey || tenant?.id;
+
+    if (!tenantScope || !user?._id) {
+      return;
+    }
+
+    const socket = createLiveChatSocket({
+      apiKey: tenant?.apiKey || undefined,
+      tenantId: tenant?.id || undefined,
+      role: user?.role,
+      agentId: user?._id,
+    });
+
+    if (!socket) {
+      return;
+    }
+
+    const handleAgentStatusUpdated = (payload: { agent?: { _id?: string } } | undefined) => {
+      const updatedAgentId = String(payload?.agent?._id || "").trim();
+
+      if (!updatedAgentId || updatedAgentId !== String(user?._id || "").trim()) {
+        return;
+      }
+
+      if (payload?.agent) {
+        updateUser(payload.agent as Parameters<typeof updateUser>[0]);
+      }
+    };
+
+    socket.on("AGENT_STATUS_UPDATED", handleAgentStatusUpdated);
+
+    return () => {
+      socket.off("AGENT_STATUS_UPDATED", handleAgentStatusUpdated);
+      socket.disconnect();
+    };
+  }, [tenant?.apiKey, tenant?.id, updateUser, user?._id, user?.role]);
 
   return (
     <div className={`min-h-screen w-full overflow-x-hidden flex font-sans bg-gray-50 dark:bg-slate-900 transition-colors duration-300${isDark ? " dark" : ""}`}>
@@ -603,17 +649,29 @@ function DashboardLayoutInner() {
           <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
             {/* Agent Status */}
             <div className="relative">
-              <button
-                type="button"
-                onClick={() => setIsStatusOpen((prev) => !prev)}
-                className="flex items-center gap-2 bg-gray-50 dark:bg-slate-700/60 border border-gray-200 dark:border-slate-600 px-2 sm:px-3 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
-              >
-                <span className={`w-2 h-2 rounded-full ${statusBadge.color}`}></span>
-                <span className="hidden sm:inline text-sm font-medium text-gray-700 dark:text-slate-300">
-                  {statusBadge.label}
+              <Tooltip title={isBusyStatus ? "You can't change your status when you have an active chat." : "Change your status"} arrow>
+                <span>
+                  <button
+                    type="button"
+                    aria-disabled={isBusyStatus}
+                    disabled={isBusyStatus}
+                    onClick={() => {
+                      if (isBusyStatus) {
+                        return;
+                      }
+
+                      setIsStatusOpen((prev) => !prev);
+                    }}
+                    className={`flex items-center gap-2 bg-gray-50 dark:bg-slate-700/60 border border-gray-200 dark:border-slate-600 px-2 sm:px-3 py-1.5 rounded-lg transition-colors ${isBusyStatus ? "cursor-not-allowed opacity-80" : "hover:bg-gray-100 dark:hover:bg-slate-700"}`}
+                  >
+                    <span className={`w-2 h-2 rounded-full ${statusBadge.color}`}></span>
+                    <span className="hidden sm:inline text-sm font-medium text-gray-700 dark:text-slate-300">
+                      {statusBadge.label}
+                    </span>
+                    <ChevronDown className="w-4 h-4 text-gray-400 dark:text-slate-500" />
+                  </button>
                 </span>
-                <ChevronDown className="w-4 h-4 text-gray-400 dark:text-slate-500" />
-              </button>
+              </Tooltip>
 
               {isStatusOpen && (
                 <>

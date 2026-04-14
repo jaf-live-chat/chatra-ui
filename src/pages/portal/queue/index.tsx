@@ -4,7 +4,7 @@ import QueueView from "../../../sections/chat/QueueView";
 import { useGetActiveLiveChat, useGetLiveChatQueue } from "../../../hooks/useLiveChat";
 import { useGetAgents } from "../../../services/agentServices";
 import useAuth from "../../../hooks/useAuth";
-import { createLiveChatSocket } from "../../../services/liveChatRealtimeClient";
+import { useStaffLiveChat } from "../../../hooks/useStaffLiveChat";
 import liveChatServices from "../../../services/liveChatServices";
 import type { LiveChatAgent, LiveChatConversation, LiveChatQueueEntry, LiveChatVisitor } from "../../../models/LiveChatModel";
 import type { QueueAgentOption, QueueVisitorRow } from "../../../models/QueueViewModel";
@@ -54,6 +54,21 @@ const QueuePage = () => {
     void mutateActiveQueue();
   }, [mutateActiveQueue, mutateWaitingQueue]);
 
+  // Use shared staff realtime hook for queue updates
+  useStaffLiveChat(
+    tenant?.apiKey ?? undefined,
+    tenant?.databaseName ?? undefined,
+    tenant?.id ?? undefined,
+    user?.role ?? undefined,
+    user?._id ?? undefined,
+    {
+      onConversationAssigned: refreshQueue,
+      onConversationTransferred: refreshQueue,
+      onQueueUpdated: refreshQueue,
+      onConversationEnded: refreshQueue,
+    },
+  );
+
   const mappedQueue = useMemo<QueueVisitorRow[]>(() => {
     return (combinedQueue || []).map((entry) => {
       const conversation = isConversationObject(entry.conversationId) ? entry.conversationId : null;
@@ -64,6 +79,8 @@ const QueuePage = () => {
       const locationCity = conversation?.locationCity || visitor?.locationCity || "Unknown";
       const locationCountry = conversation?.locationCountry || visitor?.locationCountry || "Unknown";
       const normalizedAgentId = agent?._id || (typeof entry.agentId === "string" ? entry.agentId : null);
+      const agentName = agent?.fullName || "";
+      const agentDisplayName = agent?.displayName || (agentName && normalizedAgentId ? `${agentName} (${normalizedAgentId})` : agentName);
 
       return {
         id: String(conversationId),
@@ -76,7 +93,8 @@ const QueuePage = () => {
         queuedAt: entry.queuedAt || conversation?.queuedAt || null,
         assignedAt: entry.assignedAt || conversation?.assignedAt || null,
         agentId: normalizedAgentId,
-        agentName: agent?.fullName || "",
+        agentName,
+        agentDisplayName,
         ipAddress: visitor?.ipAddress || conversation?.ipAddress || "",
         location: locationCity,
         country: locationCountry,
@@ -85,7 +103,7 @@ const QueuePage = () => {
   }, [combinedQueue]);
 
   const mappedAgents = useMemo<QueueAgentOption[]>(() => {
-    return (agents || []).map((agent) => ({
+    return (agents || []).filter((f) => f.status === "AVAILABLE").map((agent) => ({
       id: agent._id,
       name: agent.fullName,
       status: ["AVAILABLE", "BUSY", "OFFLINE", "AWAY"].includes(String(agent.status || "").toUpperCase())
@@ -95,45 +113,11 @@ const QueuePage = () => {
     }));
   }, [agents]);
 
-  useEffect(() => {
-    if (!tenant?.apiKey) {
-      return;
-    }
-
-    const socket = createLiveChatSocket({
-      apiKey: tenant.apiKey,
-      role: user?.role,
-      agentId: user?._id,
-    });
-
-    if (!socket) {
-      return;
-    }
-
-    const queueEvents = [
-      "NEW_CONVERSATION",
-      "CONVERSATION_ASSIGNED",
-      "CONVERSATION_TRANSFERRED",
-      "CONVERSATION_ENDED",
-      "QUEUE_UPDATED",
-      "connect",
-      "reconnect",
-    ] as const;
-
-    queueEvents.forEach((eventName) => socket.on(eventName, refreshQueue));
-
-    return () => {
-      queueEvents.forEach((eventName) => socket.off(eventName, refreshQueue));
-      socket.disconnect();
-    };
-  }, [refreshQueue, tenant?.apiKey, user?._id, user?.role]);
-
   return (
     <QueueView
       queue={mappedQueue}
       actorRole={user?.role}
       actorStatus={user?.status}
-      selfPickEligible={Boolean(user?.selfPickEligible)}
       agents={mappedAgents}
       onAssignConversation={async (visitor, agentId) => {
         await liveChatServices.assignConversation(visitor.conversationId || visitor.id, agentId);
@@ -142,6 +126,7 @@ const QueuePage = () => {
       onTakeConversation={async (visitor) => {
         await liveChatServices.acceptConversation(visitor.conversationId || visitor.id);
         await Promise.all([mutateWaitingQueue(), mutateActiveQueue()]);
+        navigate("/portal/chat-sessions");
       }}
       onStartChat={(visitor) => {
         localStorage.setItem("jaf_active_chat_visitor", JSON.stringify(visitor));
