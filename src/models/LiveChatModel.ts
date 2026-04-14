@@ -237,3 +237,21 @@ export interface GetWidgetConversationHistoryResponse {
   isReturningVisitor: boolean;
   visitor: LiveChatVisitor | null;
 }
+
+export interface GetWidgetVisitorProfileResponse {
+  success: boolean;
+  visitor: LiveChatVisitor | null;
+}
+
+export interface UpdateWidgetVisitorProfilePayload {
+  fullName?: string;
+  name?: string;
+  emailAddress?: string;
+  phoneNumber?: string;
+}
+
+export interface UpdateWidgetVisitorProfileResponse {
+  success: boolean;
+  message?: string;
+  visitor: LiveChatVisitor | null;
+}

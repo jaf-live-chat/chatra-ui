@@ -5,9 +5,12 @@ import type {
   GetLiveChatMessagesResponse,
   GetWidgetQuickMessagesResponse,
   GetWidgetSettingsResponse,
+  GetWidgetVisitorProfileResponse,
   LiveChatEndConversationResponse,
   LiveChatSendMessagePayload,
   LiveChatStartConversationResponse,
+  UpdateWidgetVisitorProfilePayload,
+  UpdateWidgetVisitorProfileResponse,
   LiveChatWidgetConfig,
 } from "../models/LiveChatModel";
 
@@ -129,6 +132,36 @@ const liveChatWidgetServices = {
       },
       headers: buildHeaders(config, visitorToken),
     });
+
+    return response.data;
+  },
+
+  getVisitorProfile: async (
+    config: LiveChatWidgetConfig,
+    visitorToken: string,
+  ): Promise<GetWidgetVisitorProfileResponse> => {
+    const response = await axiosServices.get<GetWidgetVisitorProfileResponse>(`${WIDGET_BASE_PATH}/visitor-profile`, {
+      headers: buildHeaders(config, visitorToken),
+    });
+
+    return response.data;
+  },
+
+  updateVisitorProfile: async (
+    config: LiveChatWidgetConfig,
+    visitorToken: string,
+    payload: UpdateWidgetVisitorProfilePayload,
+  ): Promise<UpdateWidgetVisitorProfileResponse> => {
+    const response = await axiosServices.patch<UpdateWidgetVisitorProfileResponse>(
+      `${WIDGET_BASE_PATH}/visitor-profile`,
+      {
+        ...payload,
+        visitorToken,
+      },
+      {
+        headers: buildHeaders(config, visitorToken),
+      },
+    );
 
     return response.data;
   },
