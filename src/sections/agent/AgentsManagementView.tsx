@@ -45,6 +45,7 @@ import idLabel from "../../utils/idUtils";
 import getAvatarColor from "../../utils/getAvatarColor";
 import TitleTag from "../../components/TitleTag";
 import { toast } from "sonner";
+import { useGetSinglePlan } from "../../services/subscriptionPlanServices";
 
 interface Agent extends AuthAgent {
   id: string;
@@ -97,7 +98,7 @@ const lightChipSx = {
 
 const AgentsManagementView = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, tenant } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [editAgent, setEditAgent] = useState<Agent | null>(null);
   const [agentToDelete, setAgentToDelete] = useState<Agent | null>(null);
@@ -142,6 +143,9 @@ const AgentsManagementView = () => {
     mutate: mutateAgents,
   } = useGetAgents({ page, limit: ITEMS_PER_PAGE, search: searchTerm });
 
+  const subscriptionPlanId = tenant?.subscriptionData?.subscriptionPlanId;
+  const { plan: activePlan } = useGetSinglePlan(subscriptionPlanId);
+
   const agents = useMemo(() => fetchedAgents.map(mapAgentForView), [fetchedAgents]);
 
   useEffect(() => {
@@ -151,6 +155,19 @@ const AgentsManagementView = () => {
   }, [agentsError]);
 
   const totalRecords = pagination?.totalRecords || 0;
+  const maxAgentsLimit = Number.isFinite(activePlan?.limits?.maxAgents)
+    ? Number(activePlan?.limits?.maxAgents)
+    : null;
+  const isAgentLimitEnabled = maxAgentsLimit !== null && maxAgentsLimit > 0;
+  const remainingAgentSlots = isAgentLimitEnabled ? Math.max((maxAgentsLimit ?? 0) - totalRecords, 0) : 0;
+  const isPlanLimitReached = isAgentLimitEnabled && remainingAgentSlots <= 0;
+  const stagedAgentCount = inviteRows.length;
+  const liveUsedAgents = isAgentLimitEnabled
+    ? Math.min(totalRecords + stagedAgentCount, maxAgentsLimit ?? 0)
+    : totalRecords;
+  const liveRemainingSlots = isAgentLimitEnabled
+    ? Math.max((maxAgentsLimit ?? 0) - (totalRecords + stagedAgentCount), 0)
+    : 0;
 
   const actionButtonSx = {
     textTransform: "none" as const,
@@ -230,6 +247,14 @@ const AgentsManagementView = () => {
   const handleEditClose = () => setEditAgent(null);
 
   const handleAddOpen = () => {
+    if (isPlanLimitReached) {
+      showSnackbar(
+        `Your current plan allows up to ${maxAgentsLimit} agents. Upgrade your plan to add more.`,
+        "error"
+      );
+      return;
+    }
+
     setInviteRows([]);
     setDraftName("");
     setDraftEmail("");
@@ -240,6 +265,14 @@ const AgentsManagementView = () => {
   const handleAddClose = () => setAddOpen(false);
 
   const handleStageAgent = () => {
+    if (isAgentLimitEnabled && inviteRows.length >= remainingAgentSlots) {
+      showSnackbar(
+        `You can only add ${remainingAgentSlots} more agent(s) on your ${activePlan?.name || "current"} plan.`,
+        "error"
+      );
+      return;
+    }
+
     const nextErrors = { name: "", email: "" };
 
     if (!draftName.trim()) nextErrors.name = "Full name is required.";
@@ -267,6 +300,14 @@ const AgentsManagementView = () => {
   const handleAddSave = async () => {
     if (inviteRows.length === 0) {
       showSnackbar("Stage at least one agent before submitting.", "error");
+      return;
+    }
+
+    if (isAgentLimitEnabled && inviteRows.length > remainingAgentSlots) {
+      showSnackbar(
+        "Agent limit exceeded. You can only add " + remainingAgentSlots + " more agent(s) on your current plan.",
+        "error"
+      );
       return;
     }
 
@@ -537,11 +578,12 @@ const AgentsManagementView = () => {
               color="primary"
               startIcon={<UserPlus size={18} />}
               onClick={handleAddOpen}
-              disabled={isLoading}
+              disabled={isLoading || isPlanLimitReached}
               sx={{ fontWeight: 600, px: 3, flexShrink: 0, borderRadius: 1 }}
             >
               Add Agent
             </Button>
+         
           </Stack>
         </Stack>
 
@@ -674,7 +716,9 @@ const AgentsManagementView = () => {
             <Stack direction="row" alignItems="flex-start" justifyContent="space-between" sx={{ px: 3, pt: 3, pb: 1 }}>
               <Box>
                 <Typography variant="h5" sx={{ fontWeight: 800, color: "grey.900", lineHeight: 1.2 }}>
-                  Add New Agents
+                  {isAgentLimitEnabled
+                    ? `Add New Agents ${liveUsedAgents}/${maxAgentsLimit}`
+                    : "Add New Agents"}
                 </Typography>
                 <Typography variant="body2" sx={{ mt: 0.6, color: "text.secondary", fontWeight: 500 }}>
                   Fill in the details below to stage new team members.
@@ -750,7 +794,9 @@ const AgentsManagementView = () => {
                 "& .MuiAlert-message": { fontWeight: 600 },
               }}
             >
-              Passwords are auto-generated for new agents and shared with them securely.
+              {isAgentLimitEnabled
+                ? `Passwords are auto-generated. Plan capacity: ${liveUsedAgents}/${maxAgentsLimit} used${liveRemainingSlots ? `, ${liveRemainingSlots} slot(s) left` : ""}.`
+                : "Passwords are auto-generated for new agents and shared with them securely."}
             </Alert>
 
             <Stack spacing={1.25}>
@@ -825,7 +871,11 @@ const AgentsManagementView = () => {
                 onClick={handleAddSave}
                 variant="contained"
                 color="primary"
-                disabled={isAddingAgents || inviteRows.length === 0}
+                disabled={
+                  isAddingAgents ||
+                  inviteRows.length === 0 ||
+                  (isAgentLimitEnabled && inviteRows.length > remainingAgentSlots)
+                }
                 startIcon={<UserPlus size={16} />}
                 sx={{ px: 3.2, borderRadius: 1, fontWeight: 800 }}
               >
