@@ -16,6 +16,8 @@ import type { LiveChatMessage } from "../../../models/LiveChatModel";
 import type { QueueActorRole, QueueVisitorRow } from "../../../models/QueueViewModel";
 import liveChatServices from "../../../services/liveChatServices";
 import { formatElapsedTime } from "../../../utils/liveChatQueueTime";
+import useAuth from "../../../hooks/useAuth";
+import { toast } from 'sonner'
 
 interface VisitorDetailsDialogProps {
   open: boolean;
@@ -23,7 +25,6 @@ interface VisitorDetailsDialogProps {
   now: number;
   actorRole?: QueueActorRole;
   actorStatus?: string;
-  selfPickEligible?: boolean;
   isProcessingAction?: boolean;
   onClose: () => void;
   onStartChat?: (visitor: QueueVisitorRow) => void;
@@ -52,17 +53,17 @@ const VisitorDetailsDialog = ({
   now,
   actorRole,
   actorStatus,
-  selfPickEligible = false,
   isProcessingAction = false,
   onClose,
   onStartChat,
   onTakeConversation,
-  onSelfPickConversation,
   onOpenAssignDialog,
 }: VisitorDetailsDialogProps) => {
   const [messages, setMessages] = useState<LiveChatMessage[]>([]);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [messageError, setMessageError] = useState<string | null>(null);
+
+  const { user } = useAuth()
 
   useEffect(() => {
     if (!open || !visitor?.conversationId) {
@@ -114,8 +115,6 @@ const VisitorDetailsDialog = ({
 
   const isWaitingVisitor = visitor?.status === "Waiting";
   const isAdminOrMaster = actorRole === USER_ROLES.ADMIN.value || actorRole === USER_ROLES.MASTER_ADMIN.value;
-  const isSupportAgent = actorRole === USER_ROLES.SUPPORT_AGENT.value;
-  const canSelfPick = isSupportAgent && actorStatus === USER_STATUS.AVAILABLE && selfPickEligible;
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
@@ -188,6 +187,20 @@ const VisitorDetailsDialog = ({
             </Box>
           </Stack>
 
+          {visitor?.status === "Assigned" ? (
+            <Box sx={{ p: 1.5, borderRadius: 2, border: "1px solid", borderColor: "divider", bgcolor: "background.paper" }}>
+              <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5, color: "text.secondary" }}>
+                <UserRound size={14} />
+                <Typography variant="caption">Assigned to Agent</Typography>
+              </Stack>
+              <Tooltip title={visitor.agentDisplayName || visitor.agentName || "Unassigned"}>
+                <Typography variant="body2" sx={{ fontWeight: 700 }} noWrap>
+                  {visitor.agentName || "Unassigned"}
+                </Typography>
+              </Tooltip>
+            </Box>
+          ) : null}
+
           <Box sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, overflow: "hidden" }}>
             <Box sx={{ px: 2, py: 1.25, borderBottom: "1px solid", borderColor: "divider", bgcolor: "grey.50" }}>
               <Stack direction="row" alignItems="center" spacing={1}>
@@ -249,7 +262,7 @@ const VisitorDetailsDialog = ({
           Close
         </Button>
 
-        {isWaitingVisitor && isAdminOrMaster && (
+        {isAdminOrMaster && (
           <>
             <Button
               variant="outlined"
@@ -263,10 +276,20 @@ const VisitorDetailsDialog = ({
             >
               Assign
             </Button>
+          </>
+        )}
+
+        {isWaitingVisitor && (
+          <>
             <Button
               variant="contained"
               disabled={!visitor || !onTakeConversation || isProcessingAction}
               onClick={() => {
+                if (user?.status !== USER_STATUS.AVAILABLE) {
+                  toast.error("You must be available to take this conversation.");
+                  return;
+                }
+
                 if (visitor && onTakeConversation) {
                   void onTakeConversation(visitor);
                 }
@@ -276,41 +299,6 @@ const VisitorDetailsDialog = ({
               Take Chat
             </Button>
           </>
-        )}
-
-        {isWaitingVisitor && isSupportAgent && (
-          <Tooltip title={canSelfPick ? "Pick this waiting chat" : "Self-pick is allowed once after returning AVAILABLE from OFFLINE/AWAY."}>
-            <span>
-              <Button
-                variant="contained"
-                disabled={!visitor || !onSelfPickConversation || isProcessingAction || !canSelfPick}
-                onClick={() => {
-                  if (visitor && onSelfPickConversation) {
-                    void onSelfPickConversation(visitor);
-                  }
-                }}
-                sx={{ fontWeight: 700 }}
-              >
-                Self Pick
-              </Button>
-            </span>
-          </Tooltip>
-        )}
-
-        {!isWaitingVisitor && (
-          <Button
-            variant="contained"
-            disabled={!visitor || !onStartChat}
-            onClick={() => {
-              if (visitor && onStartChat) {
-                onStartChat(visitor);
-                onClose();
-              }
-            }}
-            sx={{ fontWeight: 700 }}
-          >
-            Start Chat
-          </Button>
         )}
       </DialogActions>
     </Dialog>
