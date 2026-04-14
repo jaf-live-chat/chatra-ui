@@ -9,7 +9,7 @@ import {
   PencilLine,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import { toast } from "sonner";
+import { toast } from "../../components/sonner";
 import PageTitle from "../../components/common/PageTitle";
 import TitleTag from "../../components/TitleTag";
 import Skeleton from "../../components/skeleton";

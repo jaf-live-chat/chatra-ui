@@ -14,7 +14,7 @@ import PageTitle from "../../components/common/PageTitle";
 import TitleTag from "../../components/TitleTag";
 import useNowTick from "../../hooks/useNowTick";
 import type { QueueActorRole, QueueAgentOption, QueueVisitorRow } from "../../models/QueueViewModel";
-import { toast } from "sonner";
+import { toast } from "../../components/sonner";
 import QueueAssignDialog from "./components/QueueAssignDialog";
 import QueueRealtimeTable from "./components/QueueRealtimeTable";
 import VisitorDetailsDialog from "./components/VisitorDetailsDialog";
