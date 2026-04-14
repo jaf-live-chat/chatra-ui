@@ -4,6 +4,10 @@ import type {
   AgentLoginResponse,
   AgentMeResponse,
   LoginData,
+  ForgotPasswordRequestData,
+  VerifyPasswordOTPData,
+  ResetPasswordData,
+  AuthMessageResponse,
   CreateAgentsPayload,
   CreateAgentsResponse,
   GetAgentsResponse,
@@ -26,6 +30,9 @@ const endpoints = {
   status: `${API_BASE_URL}/agents/status`,
   profile: `${API_BASE_URL}/agents/profile`,
   verifyPassword: `${API_BASE_URL}/agents/verify-password`,
+  forgotPassword: `${API_BASE_URL}/agents/forgot-password`,
+  verifyOtp: `${API_BASE_URL}/agents/verify-otp`,
+  resetPassword: `${API_BASE_URL}/agents/reset-password`,
   uploadSingle: `${API_BASE_URL}/agents/upload/single`,
   uploadMultiple: `${API_BASE_URL}/agents/upload/multiple`,
 };
@@ -210,6 +217,25 @@ const Agents = {
 
   verifyPassword: async (password: string): Promise<VerifyPasswordResponse> => {
     const response = await axiosServices.post(endpoints.verifyPassword, { password });
+    return response.data;
+  },
+
+  requestPasswordReset: async (
+    payload: ForgotPasswordRequestData
+  ): Promise<AuthMessageResponse> => {
+    const response = await axiosServices.post(endpoints.forgotPassword, payload);
+    return response.data;
+  },
+
+  verifyPasswordResetOtp: async (
+    payload: VerifyPasswordOTPData
+  ): Promise<AuthMessageResponse> => {
+    const response = await axiosServices.post(endpoints.verifyOtp, payload);
+    return response.data;
+  },
+
+  resetPassword: async (payload: ResetPasswordData): Promise<AuthMessageResponse> => {
+    const response = await axiosServices.post(endpoints.resetPassword, payload);
     return response.data;
   },
 
