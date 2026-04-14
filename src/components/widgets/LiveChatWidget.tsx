@@ -96,15 +96,19 @@ const clearStoredValue = (key: string) => {
   }
 };
 
+const createVisitorToken = () => {
+  return typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+    ? crypto.randomUUID()
+    : `visitor-${Math.random().toString(36).slice(2)}-${Date.now()}`;
+};
+
 const getVisitorToken = () => {
   const existingToken = readStoredValue(VISITOR_TOKEN_KEY);
   if (existingToken) {
     return existingToken;
   }
 
-  const token = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
-    ? crypto.randomUUID()
-    : `visitor-${Math.random().toString(36).slice(2)}-${Date.now()}`;
+  const token = createVisitorToken();
 
   writeStoredValue(VISITOR_TOKEN_KEY, token);
   return token;
@@ -249,8 +253,15 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
   const [preChatFullName, setPreChatFullName] = useState("");
   const [preChatEmailAddress, setPreChatEmailAddress] = useState("");
   const [preChatPhoneNumber, setPreChatPhoneNumber] = useState("");
-  const [hasCompletedPreChat, setHasCompletedPreChat] = useState(true);
-  const [visitorToken] = useState(() => getVisitorToken());
+  const [hasCompletedPreChat, setHasCompletedPreChat] = useState(() => {
+    const storedConversationId = readStoredValue(CONVERSATION_ID_KEY);
+    if (storedConversationId) {
+      return true;
+    }
+
+    return Boolean(readStoredValue(VISITOR_TOKEN_KEY));
+  });
+  const [visitorToken, setVisitorToken] = useState(() => getVisitorToken());
   const [conversationId, setConversationId] = useState(() => readStoredValue(CONVERSATION_ID_KEY));
   const [messages, setMessages] = useState<WidgetTranscriptMessage[]>([]);
   const [messageText, setMessageText] = useState("");
@@ -942,6 +953,49 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
     setWidgetView("chat");
   }, [resetConversationState]);
 
+  const handleEndSession = useCallback(async () => {
+    if (conversationId) {
+      try {
+        await liveChatWidgetServices.endConversation(widgetConfig, visitorToken, conversationId);
+      } catch {
+        // Continue logging out even if ending the active chat fails.
+      }
+    }
+
+    clearQuickReplyTimer();
+    disconnectSocket();
+    clearStoredValue(CONVERSATION_ID_KEY);
+    clearStoredValue(VISITOR_TOKEN_KEY);
+
+    const nextVisitorToken = createVisitorToken();
+    writeStoredValue(VISITOR_TOKEN_KEY, nextVisitorToken);
+    setVisitorToken(nextVisitorToken);
+
+    setConversationId("");
+    setMessages([]);
+    setMessageText("");
+    setUnreadCount(0);
+    setErrorMessage("");
+    setHasCompletedPreChat(false);
+    setActiveQuickReplyId(null);
+    setShowQuickMessages(false);
+    setPreChatFullName("");
+    setPreChatEmailAddress("");
+    setPreChatPhoneNumber("");
+    setBrowserLocation(null);
+    setBrowserLocationStatus("idle");
+    setLocationPermissionState("unknown");
+    setHistoryConversations([]);
+    setHistoryCount(0);
+    setHistoryMessages([]);
+    setSelectedHistoryConversationId("");
+    setIsReturningVisitor(false);
+    setReturningVisitorName("");
+    setWidgetView("chat");
+    setProfileStatusMessage("Session ended. You are logged out.");
+    setIsEndChatModalOpen(false);
+  }, [clearQuickReplyTimer, conversationId, disconnectSocket, visitorToken, widgetConfig]);
+
   const appendEndedMessage = useCallback((payload: LiveChatConversationEndedEvent) => {
     const endedBy = payload.endedBy?.displayName ? ` Ended by ${payload.endedBy.displayName}.` : "";
     const endedTimestamp = payload.endedBy?.endedAt || payload.conversation?.closedAt || new Date().toISOString();
@@ -1542,7 +1596,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                   onClick={() => setIsEndChatModalOpen(true)}
                   className={`rounded-lg font-semibold transition-all duration-200 hover:-translate-y-0.5 whitespace-nowrap ${theme.headerAction} ${headerButtonClass}`}
                 >
-                  End Session
+                  End Chat
                 </button>
               )}
               <button
@@ -1794,18 +1848,12 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                         <p className={`font-semibold tracking-wide ${theme.settingsText}`}>SESSION</p>
                       </div>
                       <p className={`leading-relaxed ${theme.settingsMuted}`}>
-                        Your profile and chat history are saved for this visitor. End the current session when you are done.
+                        End session logs out this visitor profile on this browser. End chat only closes the current chat.
                       </p>
                       <button
                         type="button"
                         onClick={() => {
-                          if (conversationId) {
-                            setIsEndChatModalOpen(true);
-                            return;
-                          }
-
-                          resetConversationState();
-                          setProfileStatusMessage("Session ended.");
+                          void handleEndSession();
                         }}
                         className="mt-3 w-full rounded-xl px-3 py-2 text-sm font-semibold text-white"
                         style={{ backgroundColor: resolvedAccent }}
@@ -1849,9 +1897,9 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                       <>
                         <div className={`my-4 border-t ${theme.settingsDivider}`} />
                         <div className="text-left">
-                          <p className={`font-semibold ${theme.settingsText}`}>Before we start (optional)</p>
+                          <p className={`font-semibold ${theme.settingsText}`}>Before we start (first visit, optional)</p>
                           <p className={`mt-1 leading-relaxed ${theme.settingsMuted}`}>
-                            Share your details if you want faster support. You can leave everything blank and continue.
+                            Share profile details for faster support. You can leave everything blank and continue.
                           </p>
 
                           <div className="mt-3 grid gap-2.5">
@@ -2123,9 +2171,9 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                   </div>
                 </div>
 
-                <h3 className="text-center text-xl font-semibold">End this session?</h3>
+                <h3 className="text-center text-xl font-semibold">End this chat?</h3>
                 <p className={`text-center mt-2 text-sm ${theme.settingsMuted}`}>
-                  This ends your current live chat session. Your profile and chat history stay saved.
+                  This closes your current chat. Your visitor profile and session remain signed in.
                 </p>
 
                 <div className="mt-5 grid grid-cols-2 gap-2.5">
@@ -2145,7 +2193,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                     }}
                     className={`h-11 rounded-2xl text-base font-semibold transition-colors ${theme.modalPrimary}`}
                   >
-                    Yes, end session
+                    Yes, end chat
                   </button>
                 </div>
               </div>
