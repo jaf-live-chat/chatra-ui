@@ -18,6 +18,17 @@ export interface SubscriptionData {
   startDate: string;
   endDate: string;
   status: string;
+  configuration?: {
+    planName?: string;
+    price?: number;
+    billingCycle?: string;
+    interval?: number;
+    limits?: {
+      maxAgents?: number;
+      hasAdvancedAnalytics?: boolean;
+    };
+    features?: string[];
+  } | null;
 }
 
 export type UserRole = "MASTER_ADMIN" | "ADMIN" | "SUPPORT_AGENT" | "VISITOR";
@@ -105,12 +116,24 @@ export type CreateAgentsResponse = {
   success: boolean;
   message: string;
   agents: AuthAgent[];
+  subscriptionUsage?: {
+    usedAgents: number | null;
+    maxAgents: number | null;
+    remainingAgents: number | null;
+    hasAdvancedAnalytics: boolean;
+  } | null;
 };
 
 export type GetAgentsResponse = {
   success: boolean;
   message: string;
   agents: AuthAgent[];
+  subscriptionUsage?: {
+    usedAgents: number | null;
+    maxAgents: number | null;
+    remainingAgents: number | null;
+    hasAdvancedAnalytics: boolean;
+  } | null;
   pagination?: {
     currentPage: number;
     totalPages: number;

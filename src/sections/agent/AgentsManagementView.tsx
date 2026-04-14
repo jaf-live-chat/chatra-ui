@@ -37,6 +37,7 @@ import TextField from "@mui/material/TextField";
 import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
 import FormControl from "@mui/material/FormControl";
+import LinearProgress from "@mui/material/LinearProgress";
 import Tooltip from '@mui/material/Tooltip'
 import ReusableTable, { type ReusableTableColumn } from "../../components/ReusableTable";
 import AgentEditDialog, { type AgentEditDialogFormValues } from "./components/AgentEditDialog";
@@ -86,6 +87,20 @@ function formatRole(role: string): string {
     .join(" ");
 }
 
+const UNLIMITED_AGENT_LIMIT = 999999;
+
+function isUnlimitedAgentLimit(limit?: number | null): boolean {
+  return typeof limit !== "number" || !Number.isFinite(limit) || limit >= UNLIMITED_AGENT_LIMIT;
+}
+
+function formatAgentCapacity(usedAgents: number, maxAgents?: number | null): string {
+  if (isUnlimitedAgentLimit(maxAgents)) {
+    return `${usedAgents}/Unlimited Agents`;
+  }
+
+  return `${usedAgents}/${maxAgents} Agents`;
+}
+
 const ITEMS_PER_PAGE = 5;
 
 const lightChipSx = {
@@ -97,7 +112,7 @@ const lightChipSx = {
 
 const AgentsManagementView = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, tenant } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [editAgent, setEditAgent] = useState<Agent | null>(null);
   const [agentToDelete, setAgentToDelete] = useState<Agent | null>(null);
@@ -135,6 +150,7 @@ const AgentsManagementView = () => {
   };
 
   const {
+    data: agentsResponse,
     agents: fetchedAgents,
     pagination,
     isLoading,
@@ -143,6 +159,29 @@ const AgentsManagementView = () => {
   } = useGetAgents({ page, limit: ITEMS_PER_PAGE, search: searchTerm });
 
   const agents = useMemo(() => fetchedAgents.map(mapAgentForView), [fetchedAgents]);
+  const tenantSubscriptionUsage = agentsResponse?.subscriptionUsage;
+  const maxAgentsLimit =
+    tenantSubscriptionUsage?.maxAgents ??
+    tenant?.subscriptionData?.configuration?.limits?.maxAgents ??
+    null;
+  const hasAdvancedAnalytics =
+    tenantSubscriptionUsage?.hasAdvancedAnalytics ??
+    Boolean(tenant?.subscriptionData?.configuration?.limits?.hasAdvancedAnalytics);
+  const currentAgentCount =
+    tenantSubscriptionUsage?.usedAgents ??
+    pagination?.totalRecords ??
+    agents.length;
+  const isUnlimitedAgentsPlan = isUnlimitedAgentLimit(maxAgentsLimit);
+  const remainingAgentSlots = !isUnlimitedAgentsPlan && typeof maxAgentsLimit === "number"
+    ? Math.max(maxAgentsLimit - currentAgentCount, 0)
+    : null;
+  const agentCapacityReached = !isUnlimitedAgentsPlan && typeof maxAgentsLimit === "number"
+    ? currentAgentCount >= maxAgentsLimit
+    : false;
+  const agentCapacityLabel = formatAgentCapacity(currentAgentCount, maxAgentsLimit);
+  const agentCapacityProgress = !isUnlimitedAgentsPlan && typeof maxAgentsLimit === "number" && maxAgentsLimit > 0
+    ? Math.min((currentAgentCount / maxAgentsLimit) * 100, 100)
+    : 100;
 
   useEffect(() => {
     if (agentsError) {
@@ -230,6 +269,11 @@ const AgentsManagementView = () => {
   const handleEditClose = () => setEditAgent(null);
 
   const handleAddOpen = () => {
+    if (agentCapacityReached) {
+      showSnackbar("Max agents capacity reached for this plan.", "error");
+      return;
+    }
+
     setInviteRows([]);
     setDraftName("");
     setDraftEmail("");
@@ -241,6 +285,16 @@ const AgentsManagementView = () => {
 
   const handleStageAgent = () => {
     const nextErrors = { name: "", email: "" };
+
+    if (agentCapacityReached) {
+      showSnackbar("Max agents capacity reached for this plan.", "error");
+      return;
+    }
+
+    if (remainingAgentSlots !== null && inviteRows.length >= remainingAgentSlots) {
+      showSnackbar("Max agents capacity reached for this plan.", "error");
+      return;
+    }
 
     if (!draftName.trim()) nextErrors.name = "Full name is required.";
     if (!draftEmail.trim()) nextErrors.email = "Email is required.";
@@ -268,6 +322,13 @@ const AgentsManagementView = () => {
     if (inviteRows.length === 0) {
       showSnackbar("Stage at least one agent before submitting.", "error");
       return;
+    }
+
+    if (!isUnlimitedAgentsPlan && typeof maxAgentsLimit === "number") {
+      if (currentAgentCount + inviteRows.length > maxAgentsLimit) {
+        showSnackbar("Max agents capacity reached for this plan.", "error");
+        return;
+      }
     }
 
     try {
@@ -531,23 +592,39 @@ const AgentsManagementView = () => {
           />
 
           <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-
-            <Button
-              variant="contained"
-              color="primary"
-              startIcon={<UserPlus size={18} />}
-              onClick={handleAddOpen}
-              disabled={isLoading}
-              sx={{ fontWeight: 600, px: 3, flexShrink: 0, borderRadius: 1 }}
-            >
-              Add Agent
-            </Button>
+            {agentCapacityReached ? (
+              <Tooltip title="Max agents capacity reached for this plan" placement="bottom">
+                <span>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    startIcon={<UserPlus size={18} />}
+                    onClick={handleAddOpen}
+                    disabled={isLoading || agentCapacityReached}
+                    sx={{ fontWeight: 600, px: 3, flexShrink: 0, borderRadius: 1 }}
+                  >
+                    Add Agent
+                  </Button>
+                </span>
+              </Tooltip>
+            ) : (
+              <Button
+                variant="contained"
+                color="primary"
+                startIcon={<UserPlus size={18} />}
+                onClick={handleAddOpen}
+                disabled={isLoading}
+                sx={{ fontWeight: 600, px: 3, flexShrink: 0, borderRadius: 1 }}
+              >
+                Add Agent
+              </Button>
+            )}
           </Stack>
         </Stack>
 
         {/* ── Stat cards ── */}
-        <Grid container spacing={3}>
-          <Grid size={{ xs: 12, md: 4 }}>
+        <Grid container spacing={3} alignItems="stretch">
+          <Grid size={{ xs: 12, md: 3 }} sx={{ display: "flex" }}>
             <Paper
               elevation={0}
               sx={{
@@ -559,18 +636,63 @@ const AgentsManagementView = () => {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
+                gap: 2,
+                minHeight: { xs: 136, sm: 144, md: 152 },
+                height: "100%",
+                width: "100%",
               }}
             >
-              <Box>
-                <Typography variant="body2" sx={{ fontWeight: 600, color: "text.secondary", mb: 0.5 }}>Total Agents</Typography>
-                <Typography variant="h4" sx={{ fontWeight: 800, color: "grey.900" }}>{totalRecords}</Typography>
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Typography variant="body2" sx={{ fontWeight: 600, color: "text.secondary", mb: 0.75 }}>
+                  Agent Capacity
+                </Typography>
+                <Stack direction="row" alignItems="baseline" spacing={0.75} sx={{ flexWrap: "wrap" }}>
+                  <Typography
+                    variant="h4"
+                    sx={{
+                      fontWeight: 900,
+                      color: "grey.900",
+                      lineHeight: 1,
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {currentAgentCount}
+                  </Typography>
+                  <Typography
+                    variant="h6"
+                    sx={{
+                      fontWeight: 800,
+                      color: "text.secondary",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    /{isUnlimitedAgentsPlan ? "Unlimited" : maxAgentsLimit}
+                  </Typography>
+                </Stack>
+                <Typography variant="body2" sx={{ mt: 0.25, color: "text.secondary", fontWeight: 600 }}>
+                  {isUnlimitedAgentsPlan ? "Agents on an unlimited plan" : `${remainingAgentSlots ?? 0} slot${remainingAgentSlots === 1 ? "" : "s"} remaining`}
+                </Typography>
+                <LinearProgress
+                  variant="determinate"
+                  value={agentCapacityProgress}
+                  sx={{
+                    mt: 1.5,
+                    height: 8,
+                    borderRadius: 999,
+                    bgcolor: "grey.100",
+                    "& .MuiLinearProgress-bar": {
+                      borderRadius: 999,
+                      bgcolor: agentCapacityReached ? "#dc2626" : "#0891b2",
+                    },
+                  }}
+                />
               </Box>
-              <Avatar sx={{ bgcolor: "#c9d7ce", color: "#484e4a", width: 48, height: 48 }}>
+              <Avatar sx={{ bgcolor: "#cffafe", color: "#0f766e", width: 48, height: 48 }}>
                 <Users size={24} />
               </Avatar>
             </Paper>
           </Grid>
-          <Grid size={{ xs: 12, md: 4 }}>
+          <Grid size={{ xs: 12, md: 3 }} sx={{ display: "flex" }}>
             <Paper
               elevation={0}
               sx={{
@@ -582,18 +704,25 @@ const AgentsManagementView = () => {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
+                minHeight: { xs: 136, sm: 144, md: 152 },
+                height: "100%",
+                width: "100%",
               }}
             >
               <Box>
-                <Typography variant="body2" sx={{ fontWeight: 600, color: "text.secondary", mb: 0.5 }}>Online Agents</Typography>
-                <Typography variant="h4" sx={{ fontWeight: 800, color: "grey.900" }}>{agents.filter((a) => a.status === "Online").length}</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600, color: "text.secondary", mb: 0.5 }}>
+                  Online Agents
+                </Typography>
+                <Typography variant="h4" sx={{ fontWeight: 800, color: "grey.900" }}>
+                  {agents.filter((a) => a.status === "Online").length}
+                </Typography>
               </Box>
-              <Avatar sx={{ bgcolor: "#dcfce7", color: "#91a097", width: 48, height: 48 }}>
+              <Avatar sx={{ bgcolor: "#dcfce7", color: "#4b5563", width: 48, height: 48 }}>
                 <UserCheck size={24} />
               </Avatar>
             </Paper>
           </Grid>
-          <Grid size={{ xs: 12, md: 4 }}>
+          <Grid size={{ xs: 12, md: 3 }} sx={{ display: "flex" }}>
             <Paper
               elevation={0}
               sx={{
@@ -605,14 +734,60 @@ const AgentsManagementView = () => {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
+                minHeight: { xs: 136, sm: 144, md: 152 },
+                height: "100%",
+                width: "100%",
               }}
             >
               <Box>
-                <Typography variant="body2" sx={{ fontWeight: 600, color: "text.secondary", mb: 0.5 }}>Chats Handled Today</Typography>
-                <Typography variant="h4" sx={{ fontWeight: 800, color: "grey.900" }}>{agents.reduce((sum, a) => sum + a.chatsHandled, 0)}</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600, color: "text.secondary", mb: 0.5 }}>
+                  Chats Handled Today
+                </Typography>
+                <Typography variant="h4" sx={{ fontWeight: 800, color: "grey.900" }}>
+                  {agents.reduce((sum, a) => sum + a.chatsHandled, 0)}
+                </Typography>
               </Box>
               <Avatar sx={{ bgcolor: "#dbeafe", color: "#2563eb", width: 48, height: 48 }}>
                 <MessageSquare size={24} />
+              </Avatar>
+            </Paper>
+          </Grid>
+          <Grid size={{ xs: 12, md: 3 }} sx={{ display: "flex" }}>
+            <Paper
+              elevation={0}
+              sx={{
+                p: 3,
+                borderRadius: 1,
+                border: "1px solid",
+                borderColor: "grey.200",
+                boxShadow: "0 1px 2px #00000012",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 2,
+                minHeight: { xs: 136, sm: 144, md: 152 },
+                height: "100%",
+                width: "100%",
+              }}
+            >
+              <Box>
+                <Typography variant="body2" sx={{ fontWeight: 600, color: "text.secondary", mb: 0.5 }}>
+                  Advanced Analytics
+                </Typography>
+                <Chip
+                  label={hasAdvancedAnalytics ? "Enabled" : "Disabled"}
+                  size="small"
+                  color={hasAdvancedAnalytics ? "success" : "default"}
+                  sx={{
+                    ...lightChipSx,
+                    bgcolor: hasAdvancedAnalytics ? "#dcfce7" : "#e2e8f0",
+                    color: hasAdvancedAnalytics ? "#166534" : "#475569",
+                    height: 28,
+                  }}
+                />
+              </Box>
+              <Avatar sx={{ bgcolor: hasAdvancedAnalytics ? "#dcfce7" : "#e2e8f0", color: hasAdvancedAnalytics ? "#166534" : "#475569", width: 48, height: 48 }}>
+                <Circle size={18} className="fill-current" />
               </Avatar>
             </Paper>
           </Grid>
@@ -725,22 +900,46 @@ const AgentsManagementView = () => {
                   },
                 }}
               />
-              <Button
-                onClick={handleStageAgent}
-                variant="contained"
-                disableElevation
-                startIcon={<Plus size={16} />}
-                sx={{
-                  minWidth: 112,
-                  height: 54,
-                  borderRadius: 1,
-                  bgcolor: "#cbd5e1",
-                  color: "#fff",
-                  "&:hover": { bgcolor: "#94a3b8" },
-                }}
-              >
-                Add
-              </Button>
+              {(remainingAgentSlots !== null && inviteRows.length >= remainingAgentSlots) ? (
+                <Tooltip title="Max agents capacity reached for this plan" placement="bottom">
+                  <span>
+                    <Button
+                      onClick={handleStageAgent}
+                      variant="contained"
+                      disableElevation
+                      startIcon={<Plus size={16} />}
+                      disabled
+                      sx={{
+                        minWidth: 112,
+                        height: 54,
+                        borderRadius: 1,
+                        bgcolor: "#cbd5e1",
+                        color: "#fff",
+                        "&:hover": { bgcolor: "#94a3b8" },
+                      }}
+                    >
+                      Add
+                    </Button>
+                  </span>
+                </Tooltip>
+              ) : (
+                <Button
+                  onClick={handleStageAgent}
+                  variant="contained"
+                  disableElevation
+                  startIcon={<Plus size={16} />}
+                  sx={{
+                    minWidth: 112,
+                    height: 54,
+                    borderRadius: 1,
+                    bgcolor: "#cbd5e1",
+                    color: "#fff",
+                    "&:hover": { bgcolor: "#94a3b8" },
+                  }}
+                >
+                  Add
+                </Button>
+              )}
             </Stack>
 
             <Alert
@@ -752,6 +951,20 @@ const AgentsManagementView = () => {
             >
               Passwords are auto-generated for new agents and shared with them securely.
             </Alert>
+
+            {!isUnlimitedAgentsPlan && typeof maxAgentsLimit === "number" && (
+              <Alert
+                severity={remainingAgentSlots === 0 ? "warning" : "info"}
+                sx={{
+                  borderRadius: 1,
+                  "& .MuiAlert-message": { fontWeight: 600 },
+                }}
+              >
+                {remainingAgentSlots === 0
+                  ? "Max agents capacity reached for this plan"
+                  : `${remainingAgentSlots} agent slot${remainingAgentSlots === 1 ? "" : "s"} remaining on this plan.`}
+              </Alert>
+            )}
 
             <Stack spacing={1.25}>
               {inviteRows.map((row, index) => (
@@ -821,16 +1034,33 @@ const AgentsManagementView = () => {
             <DialogActions sx={{}}>
 
               <Button onClick={handleAddClose} sx={{ color: "grey.600", fontWeight: 700 }}>Cancel</Button>
-              <Button
-                onClick={handleAddSave}
-                variant="contained"
-                color="primary"
-                disabled={isAddingAgents || inviteRows.length === 0}
-                startIcon={<UserPlus size={16} />}
-                sx={{ px: 3.2, borderRadius: 1, fontWeight: 800 }}
-              >
-                {isAddingAgents ? "Adding..." : `Create ${inviteRows.length} Agents`}
-              </Button>
+              {(!isUnlimitedAgentsPlan && typeof maxAgentsLimit === "number" && currentAgentCount + inviteRows.length > maxAgentsLimit) ? (
+                <Tooltip title="Max agents capacity reached for this plan" placement="top">
+                  <span>
+                    <Button
+                      onClick={handleAddSave}
+                      variant="contained"
+                      color="primary"
+                      disabled
+                      startIcon={<UserPlus size={16} />}
+                      sx={{ px: 3.2, borderRadius: 1, fontWeight: 800 }}
+                    >
+                      {isAddingAgents ? "Adding..." : `Create ${inviteRows.length} Agents`}
+                    </Button>
+                  </span>
+                </Tooltip>
+              ) : (
+                <Button
+                  onClick={handleAddSave}
+                  variant="contained"
+                  color="primary"
+                  disabled={isAddingAgents || inviteRows.length === 0}
+                  startIcon={<UserPlus size={16} />}
+                  sx={{ px: 3.2, borderRadius: 1, fontWeight: 800 }}
+                >
+                  {isAddingAgents ? "Adding..." : `Create ${inviteRows.length} Agents`}
+                </Button>
+              )}
             </DialogActions>
           </Box>
         </Dialog>
