@@ -1,12 +1,15 @@
 import {
   Clock3,
+  Globe2,
   Lock,
+  MapPin,
   MessageCircle,
   MessageSquareText,
   RotateCcw,
   TrendingUp,
   Users,
 } from "lucide-react";
+import type { ReactNode } from "react";
 import PageTitle from "../../components/common/PageTitle";
 import type { LiveChatAnalytics } from "../../models/AnalyticsModel";
 
@@ -25,6 +28,21 @@ type LockedCardProps = {
   description: string;
   canUpgrade: boolean;
   onUpgrade?: () => void;
+};
+
+type BreakdownRow = {
+  label: string;
+  count: number;
+};
+
+type BreakdownCardProps = {
+  title: string;
+  description: string;
+  icon: ReactNode;
+  rows: BreakdownRow[];
+  emptyMessage: string;
+  toneClassName: string;
+  barClassName: string;
 };
 
 const formatDateLabel = (value?: string | null) => {
@@ -111,6 +129,76 @@ const formatPercentDelta = (value?: number | null) => {
   return `${sign}${normalized.toFixed(1)}%`;
 };
 
+const formatLocationSource = (value?: string | null) => {
+  if (!value) {
+    return "Unknown source";
+  }
+
+  return value
+    .toLowerCase()
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+};
+
+const LocationBreakdownCard = ({
+  title,
+  description,
+  icon,
+  rows,
+  emptyMessage,
+  toneClassName,
+  barClassName,
+}: BreakdownCardProps) => {
+  const peakCount = Math.max(...rows.map((row) => row.count), 1);
+
+  return (
+    <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start gap-3">
+          <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${toneClassName}`}>
+            {icon}
+          </div>
+          <div>
+            <h3 className="text-xl font-bold tracking-tight text-slate-900">{title}</h3>
+            <p className="mt-1 text-sm leading-6 text-slate-600">{description}</p>
+          </div>
+        </div>
+        <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-600">
+          {rows.length} entries
+        </span>
+      </div>
+
+      <div className="mt-5 space-y-4">
+        {rows.length > 0 ? (
+          rows.map((row) => {
+            const share = Math.round((row.count / peakCount) * 100);
+
+            return (
+              <div key={row.label} className="space-y-2">
+                <div className="flex items-center justify-between gap-3 text-sm">
+                  <span className="min-w-0 truncate font-medium text-slate-900">{row.label}</span>
+                  <span className="shrink-0 font-semibold text-slate-600">{formatInteger(row.count)}</span>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+                  <div
+                    className={`h-full rounded-full ${barClassName}`}
+                    style={{ width: `${Math.max(4, share)}%` }}
+                  />
+                </div>
+              </div>
+            );
+          })
+        ) : (
+          <p className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-sm text-slate-500">
+            {emptyMessage}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const AnalyticsStandard = ({
   canUpgrade = true,
   planName = "Basic",
@@ -123,10 +211,28 @@ const AnalyticsStandard = ({
   const overview = analytics?.overview;
   const trends = analytics?.trends;
   const volumeData = analytics?.conversationVolume || [];
+  const visitorLocations = analytics?.advanced?.visitorLocations;
   const peakVolume = Math.max(...volumeData.map((point) => point.totalChats), 1);
   const dateFromLabel = formatDateLabel(analytics?.dateRange?.from);
   const dateToLabel = formatDateLabel(analytics?.dateRange?.to);
   const analyticsPeriod = analytics?.periodDays ?? 7;
+  const locationCoveragePercent = visitorLocations && visitorLocations.totalVisitors > 0
+    ? Math.round((visitorLocations.visitorsWithLocation / visitorLocations.totalVisitors) * 100)
+    : 0;
+  const countryRows = (visitorLocations?.topCountries || []).map((item) => ({
+    label: item.location,
+    count: item.visitorCount,
+  }));
+  const cityRows = (visitorLocations?.topCities || []).map((item) => ({
+    label: item.location,
+    count: item.visitorCount,
+  }));
+  const sourceRows = (visitorLocations?.locationSources || []).map((item) => ({
+    label: formatLocationSource(item.source),
+    count: item.visitorCount,
+  }));
+  const topCountry = countryRows[0];
+  const topCity = cityRows[0];
 
   return (
     <>
@@ -144,7 +250,7 @@ const AnalyticsStandard = ({
             </div>
             <h1 className="mt-4 text-3xl font-bold tracking-tight text-slate-900">Live Chat Analytics</h1>
             <p className="mt-2 max-w-2xl text-base leading-6 text-slate-600">
-              Performance overview and customer insights for the latest {analyticsPeriod}-day window.
+              Performance overview, visitor counts, and location distribution for the latest {analyticsPeriod}-day window.
             </p>
           </div>
           <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
@@ -199,7 +305,7 @@ const AnalyticsStandard = ({
             },
             {
               icon: <Users className="h-5 w-5 text-slate-500" />,
-              label: "Total Users",
+              label: "Visitors",
               value: formatInteger(overview?.totalUsers),
               delta: formatPercentDelta(trends?.totalUsersPercent),
             },
@@ -231,6 +337,87 @@ const AnalyticsStandard = ({
               <p className="mt-1 text-3xl font-bold tracking-tight text-slate-900 md:text-4xl">{card.value}</p>
             </div>
           ))}
+        </div>
+
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:p-6 xl:col-span-1">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-2xl font-bold tracking-tight text-slate-900">Visitor Location Snapshot</h3>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  Where visitors are coming from in the current analytics window.
+                </p>
+              </div>
+              <span className="rounded-full border border-cyan-100 bg-cyan-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-cyan-800">
+                {locationCoveragePercent}% traced
+              </span>
+            </div>
+
+            <div className="mt-6 grid grid-cols-2 gap-3">
+              <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                <p className="text-sm text-slate-500">Unique visitors</p>
+                <p className="mt-1 text-2xl font-bold tracking-tight text-slate-900">
+                  {formatInteger(visitorLocations?.totalVisitors)}
+                </p>
+              </div>
+              <div className="rounded-2xl border border-cyan-100 bg-cyan-50 p-4">
+                <p className="text-sm text-cyan-800">With location</p>
+                <p className="mt-1 text-2xl font-bold tracking-tight text-cyan-950">
+                  {formatInteger(visitorLocations?.visitorsWithLocation)}
+                </p>
+              </div>
+              <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
+                <p className="text-sm text-emerald-700">Top country</p>
+                <p className="mt-1 text-lg font-bold tracking-tight text-emerald-950">{topCountry?.label || "--"}</p>
+                <p className="text-sm text-emerald-900/70">{topCountry ? formatInteger(topCountry.count) : "0"} visitors</p>
+              </div>
+              <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4">
+                <p className="text-sm text-amber-700">Top city</p>
+                <p className="mt-1 text-lg font-bold tracking-tight text-amber-950">{topCity?.label || "--"}</p>
+                <p className="text-sm text-amber-900/70">{topCity ? formatInteger(topCity.count) : "0"} visitors</p>
+              </div>
+            </div>
+
+            <div className="mt-4 rounded-2xl border border-slate-100 bg-slate-50 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm font-semibold text-slate-900">Location sources</p>
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">IP and browser lookup</p>
+              </div>
+              <div className="mt-3 space-y-2">
+                {sourceRows.length > 0 ? (
+                  sourceRows.map((row) => (
+                    <div key={row.label} className="flex items-center justify-between gap-3 rounded-xl bg-white px-3 py-2 text-sm">
+                      <span className="min-w-0 truncate text-slate-700">{row.label}</span>
+                      <span className="font-semibold text-slate-900">{formatInteger(row.count)}</span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="rounded-xl bg-white px-3 py-2 text-sm text-slate-500">No source data available yet.</p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6 xl:col-span-2 2xl:grid-cols-2">
+            <LocationBreakdownCard
+              title="Visitors by Country"
+              description="Ranked by unique visitors in the selected period."
+              icon={<Globe2 className="h-5 w-5" />}
+              rows={countryRows}
+              emptyMessage="Country-level location data has not been resolved yet."
+              toneClassName="bg-cyan-50 text-cyan-700"
+              barClassName="bg-cyan-600"
+            />
+            <LocationBreakdownCard
+              title="Visitors by City"
+              description="The strongest city-level clusters in the selected period."
+              icon={<MapPin className="h-5 w-5" />}
+              rows={cityRows}
+              emptyMessage="City-level location data has not been resolved yet."
+              toneClassName="bg-emerald-50 text-emerald-700"
+              barClassName="bg-emerald-600"
+            />
+          </div>
         </div>
 
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">

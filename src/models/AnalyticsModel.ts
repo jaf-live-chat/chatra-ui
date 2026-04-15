@@ -50,6 +50,24 @@ export interface AnalyticsConversationInsights {
   }>;
 }
 
+export interface AnalyticsLocationBreakdownEntry {
+  location: string;
+  visitorCount: number;
+}
+
+export interface AnalyticsLocationSourceEntry {
+  source: string;
+  visitorCount: number;
+}
+
+export interface AnalyticsVisitorLocations {
+  totalVisitors: number;
+  visitorsWithLocation: number;
+  topCountries: AnalyticsLocationBreakdownEntry[];
+  topCities: AnalyticsLocationBreakdownEntry[];
+  locationSources: AnalyticsLocationSourceEntry[];
+}
+
 export interface LiveChatAnalytics {
   periodDays: number;
   dateRange: {
@@ -65,6 +83,7 @@ export interface LiveChatAnalytics {
     operations: AnalyticsOperations;
     conversion: AnalyticsConversion;
     conversationInsights: AnalyticsConversationInsights;
+    visitorLocations: AnalyticsVisitorLocations;
   };
 }
 

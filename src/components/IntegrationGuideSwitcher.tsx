@@ -161,6 +161,10 @@ const IntegrationGuideSwitcher = ({ apiKey, companyName }: IntegrationGuideSwitc
   const [activeTab, setActiveTab] = useState<IntegrationTabKey>("HTML");
   const [copied, setCopied] = useState(false);
 
+  const resolvedWidgetScriptUrl =
+    import.meta.env.VITE_MODE?.toUpperCase() === "LOCAL"
+      ? "./client/dist/widget.js"
+      : "https://jafchatra.com/widget.js";
   const resolvedApiKey = apiKey?.trim() || "YOUR_API_KEY_HERE";
   const resolvedCompanyName = companyName?.trim() || "JAF Chatra";
 
@@ -170,11 +174,12 @@ const IntegrationGuideSwitcher = ({ apiKey, companyName }: IntegrationGuideSwitc
     return {
       ...snippet,
       code: snippet.code
+        .replaceAll("https://jafchatra.com/widget.js", resolvedWidgetScriptUrl)
         .replaceAll("YOUR_API_KEY_HERE", resolvedApiKey)
         .replaceAll("{{YOUR_API_KEY_HERE}}", resolvedApiKey)
         .replaceAll("JAF Chatra", resolvedCompanyName),
     };
-  }, [activeTab, resolvedApiKey, resolvedCompanyName]);
+  }, [activeTab, resolvedApiKey, resolvedCompanyName, resolvedWidgetScriptUrl]);
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(activeSnippet.code);
@@ -316,7 +321,7 @@ const IntegrationGuideSwitcher = ({ apiKey, companyName }: IntegrationGuideSwitc
                   transition: "opacity 180ms ease",
                 }}
               >
-{activeSnippet.code}
+                {activeSnippet.code}
               </Box>
             </Box>
           </Box>
