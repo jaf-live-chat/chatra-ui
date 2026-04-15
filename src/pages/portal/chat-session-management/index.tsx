@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
 import { History, MessagesSquare } from "lucide-react";
 import { HistoryEntry, SubTab } from "../../../models/ChatSessionManagementModel";
@@ -8,7 +8,7 @@ import PageTitle from "../../../components/common/PageTitle";
 import ChatHistorySection from "../../../sections/chat/ChatHistorySection";
 import ChatActiveSection from "../../../sections/chat/ChatActiveSection";
 import { useGetActiveLiveChat, useGetLiveChatHistory } from "../../../hooks/useLiveChat";
-import { LiveChatConversation, LiveChatQueueEntry, LiveChatConversationEndedEvent, LiveChatMessage } from "../../../models/LiveChatModel";
+import { LiveChatConversation, LiveChatQueueEntry, LiveChatMessage } from "../../../models/LiveChatModel";
 import useAuth from "../../../hooks/useAuth";
 import { useStaffLiveChat } from "../../../hooks/useStaffLiveChat";
 
@@ -27,15 +27,10 @@ const ChatSessionManagementPage = () => {
   const { tenant, user } = useAuth();
   const { queue, mutate: mutateQueue } = useGetActiveLiveChat({ page: 1, limit: 100 });
   const { conversations: historyConversations, mutate: mutateHistory } = useGetLiveChatHistory({ page: 1, limit: 100 });
-  const isSupportAgent = String(user?.role || "").toUpperCase() === "SUPPORT_AGENT";
+  const currentUserId = String(user?._id || "").trim();
 
   const assignedQueue = useMemo(() => {
-    if (!isSupportAgent) {
-      return queue || [];
-    }
-
-    const currentAgentId = String(user?._id || "").trim();
-    if (!currentAgentId) {
+    if (!currentUserId) {
       return [];
     }
 
@@ -49,17 +44,12 @@ const ChatSessionManagementPage = () => {
         : null;
 
       const resolvedAgentId = String(directAgentId || conversationAgentId || "").trim();
-      return resolvedAgentId === currentAgentId;
+      return resolvedAgentId === currentUserId;
     });
-  }, [isSupportAgent, queue, user?._id]);
+  }, [currentUserId, queue]);
 
   const assignedHistoryConversations = useMemo(() => {
-    if (!isSupportAgent) {
-      return historyConversations;
-    }
-
-    const currentAgentId = String(user?._id || "").trim();
-    if (!currentAgentId) {
+    if (!currentUserId) {
       return [];
     }
 
@@ -68,9 +58,9 @@ const ChatSessionManagementPage = () => {
         ? conversation.agentId?._id
         : conversation.agentId;
 
-      return String(conversationAgentId || "").trim() === currentAgentId;
+      return String(conversationAgentId || "").trim() === currentUserId;
     });
-  }, [historyConversations, isSupportAgent, user?._id]);
+  }, [currentUserId, historyConversations]);
 
   // Set up event dispatchers for custom events
   const dispatchLiveChatEvent = <T,>(eventName: string, detail: T) => {
