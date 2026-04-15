@@ -9,15 +9,17 @@ import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
 import Dialog from "@mui/material/Dialog";
 import DialogContent from "@mui/material/DialogContent";
-import DialogTitle from "@mui/material/DialogTitle";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import ReusableTable, { type ReusableTableColumn } from "../../components/ReusableTable";
 import TitleTag from "../../components/TitleTag";
+import ChatTranscript from "../../components/ChatTranscript";
 import { useGetConversationMessages } from "../../hooks/useLiveChat";
 import { useGetVisitorDetails } from "../../hooks/useVisitors";
+import useCompanyBranding from "../../hooks/useCompanyBranding";
 import type { LiveChatMessage } from "../../models/LiveChatModel";
+import type { ChatMessage } from "../../models/ChatSessionManagementModel";
 import type {
   ConversationMessagesDialogState,
   VisitorConversationHistory,
@@ -136,6 +138,20 @@ const resolveStatusLabel = (status?: string) => {
   return "Unknown";
 };
 
+const resolveTranscriptStatus = (status?: string): "WAITING" | "OPEN" | "ENDED" => {
+  const normalizedStatus = String(status || "").toUpperCase();
+
+  if (normalizedStatus === "WAITING") {
+    return "WAITING";
+  }
+
+  if (normalizedStatus === "OPEN") {
+    return "OPEN";
+  }
+
+  return "ENDED";
+};
+
 const getDurationLabel = (conversation: VisitorConversationHistory) => {
   const startSource = conversation.assignedAt || conversation.queuedAt || conversation.createdAt;
   const endSource = conversation.closedAt || conversation.updatedAt;
@@ -175,6 +191,7 @@ const VisitorDetailsSection = () => {
   const { id } = useParams();
   const [page, setPage] = useState(1);
   const [messageDialog, setMessageDialog] = useState<ConversationMessagesDialogState | null>(null);
+  const { companyName, logos } = useCompanyBranding();
 
   const { visitor, conversations, pagination, isLoading, error } = useGetVisitorDetails(id, {
     page,
@@ -193,6 +210,16 @@ const VisitorDetailsSection = () => {
   const visitorName = useMemo(() => {
     return resolveVisitorName(visitor?.displayName || visitor?.name, visitor?.emailAddress);
   }, [visitor?.displayName, visitor?.emailAddress, visitor?.name]);
+
+  const selectedConversation = useMemo(() => {
+    if (!messageDialog?.conversationId) {
+      return null;
+    }
+
+    return (
+      conversations.find((conversation) => String(conversation._id) === messageDialog.conversationId) || null
+    );
+  }, [conversations, messageDialog?.conversationId]);
 
   const locationLabel = useMemo(() => {
     const city = String(visitor?.locationCity || "").trim();
@@ -557,80 +584,83 @@ const VisitorDetailsSection = () => {
       <Dialog
         open={Boolean(messageDialog)}
         onClose={() => setMessageDialog(null)}
-        maxWidth="md"
+        maxWidth="sm"
         fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 1,
+            maxHeight: "90vh",
+          },
+        }}
       >
-        <DialogTitle sx={{ fontWeight: 800 }}>
-          {messageDialog?.title || "Conversation"} Messages
-        </DialogTitle>
-
-        <DialogContent sx={{ pt: 1 }}>
+        <DialogContent sx={{ p: 0, overflow: "hidden", height: "90vh" }}>
           {isMessagesLoading ? (
-            <Stack direction="row" spacing={1} alignItems="center" justifyContent="center" sx={{ py: 4 }}>
+            <Stack
+              direction="row"
+              spacing={1}
+              alignItems="center"
+              justifyContent="center"
+              sx={{ py: 4, height: "100%" }}
+            >
               <CircularProgress size={18} />
               <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                Loading messages...
+                Loading transcript...
               </Typography>
             </Stack>
           ) : null}
 
           {!isMessagesLoading && messagesError ? (
-            <Alert severity="error">Failed to load messages for this conversation.</Alert>
+            <Box sx={{ p: 3 }}>
+              <Alert severity="error">
+                Failed to load transcript for this conversation.
+              </Alert>
+            </Box>
           ) : null}
 
-          {!isMessagesLoading && !messagesError && messages.length === 0 ? (
-            <Typography variant="body2" sx={{ color: "text.secondary", py: 2 }}>
-              No messages were found for this conversation.
-            </Typography>
+          {!isMessagesLoading &&
+          !messagesError &&
+          messages.length === 0 ? (
+            <Box sx={{ p: 3 }}>
+              <Typography
+                variant="body2"
+                sx={{ color: "text.secondary", textAlign: "center" }}
+              >
+                No messages found for this conversation.
+              </Typography>
+            </Box>
           ) : null}
 
-          {!isMessagesLoading && !messagesError && messages.length > 0 ? (
-            <Stack spacing={1.4} sx={{ py: 1.2 }}>
-              {messages.map((message) => {
-                const isVisitor = message.senderType === "VISITOR";
-
-                return (
-                  <Stack
-                    key={message._id}
-                    alignItems={isVisitor ? "flex-start" : "flex-end"}
-                    spacing={0.5}
-                  >
-                    <Stack direction="row" spacing={0.8} alignItems="center">
-                      <Chip
-                        label={getMessageSenderLabel(message)}
-                        size="small"
-                        color={isVisitor ? "default" : "primary"}
-                        sx={{ height: 22, fontWeight: 700 }}
-                      />
-                      <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                        {toDateLabel(message.createdAt)}
-                      </Typography>
-                    </Stack>
-
-                    <Box
-                      sx={(theme) => ({
-                        px: 1.5,
-                        py: 1,
-                        borderRadius: 1,
-                        maxWidth: "86%",
-                        border: "1px solid",
-                        borderColor: "divider",
-                        bgcolor: isVisitor
-                          ? theme.palette.action.hover
-                          : theme.palette.primary.main,
-                        color: isVisitor
-                          ? theme.palette.text.primary
-                          : theme.palette.primary.contrastText,
-                      })}
-                    >
-                      <Typography variant="body2" sx={{ lineHeight: 1.5 }}>
-                        {message.message}
-                      </Typography>
-                    </Box>
-                  </Stack>
-                );
-              })}
-            </Stack>
+          {!isMessagesLoading &&
+          !messagesError &&
+          messages.length > 0 ? (
+            <ChatTranscript
+              chatId={messageDialog?.title || "CHAT_UNKNOWN"}
+              status={resolveTranscriptStatus(selectedConversation?.status)}
+              visitorName={visitorName}
+              visitorLocation={locationLabel}
+              agentName={selectedConversation ? resolveAgentName(selectedConversation) : "Support Agent"}
+              messages={messages.map<ChatMessage>((msg) => ({
+                id: msg._id,
+                sender: msg.senderType === "VISITOR" ? "visitor" : "agent",
+                text: msg.message,
+                timestamp:
+                  msg.createdAt &&
+                  new Date(msg.createdAt).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  }) || "-",
+                status: msg.status,
+              }))}
+              startDate={
+                messages[0]?.createdAt ||
+                new Date().toISOString()
+              }
+              companyName={companyName}
+              companyLogoUrl={logos?.dark}
+              visitorAvatar={getInitials(visitorName).charAt(0)}
+              agentAvatar={getInitials(selectedConversation ? resolveAgentName(selectedConversation) : "Support Agent").charAt(0)}
+              onClose={() => setMessageDialog(null)}
+            />
           ) : null}
         </DialogContent>
       </Dialog>
