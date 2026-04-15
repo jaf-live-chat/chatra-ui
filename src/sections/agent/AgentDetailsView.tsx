@@ -25,6 +25,7 @@ import Agents from "../../services/agentServices";
 import type { AuthAgent } from "../../models/AgentModel";
 import toTitleCase from "../../utils/toTitleCase";
 import AgentEditDialog from "./components/AgentEditDialog";
+import idLabel from "../../utils/idUtils";
 
 
 type AgentDetails = AuthAgent & {
@@ -535,7 +536,7 @@ const AgentDetailsView = () => {
               <Stack spacing={1.6} sx={{ maxHeight: 340, overflowY: "auto", pr: 0.5 }}>
                 {recentFeedback.length > 0 ? recentFeedback.map((item) => {
                   const visitorName = String(item.visitorId && typeof item.visitorId === "object"
-                    ? item.visitorId.fullName || item.visitorId.name || item.visitorId.visitorToken || "Visitor"
+                    ? item.visitorId.fullName || item.visitorId.name || `${idLabel(item?.visitorId?.visitorToken ?? "", "VISITOR")}` || "Visitor"
                     : "Visitor").trim();
 
                   return (

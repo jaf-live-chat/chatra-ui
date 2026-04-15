@@ -21,7 +21,7 @@ interface QuickMessage {
 }
 
 type WidgetTranscriptMessage = LiveChatMessage & {
-  localKind?: "quick-question" | "quick-typing" | "quick-response" | "queue-update" | "assignment-update" | "system-typing";
+  localKind?: "quick-question" | "quick-typing" | "quick-response" | "queue-update" | "assignment-update" | "system-typing" | "system-welcome";
   quickReplyId?: string;
 };
 
@@ -319,6 +319,8 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
   const [browserLocationStatus, setBrowserLocationStatus] = useState<"idle" | "resolving" | "resolved" | "denied" | "unavailable" | "error">("idle");
   const [locationPermissionState, setLocationPermissionState] = useState<LocationPermissionState>("unknown");
   const [isEndChatModalOpen, setIsEndChatModalOpen] = useState(false);
+  const [isEndSessionModalOpen, setIsEndSessionModalOpen] = useState(false);
+  const [isSessionEndPendingFeedback, setIsSessionEndPendingFeedback] = useState(false);
   const [isFeedbackPromptOpen, setIsFeedbackPromptOpen] = useState(false);
   const [feedbackConversationId, setFeedbackConversationId] = useState("");
   const [feedbackRating, setFeedbackRating] = useState(0);
@@ -1269,10 +1271,67 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
     }, 1100);
   }, [clearQuickReplyTimer, isQuickReplyBlocked]);
 
+  const appendCustomerFriendlyWelcomeMessage = useCallback(() => {
+    const automatedWelcomeMessage = `Hi ${visitorGreetingName}! Welcome to ${title}. We're happy to help. Tell us what you need, and we'll support you as quickly as possible.`;
+    const targetConversationId = String(conversationId || "pre-chat");
+    const replyToken = `${targetConversationId}-${Date.now()}`;
+    const typingId = `welcome-typing-${replyToken}`;
+    const messageId = `system-welcome-${replyToken}`;
+
+    setMessages((currentMessages) => {
+      const hasExistingWelcome = currentMessages.some((entry) => entry.localKind === "system-welcome");
+      if (hasExistingWelcome) {
+        return currentMessages;
+      }
+
+      const typingMessage: WidgetTranscriptMessage = {
+        _id: typingId,
+        conversationId: targetConversationId,
+        senderType: "SUPPORT_AGENT",
+        senderId: "SYSTEM",
+        message: "",
+        status: "DELIVERED",
+        createdAt: getNextOrderedTimestamp(currentMessages),
+        localKind: "system-typing",
+      };
+
+      return normalizeMessages([...currentMessages, typingMessage]);
+    });
+
+    const timerId = window.setTimeout(() => {
+      setMessages((currentMessages) => {
+        const withoutTyping = currentMessages.filter((entry) => String(entry._id) !== typingId);
+        const hasExistingWelcome = withoutTyping.some((entry) => entry.localKind === "system-welcome");
+
+        if (hasExistingWelcome) {
+          return withoutTyping;
+        }
+
+        const welcomeMessageEntry: WidgetTranscriptMessage = {
+          _id: messageId,
+          conversationId: targetConversationId,
+          senderType: "SUPPORT_AGENT",
+          senderId: "SYSTEM",
+          message: automatedWelcomeMessage,
+          status: "DELIVERED",
+          createdAt: getNextOrderedTimestamp(withoutTyping),
+          localKind: "system-welcome",
+        };
+
+        return normalizeMessages([...withoutTyping, welcomeMessageEntry]);
+      });
+
+      systemAutoReplyTimersRef.current = systemAutoReplyTimersRef.current.filter((activeTimerId) => activeTimerId !== timerId);
+    }, SYSTEM_AUTO_REPLY_TYPING_MS);
+
+    systemAutoReplyTimersRef.current.push(timerId);
+  }, [conversationId, title, visitorGreetingName]);
+
   const handleCompletePreChat = useCallback(() => {
     setHasCompletedPreChat(true);
     setErrorMessage("");
-  }, []);
+    appendCustomerFriendlyWelcomeMessage();
+  }, [appendCustomerFriendlyWelcomeMessage]);
 
   const openPostChatFeedbackPrompt = useCallback((endedConversationId?: string) => {
     const targetConversationId = String(endedConversationId || conversationId || "").trim();
@@ -1329,17 +1388,10 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
   const handleGoBackToStart = useCallback(() => {
     resetConversationState();
     setWidgetView("chat");
-  }, [resetConversationState]);
+    appendCustomerFriendlyWelcomeMessage();
+  }, [appendCustomerFriendlyWelcomeMessage, resetConversationState]);
 
-  const handleEndSession = useCallback(async () => {
-    if (conversationId) {
-      try {
-        await liveChatWidgetServices.endConversation(widgetConfig, visitorToken, conversationId);
-      } catch {
-        // Continue logging out even if ending the active chat fails.
-      }
-    }
-
+  const finalizeEndSession = useCallback(() => {
     clearSystemAutoReplyTimers();
     clearQuickReplyTimer();
     stopVisitorTyping(false);
@@ -1375,11 +1427,41 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
     setWidgetView("chat");
     setProfileStatusMessage("Session ended. You are logged out.");
     setIsEndChatModalOpen(false);
+    setIsEndSessionModalOpen(false);
+    setIsSessionEndPendingFeedback(false);
+    setIsFeedbackPromptOpen(false);
+    setFeedbackConversationId("");
+    setFeedbackRating(0);
+    setFeedbackComment("");
+    setFeedbackMessage("");
+    setIsFeedbackSubmitting(false);
     setIsAgentTyping(false);
     latestQueuePositionRef.current = null;
     pendingQueuePositionRef.current = null;
     assignmentNoticeConversationIdRef.current = "";
-  }, [clearAgentTypingTimer, clearQuickReplyTimer, clearSystemAutoReplyTimers, conversationId, disconnectSocket, stopVisitorTyping, visitorToken, widgetConfig]);
+  }, [clearAgentTypingTimer, clearQuickReplyTimer, clearSystemAutoReplyTimers, disconnectSocket, stopVisitorTyping]);
+
+  const handleEndSession = useCallback(async () => {
+    setIsEndSessionModalOpen(false);
+
+    const activeConversationId = String(conversationId || "").trim();
+    if (activeConversationId) {
+      try {
+        await liveChatWidgetServices.endConversation(widgetConfig, visitorToken, activeConversationId);
+      } catch {
+        // Continue session-end flow even if ending the active chat fails.
+      }
+
+      const hasFeedbackAlreadyHandled = readStoredValue(WIDGET_FEEDBACK_CONVERSATION_KEY) === activeConversationId;
+      if (!hasFeedbackAlreadyHandled) {
+        setIsSessionEndPendingFeedback(true);
+        openPostChatFeedbackPrompt(activeConversationId);
+        return;
+      }
+    }
+
+    finalizeEndSession();
+  }, [conversationId, finalizeEndSession, openPostChatFeedbackPrompt, visitorToken, widgetConfig]);
 
   const appendEndedMessage = useCallback((payload: LiveChatConversationEndedEvent) => {
     const endedBy = payload.endedBy?.displayName ? ` Ended by ${payload.endedBy.displayName}.` : "";
@@ -1414,7 +1496,11 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
     setFeedbackComment("");
     setFeedbackMessage("");
     setIsFeedbackSubmitting(false);
-  }, [feedbackConversationId]);
+
+    if (isSessionEndPendingFeedback) {
+      finalizeEndSession();
+    }
+  }, [feedbackConversationId, finalizeEndSession, isSessionEndPendingFeedback]);
 
   const submitPostChatFeedback = useCallback(async () => {
     const targetConversationId = String(feedbackConversationId || "").trim();
@@ -1677,6 +1763,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
     if (isOpen) {
       setWidgetView("chat");
       setIsEndChatModalOpen(false);
+      setIsEndSessionModalOpen(false);
       setShowQuickMessages(false);
       setProfileStatusMessage("");
     }
@@ -2413,7 +2500,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                       <button
                         type="button"
                         onClick={() => {
-                          void handleEndSession();
+                          setIsEndSessionModalOpen(true);
                         }}
                         className="mt-3 w-full rounded-xl px-3 py-2 text-sm font-semibold text-white"
                         style={{ backgroundColor: resolvedAccent }}
@@ -2783,6 +2870,53 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                     className={`h-11 rounded-2xl text-base font-semibold transition-colors ${theme.modalPrimary}`}
                   >
                     Yes, end chat
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsEndChatModalOpen(false);
+                    setIsEndSessionModalOpen(true);
+                  }}
+                  className={`mt-3 h-11 w-full rounded-2xl text-base font-semibold transition-colors ${theme.modalSecondary}`}
+                >
+                  End session instead
+                </button>
+              </div>
+            </div>
+          ) : null}
+
+          {isEndSessionModalOpen ? (
+            <div className={`absolute inset-0 z-40 backdrop-blur-[5px] ${theme.modalBackdrop} flex items-center justify-center p-4`}>
+              <div className={`w-full max-w-[340px] rounded-3xl p-5 ${theme.modalCard}`}>
+                <div className="flex justify-center mb-3">
+                  <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center">
+                    <AlertCircle className="h-6 w-6 text-red-500" />
+                  </div>
+                </div>
+
+                <h3 className="text-center text-xl font-semibold">End this session?</h3>
+                <p className={`text-center mt-2 text-sm ${theme.settingsMuted}`}>
+                  This will erase your current visitor session on this browser, and your past chat transcripts will no longer be viewable from this widget.
+                </p>
+
+                <div className="mt-5 grid grid-cols-2 gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setIsEndSessionModalOpen(false)}
+                    className={`h-11 rounded-2xl text-base font-semibold transition-colors ${theme.modalSecondary}`}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void handleEndSession();
+                    }}
+                    className={`h-11 rounded-2xl text-base font-semibold transition-colors ${theme.modalPrimary}`}
+                  >
+                    Yes, end session
                   </button>
                 </div>
               </div>
