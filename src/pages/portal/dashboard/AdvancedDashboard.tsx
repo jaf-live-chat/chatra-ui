@@ -1,8 +1,9 @@
-import { ArrowRight, Activity, Clock3, MessageCircle, MessageSquareText, Users, Bot, Scale } from "lucide-react";
+import { ArrowRight, Activity, Clock3, MessageCircle, MessageSquareText, Users, Bot, Scale, CreditCard } from "lucide-react";
 import { useMemo } from "react";
 import { useNavigate } from "react-router";
 import StandardDashboard from "./StandardDashboard";
 import useAuth from "../../../hooks/useAuth";
+import useGetRole from "../../../hooks/useGetRole";
 import { useGetLiveChatAnalytics } from "../../../services/analyticsServices";
 
 const formatInteger = (value?: number | null) => {
@@ -44,6 +45,7 @@ const sectionCardClass = "rounded-3xl border border-slate-200 bg-white p-5 shado
 const AdvancedDashboard = () => {
   const navigate = useNavigate();
   const { tenant } = useAuth();
+  const { isMasterAdmin } = useGetRole();
   const { analytics, isLoading, error, mutate } = useGetLiveChatAnalytics({ days: 7 });
 
   const overview = analytics?.overview;
@@ -129,6 +131,16 @@ const AdvancedDashboard = () => {
               Open full analytics
               <ArrowRight className="h-4 w-4" />
             </button>
+            {isMasterAdmin && (
+              <button
+                type="button"
+                onClick={() => navigate("/portal/payments")}
+                className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-800 transition hover:border-emerald-300 hover:bg-emerald-100 dark:border-emerald-900/40 dark:bg-emerald-900/20 dark:text-emerald-300"
+              >
+                Open payments
+                <ArrowRight className="h-4 w-4" />
+              </button>
+            )}
           </div>
         </div>
 
@@ -329,6 +341,46 @@ const AdvancedDashboard = () => {
           </div>
         </div>
       </div>
+
+      {isMasterAdmin && (
+        <div className={sectionCardClass}>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <div className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-900/20 dark:text-emerald-300">
+                Master Admin
+              </div>
+              <h4 className="mt-3 text-lg font-bold tracking-tight text-slate-900 dark:text-slate-100">Payments & subscriptions</h4>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Billing operations and subscription tracking are visible only to Master Admin.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => navigate("/portal/payments")}
+              className="inline-flex items-center gap-2 rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 dark:bg-cyan-600 dark:hover:bg-cyan-500"
+            >
+              Go to payments
+              <ArrowRight className="h-4 w-4" />
+            </button>
+          </div>
+
+          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="rounded-2xl bg-slate-50 px-4 py-3 dark:bg-slate-900/60">
+              <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Tracked chats</p>
+              <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-slate-100">{formatInteger(overview?.totalChats)}</p>
+            </div>
+            <div className="rounded-2xl bg-slate-50 px-4 py-3 dark:bg-slate-900/60">
+              <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Messages</p>
+              <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-slate-100">{formatInteger(overview?.totalMessages)}</p>
+            </div>
+            <div className="rounded-2xl bg-emerald-50 px-4 py-3 text-emerald-900 dark:bg-emerald-900/20 dark:text-emerald-100">
+              <p className="text-xs uppercase tracking-wide opacity-80">Payment center</p>
+              <p className="mt-1 inline-flex items-center gap-2 text-sm font-semibold">
+                <CreditCard className="h-4 w-4" />
+                Manage billing and invoices
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

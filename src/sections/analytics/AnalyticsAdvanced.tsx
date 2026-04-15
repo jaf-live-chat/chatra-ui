@@ -1,7 +1,9 @@
 import {
   Activity,
+  ArrowRight,
   Bot,
   Clock3,
+  CreditCard,
   MessageCircle,
   MessageSquareText,
   RotateCcw,
@@ -9,8 +11,13 @@ import {
   UserRoundCheck,
   Users,
 } from "lucide-react";
+import { useMemo } from "react";
+import { useNavigate } from "react-router";
 import PageTitle from "../../components/common/PageTitle";
+import useGetRole from "../../hooks/useGetRole";
 import type { LiveChatAnalytics } from "../../models/AnalyticsModel";
+import { useGetPayments } from "../../services/paymentServices";
+import formatAmount from "../../utils/amountFormatter";
 
 type AnalyticsAdvancedProps = {
   analytics?: LiveChatAnalytics | null;
@@ -59,9 +66,31 @@ const AnalyticsAdvanced = ({
   hasDataError = false,
   onRetry,
 }: AnalyticsAdvancedProps) => {
+  const navigate = useNavigate();
+  const { isMasterAdmin } = useGetRole();
+  const { payments, isLoading: isPaymentsLoading, error: paymentsError } = useGetPayments();
   const overview = analytics?.overview;
   const trends = analytics?.trends;
   const advanced = analytics?.advanced;
+
+  const paymentSummary = useMemo(() => {
+    const completed = payments.filter((payment) => payment.status === "COMPLETED");
+    const pending = payments.filter((payment) => payment.status === "PENDING");
+    const failed = payments.filter((payment) => payment.status === "FAILED");
+
+    const totalRevenue = completed.reduce((sum, payment) => {
+      const amount = Number(payment.amount ?? 0);
+      return Number.isFinite(amount) ? sum + amount : sum;
+    }, 0);
+
+    return {
+      totalRevenue,
+      completedCount: completed.length,
+      pendingCount: pending.length,
+      failedCount: failed.length,
+      totalTransactions: payments.length,
+    };
+  }, [payments]);
 
   return (
     <>
@@ -77,9 +106,22 @@ const AnalyticsAdvanced = ({
             <h1 className="text-3xl font-bold tracking-tight text-slate-900">Live Chat Analytics</h1>
             <p className="mt-2 text-base text-slate-600">Advanced performance monitoring and customer insights.</p>
           </div>
-          <span className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs font-bold uppercase tracking-wide text-emerald-800">
-            Pro unlocked
-          </span>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs font-bold uppercase tracking-wide text-emerald-800">
+              Pro unlocked
+            </span>
+            {isMasterAdmin && (
+              <button
+                type="button"
+                onClick={() => navigate("/portal/payments")}
+                className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-white px-4 py-2 text-xs font-bold uppercase tracking-wide text-emerald-800 transition hover:bg-emerald-50"
+              >
+                <CreditCard className="h-3.5 w-3.5" />
+                Payments
+                <ArrowRight className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
         </div>
 
         {hasDataError && (
@@ -225,15 +267,59 @@ const AnalyticsAdvanced = ({
               )}
             </div>
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h3 className="text-2xl font-bold tracking-tight text-slate-900">Payment &amp; Subscriptions</h3>
-            <p className="mt-2 text-sm text-slate-600">Monthly recurring revenue and plan upgrade trends.</p>
-            <div className="mt-6 rounded-xl border border-slate-100 bg-slate-50 p-4">
-              <p className="text-sm text-slate-500">Tracked chats this period</p>
-              <p className="mt-1 text-5xl font-bold tracking-tight text-slate-900">{formatInteger(overview?.totalChats)}</p>
-              <div className="mt-4 h-28 rounded-lg bg-gradient-to-r from-emerald-100 to-cyan-50" />
+          {isMasterAdmin && (
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="text-2xl font-bold tracking-tight text-slate-900">Payment &amp; Subscriptions</h3>
+                  <p className="mt-2 text-sm text-slate-600">Revenue and transaction performance for completed payments.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => navigate("/portal/payments")}
+                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-cyan-200 hover:text-cyan-700"
+                >
+                  Open payments
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </button>
+              </div>
+
+              <div className="mt-6 rounded-xl border border-emerald-100 bg-gradient-to-r from-emerald-50 to-cyan-50 p-4">
+                <p className="text-sm font-semibold text-emerald-900">Total Revenue</p>
+                <p className="mt-1 text-4xl font-bold tracking-tight text-emerald-950">
+                  {isPaymentsLoading ? "Loading..." : formatAmount(paymentSummary.totalRevenue)}
+                </p>
+                <p className="mt-1 text-xs text-emerald-900/80">
+                  From {formatInteger(paymentSummary.completedCount)} completed payments
+                </p>
+              </div>
+
+              {paymentsError && (
+                <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                  Payments summary is temporarily unavailable. Open Payments to retry.
+                </p>
+              )}
+
+              <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                <div className="rounded-xl bg-slate-50 px-4 py-3">
+                  <p className="text-slate-500">Total transactions</p>
+                  <p className="mt-1 text-2xl font-bold text-slate-900">{formatInteger(paymentSummary.totalTransactions)}</p>
+                </div>
+                <div className="rounded-xl bg-emerald-50 px-4 py-3">
+                  <p className="text-emerald-700">Completed</p>
+                  <p className="mt-1 text-2xl font-bold text-emerald-900">{formatInteger(paymentSummary.completedCount)}</p>
+                </div>
+                <div className="rounded-xl bg-amber-50 px-4 py-3">
+                  <p className="text-amber-700">Pending</p>
+                  <p className="mt-1 text-2xl font-bold text-amber-900">{formatInteger(paymentSummary.pendingCount)}</p>
+                </div>
+                <div className="rounded-xl bg-rose-50 px-4 py-3">
+                  <p className="text-rose-700">Failed</p>
+                  <p className="mt-1 text-2xl font-bold text-rose-900">{formatInteger(paymentSummary.failedCount)}</p>
+                </div>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </>
