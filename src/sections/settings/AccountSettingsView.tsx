@@ -570,19 +570,19 @@ const AccountSettingsView = () => {
           />
         </Box>
 
-        <div className="flex gap-6">
+        <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
           {/* Sidebar Tabs */}
-          <div className="w-56 shrink-0">
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="w-full lg:w-56 lg:shrink-0">
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-x-auto lg:overflow-hidden">
               {sections.map((section) => {
                 const Icon = section.icon;
                 return (
                   <button
                     key={section.id}
                     onClick={() => setActiveSection(section.id)}
-                    className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors text-left ${activeSection === section.id
-                      ? "bg-cyan-50 text-cyan-700 border-l-[3px] border-cyan-600"
-                      : "text-gray-600 hover:bg-gray-50 border-l-[3px] border-transparent"
+                    className={`inline-flex lg:flex w-auto lg:w-full min-w-[140px] lg:min-w-0 items-center gap-3 px-4 py-3 text-sm font-medium transition-colors text-left ${activeSection === section.id
+                      ? "bg-cyan-50 text-cyan-700 border-b-2 lg:border-b-0 lg:border-l-[3px] border-cyan-600"
+                      : "text-gray-600 hover:bg-gray-50 border-b-2 lg:border-b-0 lg:border-l-[3px] border-transparent"
                       }`}
                   >
                     <Icon className="w-4 h-4 shrink-0" />
@@ -594,12 +594,12 @@ const AccountSettingsView = () => {
           </div>
 
           {/* Content */}
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             {/* Profile Section */}
             {activeSection === "profile" && (
               <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
                 {/* Avatar Area */}
-                <div className="p-6 border-b border-gray-100 flex items-center gap-5">
+                <div className="p-6 border-b border-gray-100 flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-5">
                   <AvatarUpload
                     imageUrl={clearAvatarRequested ? null : pendingAvatarPreviewUrl || avatarUrl}
                     fullName={`${profile.firstName} ${profile.lastName}`}
@@ -633,7 +633,7 @@ const AccountSettingsView = () => {
                     </div>
                   )}
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1.5">
                         First Name
@@ -728,11 +728,11 @@ const AccountSettingsView = () => {
                 </div>
 
                 {/* Save Button */}
-                <div className="px-6 py-4 border-t border-gray-100 flex justify-end">
+                <div className="px-6 py-4 border-t border-gray-100 flex justify-stretch sm:justify-end">
                   <button
                     onClick={handleProfileSave}
                     disabled={isProfileLoading || isProfileSaving}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg text-sm font-semibold transition-colors cursor-pointer"
+                    className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg text-sm font-semibold transition-colors cursor-pointer"
                   >
                     {isProfileSaving ? (
                       <>
@@ -846,11 +846,11 @@ const AccountSettingsView = () => {
                 </div>
 
                 {/* Save */}
-                <div className="px-6 py-4 border-t border-gray-100 flex justify-end">
+                <div className="px-6 py-4 border-t border-gray-100 flex justify-stretch sm:justify-end">
                   <button
                     onClick={handleSecuritySave}
                     disabled={isSecuritySaving}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg text-sm font-semibold transition-colors cursor-pointer"
+                    className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg text-sm font-semibold transition-colors cursor-pointer"
                   >
                     {isSecuritySaving ? (
                       <>
@@ -954,14 +954,14 @@ const AccountSettingsView = () => {
                           API key will appear once your tenant has an active purchased subscription.
                         </div>
                       ) : (
-                        <div className="flex items-center gap-3">
-                          <code className="flex-1 px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800 font-mono select-all break-all">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                          <code className="w-full sm:flex-1 px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800 font-mono select-all break-all">
                             {tenantApiKey || "No API key available"}
                           </code>
                           <button
                             onClick={() => handleCopy(tenantApiKey || "", "apiKey")}
                             disabled={!tenantApiKey}
-                            className="flex items-center gap-1.5 px-3 py-2.5 bg-cyan-50 text-cyan-700 hover:bg-cyan-100 rounded-lg text-sm font-medium transition-colors cursor-pointer disabled:opacity-60"
+                            className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-3 py-2.5 bg-cyan-50 text-cyan-700 hover:bg-cyan-100 rounded-lg text-sm font-medium transition-colors cursor-pointer disabled:opacity-60"
                           >
                             {copied === "apiKey" ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                             {copied === "apiKey" ? "Copied!" : "Copy"}
@@ -977,10 +977,12 @@ const AccountSettingsView = () => {
                       <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
                         <Code className="w-4 h-4 text-gray-400" /> Widget Installation
                       </h3>
-                      <IntegrationGuideSwitcher
-                        apiKey={tenantApiKey || undefined}
-                        companyName={tenant?.companyName || undefined}
-                      />
+                      <div className="min-w-0 overflow-x-auto">
+                        <IntegrationGuideSwitcher
+                          apiKey={tenantApiKey || undefined}
+                          companyName={tenant?.companyName || undefined}
+                        />
+                      </div>
                     </div>
                   </div>
                 )}
