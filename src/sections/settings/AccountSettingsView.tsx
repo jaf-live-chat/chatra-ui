@@ -21,6 +21,7 @@ import AvatarUpload from "../../components/uploads/AvatarUpload";
 import { API_BASE_URL } from "../../constants/constants";
 import PageTitle from "../../components/common/PageTitle";
 import TitleTag from "../../components/TitleTag"
+import IntegrationGuideSwitcher from "../../components/IntegrationGuideSwitcher";
 import { Box } from "@mui/material";
 
 const ACCOUNT_SETTINGS_UNLOCK_MS = 10 * 60 * 1000;
@@ -551,8 +552,6 @@ const AccountSettingsView = () => {
     !isExpiredByDate;
 
   const tenantApiKey = canViewTenantApiKey && hasActiveTenantPurchase ? tenant?.apiKey || "" : "";
-  const scriptApiKey = tenantApiKey || "{{YOUR_API_KEY_HERE}}";
-  const widgetScript = `<!-- JAF Chatra Widget -->\n<script src="${import.meta.env.MODE !== "LOCAL" ? "./client/dist/widget.js" : "https://jafchatra.com/widget.js"}" data-api-key="${scriptApiKey}"></script>`;
 
   return (
     <React.Fragment>
@@ -978,30 +977,10 @@ const AccountSettingsView = () => {
                       <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
                         <Code className="w-4 h-4 text-gray-400" /> Widget Installation
                       </h3>
-                      <p className="text-xs text-gray-500 mb-3">
-                        Paste this snippet before the closing <code className="text-cyan-600">&lt;/body&gt;</code> tag of your website.
-                      </p>
-                      <div className="relative">
-                        <pre className="px-4 py-3.5 bg-gray-900 text-gray-100 rounded-lg text-xs font-mono overflow-x-auto whitespace-pre-wrap">
-                          {widgetScript}
-                        </pre>
-                        <motion.button
-                          whileTap={{ scale: 0.93 }}
-                          whileHover={{ scale: 1.05 }}
-                          onClick={() => handleCopy(widgetScript, "widget")}
-                          className="absolute top-2.5 right-2.5 flex items-center gap-1.5 px-2.5 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-md text-xs font-medium transition-colors cursor-pointer"
-                        >
-                          {copied === "widget" ? (
-                            <span className="flex items-center gap-1.5 text-green-400">
-                              <Check className="w-3.5 h-3.5" /> Copied!
-                            </span>
-                          ) : (
-                            <span className="flex items-center gap-1.5">
-                              <Copy className="w-3.5 h-3.5" /> Copy
-                            </span>
-                          )}
-                        </motion.button>
-                      </div>
+                      <IntegrationGuideSwitcher
+                        apiKey={tenantApiKey || undefined}
+                        companyName={tenant?.companyName || undefined}
+                      />
                     </div>
                   </div>
                 )}
