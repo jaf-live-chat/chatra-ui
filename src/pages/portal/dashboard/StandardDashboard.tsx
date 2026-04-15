@@ -20,6 +20,7 @@ import useAuth from "../../../hooks/useAuth";
 import useGetRole from "../../../hooks/useGetRole";
 import { useGetActiveLiveChat, useGetLiveChatHistory, useGetLiveChatQueue } from "../../../hooks/useLiveChat";
 import { useGetAgents } from "../../../services/agentServices";
+import { useGetLiveChatAnalytics } from "../../../services/analyticsServices";
 import type { LiveChatConversation, LiveChatQueueEntry } from "../../../models/LiveChatModel";
 import toTitleCase from "../../../utils/toTitleCase";
 
@@ -393,6 +394,7 @@ const StandardDashboard = ({ hideAnalyticsTeaser = false }: StandardDashboardPro
     useGetActiveLiveChat({ page: 1, limit: 10 });
   const { conversations: historyConversations, isLoading: isHistoryLoading, error: historyError, mutate: mutateHistory } =
     useGetLiveChatHistory({ page: 1, limit: 10 });
+  const { analytics, error: analyticsError, mutate: mutateAnalytics } = useGetLiveChatAnalytics({ days: 7 });
 
   const currentAgentId = String(user?._id || "").trim();
   const currentRole = String(user?.role || "").toUpperCase();
@@ -422,7 +424,7 @@ const StandardDashboard = ({ hideAnalyticsTeaser = false }: StandardDashboardPro
 
   const visibleWaitingQueue = useMemo(() => waitingQueue, [waitingQueue]);
 
-  const waitSeconds = useMemo(() => {
+  const fallbackWaitSeconds = useMemo(() => {
     const values = visibleWaitingQueue
       .map((entry) => {
         const startedAt = entry.queuedAt || entry.createdAt;
@@ -441,6 +443,16 @@ const StandardDashboard = ({ hideAnalyticsTeaser = false }: StandardDashboardPro
 
     return values.reduce((sum, value) => sum + value, 0) / values.length;
   }, [visibleWaitingQueue]);
+
+  const averageWaitSeconds = useMemo(() => {
+    const analyticsWait = analytics?.overview?.averageResponseTimeSeconds;
+
+    if (Number.isFinite(analyticsWait)) {
+      return Number(analyticsWait);
+    }
+
+    return fallbackWaitSeconds;
+  }, [analytics?.overview?.averageResponseTimeSeconds, fallbackWaitSeconds]);
 
   const summaryCards = useMemo(
     () => [
@@ -467,13 +479,13 @@ const StandardDashboard = ({ hideAnalyticsTeaser = false }: StandardDashboardPro
       },
       {
         label: "Avg. Wait Time",
-        value: formatDuration(waitSeconds),
+        value: formatDuration(averageWaitSeconds),
         icon: Clock3,
         tone: "violet",
-        helper: "Average time visitors stay in the queue.",
+        helper: "Average first response wait from live analytics.",
       },
     ],
-    [isSupportAgent, visibleActiveQueue.length, visibleHistory.length, visibleWaitingQueue.length, waitSeconds],
+    [averageWaitSeconds, isSupportAgent, visibleActiveQueue.length, visibleHistory.length, visibleWaitingQueue.length],
   );
 
   const navigationActions: DashboardAction[] = useMemo(() => {
@@ -531,10 +543,10 @@ const StandardDashboard = ({ hideAnalyticsTeaser = false }: StandardDashboardPro
   }, [isAdmin, isMasterAdmin]);
 
   const isLoading = isWaitingLoading || isActiveLoading || isHistoryLoading;
-  const hasError = Boolean(waitingError || activeError || historyError);
+  const hasError = Boolean(waitingError || activeError || historyError || analyticsError);
 
   const refreshAll = async () => {
-    await Promise.all([mutateWaitingQueue(), mutateActiveQueue(), mutateHistory()]);
+    await Promise.all([mutateWaitingQueue(), mutateActiveQueue(), mutateHistory(), mutateAnalytics()]);
   };
 
   return (
