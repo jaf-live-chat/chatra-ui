@@ -16,7 +16,7 @@ import { Link } from "react-router";
 import { useSearchParams } from "react-router";
 import { motion } from "motion/react";
 import Payments from "../services/paymentServices";
-import { API_BASE_URL } from "../constants/constants";
+import IntegrationGuideSwitcher from "../components/IntegrationGuideSwitcher";
 
 const steps = [
   { id: "account", label: "Creating your account...", icon: UserPlus },
@@ -48,19 +48,12 @@ const integrationChecklist = [
   "Start receiving and managing conversations in real time",
 ];
 
-const installationSteps = [
-  "Copy the installation code below.",
-  "Paste it before the closing </body> tag of your website.",
-  "Publish your website and verify the chat launcher appears.",
-];
-
 const DashboardSetup = () => {
   const [searchParams] = useSearchParams();
   const [currentStep, setCurrentStep] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
   const [apiKey, setApiKey] = useState("");
   const [copied, setCopied] = useState(false);
-  const [scriptCopied, setScriptCopied] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [attempts, setAttempts] = useState(0);
   const [tenantEmail, setTenantEmail] = useState("");
@@ -147,14 +140,6 @@ const DashboardSetup = () => {
   const integrationNameFromQuery = useMemo(
     () => searchParams.get("integrationName") || savedSetupContext.integrationName || "",
     [savedSetupContext.integrationName, searchParams]
-  );
-
-  const socketUrl = useMemo(() => API_BASE_URL.replace(/\/api\/v\d+\/?$/, ""), []);
-
-  const widgetInstallScript = useMemo(
-    () =>
-    `<script src="${import.meta.env.MODE !== "LOCAL" ? "./client/dist/widget.js" : "https://jafchatra.com/widget.js"}" data-api-key="${apiKey}"></script>`,
-    [apiKey, socketUrl]
   );
 
   useEffect(() => {
@@ -312,12 +297,6 @@ const DashboardSetup = () => {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const copyInstallScript = async () => {
-    await copyTextWithFallback(widgetInstallScript);
-    setScriptCopied(true);
-    setTimeout(() => setScriptCopied(false), 2000);
-  };
-
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_12%_10%,#ccfbf1_0,#ecfeff_28%,#f8fafc_58%,#f1f5f9_100%)] flex flex-col font-sans items-center justify-center p-4 sm:p-6">
       <div className="max-w-4xl w-full bg-white/90 backdrop-blur p-5 sm:p-8 md:p-12 rounded-[1.5rem] sm:rounded-[2rem] shadow-[0_16px_70px_-30px_rgba(15,23,42,0.35)] border border-cyan-100/70 relative overflow-hidden">
@@ -453,36 +432,14 @@ const DashboardSetup = () => {
               </div>
 
               <div className="w-full rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 mb-6">
-                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between mb-4">
+                <div className="flex flex-col gap-1 mb-4">
                   <h3 className="text-sm font-semibold text-slate-900">Widget Installation</h3>
-                  <button
-                    onClick={copyInstallScript}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors w-fit ${scriptCopied
-                      ? "bg-emerald-100 text-emerald-700"
-                      : "bg-slate-100 hover:bg-slate-200 text-slate-700"
-                      }`}
-                  >
-                    {scriptCopied ? <Check size={13} /> : <Copy size={13} />}
-                    {scriptCopied ? "Copied" : "Copy Script"}
-                  </button>
+                  <p className="text-sm text-slate-500">
+                    Reuse the same integration guide used across the portal to copy framework-specific install snippets.
+                  </p>
                 </div>
 
-                <div className="space-y-2 mb-4">
-                  {installationSteps.map((step, index) => (
-                    <div key={step} className="flex items-start gap-2 text-sm text-slate-600">
-                      <span className="w-5 h-5 rounded-full bg-cyan-100 text-cyan-700 text-xs font-semibold flex items-center justify-center shrink-0 mt-0.5">
-                        {index + 1}
-                      </span>
-                      <span>{step}</span>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="rounded-xl overflow-hidden border border-slate-800">
-                  <div className="bg-[#06132A] text-slate-100 p-4 text-[12px] leading-relaxed font-mono whitespace-pre-wrap break-all">
-                    {widgetInstallScript}
-                  </div>
-                </div>
+                <IntegrationGuideSwitcher apiKey={apiKey || undefined} companyName={companyName || undefined} />
               </div>
 
               <div className="w-full bg-[#0A0A0A] rounded-2xl p-1.5 sm:pl-5 mb-8 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between shadow-xl shadow-slate-300/40 border border-gray-800/60 transition-transform hover:scale-[1.01] duration-300">
