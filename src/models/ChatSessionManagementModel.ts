@@ -50,7 +50,9 @@ export interface HistoryEntry {
   agentFullName?: string;
   duration: string;
   messages: number;
-  rating: number;
+  rating?: number | null;
+  ratingComment?: string | null;
+  ratedAt?: string | null;
   date: string;
   time: string;
   status: "Resolved" | "Escalated" | "Abandoned";

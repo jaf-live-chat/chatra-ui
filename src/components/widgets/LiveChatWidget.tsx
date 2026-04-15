@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Loader2, MessageCircle, Paperclip, Send, X, Menu, Zap, ChevronUp, ChevronDown, ArrowLeft, Moon, Volume2, Shield, AlertCircle, Save } from "lucide-react";
+import { Loader2, MessageCircle, Paperclip, Send, X, Menu, Zap, ChevronUp, ChevronDown, ArrowLeft, Moon, Volume2, Shield, AlertCircle, Save, Star } from "lucide-react";
 import type { Socket } from "socket.io-client";
 import type {
   LiveChatConversation,
@@ -51,6 +51,7 @@ const WIDGET_DARK_MODE_KEY = "jaf_dark_mode";
 const WIDGET_TEXT_SIZE_KEY = "jaf_text_size";
 const WIDGET_MESSAGE_SOUNDS_KEY = "jaf_message_sounds";
 const SYSTEM_AUTO_MESSAGES_KEY = "jaf_widget_system_auto_messages";
+const WIDGET_FEEDBACK_CONVERSATION_KEY = "jaf_widget_feedback_conversation_id";
 
 type LocationPermissionState = "unknown" | "granted" | "denied" | "unavailable";
 
@@ -318,6 +319,12 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
   const [browserLocationStatus, setBrowserLocationStatus] = useState<"idle" | "resolving" | "resolved" | "denied" | "unavailable" | "error">("idle");
   const [locationPermissionState, setLocationPermissionState] = useState<LocationPermissionState>("unknown");
   const [isEndChatModalOpen, setIsEndChatModalOpen] = useState(false);
+  const [isFeedbackPromptOpen, setIsFeedbackPromptOpen] = useState(false);
+  const [feedbackConversationId, setFeedbackConversationId] = useState("");
+  const [feedbackRating, setFeedbackRating] = useState(0);
+  const [feedbackComment, setFeedbackComment] = useState("");
+  const [isFeedbackSubmitting, setIsFeedbackSubmitting] = useState(false);
+  const [feedbackMessage, setFeedbackMessage] = useState("");
   const [showQuickMessages, setShowQuickMessages] = useState(false);
   const [quickMessages, setQuickMessages] = useState<QuickMessage[]>([]);
   const [activeQuickReplyId, setActiveQuickReplyId] = useState<string | null>(null);
@@ -1267,6 +1274,21 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
     setErrorMessage("");
   }, []);
 
+  const openPostChatFeedbackPrompt = useCallback((endedConversationId?: string) => {
+    const targetConversationId = String(endedConversationId || conversationId || "").trim();
+
+    if (!targetConversationId || readStoredValue(WIDGET_FEEDBACK_CONVERSATION_KEY) === targetConversationId) {
+      return;
+    }
+
+    setFeedbackConversationId(targetConversationId);
+    setFeedbackRating(0);
+    setFeedbackComment("");
+    setFeedbackMessage("");
+    setIsFeedbackSubmitting(false);
+    setIsFeedbackPromptOpen(true);
+  }, [conversationId]);
+
   const resetConversationState = useCallback(() => {
     clearSystemAutoReplyTimers();
     clearQuickReplyTimer();
@@ -1293,7 +1315,8 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
   const handleEndChat = useCallback(async () => {
     if (conversationId) {
       try {
-        await liveChatWidgetServices.endConversation(widgetConfig, visitorToken, conversationId);
+        const response = await liveChatWidgetServices.endConversation(widgetConfig, visitorToken, conversationId);
+        openPostChatFeedbackPrompt(response.conversation?._id || conversationId);
       } catch (error) {
         setErrorMessage(getErrorMessage(error));
       }
@@ -1301,7 +1324,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
 
     resetConversationState();
     void syncConversationHistory();
-  }, [conversationId, resetConversationState, syncConversationHistory, visitorToken, widgetConfig]);
+  }, [conversationId, openPostChatFeedbackPrompt, resetConversationState, syncConversationHistory, visitorToken, widgetConfig]);
 
   const handleGoBackToStart = useCallback(() => {
     resetConversationState();
@@ -1379,6 +1402,43 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
       return normalizeMessages([...currentMessages, endedMessage]);
     });
   }, [conversationId]);
+
+  const closePostChatFeedbackPrompt = useCallback((markComplete = false) => {
+    if (markComplete && feedbackConversationId) {
+      writeStoredValue(WIDGET_FEEDBACK_CONVERSATION_KEY, feedbackConversationId);
+    }
+
+    setIsFeedbackPromptOpen(false);
+    setFeedbackConversationId("");
+    setFeedbackRating(0);
+    setFeedbackComment("");
+    setFeedbackMessage("");
+    setIsFeedbackSubmitting(false);
+  }, [feedbackConversationId]);
+
+  const submitPostChatFeedback = useCallback(async () => {
+    const targetConversationId = String(feedbackConversationId || "").trim();
+
+    if (!targetConversationId || feedbackRating < 1 || feedbackRating > 5 || isFeedbackSubmitting) {
+      return;
+    }
+
+    setIsFeedbackSubmitting(true);
+    setFeedbackMessage("");
+
+    try {
+      await liveChatWidgetServices.submitConversationFeedback(widgetConfig, visitorToken, targetConversationId, {
+        rating: feedbackRating,
+        comment: feedbackComment.trim() || undefined,
+      });
+
+      closePostChatFeedbackPrompt(true);
+    } catch (error) {
+      setFeedbackMessage(getErrorMessage(error));
+    } finally {
+      setIsFeedbackSubmitting(false);
+    }
+  }, [closePostChatFeedbackPrompt, feedbackComment, feedbackConversationId, feedbackRating, isFeedbackSubmitting, visitorToken, widgetConfig]);
 
   const messageSizeClass = useMemo(() => {
     if (textSize === "small") {
@@ -1881,6 +1941,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
       stopVisitorTyping(false);
       setIsAgentTyping(false);
       clearAgentTypingTimer();
+      openPostChatFeedbackPrompt(payload.conversation?._id || conversationId || "");
       setConversationId("");
       setHasCompletedPreChat(true);
       clearStoredValue(CONVERSATION_ID_KEY);
@@ -1894,7 +1955,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
       clearAgentTypingTimer();
       disconnectSocket();
     };
-  }, [apiKey, appendEndedMessage, appendQueuePositionMessage, clearAgentTypingTimer, clearPersistedSystemMessages, conversationId, disconnectSocket, isOpen, persistSystemMessage, playIncomingMessageSound, stopVisitorTyping, syncConversationHistory, visitorGreetingName, visitorToken]);
+  }, [apiKey, appendEndedMessage, appendQueuePositionMessage, clearAgentTypingTimer, clearPersistedSystemMessages, conversationId, disconnectSocket, isOpen, openPostChatFeedbackPrompt, persistSystemMessage, playIncomingMessageSound, stopVisitorTyping, syncConversationHistory, visitorGreetingName, visitorToken]);
 
   useEffect(() => {
     messagesRef.current = messages;
@@ -2722,6 +2783,78 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                     className={`h-11 rounded-2xl text-base font-semibold transition-colors ${theme.modalPrimary}`}
                   >
                     Yes, end chat
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          {isFeedbackPromptOpen ? (
+            <div className={`absolute inset-0 z-40 backdrop-blur-[5px] ${theme.modalBackdrop} flex items-center justify-center p-4`}>
+              <div className={`w-full max-w-[340px] rounded-3xl p-5 ${theme.modalCard}`}>
+                <div className="flex justify-center mb-3">
+                  <div className="h-12 w-12 rounded-full bg-amber-100 flex items-center justify-center">
+                    <Star className="h-6 w-6 text-amber-500" />
+                  </div>
+                </div>
+
+                <h3 className="text-center text-xl font-semibold">Rate your chat</h3>
+                <p className={`text-center mt-2 text-sm ${theme.settingsMuted}`}>
+                  Your feedback helps improve support quality. Comment is optional.
+                </p>
+
+                <div className="mt-4 flex items-center justify-center gap-1.5">
+                  {Array.from({ length: 5 }).map((_, index) => {
+                    const ratingValue = index + 1;
+                    const isActive = ratingValue <= feedbackRating;
+
+                    return (
+                      <button
+                        key={ratingValue}
+                        type="button"
+                        onClick={() => setFeedbackRating(ratingValue)}
+                        className="transition-transform hover:-translate-y-0.5"
+                        aria-label={`${ratingValue} star${ratingValue === 1 ? "" : "s"}`}
+                      >
+                        <Star className={`h-8 w-8 ${isActive ? "fill-amber-400 text-amber-400" : "text-slate-300"}`} />
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <textarea
+                  value={feedbackComment}
+                  onChange={(event) => setFeedbackComment(event.target.value)}
+                  rows={4}
+                  maxLength={500}
+                  placeholder="Add an optional comment"
+                  className={`mt-4 w-full rounded-2xl border px-3.5 py-2.5 text-sm outline-none ${theme.input}`}
+                />
+
+                {feedbackMessage ? (
+                  <p className={`mt-2 text-xs text-red-500`}>
+                    {feedbackMessage}
+                  </p>
+                ) : null}
+
+                <div className="mt-5 grid grid-cols-2 gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => closePostChatFeedbackPrompt(true)}
+                    className={`h-11 rounded-2xl text-base font-semibold transition-colors ${theme.modalSecondary}`}
+                    disabled={isFeedbackSubmitting}
+                  >
+                    Skip
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void submitPostChatFeedback();
+                    }}
+                    disabled={isFeedbackSubmitting || feedbackRating < 1}
+                    className={`h-11 rounded-2xl text-base font-semibold transition-colors ${theme.modalPrimary}`}
+                  >
+                    {isFeedbackSubmitting ? "Submitting..." : "Submit"}
                   </button>
                 </div>
               </div>

@@ -2,11 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { useNavigate, useParams } from "react-router";
 import { toast } from "../../components/sonner";
-import ArrowBackRounded from "@mui/icons-material/ArrowBackRounded";
 import AlternateEmailRounded from "@mui/icons-material/AlternateEmailRounded";
 import ChatBubbleOutlineRounded from "@mui/icons-material/ChatBubbleOutlineRounded";
 import ContentCopyRounded from "@mui/icons-material/ContentCopyRounded";
-import EditOutlined from "@mui/icons-material/EditOutlined";
 import FiberManualRecordRounded from "@mui/icons-material/FiberManualRecordRounded";
 import FingerprintRounded from "@mui/icons-material/FingerprintRounded";
 import PhoneRounded from "@mui/icons-material/PhoneRounded";
@@ -22,7 +20,7 @@ import Grid from "@mui/material/Grid";
 import IconButton from "@mui/material/IconButton";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
-import Skeleton from "../../components/skeleton";
+import Skeleton from "../../components/Skeleton";
 import Agents from "../../services/agentServices";
 import type { AuthAgent } from "../../models/AgentModel";
 import toTitleCase from "../../utils/toTitleCase";
@@ -35,6 +33,20 @@ type AgentDetails = AuthAgent & {
   updatedAt?: string;
   totalResolved?: number;
   averageRating?: number;
+  ratingCount?: number;
+};
+
+type AgentFeedback = {
+  _id: string;
+  rating: number;
+  comment?: string | null;
+  createdAt?: string;
+  visitorId?: {
+    fullName?: string;
+    name?: string;
+    visitorToken?: string;
+  } | null;
+  conversationId?: unknown;
 };
 
 type EditProfileForm = {
@@ -64,30 +76,6 @@ const getStatusDotColor = (status?: string): string => {
       return "#64748b";
   }
 };
-
-const feedbackItems = [
-  {
-    id: "f-1",
-    name: "Sarah Jenkins",
-    when: "2 days ago",
-    rating: 5,
-    comment: "John was incredibly helpful and resolved my billing issue in minutes. Very polite!",
-  },
-  {
-    id: "f-2",
-    name: "Mark Davis",
-    when: "1 week ago",
-    rating: 4,
-    comment: "Good service, he knew exactly what to do. Just took a little bit to get connected.",
-  },
-  {
-    id: "f-3",
-    name: "Emily R.",
-    when: "2 weeks ago",
-    rating: 5,
-    comment: "Probably the best support experience I've had. Walked me through the whole setup process.",
-  },
-];
 
 const InfoCard = ({
   icon,
@@ -153,6 +141,7 @@ const AgentDetailsView = () => {
   const [error, setError] = useState("");
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [recentFeedback, setRecentFeedback] = useState<AgentFeedback[]>([]);
   const [editForm, setEditForm] = useState<EditProfileForm>({
     fullName: "",
     emailAddress: "",
@@ -178,6 +167,7 @@ const AgentDetailsView = () => {
         setError("");
         const response = await Agents.getAgent(id);
         setAgent(response.agent as AgentDetails);
+        setRecentFeedback((response.feedbacks || []) as AgentFeedback[]);
       } catch (err) {
         console.error(err);
         setError("Failed to load agent details.");
@@ -203,6 +193,9 @@ const AgentDetailsView = () => {
   const averageRating = Number.isFinite(agent?.averageRating)
     ? Number(agent?.averageRating)
     : 0;
+  const ratingCount = Number.isFinite(agent?.ratingCount)
+    ? Number(agent?.ratingCount)
+    : recentFeedback.length;
 
   const handleCopyAgentId = async () => {
     if (!agent) {
@@ -384,22 +377,6 @@ const AgentDetailsView = () => {
         },
       }}
     >
-      <Button
-        variant="text"
-        startIcon={<ArrowBackRounded />}
-        onClick={() => navigate("/portal/agents")}
-        className="!text-sm !font-semibold"
-        sx={{
-          width: "fit-content",
-          color: "text.secondary",
-          textTransform: "none",
-          px: 0,
-          "&:hover": { bgcolor: "transparent", color: "grey.900" },
-        }}
-      >
-        Back to Agents
-      </Button>
-
       <Card
         elevation={0}
         sx={{ borderRadius: 1, bgcolor: "background.paper", border: "none", boxShadow: "none" }}
@@ -477,7 +454,7 @@ const AgentDetailsView = () => {
               </Box>
             </Stack>
 
-            <Button
+            {/* <Button
               variant="outlined"
               startIcon={<EditOutlined />}
               onClick={handleOpenEdit}
@@ -492,7 +469,7 @@ const AgentDetailsView = () => {
               }}
             >
               Edit Profile
-            </Button>
+            </Button> */}
           </Stack>
 
 
@@ -522,6 +499,9 @@ const AgentDetailsView = () => {
                   / 5.0
                 </Box>
 
+              </Box>
+              <Box component="p" className="mt-1 text-center text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                {ratingCount} review{ratingCount === 1 ? "" : "s"}
               </Box>
             </Box>
           </Stack>
@@ -553,29 +533,39 @@ const AgentDetailsView = () => {
                 <h3>Recent Feedback</h3>
               </Box>
               <Stack spacing={1.6} sx={{ maxHeight: 340, overflowY: "auto", pr: 0.5 }}>
-                {feedbackItems.map((item) => (
-                  <Paper
-                    key={item.id}
-                    elevation={0}
-                    className="rounded-xl border border-gray-100 bg-gray-50 p-4 dark:border-slate-700 dark:bg-slate-800/60"
-                  >
-                    <Stack direction="row" alignItems="center" justifyContent="space-between">
-                      <Box component="p" className="text-base font-bold text-gray-900 dark:text-slate-100">
-                        <h4>{item.name}</h4>
+                {recentFeedback.length > 0 ? recentFeedback.map((item) => {
+                  const visitorName = String(item.visitorId && typeof item.visitorId === "object"
+                    ? item.visitorId.fullName || item.visitorId.name || item.visitorId.visitorToken || "Visitor"
+                    : "Visitor").trim();
+
+                  return (
+                    <Paper
+                      key={item._id}
+                      elevation={0}
+                      className="rounded-xl border border-gray-100 bg-gray-50 p-4 dark:border-slate-700 dark:bg-slate-800/60"
+                    >
+                      <Stack direction="row" alignItems="center" justifyContent="space-between">
+                        <Box component="p" className="text-base font-bold text-gray-900 dark:text-slate-100">
+                          <h4>{visitorName}</h4>
+                        </Box>
+                        <Box component="p" className="text-sm tracking-wide text-amber-400">
+                          {"★".repeat(item.rating)}
+                          <span className="text-gray-300 dark:text-slate-600">{"★".repeat(5 - item.rating)}</span>
+                        </Box>
+                      </Stack>
+                      <Box component="p" className="mt-0.5 text-xs font-medium text-gray-400 dark:text-slate-500">
+                        {item.createdAt ? new Date(item.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "Recently"}
                       </Box>
-                      <Box component="p" className="text-sm tracking-wide text-amber-400">
-                        {"★".repeat(item.rating)}
-                        <span className="text-gray-300 dark:text-slate-600">{"★".repeat(5 - item.rating)}</span>
+                      <Box component="p" className="mt-1.5 text-sm leading-6 text-gray-600 dark:text-slate-300">
+                        {item.comment ? `"${item.comment}"` : "No comment provided."}
                       </Box>
-                    </Stack>
-                    <Box component="p" className="mt-0.5 text-xs font-medium text-gray-400 dark:text-slate-500">
-                      {item.when}
-                    </Box>
-                    <Box component="p" className="mt-1.5 text-sm leading-6 text-gray-600 dark:text-slate-300">
-                      "{item.comment}"
-                    </Box>
+                    </Paper>
+                  );
+                }) : (
+                  <Paper elevation={0} className="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-4 text-sm text-gray-500 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-400">
+                    No feedback has been submitted yet.
                   </Paper>
-                ))}
+                )}
               </Stack>
             </Grid>
           </Grid>

@@ -9,6 +9,8 @@ import type {
   LiveChatEndConversationResponse,
   LiveChatSendMessagePayload,
   LiveChatStartConversationResponse,
+  LiveChatSubmitFeedbackPayload,
+  LiveChatSubmitFeedbackResponse,
   UpdateWidgetVisitorProfilePayload,
   UpdateWidgetVisitorProfileResponse,
   LiveChatWidgetConfig,
@@ -73,6 +75,26 @@ const liveChatWidgetServices = {
     const response = await axiosServices.post<LiveChatEndConversationResponse>(
       `${WIDGET_BASE_PATH}/conversations/${conversationId}/end`,
       {
+        visitorToken,
+      },
+      {
+        headers: buildHeaders(config, visitorToken),
+      },
+    );
+
+    return response.data;
+  },
+
+  submitConversationFeedback: async (
+    config: LiveChatWidgetConfig,
+    visitorToken: string,
+    conversationId: string,
+    payload: LiveChatSubmitFeedbackPayload,
+  ): Promise<LiveChatSubmitFeedbackResponse> => {
+    const response = await axiosServices.post<LiveChatSubmitFeedbackResponse>(
+      `${WIDGET_BASE_PATH}/conversations/${conversationId}/feedback`,
+      {
+        ...payload,
         visitorToken,
       },
       {

@@ -1,5 +1,22 @@
 import { useEffect, useState } from "react";
-import { Clock, Eye, History, MessagesSquare, Search, X } from "lucide-react";
+import { Clock, Eye, History, MessagesSquare, Search, Star, X } from "lucide-react";
+
+const renderRatingStars = (rating?: number | null) => {
+  const resolvedRating = Number.isFinite(Number(rating)) ? Math.max(0, Math.min(5, Number(rating))) : 0;
+
+  if (resolvedRating <= 0) {
+    return <span className="text-xs text-gray-400 dark:text-slate-500">No rating</span>;
+  }
+
+  return (
+    <span className="inline-flex items-center gap-0.5 text-amber-400">
+      {Array.from({ length: 5 }).map((_, index) => (
+        <Star key={index} className={`w-3.5 h-3.5 ${index < Math.round(resolvedRating) ? "fill-current" : "text-gray-300 dark:text-slate-600"}`} />
+      ))}
+      <span className="ml-1 text-xs font-medium text-gray-600 dark:text-slate-400">{resolvedRating.toFixed(1)}/5</span>
+    </span>
+  );
+};
 
 import { useDarkMode } from "../../providers/DarkModeContext";
 import { HistoryEntry, TranscriptMessage } from "../../models/ChatSessionManagementModel";
@@ -117,12 +134,13 @@ const ChatHistorySection = ({ searchQuery, setSearchQuery, endedChats, endedTran
       <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm overflow-hidden hidden md:block">
         <div className="overflow-x-auto">
           {/* Header row */}
-          <div className="min-w-[860px] grid grid-cols-[160px_1fr_140px_160px_130px_130px] border-b border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-700/50">
+          <div className="min-w-[980px] grid grid-cols-[150px_1fr_140px_150px_130px_150px_130px] border-b border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-700/50">
             <div className="px-5 py-3 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">ID</div>
             <div className="px-5 py-3 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Visitor</div>
             <div className="px-5 py-3 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Agent</div>
             <div className="px-5 py-3 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Date &amp; Time</div>
             <div className="px-5 py-3 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Duration</div>
+            <div className="px-5 py-3 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Rating</div>
             <div className="px-5 py-3 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider text-center">Action</div>
           </div>
           {/* Data rows */}
@@ -130,7 +148,7 @@ const ChatHistorySection = ({ searchQuery, setSearchQuery, endedChats, endedTran
             {filtered.map((chat) => (
               <div
                 key={chat.id}
-                className="min-w-[860px] grid grid-cols-[160px_1fr_140px_160px_130px_130px] hover:bg-gray-50 dark:hover:bg-slate-700/40 transition-colors cursor-pointer"
+                className="min-w-[980px] grid grid-cols-[150px_1fr_140px_150px_130px_150px_130px] hover:bg-gray-50 dark:hover:bg-slate-700/40 transition-colors cursor-pointer"
               >
                 {/* ID */}
                 <div className="px-5 py-3.5 flex items-center">
@@ -179,6 +197,7 @@ const ChatHistorySection = ({ searchQuery, setSearchQuery, endedChats, endedTran
                     <span className="text-sm text-gray-600 dark:text-slate-400">{chat.duration}</span>
                   </div>
                 </div>
+                <div className="px-5 py-3.5 flex items-center">{renderRatingStars(chat.rating)}</div>
                 {/* Action */}
                 <div className="px-5 py-3.5 flex items-center justify-center">
                   <button
@@ -238,6 +257,9 @@ const ChatHistorySection = ({ searchQuery, setSearchQuery, endedChats, endedTran
               <span className="inline-flex items-center gap-1">
                 <Clock className="w-3 h-3" /> {chat.duration}
               </span>
+            </div>
+            <div className="mt-2 flex items-center justify-between text-xs text-gray-500 dark:text-slate-400">
+              <span className="inline-flex items-center gap-1.5">{renderRatingStars(chat.rating)}</span>
             </div>
             <button
               onClick={() => setTranscriptChatId(chat.id)}

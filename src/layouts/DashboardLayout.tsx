@@ -6,6 +6,7 @@ import {
   Moon,
   Sun,
   Menu,
+  User,
 } from "lucide-react";
 import { Outlet, useNavigate, useLocation } from "react-router";
 import { Avatar, Button, Chip, Stack, Tooltip, Typography } from "@mui/material";
@@ -827,6 +828,15 @@ function DashboardLayoutInner() {
                       className="w-full text-left px-3 sm:px-4 py-2 text-xs sm:text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700/60 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors flex items-center gap-2"
                     >
                       <Settings2 className="w-4 h-4 flex-shrink-0" /> <span className="truncate">Account Settings</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        navigate(`/portal/agents/${user?._id}`);
+                        setIsProfileOpen(false);
+                      }}
+                      className="w-full text-left px-3 sm:px-4 py-2 text-xs sm:text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700/60 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors flex items-center gap-2"
+                    >
+                      <User className="w-4 h-4 flex-shrink-0" /> <span className="truncate">My Profile</span>
                     </button>
                     <div className="h-px bg-gray-100 dark:bg-slate-700 my-1"></div>
                     <button
