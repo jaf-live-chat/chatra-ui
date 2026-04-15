@@ -27,7 +27,6 @@ import TenantManageSubscriptionDrawer from "./TenantManageSubscriptionDrawer";
 import { toast } from "../../components/sonner";
 
 const EMPTY_LABEL = "-";
-const UPGRADE_TARGET_TENANT_ID = "69dee780165432bd79666043";
 const OPEN_PLAN_CHANGE_PARAM = "openPlanChange";
 
 const getDaysRemaining = (rawDate: string, status?: TenantStatus): string => {
@@ -107,7 +106,7 @@ const TenantDetailsView = () => {
   }, [location.search, location.state]);
 
   useEffect(() => {
-    if (!shouldOpenPlanChangeDrawer || id !== UPGRADE_TARGET_TENANT_ID || isPlanChangeDrawerOpen) {
+    if (!shouldOpenPlanChangeDrawer || id !== tenant?.id || isPlanChangeDrawerOpen) {
       return;
     }
 
@@ -116,7 +115,7 @@ const TenantDetailsView = () => {
 
   const planActionLabel = tenant?.subscription.status === "EXPIRED" ? "Renew Plan" : "Change Plan";
   const handleUpgradeNavigation = () => {
-    navigate(`/portal/tenants/${UPGRADE_TARGET_TENANT_ID}?${OPEN_PLAN_CHANGE_PARAM}=1`, {
+    navigate(`/portal/tenants/${tenant?.id}?${OPEN_PLAN_CHANGE_PARAM}=1`, {
       state: { openPlanChangeDrawer: true },
     });
   };

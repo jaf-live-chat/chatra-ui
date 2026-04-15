@@ -6,8 +6,6 @@ import AnalyticsStandard from "../../../sections/analytics/AnalyticsStandard";
 import { useGetLiveChatAnalytics } from "../../../services/analyticsServices";
 import { useNavigate } from "react-router";
 
-const UPGRADE_TARGET_TENANT_ID = "69dee780165432bd79666043";
-
 const AnalyticsPage = () => {
   const navigate = useNavigate();
   const { user, tenant, refreshSession } = useAuth();
@@ -30,7 +28,7 @@ const AnalyticsPage = () => {
   );
 
   const handleUpgrade = () => {
-    navigate(`/portal/tenants/${UPGRADE_TARGET_TENANT_ID}?openPlanChange=1`, {
+    navigate(`/portal/tenants/${tenant?.id}?openPlanChange=1`, {
       state: { openPlanChangeDrawer: true },
     });
   };
