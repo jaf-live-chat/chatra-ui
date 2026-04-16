@@ -11,6 +11,7 @@ import {
   Typography,
 } from "@mui/material";
 import { Check, Copy } from "lucide-react";
+import { APP_URL } from "../constants/constants";
 
 type IntegrationGuideSwitcherProps = {
   apiKey?: string;
@@ -23,7 +24,7 @@ const INTEGRATION_SNIPPETS = {
     description: "Basic integration for any HTML page.",
     code: `<!-- JAF Chatra Widget -->
 <script
-  src="https://jafchatra.com/widget.js"
+  src="https://chatra.jafdigital.co//widget.js"
   data-api-key="YOUR_API_KEY_HERE">
 </script>`,
     language: "html",
@@ -36,7 +37,7 @@ const INTEGRATION_SNIPPETS = {
 const ChatWidget = () => {
   useEffect(() => {
     const script = document.createElement("script");
-    script.src = "https://jafchatra.com/widget.js";
+    script.src = "https://chatra.jafdigital.co//widget.js";
     script.setAttribute("data-api-key", "YOUR_API_KEY_HERE");
     script.async = true;
 
@@ -63,7 +64,7 @@ let script;
 
 onMounted(() => {
   script = document.createElement("script");
-  script.src = "https://jafchatra.com/widget.js";
+  script.src = "https://chatra.jafdigital.co//widget.js";
   script.setAttribute("data-api-key", "YOUR_API_KEY_HERE");
   script.async = true;
 
@@ -94,7 +95,7 @@ export class ChatWidgetComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.script = document.createElement('script');
-    this.script.src = 'https://jafchatra.com/widget.js';
+    this.script.src = 'https://chatra.jafdigital.co//widget.js';
     this.script.setAttribute('data-api-key', 'YOUR_API_KEY_HERE');
     this.script.async = true;
 
@@ -117,7 +118,7 @@ export class ChatWidgetComponent implements OnInit, OnDestroy {
 export default function ChatWidget() {
   useEffect(() => {
     const script = document.createElement("script");
-    script.src = "https://jafchatra.com/widget.js";
+    script.src = "https://chatra.jafdigital.co//widget.js";
     script.setAttribute("data-api-key", "YOUR_API_KEY_HERE");
     script.async = true;
 
@@ -133,7 +134,7 @@ export default function ChatWidget() {
     description: "Plain JavaScript dynamic load snippet.",
     code: `(function () {
   var script = document.createElement("script");
-  script.src = "https://jafchatra.com/widget.js";
+  script.src = "https://chatra.jafdigital.co//widget.js";
   script.setAttribute("data-api-key", "YOUR_API_KEY_HERE");
   script.async = true;
 
@@ -146,7 +147,7 @@ export default function ChatWidget() {
     description: "PHP or Blade embed with the API key injected from the portal.",
     code: `<!-- JAF Chatra Widget -->
 <script
-  src="https://jafchatra.com/widget.js"
+  src="https://chatra.jafdigital.co//widget.js"
   data-api-key="YOUR_API_KEY_HERE">
 </script>`,
     language: "php",
@@ -156,15 +157,20 @@ export default function ChatWidget() {
 type IntegrationTabKey = keyof typeof INTEGRATION_SNIPPETS;
 
 const tabKeys = Object.keys(INTEGRATION_SNIPPETS) as IntegrationTabKey[];
+const WIDGET_SCRIPT_URL = `${APP_URL}/widget.js`;
 
 const IntegrationGuideSwitcher = ({ apiKey, companyName }: IntegrationGuideSwitcherProps) => {
   const [activeTab, setActiveTab] = useState<IntegrationTabKey>("HTML");
   const [copied, setCopied] = useState(false);
 
+  const viteMode = (
+    import.meta as ImportMeta & { env?: Record<string, string | undefined> }
+  ).env?.VITE_MODE;
+
   const resolvedWidgetScriptUrl =
-    import.meta.env.VITE_MODE?.toUpperCase() === "LOCAL"
+    viteMode?.toUpperCase() === "LOCAL"
       ? "./client/dist/widget.js"
-      : "https://jafchatra.com/widget.js";
+      : WIDGET_SCRIPT_URL;
   const resolvedApiKey = apiKey?.trim() || "YOUR_API_KEY_HERE";
   const resolvedCompanyName = companyName?.trim() || "JAF Chatra";
 
@@ -174,7 +180,8 @@ const IntegrationGuideSwitcher = ({ apiKey, companyName }: IntegrationGuideSwitc
     return {
       ...snippet,
       code: snippet.code
-        .replaceAll("https://jafchatra.com/widget.js", resolvedWidgetScriptUrl)
+        .replaceAll("https://chatra.jafdigital.co//widget.js", WIDGET_SCRIPT_URL)
+        .replaceAll(WIDGET_SCRIPT_URL, resolvedWidgetScriptUrl)
         .replaceAll("YOUR_API_KEY_HERE", resolvedApiKey)
         .replaceAll("{{YOUR_API_KEY_HERE}}", resolvedApiKey)
         .replaceAll("JAF Chatra", resolvedCompanyName),

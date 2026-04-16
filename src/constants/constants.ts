@@ -1,5 +1,6 @@
 // ─── App Identity ────────────────────────────────────────────────────────────
 const APP_NAME = `JAF Chatra`;
+const APP_URL = `https://chatra.jafdigital.co`;
 const APP_EMAIL = `support@jafchatra.com`;
 const APP_LOGO = {
   logoMain:
@@ -80,6 +81,7 @@ const API_BASE_URL = getAPIBaseURL();
 
 export {
   APP_NAME,
+  APP_URL,
   APP_EMAIL,
   APP_LOGO,
   USER_ROLES,
