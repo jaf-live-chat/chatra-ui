@@ -9,6 +9,7 @@ import IntegrationSection from "../../../sections/homepage/IntegrationSection";
 import CTASection from "../../../sections/homepage/CTASection";
 import Footer from "../../../components/common/Footer";
 import HomepageFaqSection from "../../../sections/homepage/HomepageFaqSection";
+import ScrollReveal from "../../../components/ScrollReveal";
 import React from "react";
 
 const Home = () => {
@@ -20,17 +21,33 @@ const Home = () => {
         canonical="/portal/home"
 
       />
-      <div className="min-h-screen" style={{ fontFamily: "Inter, sans-serif" }}>
+      <div className="min-h-screen scroll-smooth" style={{ fontFamily: "Inter, sans-serif" }}>
         <Navbar />
         <main>
-          <HeroSection />
-          <TrustedBySection />
-          <ProductsSection />
-          <HowItWorksSection />
-          <DashboardPreviewSection />
-          <IntegrationSection />
-          <HomepageFaqSection />
-          <CTASection />
+          <ScrollReveal preset="hero" duration={0.95} distance={36}>
+            <HeroSection />
+          </ScrollReveal>
+          <ScrollReveal preset="soft" delay={0.03} duration={0.74}>
+            <TrustedBySection />
+          </ScrollReveal>
+          <ScrollReveal preset="lift" delay={0.06} duration={0.8}>
+            <ProductsSection />
+          </ScrollReveal>
+          <ScrollReveal preset="cardLeft" delay={0.08} duration={0.84} distance={30}>
+            <HowItWorksSection />
+          </ScrollReveal>
+          <ScrollReveal preset="cardRight" delay={0.09} duration={0.84} distance={30}>
+            <DashboardPreviewSection />
+          </ScrollReveal>
+          <ScrollReveal preset="scale" delay={0.1} duration={0.78}>
+            <IntegrationSection />
+          </ScrollReveal>
+          <ScrollReveal preset="fade" delay={0.11} duration={0.68}>
+            <HomepageFaqSection />
+          </ScrollReveal>
+          <ScrollReveal preset="cta" delay={0.12} duration={0.86} distance={26}>
+            <CTASection />
+          </ScrollReveal>
         </main>
         <Footer />
       </div>

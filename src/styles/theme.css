@@ -191,6 +191,7 @@
     width: 100%;
     min-height: 100%;
     overflow-x: hidden;
+    scroll-behavior: smooth;
   }
 
   body,
@@ -250,6 +251,12 @@
     font-size: var(--text-base);
     font-weight: var(--font-weight-normal);
     line-height: 1.5;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
   }
 }
 
