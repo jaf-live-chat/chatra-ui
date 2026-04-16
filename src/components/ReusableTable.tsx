@@ -16,7 +16,7 @@ import TableRow from "@mui/material/TableRow";
 import TableSortLabel from "@mui/material/TableSortLabel";
 import Typography from "@mui/material/Typography";
 import type { SxProps, Theme } from "@mui/material/styles";
-import Skeleton from "./Skeleton";
+import Skeleton from "./skeleton";
 
 type SortDirection = "asc" | "desc";
 

@@ -31,7 +31,7 @@ import {
 import { useGetSinglePlan, useGetSubscriptionPlans } from "../../../services/subscriptionPlanServices";
 import Payments from "../../../services/paymentServices";
 import { Button as AppButton } from "../../../components/button";
-import { Alert, AlertDescription, AlertTitle } from "../../../components/Alert";
+import { Alert, AlertDescription, AlertTitle } from "../../../components/alert";
 import type { CreatePaymentCheckoutResponse } from "../../../models/PaymentModel";
 import PageTitle from "../../../components/common/PageTitle";
 

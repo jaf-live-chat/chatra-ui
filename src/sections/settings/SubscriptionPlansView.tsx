@@ -26,7 +26,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "../../components/AlertDialog";
-import { Alert, AlertDescription, AlertTitle } from "../../components/Alert";
+import { Alert, AlertDescription, AlertTitle } from "../../components/alert";
 import {
   Dialog,
   DialogContent,
