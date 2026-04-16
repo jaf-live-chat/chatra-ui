@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Loader2, MessageCircle, Paperclip, Send, X, Menu, Zap, ChevronUp, ChevronDown, ArrowLeft, Moon, Volume2, Shield, AlertCircle, Save, Star, User, Mail, Phone, Settings, History, SquareX } from "lucide-react";
+import { Loader2, MessageCircle, Paperclip, Send, X, Menu, Zap, ChevronUp, ChevronDown, ChevronRight, ArrowLeft, Moon, Volume2, Shield, AlertCircle, Save, Star, User, Mail, Phone, Settings, History, SquareX } from "lucide-react";
 import type { Socket } from "socket.io-client";
 import type {
   LiveChatConversation,
@@ -25,7 +25,7 @@ type WidgetTranscriptMessage = LiveChatMessage & {
   quickReplyId?: string;
 };
 
-type WidgetView = "chat" | "settings";
+type WidgetView = "chat" | "settings" | "history";
 type TextSize = "small" | "default" | "large";
 
 type BrowserLocationSnapshot = {
@@ -269,6 +269,40 @@ const formatDateTime = (value?: string | null) => {
   }).format(date);
 };
 
+const formatDateOnly = (value?: string | null) => {
+  if (!value) {
+    return "";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(date);
+};
+
+const getConversationPreview = (conversation: LiveChatConversation) => {
+  const metadata = conversation as LiveChatConversation & {
+    preview?: string;
+    summary?: string;
+    lastMessage?: string;
+    latestMessage?: { message?: string };
+  };
+
+  return String(
+    metadata.latestMessage?.message ||
+    metadata.lastMessage ||
+    metadata.preview ||
+    metadata.summary ||
+    "View transcript",
+  ).trim();
+};
+
 const getWidgetInitials = (value: string) => {
   const words = String(value || "")
     .trim()
@@ -363,6 +397,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
   const systemAutoReplyTimersRef = useRef<number[]>([]);
   const isVisitorTypingRef = useRef(false);
   const conversationBootstrapRef = useRef(false);
+  const wasOpenRef = useRef(false);
 
   const apiKey = String(widgetConfig.apiKey || "").trim();
   const hasApiKey = Boolean(apiKey);
@@ -1099,6 +1134,23 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
     }
   }, [apiKey, hasApiKey, isProfileSaving, preChatEmailAddress, preChatFullName, preChatPhoneNumber, visitorToken]);
 
+  const openSettingsView = useCallback(() => {
+    setWidgetView("settings");
+    setSelectedHistoryConversationId("");
+    setHistoryMessages([]);
+    setHistoryError("");
+    setIsHeaderMenuOpen(false);
+  }, []);
+
+  const openHistoryView = useCallback(() => {
+    setWidgetView("history");
+    setSelectedHistoryConversationId("");
+    setHistoryMessages([]);
+    setHistoryError("");
+    setIsHeaderMenuOpen(false);
+    void syncConversationHistory();
+  }, [syncConversationHistory]);
+
   const loadHistoryTranscript = useCallback(async (targetConversationId: string) => {
     if (!hasApiKey || !targetConversationId) {
       return;
@@ -1778,13 +1830,19 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
   }, [isOpen, shouldRenderPanel]);
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !wasOpenRef.current) {
       setWidgetView("chat");
       setIsEndChatModalOpen(false);
       setShowQuickMessages(false);
       setProfileStatusMessage("");
       setIsHeaderMenuOpen(false);
     }
+
+    if (!isOpen) {
+      setIsHeaderMenuOpen(false);
+    }
+
+    wasOpenRef.current = isOpen;
   }, [isOpen]);
 
   useEffect(() => {
@@ -1819,12 +1877,15 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
   }, [isHeaderMenuOpen]);
 
   useEffect(() => {
-    if (!isOpen || widgetView !== "settings") {
+    if (!isOpen || (widgetView !== "settings" && widgetView !== "history")) {
       return;
     }
 
     void syncConversationHistory();
-    void syncVisitorProfile();
+
+    if (widgetView === "settings") {
+      void syncVisitorProfile();
+    }
   }, [isOpen, syncConversationHistory, syncVisitorProfile, widgetView]);
 
   useEffect(() => {
@@ -2347,11 +2408,14 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                   <div className={theme.headerMenuPanel}>
                     <button
                       type="button"
-                      onClick={() => {
-                        setWidgetView("settings");
-                        setSelectedHistoryConversationId("");
-                        setHistoryMessages([]);
-                        setIsHeaderMenuOpen(false);
+                      onMouseDown={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                      }}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        openSettingsView();
                       }}
                       className={theme.headerMenuItem}
                     >
@@ -2362,12 +2426,14 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                     </button>
                     <button
                       type="button"
-                      onClick={() => {
-                        setWidgetView("settings");
-                        setSelectedHistoryConversationId("");
-                        setHistoryMessages([]);
-                        void syncConversationHistory();
-                        setIsHeaderMenuOpen(false);
+                      onMouseDown={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                      }}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        openHistoryView();
                       }}
                       className={theme.headerMenuItem}
                     >
@@ -2401,50 +2467,105 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
             </div>
           </div>
 
-          {widgetView === "settings" ? (
+          {widgetView === "settings" || widgetView === "history" ? (
             <>
               <div className={`flex-1 overflow-y-auto px-5 py-5 ${theme.body}`}>
-                {selectedHistoryConversation ? (
-                  <div className="h-full flex flex-col">
+                {widgetView === "history" ? (
+                  <>
                     <button
                       type="button"
                       onClick={() => {
-                        setSelectedHistoryConversationId("");
-                        setHistoryMessages([]);
+                        if (selectedHistoryConversation) {
+                          setSelectedHistoryConversationId("");
+                          setHistoryMessages([]);
+                          return;
+                        }
+
+                        setWidgetView("chat");
                       }}
                       className={`inline-flex items-center gap-2 text-[11px] font-semibold mb-4 transition-colors ${theme.settingsText}`}
                     >
                       <ArrowLeft className="h-4 w-4" />
-                      <span>Back</span>
+                      <span>{selectedHistoryConversation ? "Back" : "Back to chat"}</span>
                     </button>
 
-                    <div className={`${theme.settingsCard} flex-1 min-h-0 p-4 sm:p-5`}>
-                      {isHistoryTranscriptLoading ? (
-                        <div className="h-full flex items-center justify-center">
-                          <p className={theme.settingsMuted}>Loading transcript...</p>
-                        </div>
-                      ) : historyMessages.length === 0 ? (
-                        <div className="h-full flex items-center justify-center">
-                          <p className={theme.settingsMuted}>No messages found in this conversation.</p>
-                        </div>
-                      ) : (
-                        <div className="h-full overflow-y-auto space-y-2 pr-1">
-                          {historyMessages.map((message) => (
-                            <div
-                              key={message._id}
-                              className={`rounded-xl px-3 py-2 ${message.senderType === "VISITOR" ? "bg-cyan-50 border border-cyan-100" : "bg-slate-100 border border-slate-200"}`}
-                            >
-                              <p className="text-[10px] font-semibold tracking-wide text-slate-500">
-                                {message.senderType === "VISITOR" ? "You" : "Support"}
-                              </p>
-                              <p className={`mt-0.5 whitespace-pre-wrap ${messageSizeClass}`}>{message.message}</p>
-                              <p className={`mt-1 ${theme.settingsMuted}`}>{formatDateTime(message.createdAt)}</p>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                    {selectedHistoryConversation ? (
+                      <div className={`${theme.settingsCard} flex-1 min-h-0 p-4 sm:p-5`}>
+                        <h3 className={`text-base font-semibold ${theme.settingsText}`}>Conversation Transcript</h3>
+                        {isHistoryTranscriptLoading ? (
+                          <div className="h-full flex items-center justify-center py-10">
+                            <p className={theme.settingsMuted}>Loading transcript...</p>
+                          </div>
+                        ) : historyMessages.length === 0 ? (
+                          <div className="h-full flex items-center justify-center py-10">
+                            <p className={theme.settingsMuted}>No messages found in this conversation.</p>
+                          </div>
+                        ) : (
+                          <div className="mt-3 h-full overflow-y-auto space-y-2 pr-1">
+                            {historyMessages.map((message) => (
+                              <div
+                                key={message._id}
+                                className={`rounded-xl px-3 py-2 ${message.senderType === "VISITOR" ? "bg-cyan-50 border border-cyan-100" : "bg-slate-100 border border-slate-200"}`}
+                              >
+                                <p className="text-[10px] font-semibold tracking-wide text-slate-500">
+                                  {message.senderType === "VISITOR" ? "You" : "Support"}
+                                </p>
+                                <p className={`mt-0.5 whitespace-pre-wrap ${messageSizeClass}`}>{message.message}</p>
+                                <p className={`mt-1 ${theme.settingsMuted}`}>{formatDateTime(message.createdAt)}</p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <>
+                        <h3 className={`mb-4 text-2xl font-semibold leading-tight ${theme.settingsText}`}>Past Conversations</h3>
+
+                        {isHistoryLoading ? (
+                          <div className={`${theme.settingsCard} py-8 text-center`}>
+                            <p className={theme.settingsMuted}>Loading chat history...</p>
+                          </div>
+                        ) : historyConversations.length === 0 ? (
+                          <div className={`${theme.settingsCard} py-8 text-center`}>
+                            <p className={theme.settingsMuted}>No previous conversations found for this visitor.</p>
+                          </div>
+                        ) : (
+                          <div className="grid gap-3">
+                            {historyConversations.map((conversation) => {
+                              const fallbackTicket = String(conversation._id || "").slice(-4) || "0000";
+                              const ticketLabel = `Ticket #${fallbackTicket}`;
+                              const dateLabel = formatDateOnly(conversation.closedAt || conversation.updatedAt || conversation.createdAt);
+                              const previewText = getConversationPreview(conversation);
+
+                              return (
+                                <button
+                                  key={conversation._id}
+                                  type="button"
+                                  onClick={() => {
+                                    void loadHistoryTranscript(String(conversation._id));
+                                  }}
+                                  className="w-full rounded-2xl border border-slate-200 bg-white/75 px-4 py-3 text-left transition-colors hover:bg-slate-50"
+                                >
+                                  <div className="flex items-start justify-between gap-3">
+                                    <p className="text-base font-semibold leading-tight text-slate-700">{ticketLabel}</p>
+                                    <p className="text-sm leading-tight text-slate-400">{dateLabel || ""}</p>
+                                  </div>
+                                  <div className="mt-2 flex items-center justify-between gap-2">
+                                    <p className="truncate text-sm leading-tight text-slate-500">{previewText}</p>
+                                    <ChevronRight className="h-4 w-4 shrink-0 text-slate-300" />
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        {historyError ? (
+                          <p className="mt-3 text-xs text-red-500">{historyError}</p>
+                        ) : null}
+                      </>
+                    )}
+                  </>
                 ) : (
                   <>
                     <button
@@ -2491,7 +2612,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                         style={{ backgroundColor: resolvedAccent, boxShadow: accentShadow }}
                       >
                         {isProfileSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-                        <span>{isProfileSaving ? "Saving..." : "Save profile"}</span>
+                        <span>{isProfileSaving ? "Saving..." : "Save Changes"}</span>
                       </button>
                       {profileStatusMessage ? (
                         <p className={`mt-2 ${theme.settingsMuted}`}>{profileStatusMessage}</p>
@@ -2501,22 +2622,25 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                     <div className={`my-5 border-t ${theme.settingsDivider}`} />
 
                     <div className={theme.settingsCard}>
-                      <p className={`${theme.settingsSectionTitle} mb-2`}>TEXT SIZE</p>
-                      <div className={`${theme.settingsControlShell} ${theme.settingsControlShellTone}`}>
-                        {(["small", "default", "large"] as TextSize[]).map((size) => (
-                          <button
-                            key={size}
-                            type="button"
-                            onClick={() => {
-                              setTextSize(size);
-                              writeStoredValue(WIDGET_TEXT_SIZE_KEY, size);
-                            }}
-                            className={`px-2 py-1.5 rounded-lg text-[11px] font-semibold capitalize transition-all ${textSize === size ? theme.settingsControlActive : theme.settingsControlIdle}`}
-                            style={textSize === size ? { borderColor: resolvedAccent } : undefined}
-                          >
-                            {size}
-                          </button>
-                        ))}
+                      <p className={`${theme.settingsSectionTitle} mb-2`}>PREFERENCES</p>
+                      <div className="flex items-center justify-between gap-3">
+                        <p className={theme.settingsText}>Text Size</p>
+                        <div className={`${theme.settingsControlShell} ${theme.settingsControlShellTone} max-w-[170px] w-full`}>
+                          {(["small", "default", "large"] as TextSize[]).map((size) => (
+                            <button
+                              key={size}
+                              type="button"
+                              onClick={() => {
+                                setTextSize(size);
+                                writeStoredValue(WIDGET_TEXT_SIZE_KEY, size);
+                              }}
+                              className={`px-2 py-1.5 rounded-lg text-[11px] font-semibold capitalize transition-all ${textSize === size ? theme.settingsControlActive : theme.settingsControlIdle}`}
+                              style={textSize === size ? { borderColor: resolvedAccent } : undefined}
+                            >
+                              {size}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     </div>
 
@@ -2588,40 +2712,19 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
 
                     <div className={theme.settingsCard}>
                       <div className="flex items-center justify-between gap-3">
-                        <p className={`${theme.settingsSectionTitle}`}>CHAT HISTORY</p>
-                        <span className={`${theme.settingsMuted}`}>{historyCount} ended chat{historyCount === 1 ? "" : "s"}</span>
-                      </div>
-
-                      {isHistoryLoading ? (
-                        <p className={`mt-2 ${theme.settingsMuted}`}>Loading chat history...</p>
-                      ) : historyConversations.length === 0 ? (
-                        <p className={`mt-2 ${theme.settingsMuted}`}>No previous conversations found for this visitor.</p>
-                      ) : (
-                        <div className="mt-3 grid gap-2">
-                          {historyConversations.slice(0, 6).map((conversation) => {
-                            const conversationLabel = formatDateTime(conversation.closedAt || conversation.updatedAt || conversation.createdAt) || "Ended conversation";
-                            const isSelected = String(conversation._id) === selectedHistoryConversationId;
-
-                            return (
-                              <button
-                                key={conversation._id}
-                                type="button"
-                                onClick={() => {
-                                  void loadHistoryTranscript(String(conversation._id));
-                                }}
-                                className={`w-full rounded-xl border px-3 py-2 text-left transition-colors ${isSelected ? "border-cyan-400 bg-cyan-50/80" : "border-slate-300 hover:bg-slate-50"}`}
-                              >
-                                <p className={`text-xs font-semibold ${theme.settingsText}`}>{conversationLabel}</p>
-                                <p className={`mt-0.5 text-[11px] ${theme.settingsMuted}`}>Transcript only</p>
-                              </button>
-                            );
-                          })}
+                        <div>
+                          <p className={`${theme.settingsSectionTitle}`}>CONVERSATION HISTORY</p>
+                          <p className={`${theme.settingsMuted}`}>{historyCount} ended chat{historyCount === 1 ? "" : "s"}</p>
                         </div>
-                      )}
-
-                      {historyError ? (
-                        <p className="mt-2 text-xs text-red-500">{historyError}</p>
-                      ) : null}
+                        <button
+                          type="button"
+                          onClick={openHistoryView}
+                          className={`rounded-xl px-3 py-2 text-xs font-semibold ${theme.button}`}
+                          style={{ backgroundColor: resolvedAccent, boxShadow: accentShadow }}
+                        >
+                          Open
+                        </button>
+                      </div>
                     </div>
 
                     <div className={`my-5 border-t ${theme.settingsDivider}`} />
@@ -3020,8 +3123,8 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                   </div>
                 </div>
 
-                <h3 className="mt-4 text-center text-[30px] leading-tight font-semibold tracking-[-0.01em] text-slate-700">End Session?</h3>
-                <p className="mt-2.5 text-center text-[12px] leading-5 font-normal text-slate-500">
+                <h6 className="mt-4 text-center text-[26px] leading-tight font-semibold tracking-[-0.01em] text-slate-700 sm:text-[24px]">End Session?</h6>
+                <p className="mt-2.5 text-center text-[11px] leading-5 font-normal text-slate-500 sm:text-[12px]">
                   Choose how you'd like to end this visit.
                 </p>
 
@@ -3034,7 +3137,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                         setWidgetView("chat");
                         void handleEndChat();
                       }}
-                      className="h-11 rounded-2xl text-[15px] font-semibold text-white shadow-[0_16px_24px_-18px_rgba(8,145,178,0.9)] transition-colors hover:bg-cyan-700"
+                      className="h-11 rounded-2xl text-[14px] font-semibold text-white shadow-[0_16px_24px_-18px_rgba(8,145,178,0.9)] transition-colors hover:bg-cyan-700 sm:text-[13px]"
                       style={{ backgroundColor: "#0f8da0" }}
                     >
                       Just end chat
@@ -3047,7 +3150,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                       setIsEndChatModalOpen(false);
                       void handleEndSession();
                     }}
-                    className="h-11 rounded-2xl bg-[#ef4444] text-[15px] font-semibold text-white shadow-[0_16px_24px_-18px_rgba(239,68,68,0.9)] transition-colors hover:bg-[#dc2626]"
+                    className="h-11 rounded-2xl bg-[#ef4444] text-[14px] font-semibold text-white shadow-[0_16px_24px_-18px_rgba(239,68,68,0.9)] transition-colors hover:bg-[#dc2626] sm:text-[13px]"
                   >
                     Sign out &amp; clear data
                   </button>
