@@ -61,6 +61,9 @@ export interface LiveChatConversation {
   closedById?: string | null;
   createdAt?: string;
   updatedAt?: string;
+  rating?: number | null;
+  ratingComment?: string | null;
+  ratedAt?: string | null;
 }
 
 export interface LiveChatQueueEntry {
@@ -188,6 +191,34 @@ export interface LiveChatEndConversationResponse {
     resolvedAt?: string | null;
   };
   endedBy?: LiveChatEndedBy;
+}
+
+export interface LiveChatConversationFeedback {
+  _id: string;
+  conversationId: string | LiveChatConversation;
+  visitorId: string | LiveChatVisitor;
+  agentId: string | LiveChatAgent;
+  rating: number;
+  comment?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface LiveChatConversationFeedbackSummary {
+  averageRating: number;
+  ratingCount: number;
+}
+
+export interface LiveChatSubmitFeedbackPayload {
+  rating: number;
+  comment?: string;
+}
+
+export interface LiveChatSubmitFeedbackResponse {
+  success: boolean;
+  message?: string;
+  feedback: LiveChatConversationFeedback;
+  summary: LiveChatConversationFeedbackSummary;
 }
 
 export interface LiveChatSendMessagePayload {

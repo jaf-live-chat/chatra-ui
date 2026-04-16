@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Loader2, MessageCircle, Paperclip, Send, X, Menu, Zap, ChevronUp, ChevronDown, ArrowLeft, Moon, Volume2, Shield, AlertCircle, Save } from "lucide-react";
+import { Loader2, MessageCircle, Paperclip, Send, X, Menu, Zap, ChevronUp, ChevronDown, ArrowLeft, Moon, Volume2, Shield, AlertCircle, Save, Star } from "lucide-react";
 import type { Socket } from "socket.io-client";
 import type {
   LiveChatConversation,
@@ -21,7 +21,7 @@ interface QuickMessage {
 }
 
 type WidgetTranscriptMessage = LiveChatMessage & {
-  localKind?: "quick-question" | "quick-typing" | "quick-response" | "queue-update" | "assignment-update" | "system-typing";
+  localKind?: "quick-question" | "quick-typing" | "quick-response" | "queue-update" | "assignment-update" | "system-typing" | "system-welcome";
   quickReplyId?: string;
 };
 
@@ -51,6 +51,7 @@ const WIDGET_DARK_MODE_KEY = "jaf_dark_mode";
 const WIDGET_TEXT_SIZE_KEY = "jaf_text_size";
 const WIDGET_MESSAGE_SOUNDS_KEY = "jaf_message_sounds";
 const SYSTEM_AUTO_MESSAGES_KEY = "jaf_widget_system_auto_messages";
+const WIDGET_FEEDBACK_CONVERSATION_KEY = "jaf_widget_feedback_conversation_id";
 
 type LocationPermissionState = "unknown" | "granted" | "denied" | "unavailable";
 
@@ -318,6 +319,14 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
   const [browserLocationStatus, setBrowserLocationStatus] = useState<"idle" | "resolving" | "resolved" | "denied" | "unavailable" | "error">("idle");
   const [locationPermissionState, setLocationPermissionState] = useState<LocationPermissionState>("unknown");
   const [isEndChatModalOpen, setIsEndChatModalOpen] = useState(false);
+  const [isEndSessionModalOpen, setIsEndSessionModalOpen] = useState(false);
+  const [isSessionEndPendingFeedback, setIsSessionEndPendingFeedback] = useState(false);
+  const [isFeedbackPromptOpen, setIsFeedbackPromptOpen] = useState(false);
+  const [feedbackConversationId, setFeedbackConversationId] = useState("");
+  const [feedbackRating, setFeedbackRating] = useState(0);
+  const [feedbackComment, setFeedbackComment] = useState("");
+  const [isFeedbackSubmitting, setIsFeedbackSubmitting] = useState(false);
+  const [feedbackMessage, setFeedbackMessage] = useState("");
   const [showQuickMessages, setShowQuickMessages] = useState(false);
   const [quickMessages, setQuickMessages] = useState<QuickMessage[]>([]);
   const [activeQuickReplyId, setActiveQuickReplyId] = useState<string | null>(null);
@@ -1262,10 +1271,82 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
     }, 1100);
   }, [clearQuickReplyTimer, isQuickReplyBlocked]);
 
+  const appendCustomerFriendlyWelcomeMessage = useCallback(() => {
+    const automatedWelcomeMessage = `Hi ${visitorGreetingName}! Welcome to ${title}. We're happy to help. Tell us what you need, and we'll support you as quickly as possible.`;
+    const targetConversationId = String(conversationId || "pre-chat");
+    const replyToken = `${targetConversationId}-${Date.now()}`;
+    const typingId = `welcome-typing-${replyToken}`;
+    const messageId = `system-welcome-${replyToken}`;
+
+    setMessages((currentMessages) => {
+      const hasExistingWelcome = currentMessages.some((entry) => entry.localKind === "system-welcome");
+      if (hasExistingWelcome) {
+        return currentMessages;
+      }
+
+      const typingMessage: WidgetTranscriptMessage = {
+        _id: typingId,
+        conversationId: targetConversationId,
+        senderType: "SUPPORT_AGENT",
+        senderId: "SYSTEM",
+        message: "",
+        status: "DELIVERED",
+        createdAt: getNextOrderedTimestamp(currentMessages),
+        localKind: "system-typing",
+      };
+
+      return normalizeMessages([...currentMessages, typingMessage]);
+    });
+
+    const timerId = window.setTimeout(() => {
+      setMessages((currentMessages) => {
+        const withoutTyping = currentMessages.filter((entry) => String(entry._id) !== typingId);
+        const hasExistingWelcome = withoutTyping.some((entry) => entry.localKind === "system-welcome");
+
+        if (hasExistingWelcome) {
+          return withoutTyping;
+        }
+
+        const welcomeMessageEntry: WidgetTranscriptMessage = {
+          _id: messageId,
+          conversationId: targetConversationId,
+          senderType: "SUPPORT_AGENT",
+          senderId: "SYSTEM",
+          message: automatedWelcomeMessage,
+          status: "DELIVERED",
+          createdAt: getNextOrderedTimestamp(withoutTyping),
+          localKind: "system-welcome",
+        };
+
+        return normalizeMessages([...withoutTyping, welcomeMessageEntry]);
+      });
+
+      systemAutoReplyTimersRef.current = systemAutoReplyTimersRef.current.filter((activeTimerId) => activeTimerId !== timerId);
+    }, SYSTEM_AUTO_REPLY_TYPING_MS);
+
+    systemAutoReplyTimersRef.current.push(timerId);
+  }, [conversationId, title, visitorGreetingName]);
+
   const handleCompletePreChat = useCallback(() => {
     setHasCompletedPreChat(true);
     setErrorMessage("");
-  }, []);
+    appendCustomerFriendlyWelcomeMessage();
+  }, [appendCustomerFriendlyWelcomeMessage]);
+
+  const openPostChatFeedbackPrompt = useCallback((endedConversationId?: string) => {
+    const targetConversationId = String(endedConversationId || conversationId || "").trim();
+
+    if (!targetConversationId || readStoredValue(WIDGET_FEEDBACK_CONVERSATION_KEY) === targetConversationId) {
+      return;
+    }
+
+    setFeedbackConversationId(targetConversationId);
+    setFeedbackRating(0);
+    setFeedbackComment("");
+    setFeedbackMessage("");
+    setIsFeedbackSubmitting(false);
+    setIsFeedbackPromptOpen(true);
+  }, [conversationId]);
 
   const resetConversationState = useCallback(() => {
     clearSystemAutoReplyTimers();
@@ -1293,7 +1374,8 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
   const handleEndChat = useCallback(async () => {
     if (conversationId) {
       try {
-        await liveChatWidgetServices.endConversation(widgetConfig, visitorToken, conversationId);
+        const response = await liveChatWidgetServices.endConversation(widgetConfig, visitorToken, conversationId);
+        openPostChatFeedbackPrompt(response.conversation?._id || conversationId);
       } catch (error) {
         setErrorMessage(getErrorMessage(error));
       }
@@ -1301,22 +1383,15 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
 
     resetConversationState();
     void syncConversationHistory();
-  }, [conversationId, resetConversationState, syncConversationHistory, visitorToken, widgetConfig]);
+  }, [conversationId, openPostChatFeedbackPrompt, resetConversationState, syncConversationHistory, visitorToken, widgetConfig]);
 
   const handleGoBackToStart = useCallback(() => {
     resetConversationState();
     setWidgetView("chat");
-  }, [resetConversationState]);
+    appendCustomerFriendlyWelcomeMessage();
+  }, [appendCustomerFriendlyWelcomeMessage, resetConversationState]);
 
-  const handleEndSession = useCallback(async () => {
-    if (conversationId) {
-      try {
-        await liveChatWidgetServices.endConversation(widgetConfig, visitorToken, conversationId);
-      } catch {
-        // Continue logging out even if ending the active chat fails.
-      }
-    }
-
+  const finalizeEndSession = useCallback(() => {
     clearSystemAutoReplyTimers();
     clearQuickReplyTimer();
     stopVisitorTyping(false);
@@ -1352,11 +1427,41 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
     setWidgetView("chat");
     setProfileStatusMessage("Session ended. You are logged out.");
     setIsEndChatModalOpen(false);
+    setIsEndSessionModalOpen(false);
+    setIsSessionEndPendingFeedback(false);
+    setIsFeedbackPromptOpen(false);
+    setFeedbackConversationId("");
+    setFeedbackRating(0);
+    setFeedbackComment("");
+    setFeedbackMessage("");
+    setIsFeedbackSubmitting(false);
     setIsAgentTyping(false);
     latestQueuePositionRef.current = null;
     pendingQueuePositionRef.current = null;
     assignmentNoticeConversationIdRef.current = "";
-  }, [clearAgentTypingTimer, clearQuickReplyTimer, clearSystemAutoReplyTimers, conversationId, disconnectSocket, stopVisitorTyping, visitorToken, widgetConfig]);
+  }, [clearAgentTypingTimer, clearQuickReplyTimer, clearSystemAutoReplyTimers, disconnectSocket, stopVisitorTyping]);
+
+  const handleEndSession = useCallback(async () => {
+    setIsEndSessionModalOpen(false);
+
+    const activeConversationId = String(conversationId || "").trim();
+    if (activeConversationId) {
+      try {
+        await liveChatWidgetServices.endConversation(widgetConfig, visitorToken, activeConversationId);
+      } catch {
+        // Continue session-end flow even if ending the active chat fails.
+      }
+
+      const hasFeedbackAlreadyHandled = readStoredValue(WIDGET_FEEDBACK_CONVERSATION_KEY) === activeConversationId;
+      if (!hasFeedbackAlreadyHandled) {
+        setIsSessionEndPendingFeedback(true);
+        openPostChatFeedbackPrompt(activeConversationId);
+        return;
+      }
+    }
+
+    finalizeEndSession();
+  }, [conversationId, finalizeEndSession, openPostChatFeedbackPrompt, visitorToken, widgetConfig]);
 
   const appendEndedMessage = useCallback((payload: LiveChatConversationEndedEvent) => {
     const endedBy = payload.endedBy?.displayName ? ` Ended by ${payload.endedBy.displayName}.` : "";
@@ -1379,6 +1484,47 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
       return normalizeMessages([...currentMessages, endedMessage]);
     });
   }, [conversationId]);
+
+  const closePostChatFeedbackPrompt = useCallback((markComplete = false) => {
+    if (markComplete && feedbackConversationId) {
+      writeStoredValue(WIDGET_FEEDBACK_CONVERSATION_KEY, feedbackConversationId);
+    }
+
+    setIsFeedbackPromptOpen(false);
+    setFeedbackConversationId("");
+    setFeedbackRating(0);
+    setFeedbackComment("");
+    setFeedbackMessage("");
+    setIsFeedbackSubmitting(false);
+
+    if (isSessionEndPendingFeedback) {
+      finalizeEndSession();
+    }
+  }, [feedbackConversationId, finalizeEndSession, isSessionEndPendingFeedback]);
+
+  const submitPostChatFeedback = useCallback(async () => {
+    const targetConversationId = String(feedbackConversationId || "").trim();
+
+    if (!targetConversationId || feedbackRating < 1 || feedbackRating > 5 || isFeedbackSubmitting) {
+      return;
+    }
+
+    setIsFeedbackSubmitting(true);
+    setFeedbackMessage("");
+
+    try {
+      await liveChatWidgetServices.submitConversationFeedback(widgetConfig, visitorToken, targetConversationId, {
+        rating: feedbackRating,
+        comment: feedbackComment.trim() || undefined,
+      });
+
+      closePostChatFeedbackPrompt(true);
+    } catch (error) {
+      setFeedbackMessage(getErrorMessage(error));
+    } finally {
+      setIsFeedbackSubmitting(false);
+    }
+  }, [closePostChatFeedbackPrompt, feedbackComment, feedbackConversationId, feedbackRating, isFeedbackSubmitting, visitorToken, widgetConfig]);
 
   const messageSizeClass = useMemo(() => {
     if (textSize === "small") {
@@ -1617,6 +1763,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
     if (isOpen) {
       setWidgetView("chat");
       setIsEndChatModalOpen(false);
+      setIsEndSessionModalOpen(false);
       setShowQuickMessages(false);
       setProfileStatusMessage("");
     }
@@ -1881,6 +2028,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
       stopVisitorTyping(false);
       setIsAgentTyping(false);
       clearAgentTypingTimer();
+      openPostChatFeedbackPrompt(payload.conversation?._id || conversationId || "");
       setConversationId("");
       setHasCompletedPreChat(true);
       clearStoredValue(CONVERSATION_ID_KEY);
@@ -1894,7 +2042,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
       clearAgentTypingTimer();
       disconnectSocket();
     };
-  }, [apiKey, appendEndedMessage, appendQueuePositionMessage, clearAgentTypingTimer, clearPersistedSystemMessages, conversationId, disconnectSocket, isOpen, persistSystemMessage, playIncomingMessageSound, stopVisitorTyping, syncConversationHistory, visitorGreetingName, visitorToken]);
+  }, [apiKey, appendEndedMessage, appendQueuePositionMessage, clearAgentTypingTimer, clearPersistedSystemMessages, conversationId, disconnectSocket, isOpen, openPostChatFeedbackPrompt, persistSystemMessage, playIncomingMessageSound, stopVisitorTyping, syncConversationHistory, visitorGreetingName, visitorToken]);
 
   useEffect(() => {
     messagesRef.current = messages;
@@ -2352,7 +2500,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                       <button
                         type="button"
                         onClick={() => {
-                          void handleEndSession();
+                          setIsEndSessionModalOpen(true);
                         }}
                         className="mt-3 w-full rounded-xl px-3 py-2 text-sm font-semibold text-white"
                         style={{ backgroundColor: resolvedAccent }}
@@ -2722,6 +2870,125 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                     className={`h-11 rounded-2xl text-base font-semibold transition-colors ${theme.modalPrimary}`}
                   >
                     Yes, end chat
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsEndChatModalOpen(false);
+                    setIsEndSessionModalOpen(true);
+                  }}
+                  className={`mt-3 h-11 w-full rounded-2xl text-base font-semibold transition-colors ${theme.modalSecondary}`}
+                >
+                  End session instead
+                </button>
+              </div>
+            </div>
+          ) : null}
+
+          {isEndSessionModalOpen ? (
+            <div className={`absolute inset-0 z-40 backdrop-blur-[5px] ${theme.modalBackdrop} flex items-center justify-center p-4`}>
+              <div className={`w-full max-w-[340px] rounded-3xl p-5 ${theme.modalCard}`}>
+                <div className="flex justify-center mb-3">
+                  <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center">
+                    <AlertCircle className="h-6 w-6 text-red-500" />
+                  </div>
+                </div>
+
+                <h3 className="text-center text-xl font-semibold">End this session?</h3>
+                <p className={`text-center mt-2 text-sm ${theme.settingsMuted}`}>
+                  This will erase your current visitor session on this browser, and your past chat transcripts will no longer be viewable from this widget.
+                </p>
+
+                <div className="mt-5 grid grid-cols-2 gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setIsEndSessionModalOpen(false)}
+                    className={`h-11 rounded-2xl text-base font-semibold transition-colors ${theme.modalSecondary}`}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void handleEndSession();
+                    }}
+                    className={`h-11 rounded-2xl text-base font-semibold transition-colors ${theme.modalPrimary}`}
+                  >
+                    Yes, end session
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          {isFeedbackPromptOpen ? (
+            <div className={`absolute inset-0 z-40 backdrop-blur-[5px] ${theme.modalBackdrop} flex items-center justify-center p-4`}>
+              <div className={`w-full max-w-[340px] rounded-3xl p-5 ${theme.modalCard}`}>
+                <div className="flex justify-center mb-3">
+                  <div className="h-12 w-12 rounded-full bg-amber-100 flex items-center justify-center">
+                    <Star className="h-6 w-6 text-amber-500" />
+                  </div>
+                </div>
+
+                <h3 className="text-center text-xl font-semibold">Rate your chat</h3>
+                <p className={`text-center mt-2 text-sm ${theme.settingsMuted}`}>
+                  Your feedback helps improve support quality. Comment is optional.
+                </p>
+
+                <div className="mt-4 flex items-center justify-center gap-1.5">
+                  {Array.from({ length: 5 }).map((_, index) => {
+                    const ratingValue = index + 1;
+                    const isActive = ratingValue <= feedbackRating;
+
+                    return (
+                      <button
+                        key={ratingValue}
+                        type="button"
+                        onClick={() => setFeedbackRating(ratingValue)}
+                        className="transition-transform hover:-translate-y-0.5"
+                        aria-label={`${ratingValue} star${ratingValue === 1 ? "" : "s"}`}
+                      >
+                        <Star className={`h-8 w-8 ${isActive ? "fill-amber-400 text-amber-400" : "text-slate-300"}`} />
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <textarea
+                  value={feedbackComment}
+                  onChange={(event) => setFeedbackComment(event.target.value)}
+                  rows={4}
+                  maxLength={500}
+                  placeholder="Add an optional comment"
+                  className={`mt-4 w-full rounded-2xl border px-3.5 py-2.5 text-sm outline-none ${theme.input}`}
+                />
+
+                {feedbackMessage ? (
+                  <p className={`mt-2 text-xs text-red-500`}>
+                    {feedbackMessage}
+                  </p>
+                ) : null}
+
+                <div className="mt-5 grid grid-cols-2 gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => closePostChatFeedbackPrompt(true)}
+                    className={`h-11 rounded-2xl text-base font-semibold transition-colors ${theme.modalSecondary}`}
+                    disabled={isFeedbackSubmitting}
+                  >
+                    Skip
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void submitPostChatFeedback();
+                    }}
+                    disabled={isFeedbackSubmitting || feedbackRating < 1}
+                    className={`h-11 rounded-2xl text-base font-semibold transition-colors ${theme.modalPrimary}`}
+                  >
+                    {isFeedbackSubmitting ? "Submitting..." : "Submit"}
                   </button>
                 </div>
               </div>

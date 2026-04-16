@@ -12,8 +12,8 @@ import Paper from "@mui/material/Paper";
 import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router";
+import { useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate, useParams } from "react-router";
 import type { TenantStatus } from "../../models/TenantModel";
 import { useGetSingleTenant } from "../../services/tenantService";
 import tenantService from "../../services/tenantService";
@@ -27,6 +27,7 @@ import TenantManageSubscriptionDrawer from "./TenantManageSubscriptionDrawer";
 import { toast } from "../../components/sonner";
 
 const EMPTY_LABEL = "-";
+const OPEN_PLAN_CHANGE_PARAM = "openPlanChange";
 
 const getDaysRemaining = (rawDate: string, status?: TenantStatus): string => {
   if (status === "EXPIRED" || status === "DEACTIVATED") return "0";
@@ -80,6 +81,7 @@ const safeIdLabel = (rawId: string | undefined, prefix: Parameters<typeof idLabe
 
 const TenantDetailsView = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { id } = useParams();
   const { isAdmin, isMasterAdmin } = useGetRole();
   const { tenant, isLoading, error, mutate } = useGetSingleTenant(id);
@@ -95,7 +97,28 @@ const TenantDetailsView = () => {
     return statusMeta[tenant.subscription.status] || statusMeta.INACTIVE;
   }, [tenant]);
 
+  const shouldOpenPlanChangeDrawer = useMemo(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const searchRequestedOpen = searchParams.get(OPEN_PLAN_CHANGE_PARAM) === "1";
+    const stateRequestedOpen = Boolean((location.state as { openPlanChangeDrawer?: boolean } | null)?.openPlanChangeDrawer);
+
+    return searchRequestedOpen || stateRequestedOpen;
+  }, [location.search, location.state]);
+
+  useEffect(() => {
+    if (!shouldOpenPlanChangeDrawer || id !== tenant?.id || isPlanChangeDrawerOpen) {
+      return;
+    }
+
+    setIsPlanChangeDrawerOpen(true);
+  }, [id, isPlanChangeDrawerOpen, shouldOpenPlanChangeDrawer]);
+
   const planActionLabel = tenant?.subscription.status === "EXPIRED" ? "Renew Plan" : "Change Plan";
+  const handleUpgradeNavigation = () => {
+    navigate(`/portal/tenants/${tenant?.id}?${OPEN_PLAN_CHANGE_PARAM}=1`, {
+      state: { openPlanChangeDrawer: true },
+    });
+  };
   const canCancelSubscription = Boolean(
     tenant?.subscription.id && tenant?.subscription.status === "ACTIVE",
   );
@@ -215,7 +238,7 @@ const TenantDetailsView = () => {
               <Button
                 variant="contained"
                 startIcon={<ReceiptText size={16} />}
-                onClick={() => setIsPlanChangeDrawerOpen(true)}
+                onClick={handleUpgradeNavigation}
                 sx={{ borderRadius: 1, fontWeight: 700, px: 2 }}
               >
                 {planActionLabel}
@@ -616,7 +639,10 @@ const TenantDetailsView = () => {
       <TenantPlanChangeDrawer
         open={isPlanChangeDrawerOpen}
         tenant={tenant}
-        onClose={() => setIsPlanChangeDrawerOpen(false)}
+        onClose={() => {
+          setIsPlanChangeDrawerOpen(false);
+          navigate(location.pathname, { replace: true, state: null });
+        }}
       />
 
       <TenantManageSubscriptionDrawer

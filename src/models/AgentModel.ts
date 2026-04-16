@@ -50,6 +50,8 @@ export type AuthAgent = {
   selfPickEligible?: boolean;
   selfPickEligibleAt?: string | null;
   selfPickConsumedAt?: string | null;
+  averageRating?: number;
+  ratingCount?: number;
 };
 
 export type AuthTenant = {
@@ -156,6 +158,26 @@ export type UpdateAgentResponse = {
   success: boolean;
   message: string;
   agent: AuthAgent;
+  ratingSummary?: {
+    averageRating: number;
+    ratingCount: number;
+  } | null;
+  feedbacks?: Array<{
+    _id: string;
+    rating: number;
+    comment?: string | null;
+    createdAt?: string;
+    visitorId?: unknown;
+    conversationId?: unknown;
+  }>;
+  ratingPagination?: {
+    page: number;
+    limit: number;
+    totalCount: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+  } | null;
 };
 
 export type DeleteAgentResponse = {

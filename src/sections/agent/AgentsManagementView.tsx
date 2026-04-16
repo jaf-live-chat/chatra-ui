@@ -1127,21 +1127,11 @@ const AgentsManagementView = () => {
               bgcolor: "grey.50",
               display: "flex",
               flexDirection: { xs: "column", sm: "row" },
-              justifyContent: "space-between",
+              justifyContent: "flex-end",
               alignItems: { xs: "stretch", sm: "center" },
               gap: 1.25,
             }}
           >
-            <Stack direction="row" alignItems="center" spacing={1} sx={{ flexWrap: "wrap", rowGap: 0.6 }}>
-              <Link2 size={16} color="#94a3b8" />
-              <Typography variant="body2" sx={{ color: "#94a3b8", fontWeight: 700 }}>
-                Or invite agents via link
-              </Typography>
-              <Typography variant="body2" sx={{ color: "primary.main", cursor: "pointer", fontWeight: 700 }} onClick={handleCopyInviteLink}>
-                {inviteCopied ? "Copied!" : "Copy"}
-              </Typography>
-            </Stack>
-
             <DialogActions
               sx={{
                 p: 0,
