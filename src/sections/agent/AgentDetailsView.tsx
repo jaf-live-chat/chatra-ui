@@ -20,7 +20,7 @@ import Grid from "@mui/material/Grid";
 import IconButton from "@mui/material/IconButton";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
-import Skeleton from "../../components/Skeleton";
+import Skeleton from "../../components/skeleton";
 import Agents from "../../services/agentServices";
 import type { AuthAgent } from "../../models/AgentModel";
 import toTitleCase from "../../utils/toTitleCase";

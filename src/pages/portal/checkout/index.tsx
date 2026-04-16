@@ -30,7 +30,7 @@ import {
 
 import { useGetSinglePlan, useGetSubscriptionPlans } from "../../../services/subscriptionPlanServices";
 import Payments from "../../../services/paymentServices";
-import { Button as AppButton } from "../../../components/Button";
+import { Button as AppButton } from "../../../components/button";
 import { Alert, AlertDescription, AlertTitle } from "../../../components/Alert";
 import type { CreatePaymentCheckoutResponse } from "../../../models/PaymentModel";
 import PageTitle from "../../../components/common/PageTitle";
@@ -705,437 +705,437 @@ const Checkout = () => {
                     }}
                   >
                     {checkoutError && (
-                    <Alert variant="destructive" className="mb-4">
-                      <AlertTitle>Unable to continue checkout</AlertTitle>
-                      <AlertDescription>{checkoutError}</AlertDescription>
-                    </Alert>
-                  )}
+                      <Alert variant="destructive" className="mb-4">
+                        <AlertTitle>Unable to continue checkout</AlertTitle>
+                        <AlertDescription>{checkoutError}</AlertDescription>
+                      </Alert>
+                    )}
 
-                  {isPlansLoading && (
-                    <Typography variant="caption" sx={{ display: "block", color: "text.secondary", mb: 2 }}>
-                      Loading latest plans...
-                    </Typography>
-                  )}
-
-
-
-                  {activeStep === 0 && (
-                    <form onSubmit={handleAccountNext}>
-                      <Box sx={{ display: "flex", flexWrap: "wrap", margin: -1, mb: 4, width: "100%" }}>
-                        {/* User Information Card */}
-                        <Box sx={{ p: 1, width: { xs: "100%", md: "50%" } }}>
-                          <Box
-                            sx={{
-                              p: 2.25,
-                              height: "100%",
-                              borderRadius: 3,
-                              border: "1px solid #F1F5F9",
-                              bgcolor: "#FFFFFF",
-                            }}
-                          >
-                            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
-                              <User size={18} color="#149B9A" />
-                              <Typography variant="subtitle2" sx={{ fontWeight: 800, color: "#1F2937" }}>
-                                User Information
-                              </Typography>
-                            </Stack>
-
-                            <Stack spacing={1.5}>
-                              <Box>
-                                <Typography variant="caption" sx={{ display: "block", fontWeight: 700, mb: 0.5, color: "#4A5568", fontSize: "0.75rem" }}>
-                                  Full Name *
-                                </Typography>
-                                <TextField
-                                  size="small"
-                                  fullWidth
-                                  placeholder="John Doe"
-                                  required
-                                  value={accountInfo.fullName}
-                                  onChange={(e) => setAccountInfo({ ...accountInfo, fullName: e.target.value })}
-                                  error={!!accountErrors.fullName}
-                                  helperText={accountErrors.fullName}
-                                  slotProps={{
-                                    input: {
-                                      startAdornment: (
-                                        <InputAdornment position="start">
-                                          <User size={18} color="#94A3B8" />
-                                        </InputAdornment>
-                                      ),
-                                    },
-                                  }}
-                                  sx={{
-                                    "& .MuiOutlinedInput-root": { borderRadius: 4, bgcolor: "#fff", borderColor: "#E2E8F0" },
-                                    "& .MuiInputBase-input": { fontSize: "0.9rem", py: 1 },
-                                  }}
-                                />
-                              </Box>
-
-                              <Box>
-                                <Typography variant="caption" sx={{ display: "block", fontWeight: 700, mb: 0.5, color: "#4A5568", fontSize: "0.75rem" }}>
-                                  Email Address *
-                                </Typography>
-                                <TextField
-                                  size="small"
-                                  fullWidth
-                                  placeholder="you@company.com"
-                                  type="email"
-                                  required
-                                  value={accountInfo.email}
-                                  onChange={(e) => setAccountInfo({ ...accountInfo, email: e.target.value })}
-                                  error={!!accountErrors.email}
-                                  helperText={accountErrors.email}
-                                  slotProps={{
-                                    input: {
-                                      startAdornment: (
-                                        <InputAdornment position="start">
-                                          <Mail size={18} color="#94A3B8" />
-                                        </InputAdornment>
-                                      ),
-                                    },
-                                  }}
-                                  sx={{
-                                    "& .MuiOutlinedInput-root": { borderRadius: 4, bgcolor: "#fff", borderColor: "#E2E8F0" },
-                                    "& .MuiInputBase-input": { fontSize: "0.9rem", py: 1 },
-                                  }}
-                                />
-                              </Box>
-
-                              <Box>
-                                <Typography variant="caption" sx={{ display: "block", fontWeight: 700, mb: 0.5, color: "#4A5568", fontSize: "0.75rem" }}>
-                                  Password *
-                                </Typography>
-                                <TextField
-                                  size="small"
-                                  fullWidth
-                                  type={showPassword ? "text" : "password"}
-                                  required
-                                  placeholder="Create a password"
-                                  value={accountInfo.password}
-                                  onChange={(e) => setAccountInfo({ ...accountInfo, password: e.target.value })}
-                                  error={!!accountErrors.password}
-                                  helperText={accountErrors.password}
-                                  slotProps={{
-                                    input: {
-                                      startAdornment: (
-                                        <InputAdornment position="start">
-                                          <Lock size={18} color="#94A3B8" />
-                                        </InputAdornment>
-                                      ),
-                                      endAdornment: (
-                                        <InputAdornment position="end">
-                                          <IconButton
-                                            size="small"
-                                            onClick={() => setShowPassword(!showPassword)}
-                                            edge="end"
-                                          >
-                                            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                                          </IconButton>
-                                        </InputAdornment>
-                                      ),
-                                    },
-                                  }}
-                                  sx={{
-                                    "& .MuiOutlinedInput-root": { borderRadius: 4, bgcolor: "#fff", borderColor: "#E2E8F0" },
-                                    "& .MuiInputBase-input": { fontSize: "0.9rem", py: 1 },
-                                  }}
-                                />
-                              </Box>
-
-                              <Box>
-                                <Typography variant="caption" sx={{ display: "block", fontWeight: 700, mb: 0.5, color: "#4A5568", fontSize: "0.75rem" }}>
-                                  Confirm Password *
-                                </Typography>
-                                <TextField
-                                  size="small"
-                                  fullWidth
-                                  type={showConfirmPassword ? "text" : "password"}
-                                  required
-                                  placeholder="Confirm your password"
-                                  value={accountInfo.confirmPassword}
-                                  onChange={(e) => setAccountInfo({ ...accountInfo, confirmPassword: e.target.value })}
-                                  error={!!accountErrors.confirmPassword || (accountInfo.confirmPassword.length > 0 && accountInfo.password !== accountInfo.confirmPassword)}
-                                  helperText={accountErrors.confirmPassword || (accountInfo.confirmPassword.length > 0 && accountInfo.password !== accountInfo.confirmPassword ? "Passwords do not match" : "")}
-                                  slotProps={{
-                                    input: {
-                                      startAdornment: (
-                                        <InputAdornment position="start">
-                                          <Lock size={18} color="#94A3B8" />
-                                        </InputAdornment>
-                                      ),
-                                      endAdornment: (
-                                        <InputAdornment position="end">
-                                          <IconButton
-                                            size="small"
-                                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                            edge="end"
-                                          >
-                                            {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                                          </IconButton>
-                                        </InputAdornment>
-                                      ),
-                                    },
-                                  }}
-                                  sx={{
-                                    "& .MuiOutlinedInput-root": { borderRadius: 4, bgcolor: "#fff", borderColor: "#E2E8F0" },
-                                    "& .MuiInputBase-input": { fontSize: "0.9rem", py: 1 },
-                                  }}
-                                />
-                              </Box>
-                            </Stack>
-                          </Box>
-                        </Box>
-
-                        {/* Company Information Card */}
-                        <Box sx={{ p: 1, width: { xs: "100%", md: "50%" } }}>
-                          <Box
-                            sx={{
-                              p: 2.25,
-                              height: "100%",
-                              borderRadius: 3,
-                              border: "1px solid #F1F5F9",
-                              bgcolor: "#FFFFFF",
-                            }}
-                          >
-                            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
-                              <Building2 size={18} color="#149B9A" />
-                              <Typography variant="subtitle2" sx={{ fontWeight: 800, color: "#1F2937" }}>
-                                Company Information
-                              </Typography>
-                            </Stack>
-
-                            <Stack spacing={1.5}>
-                              <Box>
-                                <Typography variant="caption" sx={{ display: "block", fontWeight: 700, mb: 0.5, color: "#4A5568", fontSize: "0.75rem" }}>
-                                  Company Name *
-                                </Typography>
-                                <TextField
-                                  size="small"
-                                  fullWidth
-                                  required
-                                  placeholder="Acme Inc."
-                                  value={accountInfo.companyName}
-                                  onChange={(e) => setAccountInfo({ ...accountInfo, companyName: e.target.value })}
-                                  error={!!accountErrors.companyName}
-                                  helperText={accountErrors.companyName}
-                                  slotProps={{
-                                    input: {
-                                      startAdornment: (
-                                        <InputAdornment position="start">
-                                          <Building2 size={18} color="#94A3B8" />
-                                        </InputAdornment>
-                                      ),
-                                    },
-                                  }}
-                                  sx={{
-                                    "& .MuiOutlinedInput-root": { borderRadius: 4, bgcolor: "#fff", borderColor: "#E2E8F0" },
-                                    "& .MuiInputBase-input": { fontSize: "0.9rem", py: 1 },
-                                  }}
-                                />
-                              </Box>
-
-                              <Box>
-                                <Typography variant="caption" sx={{ display: "block", fontWeight: 700, mb: 0.5, color: "#4A5568", fontSize: "0.75rem" }}>
-                                  Company Code *
-                                </Typography>
-                                <TextField
-                                  size="small"
-                                  fullWidth
-                                  required
-                                  placeholder="ABC123"
-                                  value={accountInfo.companyCode}
-                                  onChange={(e) => setAccountInfo({ ...accountInfo, companyCode: e.target.value })}
-                                  error={!!accountErrors.companyCode}
-                                  helperText={accountErrors.companyCode}
-                                  slotProps={{
-                                    input: {
-                                      startAdornment: (
-                                        <InputAdornment position="start">
-                                          <Building2 size={18} color="#94A3B8" />
-                                        </InputAdornment>
-                                      ),
-                                    },
-                                  }}
-                                  sx={{
-                                    "& .MuiOutlinedInput-root": { borderRadius: 4, bgcolor: "#fff", borderColor: "#E2E8F0" },
-                                    "& .MuiInputBase-input": { fontSize: "0.9rem", py: 1 },
-                                  }}
-                                />
-                              </Box>
-                            </Stack>
-                          </Box>
-                        </Box>
-                      </Box>
-
-                      <Box sx={{ width: "100%" }}>
-                        <AppButton
-                          type="submit"
-                          disabled={isProcessing}
-                          className="h-10 w-full rounded-lg bg-[#007EA7] mt-1 text-white hover:bg-[#005F82] font-bold text-base"
-                        >
-                          {isProcessing ? (
-                            <Stack direction="row" spacing={1} alignItems="center">
-                              <Loader2 size={20} className="animate-spin" />
-                              <span>Preparing summary...</span>
-                            </Stack>
-                          ) : (
-                            "Continue to Summary"
-                          )}
-                        </AppButton>
-                      </Box>
-                    </form>
-                  )}
-
-                  {activeStep === 1 && (
-                    <Box sx={{ width: "100%" }}>
-                      <Typography variant="h5" sx={{ fontWeight: 800, color: "#1F2937", mb: 3, display: "flex", alignItems: "center", gap: 1.5 }}>
-                        <FileText size={28} color="#149B9A" /> Order Summary
+                    {isPlansLoading && (
+                      <Typography variant="caption" sx={{ display: "block", color: "text.secondary", mb: 2 }}>
+                        Loading latest plans...
                       </Typography>
+                    )}
 
-                      <Box sx={{ display: "flex", flexWrap: "wrap", margin: -1, mb: 2.5 }}>
-                        <Box sx={{ p: 1, width: { xs: "100%", md: "50%" } }}>
-                          <Box
-                            className="rounded border border-slate-200 shadow-sm"
-                            sx={{
-                              borderRadius: 3,
-                              border: "1px solid",
-                              borderColor: "#F1F5F9",
-                              bgcolor: "#FFFFFF",
-                              p: { xs: 2.25, sm: 2.25 },
-                            }}
-                          >
-                            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.25 }}>
-                              <Building2 size={18} color="#149B9A" />
-                              <Typography variant="subtitle2" sx={{ fontWeight: 800, color: "#1F2937" }}>
-                                Company Information
-                              </Typography>
-                            </Stack>
-                            <Stack spacing={0.75}>
-                              <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                                Company Name: <strong style={{ color: "#1F2937" }}>{accountInfo.companyName || "-"}</strong>
-                              </Typography>
-                              <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                                Company Code: <strong style={{ color: "#1F2937" }}>{accountInfo.companyCode || "-"}</strong>
-                              </Typography>
-                            </Stack>
+
+
+                    {activeStep === 0 && (
+                      <form onSubmit={handleAccountNext}>
+                        <Box sx={{ display: "flex", flexWrap: "wrap", margin: -1, mb: 4, width: "100%" }}>
+                          {/* User Information Card */}
+                          <Box sx={{ p: 1, width: { xs: "100%", md: "50%" } }}>
+                            <Box
+                              sx={{
+                                p: 2.25,
+                                height: "100%",
+                                borderRadius: 3,
+                                border: "1px solid #F1F5F9",
+                                bgcolor: "#FFFFFF",
+                              }}
+                            >
+                              <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
+                                <User size={18} color="#149B9A" />
+                                <Typography variant="subtitle2" sx={{ fontWeight: 800, color: "#1F2937" }}>
+                                  User Information
+                                </Typography>
+                              </Stack>
+
+                              <Stack spacing={1.5}>
+                                <Box>
+                                  <Typography variant="caption" sx={{ display: "block", fontWeight: 700, mb: 0.5, color: "#4A5568", fontSize: "0.75rem" }}>
+                                    Full Name *
+                                  </Typography>
+                                  <TextField
+                                    size="small"
+                                    fullWidth
+                                    placeholder="John Doe"
+                                    required
+                                    value={accountInfo.fullName}
+                                    onChange={(e) => setAccountInfo({ ...accountInfo, fullName: e.target.value })}
+                                    error={!!accountErrors.fullName}
+                                    helperText={accountErrors.fullName}
+                                    slotProps={{
+                                      input: {
+                                        startAdornment: (
+                                          <InputAdornment position="start">
+                                            <User size={18} color="#94A3B8" />
+                                          </InputAdornment>
+                                        ),
+                                      },
+                                    }}
+                                    sx={{
+                                      "& .MuiOutlinedInput-root": { borderRadius: 4, bgcolor: "#fff", borderColor: "#E2E8F0" },
+                                      "& .MuiInputBase-input": { fontSize: "0.9rem", py: 1 },
+                                    }}
+                                  />
+                                </Box>
+
+                                <Box>
+                                  <Typography variant="caption" sx={{ display: "block", fontWeight: 700, mb: 0.5, color: "#4A5568", fontSize: "0.75rem" }}>
+                                    Email Address *
+                                  </Typography>
+                                  <TextField
+                                    size="small"
+                                    fullWidth
+                                    placeholder="you@company.com"
+                                    type="email"
+                                    required
+                                    value={accountInfo.email}
+                                    onChange={(e) => setAccountInfo({ ...accountInfo, email: e.target.value })}
+                                    error={!!accountErrors.email}
+                                    helperText={accountErrors.email}
+                                    slotProps={{
+                                      input: {
+                                        startAdornment: (
+                                          <InputAdornment position="start">
+                                            <Mail size={18} color="#94A3B8" />
+                                          </InputAdornment>
+                                        ),
+                                      },
+                                    }}
+                                    sx={{
+                                      "& .MuiOutlinedInput-root": { borderRadius: 4, bgcolor: "#fff", borderColor: "#E2E8F0" },
+                                      "& .MuiInputBase-input": { fontSize: "0.9rem", py: 1 },
+                                    }}
+                                  />
+                                </Box>
+
+                                <Box>
+                                  <Typography variant="caption" sx={{ display: "block", fontWeight: 700, mb: 0.5, color: "#4A5568", fontSize: "0.75rem" }}>
+                                    Password *
+                                  </Typography>
+                                  <TextField
+                                    size="small"
+                                    fullWidth
+                                    type={showPassword ? "text" : "password"}
+                                    required
+                                    placeholder="Create a password"
+                                    value={accountInfo.password}
+                                    onChange={(e) => setAccountInfo({ ...accountInfo, password: e.target.value })}
+                                    error={!!accountErrors.password}
+                                    helperText={accountErrors.password}
+                                    slotProps={{
+                                      input: {
+                                        startAdornment: (
+                                          <InputAdornment position="start">
+                                            <Lock size={18} color="#94A3B8" />
+                                          </InputAdornment>
+                                        ),
+                                        endAdornment: (
+                                          <InputAdornment position="end">
+                                            <IconButton
+                                              size="small"
+                                              onClick={() => setShowPassword(!showPassword)}
+                                              edge="end"
+                                            >
+                                              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                            </IconButton>
+                                          </InputAdornment>
+                                        ),
+                                      },
+                                    }}
+                                    sx={{
+                                      "& .MuiOutlinedInput-root": { borderRadius: 4, bgcolor: "#fff", borderColor: "#E2E8F0" },
+                                      "& .MuiInputBase-input": { fontSize: "0.9rem", py: 1 },
+                                    }}
+                                  />
+                                </Box>
+
+                                <Box>
+                                  <Typography variant="caption" sx={{ display: "block", fontWeight: 700, mb: 0.5, color: "#4A5568", fontSize: "0.75rem" }}>
+                                    Confirm Password *
+                                  </Typography>
+                                  <TextField
+                                    size="small"
+                                    fullWidth
+                                    type={showConfirmPassword ? "text" : "password"}
+                                    required
+                                    placeholder="Confirm your password"
+                                    value={accountInfo.confirmPassword}
+                                    onChange={(e) => setAccountInfo({ ...accountInfo, confirmPassword: e.target.value })}
+                                    error={!!accountErrors.confirmPassword || (accountInfo.confirmPassword.length > 0 && accountInfo.password !== accountInfo.confirmPassword)}
+                                    helperText={accountErrors.confirmPassword || (accountInfo.confirmPassword.length > 0 && accountInfo.password !== accountInfo.confirmPassword ? "Passwords do not match" : "")}
+                                    slotProps={{
+                                      input: {
+                                        startAdornment: (
+                                          <InputAdornment position="start">
+                                            <Lock size={18} color="#94A3B8" />
+                                          </InputAdornment>
+                                        ),
+                                        endAdornment: (
+                                          <InputAdornment position="end">
+                                            <IconButton
+                                              size="small"
+                                              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                              edge="end"
+                                            >
+                                              {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                            </IconButton>
+                                          </InputAdornment>
+                                        ),
+                                      },
+                                    }}
+                                    sx={{
+                                      "& .MuiOutlinedInput-root": { borderRadius: 4, bgcolor: "#fff", borderColor: "#E2E8F0" },
+                                      "& .MuiInputBase-input": { fontSize: "0.9rem", py: 1 },
+                                    }}
+                                  />
+                                </Box>
+                              </Stack>
+                            </Box>
+                          </Box>
+
+                          {/* Company Information Card */}
+                          <Box sx={{ p: 1, width: { xs: "100%", md: "50%" } }}>
+                            <Box
+                              sx={{
+                                p: 2.25,
+                                height: "100%",
+                                borderRadius: 3,
+                                border: "1px solid #F1F5F9",
+                                bgcolor: "#FFFFFF",
+                              }}
+                            >
+                              <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
+                                <Building2 size={18} color="#149B9A" />
+                                <Typography variant="subtitle2" sx={{ fontWeight: 800, color: "#1F2937" }}>
+                                  Company Information
+                                </Typography>
+                              </Stack>
+
+                              <Stack spacing={1.5}>
+                                <Box>
+                                  <Typography variant="caption" sx={{ display: "block", fontWeight: 700, mb: 0.5, color: "#4A5568", fontSize: "0.75rem" }}>
+                                    Company Name *
+                                  </Typography>
+                                  <TextField
+                                    size="small"
+                                    fullWidth
+                                    required
+                                    placeholder="Acme Inc."
+                                    value={accountInfo.companyName}
+                                    onChange={(e) => setAccountInfo({ ...accountInfo, companyName: e.target.value })}
+                                    error={!!accountErrors.companyName}
+                                    helperText={accountErrors.companyName}
+                                    slotProps={{
+                                      input: {
+                                        startAdornment: (
+                                          <InputAdornment position="start">
+                                            <Building2 size={18} color="#94A3B8" />
+                                          </InputAdornment>
+                                        ),
+                                      },
+                                    }}
+                                    sx={{
+                                      "& .MuiOutlinedInput-root": { borderRadius: 4, bgcolor: "#fff", borderColor: "#E2E8F0" },
+                                      "& .MuiInputBase-input": { fontSize: "0.9rem", py: 1 },
+                                    }}
+                                  />
+                                </Box>
+
+                                <Box>
+                                  <Typography variant="caption" sx={{ display: "block", fontWeight: 700, mb: 0.5, color: "#4A5568", fontSize: "0.75rem" }}>
+                                    Company Code *
+                                  </Typography>
+                                  <TextField
+                                    size="small"
+                                    fullWidth
+                                    required
+                                    placeholder="ABC123"
+                                    value={accountInfo.companyCode}
+                                    onChange={(e) => setAccountInfo({ ...accountInfo, companyCode: e.target.value })}
+                                    error={!!accountErrors.companyCode}
+                                    helperText={accountErrors.companyCode}
+                                    slotProps={{
+                                      input: {
+                                        startAdornment: (
+                                          <InputAdornment position="start">
+                                            <Building2 size={18} color="#94A3B8" />
+                                          </InputAdornment>
+                                        ),
+                                      },
+                                    }}
+                                    sx={{
+                                      "& .MuiOutlinedInput-root": { borderRadius: 4, bgcolor: "#fff", borderColor: "#E2E8F0" },
+                                      "& .MuiInputBase-input": { fontSize: "0.9rem", py: 1 },
+                                    }}
+                                  />
+                                </Box>
+                              </Stack>
+                            </Box>
                           </Box>
                         </Box>
 
-                        <Box sx={{ p: 1, width: { xs: "100%", md: "50%" } }}>
-                          <Box
-                            className="rounded border border-slate-200 shadow-sm"
-                            sx={{
-                              borderRadius: 3,
-                              border: "1px solid",
-                              borderColor: "#F1F5F9",
-                              bgcolor: "#FFFFFF",
-                              p: { xs: 2.25, sm: 2.25 },
-                            }}
-                          >
-                            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.25 }}>
-                              <User size={18} color="#149B9A" />
-                              <Typography variant="subtitle2" sx={{ fontWeight: 800, color: "#1F2937" }}>
-                                User Information
-                              </Typography>
-                            </Stack>
-                            <Stack spacing={0.75}>
-                              <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                                Full Name: <strong style={{ color: "#1F2937" }}>{accountInfo.fullName || "-"}</strong>
-                              </Typography>
-                              <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                                Email Address: <strong style={{ color: "#1F2937" }}>{accountInfo.email || "-"}</strong>
-                              </Typography>
-                            </Stack>
-                          </Box>
-                        </Box>
-                      </Box>
-
-                      <Box
-                        sx={{
-                          mb: 2.5,
-                          borderRadius: 1,
-                          border: "1px solid",
-                          borderColor: "#D4DCE5",
-                          background: "linear-gradient(180deg, #F8FBFD 0%, #F2F6FA 100%)",
-                          p: { xs: 2, sm: 2.5 },
-                          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.65)",
-                        }}
-                      >
-                        <Stack
-                          direction={{ xs: "column", sm: "row" }}
-                          justifyContent="space-between"
-                          alignItems={{ xs: "flex-start", sm: "center" }}
-                          spacing={1.5}
-                          sx={{ mb: 1.5 }}
-                        >
-                          <Box>
-                            <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700, display: "block", mb: 0.5 }}>
-                              Selected Plan
-                            </Typography>
-                            <Typography variant="h6" sx={{ fontWeight: 800, lineHeight: 1.2 }}>
-                              {selectedPlan?.name}
-                            </Typography>
-                          </Box>
-                        </Stack>
-
-                        <Stack direction="row" alignItems="baseline" spacing={0.75} sx={{ mb: 1.25 }}>
-                          <Typography variant="h5" sx={{ fontWeight: 900, color: "#0E7490", letterSpacing: "-0.3px" }}>
-                            {selectedPlanPrice}
-                          </Typography>
-                          <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                            {selectedPlanPeriod}
-                          </Typography>
-                        </Stack>
-
-                        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 0.75 }}>
-                          {selectedPlan?.features.slice(0, 4).map((feature) => (
-                            <Stack key={`summary-feature-${feature}`} direction="row" spacing={1} alignItems="center">
-                              <Box sx={{ width: 6, height: 6, borderRadius: 1, bgcolor: "#0891B2", flexShrink: 0 }} />
-                              <Typography variant="body2" sx={{ color: "text.secondary", lineHeight: 1.4 }}>
-                                {feature}
-                              </Typography>
-                            </Stack>
-                          ))}
-                        </Box>
-                      </Box>
-
-                      <Box sx={{ display: "flex", flexWrap: "wrap", margin: -1, mt: 2 }}>
-                        <Box sx={{ p: 1, width: "50%" }}>
+                        <Box sx={{ width: "100%" }}>
                           <AppButton
-                            type="button"
-                            variant="outline"
-                            className="h-12 w-full rounded"
-                            onClick={() => setActiveStep(0)}
-                          >
-                            Back
-                          </AppButton>
-                        </Box>
-
-                        <Box sx={{ p: 1, width: "50%" }}>
-                          <AppButton
-                            type="button"
+                            type="submit"
                             disabled={isProcessing}
-                            onClick={handleSubmit as any}
-                            className="h-12 w-full rounded bg-[#149B9A] text-white hover:bg-[#118A89]"
+                            className="h-10 w-full rounded-lg bg-[#007EA7] mt-1 text-white hover:bg-[#005F82] font-bold text-base"
                           >
                             {isProcessing ? (
                               <Stack direction="row" spacing={1} alignItems="center">
                                 <Loader2 size={20} className="animate-spin" />
-                                <span>{isFreePlanSelected ? "Setting up your workspace..." : "Redirecting to HitPay..."}</span>
+                                <span>Preparing summary...</span>
                               </Stack>
                             ) : (
-                              isFreePlanSelected ? "Activate Free Plan" : `Subscribe ${selectedPlanPrice}`
+                              "Continue to Summary"
                             )}
                           </AppButton>
                         </Box>
+                      </form>
+                    )}
+
+                    {activeStep === 1 && (
+                      <Box sx={{ width: "100%" }}>
+                        <Typography variant="h5" sx={{ fontWeight: 800, color: "#1F2937", mb: 3, display: "flex", alignItems: "center", gap: 1.5 }}>
+                          <FileText size={28} color="#149B9A" /> Order Summary
+                        </Typography>
+
+                        <Box sx={{ display: "flex", flexWrap: "wrap", margin: -1, mb: 2.5 }}>
+                          <Box sx={{ p: 1, width: { xs: "100%", md: "50%" } }}>
+                            <Box
+                              className="rounded border border-slate-200 shadow-sm"
+                              sx={{
+                                borderRadius: 3,
+                                border: "1px solid",
+                                borderColor: "#F1F5F9",
+                                bgcolor: "#FFFFFF",
+                                p: { xs: 2.25, sm: 2.25 },
+                              }}
+                            >
+                              <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.25 }}>
+                                <Building2 size={18} color="#149B9A" />
+                                <Typography variant="subtitle2" sx={{ fontWeight: 800, color: "#1F2937" }}>
+                                  Company Information
+                                </Typography>
+                              </Stack>
+                              <Stack spacing={0.75}>
+                                <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                                  Company Name: <strong style={{ color: "#1F2937" }}>{accountInfo.companyName || "-"}</strong>
+                                </Typography>
+                                <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                                  Company Code: <strong style={{ color: "#1F2937" }}>{accountInfo.companyCode || "-"}</strong>
+                                </Typography>
+                              </Stack>
+                            </Box>
+                          </Box>
+
+                          <Box sx={{ p: 1, width: { xs: "100%", md: "50%" } }}>
+                            <Box
+                              className="rounded border border-slate-200 shadow-sm"
+                              sx={{
+                                borderRadius: 3,
+                                border: "1px solid",
+                                borderColor: "#F1F5F9",
+                                bgcolor: "#FFFFFF",
+                                p: { xs: 2.25, sm: 2.25 },
+                              }}
+                            >
+                              <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.25 }}>
+                                <User size={18} color="#149B9A" />
+                                <Typography variant="subtitle2" sx={{ fontWeight: 800, color: "#1F2937" }}>
+                                  User Information
+                                </Typography>
+                              </Stack>
+                              <Stack spacing={0.75}>
+                                <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                                  Full Name: <strong style={{ color: "#1F2937" }}>{accountInfo.fullName || "-"}</strong>
+                                </Typography>
+                                <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                                  Email Address: <strong style={{ color: "#1F2937" }}>{accountInfo.email || "-"}</strong>
+                                </Typography>
+                              </Stack>
+                            </Box>
+                          </Box>
+                        </Box>
+
+                        <Box
+                          sx={{
+                            mb: 2.5,
+                            borderRadius: 1,
+                            border: "1px solid",
+                            borderColor: "#D4DCE5",
+                            background: "linear-gradient(180deg, #F8FBFD 0%, #F2F6FA 100%)",
+                            p: { xs: 2, sm: 2.5 },
+                            boxShadow: "inset 0 1px 0 rgba(255,255,255,0.65)",
+                          }}
+                        >
+                          <Stack
+                            direction={{ xs: "column", sm: "row" }}
+                            justifyContent="space-between"
+                            alignItems={{ xs: "flex-start", sm: "center" }}
+                            spacing={1.5}
+                            sx={{ mb: 1.5 }}
+                          >
+                            <Box>
+                              <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700, display: "block", mb: 0.5 }}>
+                                Selected Plan
+                              </Typography>
+                              <Typography variant="h6" sx={{ fontWeight: 800, lineHeight: 1.2 }}>
+                                {selectedPlan?.name}
+                              </Typography>
+                            </Box>
+                          </Stack>
+
+                          <Stack direction="row" alignItems="baseline" spacing={0.75} sx={{ mb: 1.25 }}>
+                            <Typography variant="h5" sx={{ fontWeight: 900, color: "#0E7490", letterSpacing: "-0.3px" }}>
+                              {selectedPlanPrice}
+                            </Typography>
+                            <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                              {selectedPlanPeriod}
+                            </Typography>
+                          </Stack>
+
+                          <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 0.75 }}>
+                            {selectedPlan?.features.slice(0, 4).map((feature) => (
+                              <Stack key={`summary-feature-${feature}`} direction="row" spacing={1} alignItems="center">
+                                <Box sx={{ width: 6, height: 6, borderRadius: 1, bgcolor: "#0891B2", flexShrink: 0 }} />
+                                <Typography variant="body2" sx={{ color: "text.secondary", lineHeight: 1.4 }}>
+                                  {feature}
+                                </Typography>
+                              </Stack>
+                            ))}
+                          </Box>
+                        </Box>
+
+                        <Box sx={{ display: "flex", flexWrap: "wrap", margin: -1, mt: 2 }}>
+                          <Box sx={{ p: 1, width: "50%" }}>
+                            <AppButton
+                              type="button"
+                              variant="outline"
+                              className="h-12 w-full rounded"
+                              onClick={() => setActiveStep(0)}
+                            >
+                              Back
+                            </AppButton>
+                          </Box>
+
+                          <Box sx={{ p: 1, width: "50%" }}>
+                            <AppButton
+                              type="button"
+                              disabled={isProcessing}
+                              onClick={handleSubmit as any}
+                              className="h-12 w-full rounded bg-[#149B9A] text-white hover:bg-[#118A89]"
+                            >
+                              {isProcessing ? (
+                                <Stack direction="row" spacing={1} alignItems="center">
+                                  <Loader2 size={20} className="animate-spin" />
+                                  <span>{isFreePlanSelected ? "Setting up your workspace..." : "Redirecting to HitPay..."}</span>
+                                </Stack>
+                              ) : (
+                                isFreePlanSelected ? "Activate Free Plan" : `Subscribe ${selectedPlanPrice}`
+                              )}
+                            </AppButton>
+                          </Box>
+                        </Box>
                       </Box>
-                    </Box>
-                  )}
-                </Paper>
+                    )}
+                  </Paper>
+                </Box>
               </Box>
             </Box>
           </Box>
         </Box>
-      </Box>
       </div>
     </React.Fragment>
   );

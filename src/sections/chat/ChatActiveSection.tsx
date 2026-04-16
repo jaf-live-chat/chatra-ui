@@ -32,7 +32,7 @@ import {
   SheetDescription,
   SheetHeader,
   SheetTitle,
-} from "../../components/Sheet";
+} from "../../components/sheet";
 import getInitials from "../../utils/getInitials";
 
 // Seeds for quick replies (assuming it's from constants)
