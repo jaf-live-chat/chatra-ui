@@ -1,0 +1,112 @@
+name: Deploy Production
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NODE_ENV: production
+      VITE_MODE: PRODUCTION
+      VITE_API_PROD_URL: ${{ secrets.VITE_API_PROD_URL }}
+      PRODUCTION_HOST: ${{ secrets.PRODUCTION_HOST }}
+      PRODUCTION_PORT: ${{ secrets.PRODUCTION_PORT }}
+      PRODUCTION_USER: ${{ secrets.PRODUCTION_USER }}
+      PRODUCTION_PATH: ${{ secrets.PRODUCTION_PATH }}
+      PRODUCTION_SSH_PRIVATE_KEY: ${{ secrets.PRODUCTION_SSH_PRIVATE_KEY }}
+      PRODUCTION_KNOWN_HOSTS: ${{ secrets.PRODUCTION_KNOWN_HOSTS }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Validate deployment configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          required_vars=(
+            VITE_API_PROD_URL
+            PRODUCTION_HOST
+            PRODUCTION_USER
+            PRODUCTION_PATH
+            PRODUCTION_SSH_PRIVATE_KEY
+          )
+
+          for var_name in "${required_vars[@]}"; do
+            if [ -z "${!var_name:-}" ]; then
+              echo "::error title=Missing deploy secret::$var_name is required for production deploys."
+              exit 1
+            fi
+          done
+
+      - name: Install dependencies
+        run: npm ci --include=dev
+
+      - name: Build production app and widget
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          artifact_dir="$(mktemp -d)"
+
+          npm run build:widget
+          cp dist/widget.js "$artifact_dir/widget.js"
+
+          npm run build
+          cp "$artifact_dir/widget.js" dist/widget.js
+
+      - name: Configure SSH
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+
+          printf '%s\n' "$PRODUCTION_SSH_PRIVATE_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+
+          if [ -n "${PRODUCTION_KNOWN_HOSTS:-}" ]; then
+            printf '%s\n' "$PRODUCTION_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          else
+            ssh-keyscan -p "${PRODUCTION_PORT:-22}" -H "$PRODUCTION_HOST" >> ~/.ssh/known_hosts
+          fi
+
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Deploy dist to production
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          port="${PRODUCTION_PORT:-22}"
+          remote="${PRODUCTION_USER}@${PRODUCTION_HOST}"
+          ssh_cmd=(ssh -i ~/.ssh/id_deploy -p "$port")
+          rsync_ssh="ssh -i ~/.ssh/id_deploy -p $port"
+
+          "${ssh_cmd[@]}" "$remote" "mkdir -p \"$PRODUCTION_PATH\""
+
+          rsync \
+            --archive \
+            --compress \
+            --delete \
+            -e "$rsync_ssh" \
+            dist/ "${remote}:${PRODUCTION_PATH}/"
