@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Loader2, MessageCircle, Paperclip, Send, X, Menu, Zap, ChevronUp, ChevronDown, ArrowLeft, Moon, Volume2, Shield, AlertCircle, Save, Star } from "lucide-react";
+import { Loader2, MessageCircle, Paperclip, Send, X, Menu, Zap, ChevronUp, ChevronDown, ArrowLeft, Moon, Volume2, Shield, AlertCircle, Save, Star, User, Mail, Phone } from "lucide-react";
 import type { Socket } from "socket.io-client";
 import type {
   LiveChatConversation,
@@ -47,6 +47,7 @@ const CONVERSATION_ID_KEY = "chat_conversation_id";
 const WIDGET_TITLE_KEY = "jaf_widget_title";
 const WIDGET_WELCOME_KEY = "jaf_welcome_message";
 const WIDGET_LOGO_KEY = "jaf_widget_logo";
+const WIDGET_ACCENT_COLOR_KEY = "jaf_widget_accent_color";
 const WIDGET_DARK_MODE_KEY = "jaf_dark_mode";
 const WIDGET_TEXT_SIZE_KEY = "jaf_text_size";
 const WIDGET_MESSAGE_SOUNDS_KEY = "jaf_message_sounds";
@@ -137,7 +138,7 @@ const getResolvedConfig = (initialConfig: LiveChatWidgetConfig = {}): LiveChatWi
     title: initialConfig.title || readStoredValue(WIDGET_TITLE_KEY, windowConfig.title || DEFAULT_TITLE),
     welcomeMessage: initialConfig.welcomeMessage || readStoredValue(WIDGET_WELCOME_KEY, windowConfig.welcomeMessage || DEFAULT_WELCOME),
     widgetLogo: initialConfig.widgetLogo || readStoredValue(WIDGET_LOGO_KEY, windowConfig.widgetLogo || ""),
-    accentColor: initialConfig.accentColor || windowConfig.accentColor || DEFAULT_ACCENT,
+    accentColor: initialConfig.accentColor || readStoredValue(WIDGET_ACCENT_COLOR_KEY, windowConfig.accentColor || DEFAULT_ACCENT),
     visitorName: initialConfig.visitorName || windowConfig.visitorName || "",
     visitorEmail: initialConfig.visitorEmail || windowConfig.visitorEmail || "",
     visitorPhoneNumber: initialConfig.visitorPhoneNumber || windowConfig.visitorPhoneNumber || "",
@@ -916,6 +917,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
           const nextWidgetLogo = String(settings.widgetLogo || "").trim();
           const nextAccentColor = String(settings.accentColor || "").trim();
           const hasWidgetLogo = Object.prototype.hasOwnProperty.call(settings, "widgetLogo");
+          const hasAccentColor = Object.prototype.hasOwnProperty.call(settings, "accentColor");
 
           if (nextTitle) {
             writeStoredValue(WIDGET_TITLE_KEY, nextTitle);
@@ -930,6 +932,14 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
               writeStoredValue(WIDGET_LOGO_KEY, nextWidgetLogo);
             } else {
               clearStoredValue(WIDGET_LOGO_KEY);
+            }
+          }
+
+          if (hasAccentColor) {
+            if (nextAccentColor) {
+              writeStoredValue(WIDGET_ACCENT_COLOR_KEY, nextAccentColor);
+            } else {
+              clearStoredValue(WIDGET_ACCENT_COLOR_KEY);
             }
           }
 
@@ -2127,9 +2137,9 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
 
   const theme = isDarkMode
     ? {
-      shell: "bg-slate-950/95 border-slate-500/90 text-slate-100 shadow-[0_34px_78px_-30px_rgba(2,6,23,1)] ring-2 ring-cyan-400/25 outline outline-1 outline-white/10 backdrop-blur-xl",
-      header: "bg-[linear-gradient(135deg,#0f8fb0_0%,#0284c7_55%,#0f766e_100%)] border-b border-cyan-300/20 text-white shadow-sm",
-      panel: "bg-slate-900/80 border-slate-700/90",
+      shell: "bg-slate-950 border-slate-300/55 text-slate-100 shadow-[0_34px_72px_-28px_rgba(2,6,23,0.9)] ring-2 ring-slate-800/65 outline outline-1 outline-slate-200/20 backdrop-blur-xl",
+      header: "bg-slate-900 border-b border-slate-700 text-slate-100 shadow-sm",
+      panel: "bg-slate-900/85 border-slate-500/70 shadow-[0_18px_36px_-26px_rgba(2,6,23,0.75)]",
       body: "bg-[radial-gradient(circle_at_top,_rgba(8,145,178,0.16),_transparent_40%),linear-gradient(180deg,rgba(15,23,42,0.92)_0%,rgba(15,23,42,0.8)_100%)]",
       subText: "text-cyan-100/90 text-xs font-medium",
       muted: "text-slate-400 text-xs",
@@ -2148,7 +2158,8 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
       quickDockChip: "w-full rounded-full border border-slate-600/80 bg-slate-800/90 px-3.5 py-2 text-center text-[11px] font-medium text-slate-100 transition-colors hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed",
       error: "bg-red-950/50 text-red-200 border border-red-900/50",
       welcomeTitle: "text-slate-100 text-sm font-semibold",
-      headerAction: "bg-white/15 text-white border border-white/20 hover:bg-white/25",
+      headerAction: "bg-slate-800 text-slate-100 border border-slate-600 hover:bg-slate-700",
+      headerIconButton: "border border-slate-600 bg-slate-800 text-slate-100 hover:bg-slate-700",
       settingsSectionTitle: "text-slate-400 text-[11px] font-semibold tracking-[0.18em]",
       settingsDivider: "border-slate-700/80",
       settingsText: "text-slate-100 text-[13px] font-medium",
@@ -2156,7 +2167,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
       settingsCard: "rounded-[22px] border border-slate-700/70 bg-slate-900/55 px-4 py-3 shadow-[0_18px_36px_-28px_rgba(15,23,42,0.95)] backdrop-blur-md",
       settingsControlShell: "grid grid-cols-3 rounded-2xl border p-1 shadow-inner",
       settingsControlShellTone: "border-slate-700 bg-slate-800/80",
-      settingsControlActive: "bg-cyan-600 text-white shadow",
+      settingsControlActive: "bg-slate-800 text-cyan-200 border border-cyan-500/35 shadow-[0_10px_18px_-16px_rgba(8,145,178,0.7)]",
       settingsControlIdle: "text-slate-300 hover:bg-slate-700/70",
       toggleOff: "bg-slate-600",
       toggleOn: "bg-cyan-600",
@@ -2168,9 +2179,9 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
       poweredBrand: "text-cyan-300",
     }
     : {
-      shell: "bg-white/96 border-cyan-300 text-slate-900 shadow-[0_34px_74px_-30px_rgba(8,145,178,0.5)] ring-2 ring-cyan-100 outline outline-1 outline-cyan-200/90 backdrop-blur-xl",
-      header: "bg-[linear-gradient(135deg,#0891b2_0%,#0ea5e9_58%,#0d9488_100%)] border-b border-cyan-200/80 text-white shadow-sm",
-      panel: "bg-white border-slate-200 shadow-md",
+      shell: "bg-white border-slate-300 text-slate-900 shadow-[0_28px_60px_-30px_rgba(15,23,42,0.3)] ring-2 ring-slate-200/70 outline outline-1 outline-slate-300/75 backdrop-blur-xl",
+      header: "bg-white border-b border-slate-200 text-slate-900 shadow-sm",
+      panel: "bg-white border-slate-300 shadow-[0_18px_32px_-28px_rgba(15,23,42,0.3)]",
       body: "bg-[radial-gradient(circle_at_top,_rgba(8,145,178,0.08),_transparent_42%),linear-gradient(180deg,#f8fbfc_0%,#eef5f8_100%)]",
       subText: "text-slate-600 text-xs font-medium",
       muted: "text-slate-500 text-xs",
@@ -2189,7 +2200,8 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
       quickDockChip: "w-full rounded-full border border-cyan-200 bg-cyan-50 px-3.5 py-2 text-center text-[11px] font-medium text-cyan-700 transition-colors hover:bg-cyan-100 disabled:opacity-50 disabled:cursor-not-allowed",
       error: "bg-red-50 text-red-700 border border-red-200",
       welcomeTitle: "text-slate-800 text-sm font-semibold",
-      headerAction: "bg-white/90 text-cyan-700 border border-cyan-100 hover:bg-white",
+      headerAction: "bg-slate-100 text-slate-700 border border-slate-200 hover:bg-slate-200",
+      headerIconButton: "border border-slate-200 bg-slate-100 text-slate-600 hover:bg-slate-200",
       settingsSectionTitle: "text-slate-500 text-[11px] font-semibold tracking-[0.18em]",
       settingsDivider: "border-slate-200",
       settingsText: "text-slate-800 text-[13px] font-medium",
@@ -2197,7 +2209,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
       settingsCard: "rounded-[22px] border border-slate-200 bg-white/88 px-4 py-3 shadow-[0_18px_34px_-28px_rgba(15,23,42,0.28)] backdrop-blur-md",
       settingsControlShell: "grid grid-cols-3 rounded-2xl border p-1 shadow-inner",
       settingsControlShellTone: "border-slate-200 bg-slate-100/90",
-      settingsControlActive: "bg-white text-slate-900 border border-slate-300 shadow-sm",
+      settingsControlActive: "bg-cyan-50 text-cyan-700 border border-cyan-200 shadow-sm",
       settingsControlIdle: "text-slate-500 hover:bg-white",
       toggleOff: "bg-slate-300",
       toggleOn: "bg-cyan-600",
@@ -2211,21 +2223,39 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
 
   return (
     <div className={`fixed bottom-3 right-3 sm:bottom-6 sm:right-6 z-[70] flex flex-col items-end ${panelSpacingClass}`} style={{ fontFamily: "Sora, Avenir Next, Segoe UI, sans-serif" }}>
+      <style>
+        {`@keyframes widgetPulseOut {
+          0% { transform: scale(1); opacity: 0.2; }
+          55% { opacity: 0.07; }
+          100% { transform: scale(1.85); opacity: 0; }
+        }`}
+      </style>
+
       {shouldRenderPanel ? (
         <div
-          className={`relative w-[min(390px,calc(100vw-1rem))] sm:w-[378px] h-[min(640px,calc(100vh-1rem))] sm:h-[588px] overflow-hidden rounded-[24px] border-2 flex flex-col origin-bottom-right transition-[opacity,transform,filter] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${theme.shell}`}
+          className={`relative w-[min(390px,calc(100vw-1rem))] sm:w-[378px] h-[min(640px,calc(100vh-1rem))] sm:h-[588px] overflow-hidden rounded-[24px] border flex flex-col origin-bottom-right transition-[opacity,transform,filter] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${theme.shell}`}
           style={{
             opacity: isPanelVisible ? 1 : 0,
             transform: isPanelVisible ? "translateY(0) scale(1)" : "translateY(22px) scale(0.9)",
             filter: isPanelVisible ? "blur(0px)" : "blur(6px)",
+            borderColor: isDarkMode ? "rgba(203,213,225,0.45)" : "rgba(148,163,184,0.72)",
+            boxShadow: isDarkMode
+              ? "0 34px 72px -28px rgba(2,6,23,0.74), 0 0 0 1px rgba(203,213,225,0.22)"
+              : "0 30px 62px -30px rgba(15,23,42,0.29), 0 0 0 1px rgba(148,163,184,0.35)",
           }}
         >
           <div
             className={`${theme.header} px-5 py-4 flex items-center justify-between gap-3 flex-shrink-0`}
-            style={{ background: accentHeaderBackground }}
           >
             <div className="flex items-center gap-3 min-w-0 flex-1">
-              <div className="h-11 w-11 rounded-full bg-white/20 border border-white/35 flex items-center justify-center overflow-hidden text-white text-lg font-semibold shrink-0">
+              <div
+                className="h-11 w-11 rounded-full border flex items-center justify-center overflow-hidden text-white text-lg font-semibold shrink-0"
+                style={{
+                  backgroundColor: resolvedAccent,
+                  borderColor: accentSoftBorder,
+                  boxShadow: accentShadow,
+                }}
+              >
                 {widgetLogo ? (
                   <img
                     src={widgetLogo}
@@ -2243,7 +2273,9 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                 <p className={`font-semibold leading-tight truncate whitespace-nowrap ${headerTitleClass}`}>{title}</p>
                 <div className="flex items-center gap-2 mt-0.5">
                   <span className={`h-2.5 w-2.5 rounded-full ${socketStatus === "connected" ? "bg-emerald-400 animate-pulse" : socketStatus === "connecting" ? "bg-yellow-300" : "bg-emerald-400 animate-pulse"}`} />
-                  <p className={`${theme.subText} ${headerStatusClass}`}>{statusLabel}</p>
+                  <p className={`${headerStatusClass} font-medium ${socketStatus === "connected" ? "text-emerald-500" : socketStatus === "connecting" ? "text-amber-500" : isDarkMode ? "text-slate-300" : "text-slate-500"}`}>
+                    {statusLabel}
+                  </p>
                 </div>
               </div>
             </div>
@@ -2261,7 +2293,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
               <button
                 type="button"
                 onClick={() => setWidgetView((current) => (current === "settings" ? "chat" : "settings"))}
-                className="h-9 w-9 rounded-lg border border-white/30 bg-white/10 text-white flex items-center justify-center transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/20"
+                className={`h-9 w-9 rounded-lg flex items-center justify-center transition-all duration-200 hover:-translate-y-0.5 ${theme.headerIconButton}`}
                 aria-label="Toggle menu"
               >
                 <Menu className="h-4.5 w-4.5" />
@@ -2269,7 +2301,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
-                className="h-9 w-9 rounded-lg border border-white/30 bg-white/10 text-white flex items-center justify-center transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/20"
+                className={`h-9 w-9 rounded-lg flex items-center justify-center transition-all duration-200 hover:-translate-y-0.5 ${theme.headerIconButton}`}
                 aria-label="Close live chat"
               >
                 <X className="h-5 w-5" />
@@ -2363,8 +2395,8 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                           void handleSaveProfile();
                         }}
                         disabled={isProfileSaving}
-                        className="mt-3 inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold text-white disabled:opacity-60 disabled:cursor-not-allowed"
-                        style={{ backgroundColor: resolvedAccent }}
+                        className={`mt-3 inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold disabled:opacity-60 disabled:cursor-not-allowed ${theme.button}`}
+                        style={{ backgroundColor: resolvedAccent, boxShadow: accentShadow }}
                       >
                         {isProfileSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
                         <span>{isProfileSaving ? "Saving..." : "Save profile"}</span>
@@ -2388,6 +2420,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                               writeStoredValue(WIDGET_TEXT_SIZE_KEY, size);
                             }}
                             className={`px-2 py-1.5 rounded-lg text-[11px] font-semibold capitalize transition-all ${textSize === size ? theme.settingsControlActive : theme.settingsControlIdle}`}
+                            style={textSize === size ? { borderColor: resolvedAccent } : undefined}
                           >
                             {size}
                           </button>
@@ -2451,8 +2484,8 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                           type="button"
                           onClick={requestBrowserLocation}
                           disabled={browserLocationStatus === "resolving"}
-                          className="rounded-xl px-3 py-2 text-xs font-semibold text-white disabled:opacity-60 disabled:cursor-not-allowed"
-                          style={{ backgroundColor: resolvedAccent }}
+                          className={`rounded-xl px-3 py-2 text-xs font-semibold disabled:opacity-60 disabled:cursor-not-allowed ${theme.button}`}
+                          style={{ backgroundColor: resolvedAccent, boxShadow: accentShadow }}
                         >
                           {browserLocationStatus === "resolving" ? "Checking..." : "Check"}
                         </button>
@@ -2514,8 +2547,8 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                         onClick={() => {
                           setIsEndSessionModalOpen(true);
                         }}
-                        className="mt-3 w-full rounded-xl px-3 py-2 text-sm font-semibold text-white"
-                        style={{ backgroundColor: resolvedAccent }}
+                        className={`mt-3 w-full rounded-xl px-3 py-2 text-sm font-semibold ${theme.button}`}
+                        style={{ backgroundColor: resolvedAccent, boxShadow: accentShadow }}
                       >
                         End session
                       </button>
@@ -2533,7 +2566,15 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
           ) : (
             <>
               {/* Messages Area */}
-              <div className={`flex-1 overflow-y-auto px-4 sm:px-5 py-4 flex flex-col relative pb-28 sm:pb-32 ${theme.body}`}>
+              <div
+                className={`flex-1 overflow-y-auto px-4 sm:px-5 py-4 flex flex-col relative pb-28 sm:pb-32 rounded-[18px] border ${theme.body}`}
+                style={{
+                  borderColor: isDarkMode ? "rgba(148,163,184,0.28)" : "rgba(148,163,184,0.34)",
+                  boxShadow: isDarkMode
+                    ? "inset 0 0 0 1px rgba(15,23,42,0.42)"
+                    : "inset 0 0 0 1px rgba(148,163,184,0.18)",
+                }}
+              >
                 {isLoading && messages.length === 0 ? (
                   <div className="flex items-center justify-center h-full">
                     <div className="flex flex-col items-center gap-3">
@@ -2542,58 +2583,71 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                     </div>
                   </div>
                 ) : messages.length === 0 ? (
-                  <div className={`rounded-[22px] border-2 px-4 py-5 sm:px-5 sm:py-6 text-center ${theme.panel}`}>
+                  <div className={`rounded-[22px] border px-4 py-5 sm:px-5 sm:py-6 text-center ${theme.panel}`}>
                     <div className="flex justify-center">
-                      <div className="h-[54px] w-[54px] rounded-full bg-slate-200/90 dark:bg-slate-700/60 flex items-center justify-center">
+                      <div className={`h-[52px] w-[78px] rounded-full flex items-center justify-center ${isDarkMode ? "bg-cyan-900/25" : "bg-cyan-50"}`}>
                         <MessageCircle className="h-6 w-6 text-cyan-600" />
                       </div>
                     </div>
 
-                    <p className={`mt-5 ${theme.welcomeTitle} ${helperTextSizeClass} leading-snug`}>{welcomeTitleMessage}</p>
-                    <p className={`mt-2 ${theme.muted} ${helperTextSizeClass} leading-snug`}>We&apos;re here to help. Send a message to get started.</p>
+                    <p className={`mt-5 ${theme.welcomeTitle} ${helperTextSizeClass} leading-snug`}>
+                      {isPreChatPending ? `Welcome to ${title}` : welcomeTitleMessage}
+                    </p>
+                    <p className={`mt-2 ${theme.muted} ${helperTextSizeClass} leading-snug`}>
+                      {isPreChatPending
+                        ? "We're here to help. Please tell us a bit about yourself to get started."
+                        : "We're here to help. Send a message to get started."}
+                    </p>
 
                     {!conversationId && !hasCompletedPreChat ? (
-                      <>
-                        <div className={`my-4 border-t ${theme.settingsDivider}`} />
-                        <div className="text-left">
-                          <p className={`font-semibold ${theme.settingsText}`}>Before we start (first visit, optional)</p>
-                          <p className={`mt-1 leading-relaxed ${theme.settingsMuted}`}>
-                            Share profile details for faster support. You can leave everything blank and continue.
-                          </p>
+                      <div className="mt-6 text-left">
+                        <p className="text-[11px] font-semibold tracking-[0.16em] text-cyan-600">
+                          INTRODUCTION
+                        </p>
 
-                          <div className="mt-3 grid gap-2.5">
+                        <div className="mt-3 space-y-2.5">
+                          <label className={`flex items-center gap-2.5 border-b px-1 pb-2 ${isDarkMode ? "border-slate-700" : "border-slate-200"}`}>
+                            <User className={`h-4 w-4 shrink-0 ${isDarkMode ? "text-slate-500" : "text-slate-400"}`} />
                             <input
                               type="text"
                               value={preChatFullName}
                               onChange={(event) => setPreChatFullName(event.target.value)}
                               placeholder="Full name (optional)"
-                              className={`w-full rounded-xl border px-3.5 py-2.5 text-sm outline-none ${theme.input}`}
+                              className={`w-full bg-transparent text-sm outline-none ${isDarkMode ? "text-slate-100 placeholder:text-slate-500" : "text-slate-700 placeholder:text-slate-400"}`}
                             />
+                          </label>
+
+                          <label className={`flex items-center gap-2.5 border-b px-1 pb-2 ${isDarkMode ? "border-slate-700" : "border-slate-200"}`}>
+                            <Mail className={`h-4 w-4 shrink-0 ${isDarkMode ? "text-slate-500" : "text-slate-400"}`} />
                             <input
                               type="email"
                               value={preChatEmailAddress}
                               onChange={(event) => setPreChatEmailAddress(event.target.value)}
                               placeholder="Email address (optional)"
-                              className={`w-full rounded-xl border px-3.5 py-2.5 text-sm outline-none ${theme.input}`}
+                              className={`w-full bg-transparent text-sm outline-none ${isDarkMode ? "text-slate-100 placeholder:text-slate-500" : "text-slate-700 placeholder:text-slate-400"}`}
                             />
+                          </label>
+
+                          <label className={`flex items-center gap-2.5 border-b px-1 pb-2 ${isDarkMode ? "border-slate-700" : "border-slate-200"}`}>
+                            <Phone className={`h-4 w-4 shrink-0 ${isDarkMode ? "text-slate-500" : "text-slate-400"}`} />
                             <input
                               type="text"
                               value={preChatPhoneNumber}
                               onChange={(event) => setPreChatPhoneNumber(event.target.value)}
                               placeholder="Phone number (optional)"
-                              className={`w-full rounded-xl border px-3.5 py-2.5 text-sm outline-none ${theme.input}`}
+                              className={`w-full bg-transparent text-sm outline-none ${isDarkMode ? "text-slate-100 placeholder:text-slate-500" : "text-slate-700 placeholder:text-slate-400"}`}
                             />
-                          </div>
-
-                          <p className={`mt-3 text-xs font-medium ${theme.settingsMuted}`}>
-                            {browserLocationStatus === "resolved"
-                              ? "Location access enabled for this session."
-                              : browserLocationStatus === "resolving"
-                                ? "Requesting location permission..."
-                                : "Location access is off. Chat will continue without location data."}
-                          </p>
+                          </label>
                         </div>
-                      </>
+
+                        <p className={`mt-3 text-xs font-medium ${theme.settingsMuted}`}>
+                          {browserLocationStatus === "resolved"
+                            ? "Location access enabled for this session."
+                            : browserLocationStatus === "resolving"
+                              ? "Requesting location permission..."
+                              : "Location access is off. Chat will continue without location data."}
+                        </p>
+                      </div>
                     ) : null}
                   </div>
                 ) : (
@@ -2705,7 +2759,6 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                               }}
                               disabled={isQuickReplyBlocked}
                               className={theme.quickDockChip}
-                              style={{ borderColor: accentSoftBorder }}
                             >
                               {qm.title}
                             </button>
@@ -2727,8 +2780,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                     <button
                       type="button"
                       onClick={handleGoBackToStart}
-                      className="mt-3 w-full rounded-xl px-3 py-2 text-sm font-semibold text-white"
-                      style={{ backgroundColor: resolvedAccent }}
+                      className={`mt-3 w-full rounded-xl px-3 py-2 text-sm font-semibold ${theme.button}`}
                     >
                       Start new session
                     </button>
@@ -2740,7 +2792,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
               <div className={`border-t ${theme.composer} px-4 sm:px-5 py-3.5 flex-shrink-0`}>
                 {!hasApiKey || hasRuntimeError ? (
                   <div className={`mb-3 rounded-2xl border px-3.5 py-3 ${theme.error} flex items-start gap-2.5`}>
-                    <AlertCircle className="h-4.5 w-4.5 mt-0.5 flex-shrink-0" style={{ color: resolvedAccent }} />
+                    <AlertCircle className="h-4.5 w-4.5 mt-0.5 flex-shrink-0 text-cyan-600" />
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-wide">{displayErrorTitle}</p>
                       <p className="mt-1 text-xs leading-relaxed">{displayErrorMessage}</p>
@@ -2754,10 +2806,10 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                       type="button"
                       onClick={handleCompletePreChat}
                       disabled={!hasApiKey || hasRuntimeError || isLoading}
-                      className="w-full rounded-full px-3 py-3 text-sm font-semibold text-white disabled:opacity-60 disabled:cursor-not-allowed"
-                      style={{ backgroundColor: resolvedAccent }}
+                      className={`w-full rounded-full px-3 py-3 text-sm font-semibold disabled:opacity-60 disabled:cursor-not-allowed ${theme.button}`}
+                      style={{ backgroundColor: resolvedAccent, boxShadow: accentShadow }}
                     >
-                      Start chat
+                      Start conversation
                     </button>
 
                     <p className={`text-xs mt-2.5 text-center font-medium ${theme.poweredText}`}>
@@ -2834,8 +2886,8 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                         }}
                         disabled={isComposerBlocked || !messageText.trim()}
                         className={`flex ${composerButtonSizeClass} flex-shrink-0 items-center justify-center rounded-2xl transition-all duration-200 hover:-translate-y-0.5 ${theme.button} disabled:opacity-50 disabled:cursor-not-allowed`}
-                        style={{ backgroundColor: resolvedAccent, boxShadow: accentShadow }}
                         aria-label="Send message"
+                        style={{ backgroundColor: resolvedAccent, boxShadow: accentShadow }}
                       >
                         {isSending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
                       </button>
@@ -3019,16 +3071,67 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
           }
         }}
         className={`group relative flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-full border-2 border-white/30 text-white shadow-xl transition-all duration-200 hover:-translate-y-1 hover:scale-105 active:scale-95 ${theme.button}`}
+        aria-label="Open live chat"
         style={{
-          background: accentHeaderBackground,
+          backgroundColor: resolvedAccent,
           boxShadow: accentShadow,
         }}
-        aria-label="Open live chat"
       >
-        {isOpen ? <X className="h-5 w-5 transition-transform duration-200" /> : <MessageCircle className="h-5 w-5 transition-transform duration-200 group-hover:rotate-6" />}
+        {!isOpen ? (
+          <>
+            <span
+              aria-hidden
+              className="pointer-events-none absolute -inset-3 rounded-full"
+              style={{
+                backgroundColor: resolvedAccent,
+                opacity: 0.08,
+              }}
+            />
+            <span
+              aria-hidden
+              className="pointer-events-none absolute inset-0 rounded-full"
+              style={{
+                backgroundColor: resolvedAccent,
+                animation: "widgetPulseOut 3.4s ease-out infinite",
+              }}
+            />
+            <span
+              aria-hidden
+              className="pointer-events-none absolute inset-0 rounded-full"
+              style={{
+                backgroundColor: resolvedAccent,
+                opacity: 0.72,
+                animation: "widgetPulseOut 3.4s ease-out infinite",
+                animationDelay: "1.7s",
+              }}
+            />
+          </>
+        ) : null}
+
+        <span className="relative z-10">
+          {isOpen ? (
+            <X className="h-5 w-5 transition-transform duration-200" />
+          ) : widgetLogo ? (
+            <span
+              className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-white/15 ring-1 ring-white/25"
+              style={{ backgroundColor: resolvedAccent }}
+            >
+              <img
+                src={widgetLogo}
+                alt={`${title} icon`}
+                className="h-full w-full object-cover"
+                onError={(event) => {
+                  event.currentTarget.style.display = "none";
+                }}
+              />
+            </span>
+          ) : (
+            <MessageCircle className="h-5 w-5 transition-transform duration-200 group-hover:rotate-6" />
+          )}
+        </span>
 
         {unreadCount > 0 && !isOpen ? (
-          <span className="absolute -right-3 -top-3 flex min-w-[24px] items-center justify-center rounded-full border-2 border-white bg-red-500 px-1.5 text-[10px] font-bold text-white shadow-lg">
+          <span className="absolute -right-3 -top-3 z-20 flex min-w-[24px] items-center justify-center rounded-full border-2 border-white bg-red-500 px-1.5 text-[10px] font-bold text-white shadow-lg">
             {unreadCount > 99 ? "99+" : unreadCount}
           </span>
         ) : null}
