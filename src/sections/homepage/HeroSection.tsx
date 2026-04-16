@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ArrowRight, Play, CheckCircle, X } from "lucide-react";
+import ScrollReveal from "../../components/ScrollReveal";
 
 function ChatBubble({ text, isAgent, time }: { text: string; isAgent: boolean; time: string }) {
   return (
@@ -44,92 +45,99 @@ const HeroSection = () => {
         <div className="grid md:grid-cols-2 gap-10 lg:gap-16 items-center">
           {/* Left Content */}
           <div>
-            <div
-              className="inline-flex items-center gap-2 bg-blue-50 border border-blue-100 text-blue-700 px-3 py-1.5 rounded-full mb-6"
-              style={{ fontSize: "0.8rem", fontFamily: "Inter, sans-serif", fontWeight: 500 }}
-            >
-              <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
-              New: AI-Powered Chat Routing
-            </div>
+            <ScrollReveal preset="pop" duration={0.6}>
+              <div
+                className="inline-flex items-center gap-2 bg-blue-50 border border-blue-100 text-blue-700 px-3 py-1.5 rounded-full mb-6"
+                style={{ fontSize: "0.8rem", fontFamily: "Inter, sans-serif", fontWeight: 500 }}
+              >
+                <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
+                New: AI-Powered Chat Routing
+              </div>
+            </ScrollReveal>
 
-            <h1
-              className="text-gray-900 mb-6"
-              style={{
-                fontFamily: "Inter, sans-serif",
-                fontWeight: 800,
-                fontSize: "clamp(2.2rem, 5vw, 3.5rem)",
-                lineHeight: "1.15",
-                letterSpacing: "-0.02em",
-              }}
-            >
-              Real-Time Customer Support{" "}
-              <span
+            <ScrollReveal preset="glide" delay={0.04} duration={0.92} distance={34}>
+              <h1
+                className="text-gray-900 mb-6"
                 style={{
-                  background: "linear-gradient(135deg, #2563eb, #0ea5e9)",
-                  WebkitBackgroundClip: "text",
-                  backgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                  color: "transparent",
-                  display: "inline-block",
+                  fontFamily: "Inter, sans-serif",
+                  fontWeight: 800,
+                  fontSize: "clamp(2.2rem, 5vw, 3.5rem)",
+                  lineHeight: "1.15",
+                  letterSpacing: "-0.02em",
                 }}
               >
-                Made Simple
-              </span>
-            </h1>
+                Real-Time Customer Support{" "}
+                <span
+                  style={{
+                    background: "linear-gradient(135deg, #2563eb, #0ea5e9)",
+                    WebkitBackgroundClip: "text",
+                    backgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                    color: "transparent",
+                    display: "inline-block",
+                  }}
+                >
+                  Made Simple
+                </span>
+              </h1>
+            </ScrollReveal>
 
-            <p
-              className="text-gray-500 mb-8 max-w-lg"
-              style={{
-                fontFamily: "Inter, sans-serif",
-                fontSize: "1.1rem",
-                lineHeight: "1.7",
-              }}
-            >
-              JAF Live Chat helps businesses communicate with website visitors instantly, improve customer experience, and increase conversions through real-time messaging.
-            </p>
-
-            <div className="flex flex-col sm:flex-row gap-4 mb-10">
-              <a
-                href="#products"
-                onClick={(e) => {
-                  e.preventDefault();
-                  document.querySelector('#products')?.scrollIntoView({ behavior: 'smooth' });
+            <ScrollReveal preset="glide" delay={0.08} duration={0.82}>
+              <p
+                className="text-gray-500 mb-8 max-w-lg"
+                style={{
+                  fontFamily: "Inter, sans-serif",
+                  fontSize: "1.1rem",
+                  lineHeight: "1.7",
                 }}
-                className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-7 py-3.5 rounded-xl transition-all shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40"
-                style={{ fontFamily: "Inter, sans-serif", fontWeight: 600, fontSize: "0.95rem" }}
               >
-                Get Started
-                <ArrowRight className="w-4 h-4" />
-              </a>
-              <button
-                onClick={() => setIsDemoOpen(true)}
-                className="inline-flex items-center justify-center gap-2 bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 px-7 py-3.5 rounded-xl transition-all shadow-sm cursor-pointer"
-                style={{ fontFamily: "Inter, sans-serif", fontWeight: 600, fontSize: "0.95rem" }}
-              >
-                <div className="w-7 h-7 bg-blue-600 rounded-full flex items-center justify-center">
-                  <Play className="w-3 h-3 text-white fill-white ml-0.5" />
-                </div>
-                View Demo
-              </button>
-            </div>
+                JAF Live Chat helps businesses communicate with website visitors instantly, improve customer experience, and increase conversions through real-time messaging.
+              </p>
+            </ScrollReveal>
 
-            <div className="flex flex-col sm:flex-row gap-4">
-              {["Free 3-day trial", "Cancel anytime"].map((item) => (
-                <div key={item} className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-blue-500" />
-                  <span
-                    className="text-gray-500"
-                    style={{ fontFamily: "Inter, sans-serif", fontSize: "0.85rem" }}
-                  >
-                    {item}
-                  </span>
-                </div>
-              ))}
-            </div>
+            <ScrollReveal preset="pop" delay={0.12} duration={0.7} distance={18}>
+              <div className="flex flex-col sm:flex-row gap-4 mb-10">
+                <a
+                  href="#products"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    document.querySelector("#products")?.scrollIntoView({ behavior: "smooth" });
+                  }}
+                  className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-7 py-3.5 rounded-xl transition-all shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40"
+                  style={{ fontFamily: "Inter, sans-serif", fontWeight: 600, fontSize: "0.95rem" }}
+                >
+                  Get Started
+                  <ArrowRight className="w-4 h-4" />
+                </a>
+                <button
+                  onClick={() => setIsDemoOpen(true)}
+                  className="inline-flex items-center justify-center gap-2 bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 px-7 py-3.5 rounded-xl transition-all shadow-sm cursor-pointer"
+                  style={{ fontFamily: "Inter, sans-serif", fontWeight: 600, fontSize: "0.95rem" }}
+                >
+                  <div className="w-7 h-7 bg-blue-600 rounded-full flex items-center justify-center">
+                    <Play className="w-3 h-3 text-white fill-white ml-0.5" />
+                  </div>
+                  View Demo
+                </button>
+              </div>
+            </ScrollReveal>
+
+            <ScrollReveal preset="glide" delay={0.16} duration={0.75}>
+              <div className="flex flex-col sm:flex-row gap-4">
+                {["Free 3-day trial", "Cancel anytime"].map((item) => (
+                  <div key={item} className="flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 text-blue-500" />
+                    <span className="text-gray-500" style={{ fontFamily: "Inter, sans-serif", fontSize: "0.85rem" }}>
+                      {item}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </ScrollReveal>
           </div>
 
           {/* Right: Chat Dashboard Illustration */}
-          <div className="hidden lg:flex justify-center">
+          <ScrollReveal preset="swingRight" delay={0.14} duration={0.9} distance={30} className="hidden lg:flex justify-center">
             <div
               className="relative w-full max-w-lg"
               style={{ transform: "perspective(1000px) rotateY(-5deg) rotateX(3deg)" }}
@@ -269,7 +277,7 @@ const HeroSection = () => {
                 </div>
               </div>
             </div>
-          </div>
+          </ScrollReveal>
         </div>
       </div>
 

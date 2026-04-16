@@ -1,4 +1,5 @@
 import { Code2, MessageCircle, Headphones } from "lucide-react";
+import ScrollReveal from "../../components/ScrollReveal";
 
 const steps = [
   {
@@ -29,7 +30,7 @@ const HowItWorksSection = () => {
     <section className="py-24" style={{ background: "linear-gradient(180deg, #f0f9ff 0%, #ffffff 100%)" }}>
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         {/* Header */}
-        <div className="text-center max-w-2xl mx-auto mb-16">
+        <ScrollReveal preset="glide" duration={0.9} className="text-center max-w-2xl mx-auto mb-16">
           <span
             className="inline-block bg-blue-50 text-blue-600 px-3 py-1 rounded-full mb-4"
             style={{ fontFamily: "Inter, sans-serif", fontSize: "0.8rem", fontWeight: 600 }}
@@ -54,7 +55,7 @@ const HowItWorksSection = () => {
           >
             Getting started with JAF Live Chat is effortless. Set it up once and start connecting with customers immediately.
           </p>
-        </div>
+        </ScrollReveal>
 
         {/* Steps */}
         <div className="relative">
@@ -65,7 +66,14 @@ const HowItWorksSection = () => {
 
           <div className="grid lg:grid-cols-3 gap-10 relative z-10">
             {steps.map((step, index) => (
-               <div key={step.title} className="flex flex-col items-center text-center group">
+              <ScrollReveal
+                key={step.title}
+                preset={index % 2 === 0 ? "swingLeft" : "swingRight"}
+                delay={0.03 + index * 0.06}
+                duration={0.9}
+                distance={28}
+                className="flex flex-col items-center text-center group"
+              >
                 {/* Icon Circle */}
                 <div className="relative mb-6">
                   <div
@@ -101,7 +109,7 @@ const HowItWorksSection = () => {
                 >
                   {step.description}
                 </p>
-              </div>
+              </ScrollReveal>
             ))}
           </div>
         </div>
@@ -111,5 +119,4 @@ const HowItWorksSection = () => {
 }
 
 export default HowItWorksSection;
-
 

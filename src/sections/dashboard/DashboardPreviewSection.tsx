@@ -10,6 +10,7 @@ import {
   Circle,
 } from "lucide-react";
 import Logo from "../../components/common/Logo";
+import ScrollReveal from "../../components/ScrollReveal";
 
 const navItems = [
   { icon: <LayoutDashboard className="w-4 h-4" />, label: "Dashboard", active: true },
@@ -40,7 +41,7 @@ const DashboardPreviewSection = () => {
     <section className="bg-white py-16 sm:py-20 lg:py-24">
       <div className="pointer-events-none mx-auto max-w-7xl select-none px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="mx-auto mb-10 max-w-2xl text-center sm:mb-14">
+        <ScrollReveal preset="glide" duration={0.9} className="mx-auto mb-10 max-w-2xl text-center sm:mb-14">
           <span
             className="inline-block bg-blue-50 text-blue-600 px-3 py-1 rounded-full mb-4"
             style={{ fontFamily: "Inter, sans-serif", fontSize: "0.8rem", fontWeight: 600 }}
@@ -65,12 +66,15 @@ const DashboardPreviewSection = () => {
           >
             Get a clear overview of all conversations, visitors, and agent performance from one sleek admin panel.
           </p>
-        </div>
+        </ScrollReveal>
 
         {/* Mobile + Tablet Mockup */}
-        <div
+        <ScrollReveal
+          preset="pop"
+          delay={0.04}
+          duration={0.75}
+          distance={16}
           className="rounded-2xl border border-gray-200 bg-slate-50 p-4 shadow-xl lg:hidden"
-          style={{ background: "#f8fafc" }}
         >
           <div className="mb-4 flex items-center justify-between rounded-xl bg-gray-950 px-3 py-2">
             <div className="flex gap-1.5">
@@ -167,12 +171,15 @@ const DashboardPreviewSection = () => {
               </div>
             </div>
           </div>
-        </div>
+        </ScrollReveal>
 
         {/* Desktop Mockup */}
-        <div
+        <ScrollReveal
+          preset="glide"
+          delay={0.06}
+          duration={0.95}
+          distance={22}
           className="hidden overflow-hidden rounded-2xl border border-gray-200 shadow-2xl lg:block"
-          style={{ background: "#f8fafc" }}
         >
           {/* Title Bar */}
           <div className="flex items-center gap-2 px-4 py-3 bg-gray-950">
@@ -359,7 +366,7 @@ const DashboardPreviewSection = () => {
               </div>
             </div>
           </div>
-        </div>
+        </ScrollReveal>
 
         {/* Bottom gradient fade */}
         <div className="-mt-1 hidden h-8 rounded-b-2xl lg:block" style={{ background: "linear-gradient(to bottom, transparent, white)" }}></div>

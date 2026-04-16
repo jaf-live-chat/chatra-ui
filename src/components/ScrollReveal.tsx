@@ -1,7 +1,19 @@
 import type { ReactNode } from "react";
 import { motion, useReducedMotion } from "motion/react";
 
-type ScrollRevealPreset = "soft" | "hero" | "cardLeft" | "cardRight" | "lift" | "fade" | "scale" | "cta";
+type ScrollRevealPreset =
+  | "soft"
+  | "hero"
+  | "cardLeft"
+  | "cardRight"
+  | "lift"
+  | "fade"
+  | "scale"
+  | "cta"
+  | "glide"
+  | "pop"
+  | "swingLeft"
+  | "swingRight";
 
 interface ScrollRevealProps {
   children: ReactNode;
@@ -71,6 +83,22 @@ const presetVariants: Record<ScrollRevealPreset, RevealVariant> = {
     initial: { opacity: 0, y: 22, scale: 0.98, rotate: -0.35 },
     whileInView: { opacity: 1, y: 0, scale: 1, rotate: 0 },
   },
+  glide: {
+    initial: { opacity: 0, y: 30, scale: 0.975, rotate: -0.25 },
+    whileInView: { opacity: 1, y: 0, scale: 1, rotate: 0 },
+  },
+  pop: {
+    initial: { opacity: 0, y: 14, scale: 0.93 },
+    whileInView: { opacity: 1, y: 0, scale: 1 },
+  },
+  swingLeft: {
+    initial: { opacity: 0, x: -54, y: 10, scale: 0.985, rotate: -1.8 },
+    whileInView: { opacity: 1, x: 0, y: 0, scale: 1, rotate: 0 },
+  },
+  swingRight: {
+    initial: { opacity: 0, x: 54, y: 10, scale: 0.985, rotate: 1.8 },
+    whileInView: { opacity: 1, x: 0, y: 0, scale: 1, rotate: 0 },
+  },
 };
 
 const presetTransitions: Record<ScrollRevealPreset, RevealTransition> = {
@@ -82,6 +110,10 @@ const presetTransitions: Record<ScrollRevealPreset, RevealTransition> = {
   fade: { type: "tween", duration: 0.7, ease: [0.25, 1, 0.3, 1] },
   scale: { type: "spring", stiffness: 128, damping: 20, mass: 0.86 },
   cta: { type: "spring", stiffness: 112, damping: 18, mass: 0.92 },
+  glide: { type: "tween", duration: 0.88, ease: [0.16, 1, 0.3, 1] },
+  pop: { type: "spring", stiffness: 220, damping: 20, mass: 0.75 },
+  swingLeft: { type: "spring", stiffness: 165, damping: 22, mass: 0.85 },
+  swingRight: { type: "spring", stiffness: 165, damping: 22, mass: 0.85 },
 };
 
 const ScrollReveal = ({
@@ -106,7 +138,7 @@ const ScrollReveal = ({
       whileInView={{ ...baseVariant.whileInView, y: baseVariant.whileInView.y ?? 0 }}
       transition={{
         ...baseTransition,
-        duration: baseTransition.duration ? baseTransition.duration : duration,
+        ...(baseTransition.type === "tween" ? { duration: baseTransition.duration ?? duration } : {}),
         delay,
       }}
       viewport={{ once: true, amount: preset === "hero" ? 0.25 : 0.35 }}

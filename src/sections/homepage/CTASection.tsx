@@ -1,5 +1,6 @@
 import { Star, Quote } from "lucide-react";
 import ImageWithFallback from "../../components/ImageWithFallback";
+import ScrollReveal from "../../components/ScrollReveal";
 
 const CTASection = () => {
   const reviews = [
@@ -47,7 +48,7 @@ const CTASection = () => {
       image: "https://images.unsplash.com/photo-1560250097-0b93528c311a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
       content: "The best administrative interface we've ever used. Managing complex state across different support queues is finally straightforward and visually pleasing.",
       rating: 5,
-    }
+    },
   ];
 
   return (
@@ -73,7 +74,7 @@ const CTASection = () => {
       ></div>
 
       <div className="relative max-w-7xl mx-auto px-6 lg:px-8">
-        <div className="text-center max-w-3xl mx-auto mb-16">
+        <ScrollReveal preset="glide" duration={0.95} distance={30} className="text-center max-w-3xl mx-auto mb-16">
           <div
             className="inline-flex items-center gap-2 bg-white/20 border border-white/30 text-white px-3 py-1.5 rounded-full mb-6 backdrop-blur-sm"
             style={{ fontFamily: "Inter, sans-serif", fontSize: "0.8rem", fontWeight: 500 }}
@@ -100,12 +101,16 @@ const CTASection = () => {
           >
             Discover how businesses are transforming their customer support and scaling operations using JAF Chatra.
           </p>
-        </div>
+        </ScrollReveal>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-          {reviews.map((review) => (
-            <div
+          {reviews.map((review, index) => (
+            <ScrollReveal
               key={review.id}
+              preset={index % 2 === 0 ? "swingLeft" : "swingRight"}
+              delay={0.04 + index * 0.06}
+              duration={0.9}
+              distance={26}
               className="bg-white/10 border border-white/20 rounded-xl p-5 backdrop-blur-md relative hover:bg-white/15 transition-colors group flex flex-col"
             >
               <Quote className="absolute top-4 right-4 w-6 h-6 text-white/10 group-hover:text-white/20 transition-colors" />
@@ -125,11 +130,7 @@ const CTASection = () => {
 
               <div className="flex items-center gap-3 mt-auto pt-4 border-t border-white/10">
                 <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-white/30 shrink-0">
-                  <ImageWithFallback
-                    src={review.image}
-                    alt={review.name}
-                    className="w-full h-full object-cover"
-                  />
+                  <ImageWithFallback src={review.image} alt={review.name} className="w-full h-full object-cover" />
                 </div>
                 <div className="min-w-0">
                   <h4
@@ -146,7 +147,7 @@ const CTASection = () => {
                   </p>
                 </div>
               </div>
-            </div>
+            </ScrollReveal>
           ))}
         </div>
       </div>
@@ -155,6 +156,4 @@ const CTASection = () => {
 }
 
 export default CTASection;
-
-
 
