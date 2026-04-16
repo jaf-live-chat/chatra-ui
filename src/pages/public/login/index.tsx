@@ -1,11 +1,10 @@
-import Navbar from "../../../components/common/Navbar";
-import Footer from "../../../components/common/Footer";
 import { ArrowRight, AlertCircle } from "lucide-react";
 import { Link, useNavigate } from "react-router";
 import React, { useEffect, useState } from "react";
 import { AxiosError } from "axios";
 import useAuth from "../../../hooks/useAuth";
 import PageTitle from "../../../components/common/PageTitle";
+import AuthPageLayout, { AuthFormCard } from "../../../components/common/AuthPageLayout";
 
 const LoginPage = () => {
   const [emailAddress, setEmailAddress] = useState("");
@@ -36,7 +35,7 @@ const LoginPage = () => {
     setSubmitError("");
 
     try {
-      const response = await login({
+      await login({
         companyCode: companyCode.trim(),
         emailAddress: emailAddress.trim(),
         password,
@@ -63,18 +62,21 @@ const LoginPage = () => {
         canonical="/portal/login"
 
       />
-      <div className="min-h-screen flex flex-col" style={{ fontFamily: "Inter, sans-serif" }}>
-        <Navbar />
-
-        <main className="flex-1 flex flex-col pt-32 md:pt-40 pb-12 bg-gray-50 items-center justify-center px-6">
-          <div className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
-            <div className="p-8">
-              <div className="text-center mb-8">
-                <h1 className="text-2xl font-bold text-gray-900 mb-2">Welcome back</h1>
-                <p className="text-gray-500 text-sm">Sign in to your JAF Digital account</p>
-              </div>
-
-              <form onSubmit={handleSubmit} className="space-y-5">
+      <AuthPageLayout>
+          <AuthFormCard
+            title="Welcome back"
+            description="Sign in to your JAF Digital account"
+            footerVariant="panel"
+            footer={
+              <>
+                Don't have an account?{" "}
+                <Link to="/checkout/starter" className="font-medium text-cyan-700 hover:text-cyan-800">
+                  Sign up for free
+                </Link>
+              </>
+            }
+          >
+            <form onSubmit={handleSubmit} className="space-y-5">
                 {submitError && (
                   <div className="flex items-start gap-2.5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                     <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
@@ -146,21 +148,8 @@ const LoginPage = () => {
                   {!isSubmitting && <ArrowRight className="w-4 h-4" />}
                 </button>
               </form>
-            </div>
-
-            <div className="px-8 py-5 bg-gray-50 border-t border-gray-100 text-center">
-              <p className="text-sm text-gray-600">
-                Don't have an account?{" "}
-                <Link to="/checkout/starter" className="text-cyan-700 hover:text-cyan-800 font-medium">
-                  Sign up for free
-                </Link>
-              </p>
-            </div>
-          </div>
-        </main>
-
-        <Footer />
-      </div>
+          </AuthFormCard>
+      </AuthPageLayout>
     </React.Fragment>
   );
 };

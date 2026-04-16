@@ -3,8 +3,8 @@ import { Link } from "react-router";
 import { AxiosError } from "axios";
 import { Mail, AlertCircle, CheckCircle2 } from "lucide-react";
 import PageTitle from "../../../components/common/PageTitle";
+import AuthPageLayout, { AuthFormCard } from "../../../components/common/AuthPageLayout";
 import Agents from "../../../services/agentServices";
-import { APP_LOGO } from "../../../constants/constants";
 
 const RESET_REQUEST_COOLDOWN_SECONDS = 30;
 
@@ -85,25 +85,24 @@ const ForgotPasswordPage = () => {
         canonical="/forgot-password"
       />
 
-      <div className="min-h-screen bg-slate-100" style={{ fontFamily: "Inter, sans-serif" }}>
-        <div className="px-6 pt-6 md:px-10 md:pt-8">
-          <Link to="/" className="inline-flex">
-            <img src={APP_LOGO.logoDark} alt="JAF Chatra" className="h-10 w-auto md:h-12" />
-          </Link>
-        </div>
-
-        <main className="mx-auto flex min-h-[calc(100vh-110px)] w-full max-w-6xl items-center justify-center px-6 pb-12 pt-6">
-          <div className="w-full max-w-[620px] rounded-[32px] border border-slate-200 bg-white px-8 py-10 shadow-xl shadow-slate-300/50 md:px-12 md:py-12">
-            <div className="mb-7 text-center">
-              <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-md bg-cyan-700 text-white">
+      <AuthPageLayout>
+          <AuthFormCard
+            title="Forgot Password?"
+            description="Enter your company code and email address to receive reset instructions."
+            icon={
+              <div className="inline-flex h-10 w-10 items-center justify-center rounded-md bg-cyan-700 text-white">
                 <Mail className="h-4.5 w-4.5" />
               </div>
-              <h1 className="mb-2 text-[30px] font-bold tracking-tight text-slate-900">Forgot Password?</h1>
-              <p className="mx-auto max-w-md text-[15px] leading-relaxed text-slate-500">
-                Enter your company code and email address to receive reset instructions.
-              </p>
-            </div>
-
+            }
+            footer={
+              <>
+                Already remember your password?{" "}
+                <Link to="/login" className="font-semibold text-cyan-800 hover:text-cyan-900">
+                  Back to login
+                </Link>
+              </>
+            }
+          >
             <form onSubmit={handleSubmit} className="space-y-4">
               {submitError && (
                 <div className="flex items-start gap-2.5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -165,16 +164,8 @@ const ForgotPasswordPage = () => {
                     : "Send reset link"}
               </button>
             </form>
-
-            <div className="pt-4 text-center text-sm text-slate-500">
-              Already remember your password?{" "}
-              <Link to="/login" className="font-semibold text-cyan-800 hover:text-cyan-900">
-                Back to login
-              </Link>
-            </div>
-          </div>
-        </main>
-      </div>
+          </AuthFormCard>
+      </AuthPageLayout>
     </React.Fragment>
   );
 };
