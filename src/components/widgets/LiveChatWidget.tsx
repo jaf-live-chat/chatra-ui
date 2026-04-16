@@ -1809,6 +1809,18 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
   }, [conversationId, hasApiKey, isOpen, syncConversationHistory, syncMessages, syncQuickMessages, syncVisitorProfile, syncWidgetSettings]);
 
   useEffect(() => {
+    // If returning visitor, skip pre-chat form and go straight to chat
+    if (isReturningVisitor && !conversationId) {
+      setHasCompletedPreChat(true);
+      appendCustomerFriendlyWelcomeMessage();
+    }
+    // If new visitor (not returning), ensure pre-chat form is shown
+    else if (!isReturningVisitor && historyCount === 0 && isOpen && !conversationId) {
+      setHasCompletedPreChat(false);
+    }
+  }, [isReturningVisitor, historyCount, isOpen, conversationId, appendCustomerFriendlyWelcomeMessage]);
+
+  useEffect(() => {
     if (!apiKey || !conversationId) {
       stopVisitorTyping(false);
       clearAgentTypingTimer();
