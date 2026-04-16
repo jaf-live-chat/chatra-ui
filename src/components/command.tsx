@@ -11,7 +11,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "./Dialog";
+} from "./dialog";
 
 function Command({
   className,
@@ -177,4 +177,3 @@ export {
 };
 
 export default Command;
-

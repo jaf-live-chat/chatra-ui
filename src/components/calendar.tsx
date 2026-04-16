@@ -4,7 +4,7 @@ import * as React from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { DayPicker } from "react-day-picker";
 
-import { buttonVariants } from "./Button";
+import { buttonVariants } from "./button";
 import cn from "../utils/cn";
 
 function Calendar({
@@ -75,4 +75,3 @@ function Calendar({
 export { Calendar };
 
 export default Calendar;
-
