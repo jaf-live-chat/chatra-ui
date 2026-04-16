@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { motion } from "motion/react";
 import { ArrowRight, Play, CheckCircle, X } from "lucide-react";
 
 function ChatBubble({ text, isAgent, time }: { text: string; isAgent: boolean; time: string }) {
@@ -43,16 +44,25 @@ const HeroSection = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-20 w-full">
         <div className="grid md:grid-cols-2 gap-10 lg:gap-16 items-center">
           {/* Left Content */}
-          <div>
-            <div
+          <motion.div
+            initial={{ opacity: 0, x: -36 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true, amount: 0.35 }}
+            transition={{ duration: 0.55, ease: "easeOut" }}
+          >
+            <motion.div
               className="inline-flex items-center gap-2 bg-blue-50 border border-blue-100 text-blue-700 px-3 py-1.5 rounded-full mb-6"
               style={{ fontSize: "0.8rem", fontFamily: "Inter, sans-serif", fontWeight: 500 }}
+              initial={{ opacity: 0, y: -12 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.35, delay: 0.08, ease: "easeOut" }}
             >
               <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
               New: AI-Powered Chat Routing
-            </div>
+            </motion.div>
 
-            <h1
+            <motion.h1
               className="text-gray-900 mb-6"
               style={{
                 fontFamily: "Inter, sans-serif",
@@ -61,6 +71,10 @@ const HeroSection = () => {
                 lineHeight: "1.15",
                 letterSpacing: "-0.02em",
               }}
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: 0.12, ease: "easeOut" }}
             >
               Real-Time Customer Support{" "}
               <span
@@ -75,20 +89,39 @@ const HeroSection = () => {
               >
                 Made Simple
               </span>
-            </h1>
+            </motion.h1>
 
-            <p
+            <motion.div
+              className="h-[3px] w-28 rounded-full mb-6"
+              style={{ background: "linear-gradient(90deg, #2563eb, #38bdf8)" }}
+              initial={{ opacity: 0, scaleX: 0, transformOrigin: "left" }}
+              whileInView={{ opacity: 1, scaleX: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.45, delay: 0.2, ease: "easeOut" }}
+            />
+
+            <motion.p
               className="text-gray-500 mb-8 max-w-lg"
               style={{
                 fontFamily: "Inter, sans-serif",
                 fontSize: "1.1rem",
                 lineHeight: "1.7",
               }}
+              initial={{ opacity: 0, y: 18 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: 0.22, ease: "easeOut" }}
             >
               JAF Live Chat helps businesses communicate with website visitors instantly, improve customer experience, and increase conversions through real-time messaging.
-            </p>
+            </motion.p>
 
-            <div className="flex flex-col sm:flex-row gap-4 mb-10">
+            <motion.div
+              className="flex flex-col sm:flex-row gap-4 mb-10"
+              initial={{ opacity: 0, y: 18 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: 0.28, ease: "easeOut" }}
+            >
               <a
                 href="#products"
                 onClick={(e) => {
@@ -111,9 +144,15 @@ const HeroSection = () => {
                 </div>
                 View Demo
               </button>
-            </div>
+            </motion.div>
 
-            <div className="flex flex-col sm:flex-row gap-4">
+            <motion.div
+              className="flex flex-col sm:flex-row gap-4"
+              initial={{ opacity: 0, y: 12 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.45, delay: 0.34, ease: "easeOut" }}
+            >
               {["Free 3-day trial", "Cancel anytime"].map((item) => (
                 <div key={item} className="flex items-center gap-2">
                   <CheckCircle className="w-4 h-4 text-blue-500" />
@@ -125,14 +164,22 @@ const HeroSection = () => {
                   </span>
                 </div>
               ))}
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
 
           {/* Right: Chat Dashboard Illustration */}
-          <div className="hidden lg:flex justify-center">
-            <div
+          <motion.div
+            className="hidden lg:flex justify-center"
+            initial={{ opacity: 0, x: 30, scale: 0.96 }}
+            whileInView={{ opacity: 1, x: 0, scale: 1 }}
+            viewport={{ once: true, amount: 0.25 }}
+            transition={{ duration: 0.65, ease: "easeOut" }}
+          >
+            <motion.div
               className="relative w-full max-w-lg"
               style={{ transform: "perspective(1000px) rotateY(-5deg) rotateX(3deg)" }}
+              animate={{ y: [0, -6, 0] }}
+              transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
             >
               {/* Main Dashboard Card */}
               <div className="bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-100">
@@ -238,9 +285,11 @@ const HeroSection = () => {
               </div>
 
               {/* Floating Badge 1 */}
-              <div
+              <motion.div
                 className="absolute -top-4 -right-4 bg-white rounded-xl shadow-xl p-3 border border-gray-100"
                 style={{ transform: "rotate(3deg)" }}
+                animate={{ y: [0, -4, 0] }}
+                transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
               >
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center">
@@ -251,12 +300,14 @@ const HeroSection = () => {
                     <p className="text-gray-400" style={{ fontSize: "0.55rem" }}>This month</p>
                   </div>
                 </div>
-              </div>
+              </motion.div>
 
               {/* Floating Badge 2 */}
-              <div
+              <motion.div
                 className="absolute -bottom-4 -left-4 bg-white rounded-xl shadow-xl p-3 border border-gray-100"
                 style={{ transform: "rotate(-2deg)" }}
+                animate={{ y: [0, 5, 0] }}
+                transition={{ duration: 3.4, repeat: Infinity, ease: "easeInOut" }}
               >
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -267,9 +318,9 @@ const HeroSection = () => {
                     <p className="text-gray-400" style={{ fontSize: "0.55rem" }}>Response time</p>
                   </div>
                 </div>
-              </div>
-            </div>
-          </div>
+              </motion.div>
+            </motion.div>
+          </motion.div>
         </div>
       </div>
 
