@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Loader2, MessageCircle, Paperclip, Send, X, Menu, Zap, ChevronUp, ChevronDown, ArrowLeft, Moon, Volume2, Shield, AlertCircle, Save, Star, User, Mail, Phone } from "lucide-react";
+import { Loader2, MessageCircle, Paperclip, Send, X, Menu, Zap, ChevronUp, ChevronDown, ArrowLeft, Moon, Volume2, Shield, AlertCircle, Save, Star, User, Mail, Phone, Settings, History, SquareX } from "lucide-react";
 import type { Socket } from "socket.io-client";
 import type {
   LiveChatConversation,
@@ -320,7 +320,6 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
   const [browserLocationStatus, setBrowserLocationStatus] = useState<"idle" | "resolving" | "resolved" | "denied" | "unavailable" | "error">("idle");
   const [locationPermissionState, setLocationPermissionState] = useState<LocationPermissionState>("unknown");
   const [isEndChatModalOpen, setIsEndChatModalOpen] = useState(false);
-  const [isEndSessionModalOpen, setIsEndSessionModalOpen] = useState(false);
   const [isSessionEndPendingFeedback, setIsSessionEndPendingFeedback] = useState(false);
   const [isFeedbackPromptOpen, setIsFeedbackPromptOpen] = useState(false);
   const [feedbackConversationId, setFeedbackConversationId] = useState("");
@@ -342,12 +341,14 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
   const [returningVisitorName, setReturningVisitorName] = useState("");
   const [isProfileSaving, setIsProfileSaving] = useState(false);
   const [profileStatusMessage, setProfileStatusMessage] = useState("");
+  const [isHeaderMenuOpen, setIsHeaderMenuOpen] = useState(false);
 
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const socketRef = useRef<Socket | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const messageInputRef = useRef<HTMLTextAreaElement | null>(null);
+  const headerMenuRef = useRef<HTMLDivElement | null>(null);
   const widgetSettingsRequestRef = useRef<Promise<void> | null>(null);
   const quickMessagesRequestRef = useRef<Promise<void> | null>(null);
   const historyRequestRef = useRef<Promise<void> | null>(null);
@@ -399,6 +400,9 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
 
     return messages.some((message) => !message.localKind);
   }, [conversationId, messages]);
+  const hasActiveConversation = useMemo(() => {
+    return Boolean(String(conversationId || "").trim()) && !hasEndedConversation;
+  }, [conversationId, hasEndedConversation]);
   const isQuickReplyBlocked = !hasApiKey || hasRuntimeError || isLoading || isSending || hasEndedConversation || hasConversationStarted || Boolean(activeQuickReplyId);
   const displayErrorMessage = hasApiKey
     ? errorMessage
@@ -1401,6 +1405,11 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
     appendCustomerFriendlyWelcomeMessage();
   }, [appendCustomerFriendlyWelcomeMessage, resetConversationState]);
 
+  const openEndSessionPrompt = useCallback(() => {
+    setIsHeaderMenuOpen(false);
+    setIsEndChatModalOpen(true);
+  }, []);
+
   const finalizeEndSession = useCallback(() => {
     clearSystemAutoReplyTimers();
     clearQuickReplyTimer();
@@ -1437,7 +1446,6 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
     setWidgetView("chat");
     setProfileStatusMessage("Session ended. You are logged out.");
     setIsEndChatModalOpen(false);
-    setIsEndSessionModalOpen(false);
     setIsSessionEndPendingFeedback(false);
     setIsFeedbackPromptOpen(false);
     setFeedbackConversationId("");
@@ -1452,7 +1460,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
   }, [clearAgentTypingTimer, clearQuickReplyTimer, clearSystemAutoReplyTimers, disconnectSocket, stopVisitorTyping]);
 
   const handleEndSession = useCallback(async () => {
-    setIsEndSessionModalOpen(false);
+    setIsEndChatModalOpen(false);
 
     const activeConversationId = String(conversationId || "").trim();
     if (activeConversationId) {
@@ -1773,11 +1781,42 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
     if (isOpen) {
       setWidgetView("chat");
       setIsEndChatModalOpen(false);
-      setIsEndSessionModalOpen(false);
       setShowQuickMessages(false);
       setProfileStatusMessage("");
+      setIsHeaderMenuOpen(false);
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!isHeaderMenuOpen) {
+      return;
+    }
+
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (!headerMenuRef.current) {
+        return;
+      }
+
+      const targetNode = event.target;
+      if (targetNode instanceof Node && !headerMenuRef.current.contains(targetNode)) {
+        setIsHeaderMenuOpen(false);
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsHeaderMenuOpen(false);
+      }
+    };
+
+    window.addEventListener("mousedown", handleOutsideClick);
+    window.addEventListener("keydown", handleEscape);
+
+    return () => {
+      window.removeEventListener("mousedown", handleOutsideClick);
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, [isHeaderMenuOpen]);
 
   useEffect(() => {
     if (!isOpen || widgetView !== "settings") {
@@ -2160,6 +2199,12 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
       welcomeTitle: "text-slate-100 text-sm font-semibold",
       headerAction: "bg-slate-800 text-slate-100 border border-slate-600 hover:bg-slate-700",
       headerIconButton: "border border-slate-600 bg-slate-800 text-slate-100 hover:bg-slate-700",
+      headerMenuPanel: "absolute right-0 top-[calc(100%+8px)] z-30 w-60 rounded-[18px] border border-slate-700/80 bg-slate-900/98 p-2 shadow-[0_20px_34px_-18px_rgba(2,6,23,0.92)] backdrop-blur-xl",
+      headerMenuItem: "w-full rounded-xl px-3.5 py-2.5 text-left text-[14px] font-normal text-slate-200 transition-colors hover:bg-slate-800/90",
+      headerMenuItemDestructive: "text-red-300 hover:bg-red-950/45",
+      headerMenuIcon: "h-4 w-4 text-slate-400",
+      headerMenuIconDestructive: "h-4 w-4 text-red-400",
+      headerMenuDivider: "my-1 border-t border-slate-700/75",
       settingsSectionTitle: "text-slate-400 text-[11px] font-semibold tracking-[0.18em]",
       settingsDivider: "border-slate-700/80",
       settingsText: "text-slate-100 text-[13px] font-medium",
@@ -2202,6 +2247,12 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
       welcomeTitle: "text-slate-800 text-sm font-semibold",
       headerAction: "bg-slate-100 text-slate-700 border border-slate-200 hover:bg-slate-200",
       headerIconButton: "border border-slate-200 bg-slate-100 text-slate-600 hover:bg-slate-200",
+      headerMenuPanel: "absolute right-0 top-[calc(100%+8px)] z-30 w-60 rounded-[18px] border border-slate-200 bg-white/98 p-2 shadow-[0_20px_34px_-18px_rgba(15,23,42,0.22)] backdrop-blur-xl",
+      headerMenuItem: "w-full rounded-xl px-3.5 py-2.5 text-left text-[14px] font-normal text-slate-600 transition-colors hover:bg-slate-100",
+      headerMenuItemDestructive: "text-red-500 hover:bg-red-50",
+      headerMenuIcon: "h-4 w-4 text-slate-400",
+      headerMenuIconDestructive: "h-4 w-4 text-red-500",
+      headerMenuDivider: "my-1 border-t border-slate-200",
       settingsSectionTitle: "text-slate-500 text-[11px] font-semibold tracking-[0.18em]",
       settingsDivider: "border-slate-200",
       settingsText: "text-slate-800 text-[13px] font-medium",
@@ -2281,31 +2332,72 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
-              {conversationId && (
+              <div className="relative" ref={headerMenuRef}>
                 <button
                   type="button"
-                  onClick={() => setIsEndChatModalOpen(true)}
-                  className={`rounded-lg font-semibold transition-all duration-200 hover:-translate-y-0.5 whitespace-nowrap ${theme.headerAction} ${headerButtonClass}`}
+                  onClick={() => setIsHeaderMenuOpen((current) => !current)}
+                  className={`h-9 w-9 rounded-lg flex items-center justify-center transition-all duration-200 hover:-translate-y-0.5 ${theme.headerIconButton}`}
+                  aria-label="Open chat menu"
+                  aria-expanded={isHeaderMenuOpen}
                 >
-                  End Chat
+                  <Menu className="h-4.5 w-4.5" />
                 </button>
-              )}
-              <button
-                type="button"
-                onClick={() => setWidgetView((current) => (current === "settings" ? "chat" : "settings"))}
-                className={`h-9 w-9 rounded-lg flex items-center justify-center transition-all duration-200 hover:-translate-y-0.5 ${theme.headerIconButton}`}
-                aria-label="Toggle menu"
-              >
-                <Menu className="h-4.5 w-4.5" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsOpen(false)}
-                className={`h-9 w-9 rounded-lg flex items-center justify-center transition-all duration-200 hover:-translate-y-0.5 ${theme.headerIconButton}`}
-                aria-label="Close live chat"
-              >
-                <X className="h-5 w-5" />
-              </button>
+
+                {isHeaderMenuOpen ? (
+                  <div className={theme.headerMenuPanel}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setWidgetView("settings");
+                        setSelectedHistoryConversationId("");
+                        setHistoryMessages([]);
+                        setIsHeaderMenuOpen(false);
+                      }}
+                      className={theme.headerMenuItem}
+                    >
+                      <span className="flex items-center gap-2.5">
+                        <Settings className={theme.headerMenuIcon} />
+                        <span>Settings</span>
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setWidgetView("settings");
+                        setSelectedHistoryConversationId("");
+                        setHistoryMessages([]);
+                        void syncConversationHistory();
+                        setIsHeaderMenuOpen(false);
+                      }}
+                      className={theme.headerMenuItem}
+                    >
+                      <span className="flex items-center gap-2.5">
+                        <History className={theme.headerMenuIcon} />
+                        <span>Conversation History</span>
+                      </span>
+                    </button>
+                    <div className={theme.headerMenuDivider} />
+                    <button
+                      type="button"
+                      onMouseDown={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                      }}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        openEndSessionPrompt();
+                      }}
+                      className={`${theme.headerMenuItem} ${theme.headerMenuItemDestructive}`}
+                    >
+                      <span className="flex items-center gap-2.5">
+                        <SquareX className={theme.headerMenuIconDestructive} />
+                        <span className="text-red-400">{hasActiveConversation ? "End Chat" : "Sign out & clear data"}</span>
+                      </span>
+                    </button>
+                  </div>
+                ) : null}
+              </div>
             </div>
           </div>
 
@@ -2540,17 +2632,23 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                         <p className={`font-semibold tracking-wide ${theme.settingsText}`}>SESSION</p>
                       </div>
                       <p className={`leading-relaxed ${theme.settingsMuted}`}>
-                        End session logs out this visitor profile on this browser. End chat only closes the current chat.
+                        Sign out & clear data logs out this visitor profile on this browser. End chat only closes the current chat.
                       </p>
                       <button
                         type="button"
-                        onClick={() => {
-                          setIsEndSessionModalOpen(true);
+                        onMouseDown={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                        }}
+                        onClick={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          openEndSessionPrompt();
                         }}
                         className={`mt-3 w-full rounded-xl px-3 py-2 text-sm font-semibold ${theme.button}`}
                         style={{ backgroundColor: resolvedAccent, boxShadow: accentShadow }}
                       >
-                        End session
+                        {hasActiveConversation ? "End chat / sign out" : "Sign out & clear data"}
                       </button>
                     </div>
                   </>
@@ -2904,83 +3002,54 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
 
           {isEndChatModalOpen ? (
             <div className={`absolute inset-0 z-40 backdrop-blur-[5px] ${theme.modalBackdrop} flex items-center justify-center p-4`}>
-              <div className={`w-full max-w-[320px] rounded-3xl p-5 ${theme.modalCard}`}>
-                <div className="flex justify-center mb-3">
-                  <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center">
-                    <AlertCircle className="h-6 w-6 text-red-500" />
-                  </div>
-                </div>
-
-                <h3 className="text-center text-xl font-semibold">End this chat?</h3>
-                <p className={`text-center mt-2 text-sm ${theme.settingsMuted}`}>
-                  This closes your current chat. Your visitor profile and session remain signed in.
-                </p>
-
-                <div className="mt-5 grid grid-cols-2 gap-2.5">
+              <div className="w-full max-w-[312px] rounded-[28px] bg-white px-5 pb-6 pt-5 shadow-[0_28px_54px_-34px_rgba(15,23,42,0.5)]">
+                <div className="flex justify-end">
                   <button
                     type="button"
                     onClick={() => setIsEndChatModalOpen(false)}
-                    className={`h-11 rounded-2xl text-base font-semibold transition-colors ${theme.modalSecondary}`}
+                    className="inline-flex h-6 w-6 items-center justify-center rounded-full text-slate-300 transition-colors hover:bg-slate-100 hover:text-slate-400"
+                    aria-label="Close end session prompt"
                   >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      handleEndChat();
-                      setIsEndChatModalOpen(false);
-                      setWidgetView("chat");
-                    }}
-                    className={`h-11 rounded-2xl text-base font-semibold transition-colors ${theme.modalPrimary}`}
-                  >
-                    Yes, end chat
+                    <X className="h-3.5 w-3.5" />
                   </button>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsEndChatModalOpen(false);
-                    setIsEndSessionModalOpen(true);
-                  }}
-                  className={`mt-3 h-11 w-full rounded-2xl text-base font-semibold transition-colors ${theme.modalSecondary}`}
-                >
-                  End session instead
-                </button>
-              </div>
-            </div>
-          ) : null}
-
-          {isEndSessionModalOpen ? (
-            <div className={`absolute inset-0 z-40 backdrop-blur-[5px] ${theme.modalBackdrop} flex items-center justify-center p-4`}>
-              <div className={`w-full max-w-[340px] rounded-3xl p-5 ${theme.modalCard}`}>
-                <div className="flex justify-center mb-3">
-                  <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center">
-                    <AlertCircle className="h-6 w-6 text-red-500" />
+                <div className="-mt-0.5 flex justify-center">
+                  <div className="h-12 w-12 rounded-full bg-red-50 flex items-center justify-center">
+                    <AlertCircle className="h-5 w-5 text-red-500" strokeWidth={2.2} />
                   </div>
                 </div>
 
-                <h3 className="text-center text-xl font-semibold">End this session?</h3>
-                <p className={`text-center mt-2 text-sm ${theme.settingsMuted}`}>
-                  This will erase your current visitor session on this browser, and your past chat transcripts will no longer be viewable from this widget.
+                <h3 className="mt-4 text-center text-[30px] leading-tight font-semibold tracking-[-0.01em] text-slate-700">End Session?</h3>
+                <p className="mt-2.5 text-center text-[12px] leading-5 font-normal text-slate-500">
+                  Choose how you'd like to end this visit.
                 </p>
 
-                <div className="mt-5 grid grid-cols-2 gap-2.5">
-                  <button
-                    type="button"
-                    onClick={() => setIsEndSessionModalOpen(false)}
-                    className={`h-11 rounded-2xl text-base font-semibold transition-colors ${theme.modalSecondary}`}
-                  >
-                    Cancel
-                  </button>
+                <div className="mt-5 flex flex-col gap-2.5">
+                  {hasActiveConversation ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsEndChatModalOpen(false);
+                        setWidgetView("chat");
+                        void handleEndChat();
+                      }}
+                      className="h-11 rounded-2xl text-[15px] font-semibold text-white shadow-[0_16px_24px_-18px_rgba(8,145,178,0.9)] transition-colors hover:bg-cyan-700"
+                      style={{ backgroundColor: "#0f8da0" }}
+                    >
+                      Just end chat
+                    </button>
+                  ) : null}
+
                   <button
                     type="button"
                     onClick={() => {
+                      setIsEndChatModalOpen(false);
                       void handleEndSession();
                     }}
-                    className={`h-11 rounded-2xl text-base font-semibold transition-colors ${theme.modalPrimary}`}
+                    className="h-11 rounded-2xl bg-[#ef4444] text-[15px] font-semibold text-white shadow-[0_16px_24px_-18px_rgba(239,68,68,0.9)] transition-colors hover:bg-[#dc2626]"
                   >
-                    Yes, end session
+                    Sign out &amp; clear data
                   </button>
                 </div>
               </div>
