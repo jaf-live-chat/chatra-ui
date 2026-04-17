@@ -23,6 +23,7 @@ import PageTitle from "../../components/common/PageTitle";
 import TitleTag from "../../components/TitleTag"
 import IntegrationGuideSwitcher from "../../components/IntegrationGuideSwitcher";
 import { Box } from "@mui/material";
+import { toast } from "../../components/sonner";
 
 const ACCOUNT_SETTINGS_UNLOCK_MS = 10 * 60 * 1000;
 
@@ -261,7 +262,7 @@ const AccountSettingsView = () => {
 
   const handleUnlockPage = async () => {
     if (!unlockPassword.trim()) {
-      setUnlockError("Please enter your password to continue.");
+      toast.error("Please enter your password to continue.");
       return;
     }
 
@@ -281,7 +282,15 @@ const AccountSettingsView = () => {
       setUnlockPassword("");
       setShowUnlockPassword(false);
     } catch (error) {
-      setUnlockError(getApiErrorMessage(error, "Password verification failed."));
+      const message = getApiErrorMessage(error, "Password verification failed.");
+
+      if (message.toLowerCase().includes("invalid password")) {
+        toast.error("Invalid password.");
+        setUnlockError("");
+        return;
+      }
+
+      setUnlockError(message);
     } finally {
       setIsUnlocking(false);
     }
