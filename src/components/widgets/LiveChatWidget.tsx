@@ -1598,170 +1598,170 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
 
   const messageSizeClass = useMemo(() => {
     if (textSize === "small") {
-      return "text-[12px] leading-5";
+      return "text-[11px] leading-5 sm:text-[12px]";
     }
 
     if (textSize === "large") {
-      return "text-[16px] leading-7";
+      return "text-[13px] leading-6 sm:text-[16px] sm:leading-7";
     }
 
-    return "text-[13px] leading-6";
+    return "text-[12px] leading-6 sm:text-[13px]";
   }, [textSize]);
 
   const messageMetaSizeClass = useMemo(() => {
     if (textSize === "small") {
-      return "text-[10px] leading-4";
+      return "text-[9px] leading-4 sm:text-[10px]";
     }
 
     if (textSize === "large") {
-      return "text-[11px] leading-4";
+      return "text-[10px] leading-4 sm:text-[11px]";
     }
 
-    return "text-[11px] leading-4";
+    return "text-[10px] leading-4 sm:text-[11px]";
   }, [textSize]);
 
   const composerTextClass = useMemo(() => {
     if (textSize === "small") {
-      return "text-[12px] leading-5";
+      return "text-[11px] leading-5 sm:text-[12px]";
     }
 
     if (textSize === "large") {
-      return "text-[15px] leading-6";
+      return "text-[13px] leading-6 sm:text-[15px]";
     }
 
-    return "text-[13px] leading-6";
+    return "text-[12px] leading-6 sm:text-[13px]";
   }, [textSize]);
 
   const bubblePaddingClass = useMemo(() => {
     if (textSize === "small") {
-      return "px-[14px] py-[9px]";
+      return "px-[12px] py-[8px] sm:px-[14px] sm:py-[9px]";
     }
 
     if (textSize === "large") {
-      return "px-[18px] py-[12px]";
+      return "px-[15px] py-[10px] sm:px-[18px] sm:py-[12px]";
     }
 
-    return "px-4 py-2.5";
+    return "px-3 py-2 sm:px-4 sm:py-2.5";
   }, [textSize]);
 
   const avatarSizeClass = useMemo(() => {
     if (textSize === "small") {
-      return "h-9 w-9 text-[11px]";
+      return "h-8 w-8 text-[10px] sm:h-9 sm:w-9 sm:text-[11px]";
     }
 
     if (textSize === "large") {
-      return "h-11 w-11 text-sm";
+      return "h-10 w-10 text-[11px] sm:h-11 sm:w-11 sm:text-sm";
     }
 
-    return "h-[38px] w-[38px] text-[12px]";
+    return "h-9 w-9 text-[11px] sm:h-[38px] sm:w-[38px] sm:text-[12px]";
   }, [textSize]);
 
   const quickMessageTextClass = useMemo(() => {
     if (textSize === "small") {
-      return "text-[11px]";
+      return "text-[10px] sm:text-[11px]";
     }
 
     if (textSize === "large") {
-      return "text-[14px]";
+      return "text-[12px] sm:text-[14px]";
     }
 
-    return "text-xs";
+    return "text-[11px] sm:text-xs";
   }, [textSize]);
 
   const helperTextSizeClass = useMemo(() => {
     if (textSize === "small") {
-      return "text-xs";
+      return "text-[11px] sm:text-xs";
     }
 
     if (textSize === "large") {
-      return "text-sm";
+      return "text-[13px] sm:text-sm";
     }
 
-    return "text-[13px]";
+    return "text-[12px] sm:text-[13px]";
   }, [textSize]);
 
   const panelSpacingClass = useMemo(() => {
     if (textSize === "small") {
-      return "gap-3";
+      return "gap-2 sm:gap-3";
     }
 
     if (textSize === "large") {
-      return "gap-5";
+      return "gap-4 sm:gap-5";
     }
 
-    return "gap-4";
+    return "gap-3 sm:gap-4";
   }, [textSize]);
 
   const headerTitleClass = useMemo(() => {
     if (textSize === "small") {
-      return "text-[0.96rem]";
+      return "text-[0.9rem] sm:text-[0.96rem]";
     }
 
     if (textSize === "large") {
-      return "text-[1.15rem]";
+      return "text-[1.02rem] sm:text-[1.15rem]";
     }
 
-    return "text-[1.05rem]";
+    return "text-[0.98rem] sm:text-[1.05rem]";
   }, [textSize]);
 
   const headerStatusClass = useMemo(() => {
     if (textSize === "small") {
-      return "text-[10px] tracking-wide";
+      return "text-[9px] tracking-wide sm:text-[10px]";
     }
 
     if (textSize === "large") {
-      return "text-[11px] tracking-wide";
+      return "text-[10px] tracking-wide sm:text-[11px]";
     }
 
-    return "text-[11px] tracking-wide";
+    return "text-[10px] tracking-wide sm:text-[11px]";
   }, [textSize]);
 
   const headerButtonClass = useMemo(() => {
     if (textSize === "small") {
-      return "px-2.5 py-1 text-xs";
+      return "px-2 py-1 text-[11px] sm:px-2.5 sm:text-xs";
     }
 
     if (textSize === "large") {
-      return "px-4 py-2 text-sm";
+      return "px-3.5 py-2 text-[13px] sm:px-4 sm:text-sm";
     }
 
-    return "px-3 py-1.5 text-sm";
+    return "px-2.5 py-1.5 text-[12px] sm:px-3 sm:text-sm";
   }, [textSize]);
 
   const composerGapClass = useMemo(() => {
     if (textSize === "small") {
-      return "gap-1.5";
+      return "gap-1.5 sm:gap-1.5";
     }
 
     if (textSize === "large") {
-      return "gap-3";
+      return "gap-2.5 sm:gap-3";
     }
 
-    return "gap-2";
+    return "gap-1.5 sm:gap-2";
   }, [textSize]);
 
   const composerButtonSizeClass = useMemo(() => {
     if (textSize === "small") {
-      return "h-10 w-10";
+      return "h-9 w-9 sm:h-10 sm:w-10";
     }
 
     if (textSize === "large") {
-      return "h-12 w-12";
+      return "h-11 w-11 sm:h-12 sm:w-12";
     }
 
-    return "h-11 w-11";
+    return "h-10 w-10 sm:h-11 sm:w-11";
   }, [textSize]);
 
   const inputPaddingClass = useMemo(() => {
     if (textSize === "small") {
-      return "px-2 py-1.5";
+      return "px-2 py-1.5 sm:px-2 sm:py-1.5";
     }
 
     if (textSize === "large") {
-      return "px-4 py-2.5";
+      return "px-3 py-2 sm:px-4 sm:py-2.5";
     }
 
-    return "px-3 py-2";
+    return "px-2.5 py-2 sm:px-3 sm:py-2";
   }, [textSize]);
 
   useEffect(() => {
@@ -2623,9 +2623,11 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
 
                     <div className={theme.settingsCard}>
                       <p className={`${theme.settingsSectionTitle} mb-2`}>PREFERENCES</p>
-                      <div className="flex items-center justify-between gap-3">
-                        <p className={theme.settingsText}>Text Size</p>
-                        <div className={`${theme.settingsControlShell} ${theme.settingsControlShellTone} max-w-[170px] w-full`}>
+                      <div className="space-y-2">
+                        <div>
+                          <p className={theme.settingsText}>Text Size</p>
+                        </div>
+                        <div className={`${theme.settingsControlShell} ${theme.settingsControlShellTone} w-full min-w-0`}>
                           {(["small", "default", "large"] as TextSize[]).map((size) => (
                             <button
                               key={size}
@@ -2634,7 +2636,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                                 setTextSize(size);
                                 writeStoredValue(WIDGET_TEXT_SIZE_KEY, size);
                               }}
-                              className={`px-2 py-1.5 rounded-lg text-[11px] font-semibold capitalize transition-all ${textSize === size ? theme.settingsControlActive : theme.settingsControlIdle}`}
+                              className={`min-w-0 px-1.5 py-1.5 rounded-lg text-[10px] leading-none sm:px-2 sm:text-[11px] font-semibold capitalize whitespace-nowrap transition-all ${textSize === size ? theme.settingsControlActive : theme.settingsControlIdle}`}
                               style={textSize === size ? { borderColor: resolvedAccent } : undefined}
                             >
                               {size}
@@ -2689,71 +2691,6 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
                     </div>
 
                     <div className={`my-5 border-t ${theme.settingsDivider}`} />
-
-                    <div className={theme.settingsCard}>
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <p className={`${theme.settingsSectionTitle} mb-1`}>LOCATION PERMISSION</p>
-                          <p className={`${theme.settingsMuted}`}>{locationPermissionLabel}</p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={requestBrowserLocation}
-                          disabled={browserLocationStatus === "resolving"}
-                          className={`rounded-xl px-3 py-2 text-xs font-semibold disabled:opacity-60 disabled:cursor-not-allowed ${theme.button}`}
-                          style={{ backgroundColor: resolvedAccent, boxShadow: accentShadow }}
-                        >
-                          {browserLocationStatus === "resolving" ? "Checking..." : "Check"}
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className={`my-5 border-t ${theme.settingsDivider}`} />
-
-                    <div className={theme.settingsCard}>
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <p className={`${theme.settingsSectionTitle}`}>CONVERSATION HISTORY</p>
-                          <p className={`${theme.settingsMuted}`}>{historyCount} ended chat{historyCount === 1 ? "" : "s"}</p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={openHistoryView}
-                          className={`rounded-xl px-3 py-2 text-xs font-semibold ${theme.button}`}
-                          style={{ backgroundColor: resolvedAccent, boxShadow: accentShadow }}
-                        >
-                          Open
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className={`my-5 border-t ${theme.settingsDivider}`} />
-
-                    <div className={theme.settingsCard}>
-                      <div className="flex items-center gap-2 mb-2">
-                        <Shield className={`h-4.5 w-4.5 ${theme.settingsMuted}`} />
-                        <p className={`font-semibold tracking-wide ${theme.settingsText}`}>SESSION</p>
-                      </div>
-                      <p className={`leading-relaxed ${theme.settingsMuted}`}>
-                        Sign out & clear data logs out this visitor profile on this browser. End chat only closes the current chat.
-                      </p>
-                      <button
-                        type="button"
-                        onMouseDown={(event) => {
-                          event.preventDefault();
-                          event.stopPropagation();
-                        }}
-                        onClick={(event) => {
-                          event.preventDefault();
-                          event.stopPropagation();
-                          openEndSessionPrompt();
-                        }}
-                        className={`mt-3 w-full rounded-xl px-3 py-2 text-sm font-semibold ${theme.button}`}
-                        style={{ backgroundColor: resolvedAccent, boxShadow: accentShadow }}
-                      >
-                        {hasActiveConversation ? "End chat / sign out" : "Sign out & clear data"}
-                      </button>
-                    </div>
                   </>
                 )}
               </div>
