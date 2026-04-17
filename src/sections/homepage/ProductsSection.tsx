@@ -1,4 +1,5 @@
 import { ArrowRight, MessageCircle, Shield, Zap, X } from "lucide-react";
+import { motion } from "motion/react";
 import { Link } from "react-router";
 import { useState } from "react";
 
@@ -12,12 +13,22 @@ const ProductsSection = () => {
       <section id="products" className="py-24 bg-gray-50 border-y border-gray-100">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           {/* Header */}
-          <div className="text-center max-w-2xl mx-auto mb-16">
-            <span
+          <motion.div
+            className="text-center max-w-2xl mx-auto mb-16"
+            initial={{ opacity: 0, y: 22 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+          >
+            <motion.span
               className="inline-block bg-cyan-50 text-cyan-700 px-3 py-1 rounded-full mb-4"
               style={{ fontFamily: "Inter, sans-serif", fontSize: "0.8rem", fontWeight: 600 }}
-            >Our Products</span>
-            <h2
+              initial={{ opacity: 0, y: -8 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.35, delay: 0.08, ease: "easeOut" }}
+            >Our Products</motion.span>
+            <motion.h2
               className="text-gray-900 mb-4"
               style={{
                 fontFamily: "Inter, sans-serif",
@@ -26,22 +37,46 @@ const ProductsSection = () => {
                 lineHeight: "1.2",
                 letterSpacing: "-0.02em",
               }}
+              initial={{ opacity: 0, y: 14 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.45, delay: 0.12, ease: "easeOut" }}
             >
               Built for modern teams
-            </h2>
-            <p
+            </motion.h2>
+
+            <motion.div
+              className="h-[3px] w-28 mx-auto mb-4 rounded-full"
+              style={{ background: "linear-gradient(90deg, #22d3ee, #0891b2)" }}
+              initial={{ opacity: 0, scaleX: 0 }}
+              whileInView={{ opacity: 1, scaleX: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.45, delay: 0.16, ease: "easeOut" }}
+            />
+
+            <motion.p
               className="text-gray-500"
               style={{ fontFamily: "Inter, sans-serif", fontSize: "1rem", lineHeight: "1.7" }}
+              initial={{ opacity: 0, y: 14 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.45, delay: 0.2, ease: "easeOut" }}
             >
               Discover our suite of tools designed to help you connect, engage, and support your customers better than ever before.
-            </p>
-          </div>
+            </motion.p>
+          </motion.div>
 
           {/* Product Showcase Card */}
           <div className="bg-white rounded-[2rem] border border-gray-100 shadow-xl shadow-gray-200/50 overflow-hidden">
             <div className="grid lg:grid-cols-2 gap-0">
               {/* Left Content */}
-              <div className="p-8 lg:p-16 flex flex-col justify-center">
+              <motion.div
+                className="p-8 lg:p-16 flex flex-col justify-center"
+                initial={{ opacity: 0, x: -26 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true, amount: 0.35 }}
+                transition={{ duration: 0.55, ease: "easeOut" }}
+              >
                 <div className="flex items-center gap-3 mb-6">
                   <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg" style={{ backgroundColor: "#0891b2", boxShadow: "0 10px 15px -3px #0891b233" }}>
                     <MessageCircle className="w-6 h-6 text-white" />
@@ -61,13 +96,27 @@ const ProductsSection = () => {
                   The ultimate live chat solution that turns your website visitors into loyal customers. Engage in real-time, track visitor behavior, and deliver exceptional support experiences with our powerful, customizable chat widget.
                 </p>
 
-                <ul className="space-y-4 mb-10">
+                <motion.ul
+                  className="space-y-4 mb-10"
+                  initial="hidden"
+                  whileInView="visible"
+                  viewport={{ once: true }}
+                  transition={{ staggerChildren: 0.08, delayChildren: 0.16 }}
+                >
                   {[
                     { icon: Zap, text: "Real-time communication with less than 50ms latency" },
                     { icon: Shield, text: "Enterprise-grade security and session tracking" },
                     { icon: MessageCircle, text: "Fully customizable widget to match your brand" }
                   ].map((item, i) => (
-                    <li key={i} className="flex items-center gap-3">
+                    <motion.li
+                      key={i}
+                      className="flex items-center gap-3"
+                      variants={{
+                        hidden: { opacity: 0, x: -12 },
+                        visible: { opacity: 1, x: 0 },
+                      }}
+                      transition={{ duration: 0.35, ease: "easeOut" }}
+                    >
                       <div className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center" style={{ backgroundColor: "#0891b214" }}>
                         <item.icon className="w-3.5 h-3.5" style={{ color: "#0891b2" }} />
                       </div>
@@ -77,11 +126,17 @@ const ProductsSection = () => {
                       >
                         {item.text}
                       </span>
-                    </li>
+                    </motion.li>
                   ))}
-                </ul>
+                </motion.ul>
 
-                <div className="flex flex-wrap gap-4 mt-auto">
+                <motion.div
+                  className="flex flex-wrap gap-4 mt-auto"
+                  initial={{ opacity: 0, y: 14 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.45, delay: 0.3, ease: "easeOut" }}
+                >
                   <Link
                     to="/checkout/free"
                     className="text-white px-6 py-3 rounded-xl transition-all flex items-center gap-2 group cursor-pointer"
@@ -99,17 +154,34 @@ const ProductsSection = () => {
                   >
                     View Pricing
                   </Link>
-                </div>
-              </div>
+                </motion.div>
+              </motion.div>
 
               {/* Right Image/Visual */}
-              <div className="bg-gray-900 lg:min-h-[500px] relative overflow-hidden flex items-center justify-center p-8">
+              <motion.div
+                className="bg-gray-900 lg:min-h-[500px] relative overflow-hidden flex items-center justify-center p-8"
+                initial={{ opacity: 0, x: 28, scale: 0.97 }}
+                whileInView={{ opacity: 1, x: 0, scale: 1 }}
+                viewport={{ once: true, amount: 0.3 }}
+                transition={{ duration: 0.6, ease: "easeOut" }}
+              >
+                <motion.div
+                  className="absolute left-0 top-0 bottom-0 w-px bg-white/15 hidden lg:block"
+                  initial={{ scaleY: 0, transformOrigin: "top" }}
+                  whileInView={{ scaleY: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.55, delay: 0.2, ease: "easeOut" }}
+                />
                 {/* Decorative elements */}
                 <div className="absolute top-0 right-0 w-64 h-64 rounded-full blur-3xl translate-x-1/2 -translate-y-1/2" style={{ backgroundColor: "#0891b233" }}></div>
                 <div className="absolute bottom-0 left-0 w-64 h-64 rounded-full blur-3xl -translate-x-1/2 translate-y-1/2" style={{ backgroundColor: "#22d3ee33" }}></div>
 
                 {/* Product Mockup */}
-                <div className="relative z-10 w-full max-w-md rounded-xl overflow-hidden border border-gray-800 shadow-2xl">
+                <motion.div
+                  className="relative z-10 w-full max-w-md rounded-xl overflow-hidden border border-gray-800 shadow-2xl"
+                  animate={{ y: [0, -5, 0] }}
+                  transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut" }}
+                >
                   <div className="bg-gray-800 px-4 py-3 flex items-center gap-2 border-b border-gray-700">
                     <div className="w-3 h-3 rounded-full bg-red-500"></div>
                     <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
@@ -121,8 +193,8 @@ const ProductsSection = () => {
                     alt="JAF Chatra Dashboard"
                     className="w-full h-auto object-cover opacity-90 hover:opacity-100 transition-opacity duration-500"
                   />
-                </div>
-              </div>
+                </motion.div>
+              </motion.div>
             </div>
           </div>
         </div>

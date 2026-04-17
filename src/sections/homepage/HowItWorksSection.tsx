@@ -1,24 +1,22 @@
 import { Code2, MessageCircle, Headphones } from "lucide-react";
+import { motion } from "motion/react";
 
 const steps = [
   {
     number: "01",
     icon: <Code2 className="w-7 h-7" />,
-    color: "bg-blue-100 text-blue-600",
     title: "Install Chat Widget",
     description: "Embed a simple one-line script into your website. No technical knowledge required — it takes under 5 minutes.",
   },
   {
     number: "02",
     icon: <MessageCircle className="w-7 h-7" />,
-    color: "bg-sky-100 text-sky-600",
     title: "Visitors Start Chat",
     description: "Website visitors open the chat widget and send messages. The widget is beautifully designed to match your brand.",
   },
   {
     number: "03",
     icon: <Headphones className="w-7 h-7" />,
-    color: "bg-gray-900 text-white",
     title: "Agents Respond Instantly",
     description: "Your support team replies through the dashboard in real time. Get notified immediately and never miss a message.",
   },
@@ -26,13 +24,19 @@ const steps = [
 
 const HowItWorksSection = () => {
   return (
-    <section className="py-24" style={{ background: "linear-gradient(180deg, #f0f9ff 0%, #ffffff 100%)" }}>
+    <section className="py-24" style={{ background: "linear-gradient(180deg, #edf7ff 0%, #eaf5ff 100%)" }}>
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         {/* Header */}
-        <div className="text-center max-w-2xl mx-auto mb-16">
+        <motion.div
+          className="text-center max-w-2xl mx-auto mb-16"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+        >
           <span
-            className="inline-block bg-blue-50 text-blue-600 px-3 py-1 rounded-full mb-4"
-            style={{ fontFamily: "Inter, sans-serif", fontSize: "0.8rem", fontWeight: 600 }}
+            className="inline-block text-blue-500 mb-4"
+            style={{ fontFamily: "Inter, sans-serif", fontSize: "0.78rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}
           >
             How It Works
           </span>
@@ -41,8 +45,8 @@ const HowItWorksSection = () => {
             style={{
               fontFamily: "Inter, sans-serif",
               fontWeight: 800,
-              fontSize: "clamp(1.8rem, 4vw, 2.6rem)",
-              lineHeight: "1.2",
+              fontSize: "clamp(2rem, 4vw, 3.05rem)",
+              lineHeight: "1.12",
               letterSpacing: "-0.02em",
             }}
           >
@@ -54,37 +58,58 @@ const HowItWorksSection = () => {
           >
             Getting started with JAF Live Chat is effortless. Set it up once and start connecting with customers immediately.
           </p>
-        </div>
+        </motion.div>
 
         {/* Steps */}
         <div className="relative">
           {/* Connector Line */}
-          <div className="hidden lg:block absolute top-8 left-1/2 -translate-x-1/2 w-[66%] h-0.5 z-0">
-            <div className="w-full h-full bg-gradient-to-r from-blue-300 via-sky-400 to-gray-400 rounded-full"></div>
+          <div className="hidden lg:block absolute top-8 left-1/2 -translate-x-1/2 w-[74%] h-px z-0">
+            <motion.div
+              className="w-full h-full bg-blue-400 rounded-full"
+              initial={{ scaleX: 0, transformOrigin: "left" }}
+              whileInView={{ scaleX: 1 }}
+              viewport={{ once: true, amount: 0.45 }}
+              transition={{ duration: 0.9, ease: "easeOut" }}
+            />
           </div>
 
           <div className="grid lg:grid-cols-3 gap-10 relative z-10">
             {steps.map((step, index) => (
-               <div key={step.title} className="flex flex-col items-center text-center group">
+              <motion.div
+                key={step.title}
+                className="flex flex-col items-center text-center"
+                initial={{ opacity: 0, y: 26 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.45, delay: index * 0.1, ease: "easeOut" }}
+              >
                 {/* Icon Circle */}
                 <div className="relative mb-6">
-                  <div
-                    className={`w-16 h-16 ${step.color} rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300`}
+                  <motion.div
+                    className="w-16 h-16 bg-white text-blue-500 rounded-full flex items-center justify-center border border-slate-200 shadow-lg shadow-blue-100/60"
+                    initial={{ opacity: 0, scale: 0.7 }}
+                    whileInView={{ opacity: 1, scale: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.4, delay: 0.2 + index * 0.12, ease: "easeOut" }}
                   >
                     {step.icon}
-                  </div>
-                  <div
-                    className="absolute -top-2 -right-2 w-6 h-6 bg-white border-2 border-blue-300 rounded-full flex items-center justify-center"
-                    style={{ fontFamily: "Inter, sans-serif", fontSize: "0.65rem", fontWeight: 800, color: "#2563eb" }}
+                  </motion.div>
+                  <motion.div
+                    className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-sky-500 border-2 border-[#eaf5ff] rounded-full flex items-center justify-center"
+                    style={{ fontFamily: "Inter, sans-serif", fontSize: "0.62rem", fontWeight: 800, color: "#ffffff" }}
+                    initial={{ opacity: 0, scale: 0.5 }}
+                    whileInView={{ opacity: 1, scale: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.3, delay: 0.3 + index * 0.12, ease: "easeOut" }}
                   >
                     {index + 1}
-                  </div>
+                  </motion.div>
                 </div>
 
                 {/* Step Number */}
                 <span
-                  className="text-gray-200 mb-2"
-                  style={{ fontFamily: "Inter, sans-serif", fontWeight: 800, fontSize: "0.75rem", letterSpacing: "0.1em" }}
+                  className="text-slate-300 mb-2"
+                  style={{ fontFamily: "Inter, sans-serif", fontWeight: 700, fontSize: "0.74rem", letterSpacing: "0.08em" }}
                 >
                   STEP {step.number}
                 </span>
@@ -96,12 +121,12 @@ const HowItWorksSection = () => {
                   {step.title}
                 </h3>
                 <p
-                  className="text-gray-500 max-w-xs"
-                  style={{ fontFamily: "Inter, sans-serif", fontSize: "0.9rem", lineHeight: "1.65" }}
+                  className="text-slate-500 max-w-xs"
+                  style={{ fontFamily: "Inter, sans-serif", fontSize: "0.92rem", lineHeight: "1.7" }}
                 >
                   {step.description}
                 </p>
-              </div>
+              </motion.div>
             ))}
           </div>
         </div>

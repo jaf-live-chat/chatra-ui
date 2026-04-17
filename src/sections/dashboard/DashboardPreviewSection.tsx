@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   Circle,
 } from "lucide-react";
+import { motion } from "motion/react";
 import Logo from "../../components/common/Logo";
 
 const navItems = [
@@ -37,13 +38,19 @@ const recentChats = [
 
 const DashboardPreviewSection = () => {
   return (
-    <section className="bg-white py-16 sm:py-20 lg:py-24">
+    <section className="py-16 sm:py-20 lg:py-24" style={{ background: "linear-gradient(180deg, #edf7ff 0%, #f5fbff 100%)" }}>
       <div className="pointer-events-none mx-auto max-w-7xl select-none px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="mx-auto mb-10 max-w-2xl text-center sm:mb-14">
+        <motion.div
+          className="mx-auto mb-10 max-w-2xl text-center sm:mb-14"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+        >
           <span
-            className="inline-block bg-blue-50 text-blue-600 px-3 py-1 rounded-full mb-4"
-            style={{ fontFamily: "Inter, sans-serif", fontSize: "0.8rem", fontWeight: 600 }}
+            className="inline-block text-blue-500 mb-4"
+            style={{ fontFamily: "Inter, sans-serif", fontSize: "0.76rem", fontWeight: 700, letterSpacing: "0.08em" }}
           >
             Dashboard Preview
           </span>
@@ -57,15 +64,17 @@ const DashboardPreviewSection = () => {
               letterSpacing: "-0.02em",
             }}
           >
-            A powerful command center for your team
+            A powerful command center for your
+            <br />
+            team
           </h2>
           <p
             className="text-gray-500"
-            style={{ fontFamily: "Inter, sans-serif", fontSize: "1rem", lineHeight: "1.7" }}
+            style={{ fontFamily: "Inter, sans-serif", fontSize: "1rem", lineHeight: "1.7", maxWidth: "640px", margin: "0 auto" }}
           >
             Get a clear overview of all conversations, visitors, and agent performance from one sleek admin panel.
           </p>
-        </div>
+        </motion.div>
 
         {/* Mobile + Tablet Mockup */}
         <div
@@ -170,9 +179,13 @@ const DashboardPreviewSection = () => {
         </div>
 
         {/* Desktop Mockup */}
-        <div
+        <motion.div
           className="hidden overflow-hidden rounded-2xl border border-gray-200 shadow-2xl lg:block"
-          style={{ background: "#f8fafc" }}
+          style={{ background: "#f8fafc", maxWidth: "1040px", margin: "0 auto", boxShadow: "0 20px 50px -18px rgba(15, 23, 42, 0.38)" }}
+          initial={{ opacity: 0, scale: 0.97 }}
+          whileInView={{ opacity: 1, scale: 1 }}
+          viewport={{ once: true, amount: 0.35 }}
+          transition={{ duration: 0.55, ease: "easeOut" }}
         >
           {/* Title Bar */}
           <div className="flex items-center gap-2 px-4 py-3 bg-gray-950">
@@ -359,10 +372,10 @@ const DashboardPreviewSection = () => {
               </div>
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Bottom gradient fade */}
-        <div className="-mt-1 hidden h-8 rounded-b-2xl lg:block" style={{ background: "linear-gradient(to bottom, transparent, white)" }}></div>
+        <div className="-mt-1 hidden h-8 rounded-b-2xl lg:block" style={{ background: "linear-gradient(to bottom, transparent, #f5fbff)" }}></div>
       </div>
     </section>
   );
