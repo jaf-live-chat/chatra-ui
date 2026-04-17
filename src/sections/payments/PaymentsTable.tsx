@@ -35,12 +35,18 @@ const statusStyles: Record<PaymentStatus, { label: string; bg: string; color: st
     bg: "#dc26261a",
     color: "#b91c1c",
   },
+  CANCELLED: {
+    label: "Cancelled",
+    bg: "#f973161a",
+    color: "#c2410c",
+  },
 };
 
 const statusPriority: Record<PaymentStatus, number> = {
   COMPLETED: 1,
   PENDING: 2,
   FAILED: 3,
+  CANCELLED: 4,
 };
 
 const formatTransactionDate = (dateString: string) => {

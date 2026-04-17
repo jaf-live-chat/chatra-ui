@@ -35,7 +35,7 @@ export type CreatePaymentCheckoutResponse = {
   companyName?: string;
 };
 
-export type PaymentStatus = "PENDING" | "COMPLETED" | "FAILED";
+export type PaymentStatus = "PENDING" | "COMPLETED" | "FAILED" | "CANCELLED";
 
 export interface PaymentApiItem {
   id: string;

@@ -77,6 +77,7 @@ const AnalyticsAdvanced = ({
     const completed = payments.filter((payment) => payment.status === "COMPLETED");
     const pending = payments.filter((payment) => payment.status === "PENDING");
     const failed = payments.filter((payment) => payment.status === "FAILED");
+    const cancelled = payments.filter((payment) => payment.status === "CANCELLED");
 
     const totalRevenue = completed.reduce((sum, payment) => {
       const amount = Number(payment.amount ?? 0);
@@ -87,7 +88,7 @@ const AnalyticsAdvanced = ({
       totalRevenue,
       completedCount: completed.length,
       pendingCount: pending.length,
-      failedCount: failed.length,
+      failedCount: failed.length + cancelled.length,
       totalTransactions: payments.length,
     };
   }, [payments]);

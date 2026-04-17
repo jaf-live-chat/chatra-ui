@@ -129,12 +129,27 @@ const DashboardRenewal = () => {
     [savedRenewalContext.previousPlanName, searchParams]
   );
 
+  const redirectStatus = useMemo(
+    () => String(searchParams.get("status") || searchParams.get("payment_status") || "").trim().toLowerCase(),
+    [searchParams]
+  );
+
+  const isCancelledRedirect =
+    redirectStatus === "canceled" ||
+    redirectStatus === "cancelled" ||
+    redirectStatus === "expired" ||
+    redirectStatus === "failed";
+
   useEffect(() => {
+    if (isCancelledRedirect) {
+      window.location.replace(`/renewal/cancelled${window.location.search}`);
+      return;
+    }
+
     if (!reference && !paymentRequestId && !(tenantId && subscriptionId)) {
       setErrorMessage("No active renewal session found. Please start checkout first.");
       return;
     }
-
     let isCancelled = false;
 
     const pollStatus = async () => {
@@ -152,6 +167,11 @@ const DashboardRenewal = () => {
 
         if (status.status === "PENDING") {
           setCurrentStep(1);
+        }
+
+        if (status.checkoutState === "CANCELLED" || status.status === "CANCELLED") {
+          window.location.assign(`/renewal/cancelled${window.location.search}`);
+          return;
         }
 
         if (status.isProvisioned) {
@@ -207,6 +227,8 @@ const DashboardRenewal = () => {
     tenantId,
     welcomeNameFromQuery,
     previousPlanNameFromQuery,
+    isCancelledRedirect,
+    navigate,
   ]);
 
   useEffect(() => {
@@ -239,9 +261,9 @@ const DashboardRenewal = () => {
 
   useEffect(() => {
     if (attempts >= MAX_POLL_ATTEMPTS && !isComplete) {
-      setErrorMessage("Plan renewal is taking longer than expected. You can retry checkout.");
+      navigate(`/renewal/cancelled${window.location.search}`, { replace: true });
     }
-  }, [attempts, isComplete]);
+  }, [attempts, isComplete, navigate]);
 
   const handleDashboardNav = () => {
     navigate("/portal/tenants");
