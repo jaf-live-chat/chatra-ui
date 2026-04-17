@@ -33,6 +33,7 @@ type CheckoutSetupContext = {
   paymentRequestId?: string;
   tenantId?: string;
   subscriptionId?: string;
+  apiKey?: string;
   tenantEmail?: string;
   companyName?: string;
   welcomeName?: string;
@@ -105,6 +106,15 @@ const DashboardSetup = () => {
   const subscriptionId = useMemo(
     () => searchParams.get("subscriptionId") || searchParams.get("subscription_id") || savedSetupContext.subscriptionId || "",
     [savedSetupContext.subscriptionId, searchParams]
+  );
+
+  const apiKeyFromQuery = useMemo(
+    () =>
+      searchParams.get("apiKey") ||
+      searchParams.get("api_key") ||
+      savedSetupContext.apiKey ||
+      "",
+    [savedSetupContext.apiKey, searchParams]
   );
 
   const tenantEmailFromQuery = useMemo(
@@ -190,6 +200,7 @@ const DashboardSetup = () => {
 
         if (status.isProvisioned) {
           setCurrentStep(2);
+          setApiKey(status.apiKey || apiKeyFromQuery || "");
           setTenantEmail(status.tenantEmail || tenantEmailFromQuery || "");
           setCompanyName(status.companyName || companyNameFromQuery || "");
           setWelcomeName(status.welcomeName || welcomeNameFromQuery || "");
@@ -227,6 +238,7 @@ const DashboardSetup = () => {
   }, [
     billingPeriodFromQuery,
     companyNameFromQuery,
+    apiKeyFromQuery,
     integrationNameFromQuery,
     paymentRequestId,
     planNameFromQuery,
@@ -240,10 +252,13 @@ const DashboardSetup = () => {
   ]);
 
   useEffect(() => {
+    if (apiKeyFromQuery) {
+      setApiKey(apiKeyFromQuery);
+    }
     if (tenantEmailFromQuery) {
       setTenantEmail(tenantEmailFromQuery);
     }
-  }, [tenantEmailFromQuery]);
+  }, [apiKeyFromQuery, tenantEmailFromQuery]);
 
   useEffect(() => {
     if (companyNameFromQuery) {
