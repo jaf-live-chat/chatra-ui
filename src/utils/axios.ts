@@ -20,6 +20,7 @@ const MUTATION_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 type BlockingRequestConfig = InternalAxiosRequestConfig & {
   loadingMessage?: string;
   skipGlobalBlocking?: boolean;
+  skipAuthLogout?: boolean;
   _didAcquireGlobalBlock?: boolean;
 };
 
@@ -74,7 +75,7 @@ axiosServices.interceptors.response.use(
       endMutationBlock();
     }
 
-    if (error?.response?.status === 401 && typeof window !== 'undefined') {
+    if (error?.response?.status === 401 && !blockingConfig?.skipAuthLogout && typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent(AUTH_UNAUTHORIZED_EVENT));
     }
 

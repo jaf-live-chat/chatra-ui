@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import type { AxiosRequestConfig } from "axios";
 import axiosServices, { fetcher } from "../utils/axios";
 import type {
   AgentLoginResponse,
@@ -216,7 +217,15 @@ const Agents = {
   },
 
   verifyPassword: async (password: string): Promise<VerifyPasswordResponse> => {
-    const response = await axiosServices.post(endpoints.verifyPassword, { password });
+    const requestConfig: AxiosRequestConfig & { skipAuthLogout: true } = {
+      skipAuthLogout: true,
+    };
+
+    const response = await axiosServices.post(
+      endpoints.verifyPassword,
+      { password },
+      requestConfig
+    );
     return response.data;
   },
 
