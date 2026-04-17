@@ -8,6 +8,7 @@ import LoginPage from "../pages/public/login";
 import ForgotPasswordPage from "../pages/public/forgot-password";
 import ResetPasswordPage from "../pages/public/reset-password";
 import Checkout from "../pages/portal/checkout/index";
+import CheckoutCancelledPage from "../pages/public/checkout-cancelled/index";
 import DashboardSetup from "../layouts/DashboardSetup";
 import DashboardRenewal from "../layouts/DashboardRenewal";
 import HelpCenterPage from "../pages/public/help-center";
@@ -26,6 +27,8 @@ const PublicRoutes: RouteObject[] = [
   { path: "forgot-password", element: <ForgotPasswordPage /> },
   { path: "reset-password", element: <ResetPasswordPage /> },
   { path: "checkout/:planId", element: <Checkout /> },
+  { path: "setup/cancelled", element: <CheckoutCancelledPage /> },
+  { path: "renewal/cancelled", element: <CheckoutCancelledPage /> },
   { path: "setup", element: <DashboardSetup /> },
   { path: "renewal", element: <DashboardRenewal /> },
   {

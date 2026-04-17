@@ -142,7 +142,23 @@ const DashboardSetup = () => {
     [savedSetupContext.integrationName, searchParams]
   );
 
+  const redirectStatus = useMemo(
+    () => String(searchParams.get("status") || searchParams.get("payment_status") || "").trim().toLowerCase(),
+    [searchParams]
+  );
+
+  const isCancelledRedirect =
+    redirectStatus === "canceled" ||
+    redirectStatus === "cancelled" ||
+    redirectStatus === "expired" ||
+    redirectStatus === "failed";
+
   useEffect(() => {
+    if (isCancelledRedirect) {
+      window.location.replace(`/setup/cancelled${window.location.search}`);
+      return;
+    }
+
     if (!reference && !paymentRequestId && !(tenantId && subscriptionId)) {
       setErrorMessage("No active provisioning session found. Please start checkout first.");
       return;
@@ -167,9 +183,13 @@ const DashboardSetup = () => {
           setCurrentStep(1);
         }
 
+        if (status.checkoutState === "CANCELLED" || status.status === "CANCELLED") {
+          window.location.assign(`/setup/cancelled${window.location.search}`);
+          return;
+        }
+
         if (status.isProvisioned) {
           setCurrentStep(2);
-          setApiKey(status.apiKey || "");
           setTenantEmail(status.tenantEmail || tenantEmailFromQuery || "");
           setCompanyName(status.companyName || companyNameFromQuery || "");
           setWelcomeName(status.welcomeName || welcomeNameFromQuery || "");
@@ -216,6 +236,7 @@ const DashboardSetup = () => {
     tenantEmailFromQuery,
     tenantId,
     welcomeNameFromQuery,
+    isCancelledRedirect,
   ]);
 
   useEffect(() => {

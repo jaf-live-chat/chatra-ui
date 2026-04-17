@@ -14,6 +14,7 @@ import axiosServices, { fetcher } from "../utils/axios";
 type CheckoutStatusResponse = {
   success: boolean;
   status: string;
+  checkoutState?: string;
   isProvisioned: boolean;
   paymentReference?: string;
   paymentRequestId?: string;
