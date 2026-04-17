@@ -54,6 +54,8 @@ type SubscriptionPlanPayload = {
   isPosted: boolean;
 };
 
+type SubscriptionPlanUpdatePayload = Partial<SubscriptionPlanPayload>;
+
 const endpoints = {
   key: `${API_BASE_URL}/subscription-plans`,
 };
@@ -73,7 +75,7 @@ export const createSubscriptionPlan = async (payload: SubscriptionPlanPayload) =
   }
 };
 
-export const updateSubscriptionPlanById = async (planId: string, payload: SubscriptionPlanPayload) => {
+export const updateSubscriptionPlanById = async (planId: string, payload: SubscriptionPlanUpdatePayload) => {
   try {
     const response = await axiosServices.put(`/subscription-plans/${planId}`, payload);
     return response.data;

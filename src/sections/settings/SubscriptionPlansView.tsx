@@ -14,6 +14,7 @@ import {
   Users,
   X,
 } from "lucide-react";
+import { Autocomplete, TextField, Tooltip } from "@mui/material";
 
 import { useDarkMode } from "../../providers/DarkModeContext";
 import {
@@ -42,6 +43,13 @@ import {
   useGetSubscriptionPlans,
   type SubscriptionPlanApiModel,
 } from "../../services/subscriptionPlanServices";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../../components/select";
 import TitleTag from "../../components/TitleTag";
 import { toast } from "../../components/sonner";
 
@@ -470,6 +478,33 @@ const SubscriptionPlansView = () => {
     });
   };
 
+  const confirmToggleMostPopular = async () => {
+    if (!mostPopularPending) return;
+
+    const currentPlans = plans;
+    const { planId, planName, nextValue } = mostPopularPending;
+
+    toggleMostPopular(planId, nextValue);
+    setMostPopularPending(null);
+
+    try {
+      setSavingPlanId(planId);
+      await updateSubscriptionPlanById(planId, { isMostPopular: nextValue });
+      await mutate();
+      toast.success(
+        nextValue
+          ? `"${planName}" set as Most Popular.`
+          : `"${planName}" removed from Most Popular.`
+      );
+    } catch (error) {
+      console.error("Failed to update Most Popular status:", error);
+      setPlans(currentPlans);
+      toast.error("Failed to update Most Popular status.");
+    } finally {
+      setSavingPlanId(null);
+    }
+  };
+
   const orderedPlans = useMemo(() => {
     const copy = [...plans];
     const popularIndex = copy.findIndex((p) => p.popular);
@@ -484,6 +519,21 @@ const SubscriptionPlansView = () => {
     return copy;
   }, [plans]);
 
+  const featureSuggestions = useMemo(() => {
+    const uniqueFeatures = new Set<string>();
+
+    fetchedPlans.forEach((plan) => {
+      plan.features.forEach((feature) => {
+        const normalized = String(feature || "").trim();
+        if (normalized) {
+          uniqueFeatures.add(normalized);
+        }
+      });
+    });
+
+    return Array.from(uniqueFeatures).sort((a, b) => a.localeCompare(b));
+  }, [fetchedPlans]);
+
   const getPlanIcon = (name: string) => {
     const lower = name.toLowerCase();
     if (lower.includes("starter") || lower.includes("free") || lower.includes("basic")) return <Users className="w-5 h-5" />;
@@ -495,6 +545,19 @@ const SubscriptionPlansView = () => {
   const inputCls = `w-full mt-1 px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-300 focus:border-cyan-400
     bg-white dark:bg-slate-700 border-gray-200 dark:border-slate-600
     text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500`;
+  const periodSelectTriggerCls = `mt-1 h-[42px] w-full rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-900
+    transition-colors hover:border-cyan-300 focus:ring-2 focus:ring-cyan-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100`;
+  const autocompletePopperSlotProps = {
+    popper: {
+      placement: "bottom-start" as const,
+      modifiers: [
+        {
+          name: "flip",
+          enabled: false,
+        },
+      ],
+    },
+  };
 
   return (
     <div className={`flex flex-col gap-6${isDark ? " dark" : ""}`}>
@@ -510,12 +573,14 @@ const SubscriptionPlansView = () => {
               <Check className="w-4 h-4" /> Saved
             </span>
           )}
-          <button
-            onClick={addNewPlan}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors text-sm font-medium"
-          >
-            <Plus className="w-4 h-4" /> Add Plan
-          </button>
+          <Tooltip title="Add a new subscription plan" arrow>
+            <button
+              onClick={addNewPlan}
+              className="flex cursor-pointer items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors text-sm font-medium"
+            >
+              <Plus className="w-4 h-4" /> Add Plan
+            </button>
+          </Tooltip>
         </div>
       </div>
 
@@ -553,52 +618,60 @@ const SubscriptionPlansView = () => {
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center justify-end gap-2 w-full sm:w-auto">
-                    <button
-                      type="button"
-                      onClick={() => requestToggleMostPopular(plan.id, !plan.popular)}
-                      title={plan.popular ? "Remove Most Popular label" : "Set as Most Popular"}
-                      aria-label={plan.popular ? "Remove Most Popular label" : "Set as Most Popular"}
-                      className={`inline-flex items-center gap-1.5 px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-lg border transition-colors text-xs font-semibold whitespace-nowrap ${plan.popular
-                        ? "border-cyan-300 bg-cyan-100 text-cyan-700 dark:border-cyan-600 dark:bg-cyan-900/30 dark:text-cyan-300"
-                        : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600"
-                        }`}
-                    >
-                      <Star className={`w-3.5 h-3.5 ${plan.popular ? "fill-current" : ""}`} />
-                      Most Popular
-                    </button>
-                    <button
-                      onClick={async () => {
-                        if (isEditing) {
-                          await savePlan(plan);
-                          return;
-                        }
-                        startEditPlan(plan.id);
-                      }}
-                      disabled={isSavingThis}
-                      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all duration-300 text-xs font-semibold whitespace-nowrap disabled:opacity-50 ${isEditing
-                        ? "bg-cyan-100 dark:bg-cyan-800/50 text-cyan-700 dark:text-cyan-400"
-                        : "bg-gray-100 dark:bg-slate-600 text-gray-600 dark:text-slate-300"
-                        }`}
-                    >
-                      {isEditing ? <Save className="w-3.5 h-3.5" /> : <Pencil className="w-3.5 h-3.5" />}
-                      {isEditing ? "Save" : "Edit"}
-                    </button>
-                    {isEditing && (
+                    <Tooltip title={plan.popular ? "Remove Most Popular label" : "Set as Most Popular"} arrow>
                       <button
                         type="button"
-                        onClick={() => cancelEditPlan(plan.id)}
-                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all duration-300 text-xs font-semibold whitespace-nowrap bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600 dark:hover:bg-slate-600"
+                        onClick={() => requestToggleMostPopular(plan.id, !plan.popular)}
+                        title={plan.popular ? "Remove Most Popular label" : "Set as Most Popular"}
+                        aria-label={plan.popular ? "Remove Most Popular label" : "Set as Most Popular"}
+                        className={`inline-flex cursor-pointer items-center gap-1.5 px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-lg border transition-colors text-xs font-semibold whitespace-nowrap ${plan.popular
+                          ? "border-cyan-300 bg-cyan-100 text-cyan-700 dark:border-cyan-600 dark:bg-cyan-900/30 dark:text-cyan-300"
+                          : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600"
+                          }`}
                       >
-                        <X className="w-3.5 h-3.5" />
-                        Cancel
+                        <Star className={`w-3.5 h-3.5 ${plan.popular ? "fill-current" : ""}`} />
+                        Most Popular
                       </button>
+                    </Tooltip>
+                    <Tooltip title={isEditing ? "Save changes" : "Edit this plan"} arrow>
+                      <button
+                        onClick={async () => {
+                          if (isEditing) {
+                            await savePlan(plan);
+                            return;
+                          }
+                          startEditPlan(plan.id);
+                        }}
+                        disabled={isSavingThis}
+                        className={`flex cursor-pointer items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all duration-300 text-xs font-semibold whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed ${isEditing
+                          ? "bg-cyan-100 dark:bg-cyan-800/50 text-cyan-700 dark:text-cyan-400"
+                          : "bg-gray-100 dark:bg-slate-600 text-gray-600 dark:text-slate-300"
+                          }`}
+                      >
+                        {isEditing ? <Save className="w-3.5 h-3.5" /> : <Pencil className="w-3.5 h-3.5" />}
+                        {isEditing ? "Save" : "Edit"}
+                      </button>
+                    </Tooltip>
+                    {isEditing && (
+                      <Tooltip title="Cancel editing" arrow>
+                        <button
+                          type="button"
+                          onClick={() => cancelEditPlan(plan.id)}
+                          className="flex cursor-pointer items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all duration-300 text-xs font-semibold whitespace-nowrap bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600 dark:hover:bg-slate-600"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                          Cancel
+                        </button>
+                      </Tooltip>
                     )}
-                    <button
-                      onClick={() => requestDeletePlan(plan.id)}
-                      className="p-1.5 rounded-lg text-gray-400 dark:text-slate-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors shrink-0"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <Tooltip title="Delete plan" arrow>
+                      <button
+                        onClick={() => requestDeletePlan(plan.id)}
+                        className="cursor-pointer p-1.5 rounded-lg text-gray-400 dark:text-slate-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors shrink-0"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </Tooltip>
                   </div>
                 </div>
 
@@ -662,12 +735,17 @@ const SubscriptionPlansView = () => {
 
                       <div>
                         <label className="text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Billing Period</label>
-                        <select value={plan.period} onChange={(e) => updatePlan(plan.id, { period: e.target.value })} className={`${inputCls} cursor-pointer`}>
-                          <option value="/mo">/mo</option>
-                          <option value="/yr">/yr</option>
-                          <option value="/1 weekly">/1 weekly</option>
-                          <option value="/1 day">/1 day</option>
-                        </select>
+                        <Select value={plan.period} onValueChange={(value) => updatePlan(plan.id, { period: value })}>
+                          <SelectTrigger className={`${periodSelectTriggerCls} cursor-pointer`}>
+                            <SelectValue placeholder="Select period" />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-lg border border-gray-200 bg-white shadow-lg dark:border-slate-600 dark:bg-slate-800">
+                            <SelectItem value="/mo">/mo</SelectItem>
+                            <SelectItem value="/yr">/yr</SelectItem>
+                            <SelectItem value="/1 weekly">/1 weekly</SelectItem>
+                            <SelectItem value="/1 day">/1 day</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
 
@@ -725,9 +803,11 @@ const SubscriptionPlansView = () => {
                             onChange={(e) => updateFeature(plan.id, feature.id, e.target.value)}
                             className="flex-1 px-2 py-1 border border-gray-200 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500"
                           />
-                          <button onClick={() => removeFeature(plan.id, feature.id)} className="p-1 text-red-500">
-                            <X className="w-3.5 h-3.5" />
-                          </button>
+                          <Tooltip title="Remove feature" arrow>
+                            <button onClick={() => removeFeature(plan.id, feature.id)} className="cursor-pointer p-1 text-red-500">
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </Tooltip>
                         </div>
                       ) : (
                         <span className="text-sm text-gray-600 dark:text-slate-400">{feature.text}</span>
@@ -746,18 +826,57 @@ const SubscriptionPlansView = () => {
 
                 {isEditing && (
                   <div className="mt-4 flex items-center gap-2">
-                    <input
-                      value={newFeatureTextByPlan[plan.id] || ""}
-                      onChange={(e) => setNewFeatureTextByPlan((prev) => ({ ...prev, [plan.id]: e.target.value }))}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") addFeature(plan.id);
-                      }}
-                      placeholder="Add feature (e.g. Priority Support)"
-                      className="flex-1 px-3 py-2 border border-gray-200 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500"
+                    <Autocomplete
+                      freeSolo
+                      options={featureSuggestions}
+                      slotProps={autocompletePopperSlotProps}
+                      inputValue={newFeatureTextByPlan[plan.id] || ""}
+                      onInputChange={(_, value) =>
+                        setNewFeatureTextByPlan((prev) => ({ ...prev, [plan.id]: value }))
+                      }
+                      onChange={(_, value) =>
+                        setNewFeatureTextByPlan((prev) => ({ ...prev, [plan.id]: String(value || "") }))
+                      }
+                      className="flex-1"
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          placeholder="Add feature (e.g. Priority Support)"
+                          size="small"
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              addFeature(plan.id);
+                            }
+                          }}
+                          sx={{
+                            "& .MuiOutlinedInput-root": {
+                              borderRadius: "0.5rem",
+                              backgroundColor: isDark ? "#334155" : "#ffffff",
+                              "& fieldset": {
+                                borderColor: isDark ? "#475569" : "#e5e7eb",
+                              },
+                              "&:hover fieldset": {
+                                borderColor: isDark ? "#64748b" : "#cbd5e1",
+                              },
+                              "&.Mui-focused fieldset": {
+                                borderColor: "#06b6d4",
+                              },
+                            },
+                            "& .MuiInputBase-input": {
+                              color: isDark ? "#f1f5f9" : "#111827",
+                              fontSize: "0.875rem",
+                              paddingY: "0.5rem",
+                            },
+                          }}
+                        />
+                      )}
                     />
-                    <button onClick={() => addFeature(plan.id)} className="px-3 py-2 rounded-lg bg-cyan-600 text-white text-sm">
-                      <Plus className="w-4 h-4" />
-                    </button>
+                    <Tooltip title="Add feature" arrow>
+                      <button onClick={() => addFeature(plan.id)} className="cursor-pointer px-3 py-2 rounded-lg bg-cyan-600 text-white text-sm">
+                        <Plus className="w-4 h-4" />
+                      </button>
+                    </Tooltip>
                   </div>
                 )}
               </div>
@@ -770,12 +889,14 @@ const SubscriptionPlansView = () => {
         <div className="text-center py-16 bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700">
           <Crown className="w-12 h-12 text-gray-300 dark:text-slate-600 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100 mb-2">No subscription plans yet</h3>
-          <button
-            onClick={addNewPlan}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-cyan-600 text-white rounded-xl hover:bg-cyan-700 transition-colors text-sm font-medium"
-          >
-            <Plus className="w-4 h-4" /> Create First Plan
-          </button>
+          <Tooltip title="Create your first subscription plan" arrow>
+            <button
+              onClick={addNewPlan}
+              className="inline-flex cursor-pointer items-center gap-2 px-5 py-2.5 bg-cyan-600 text-white rounded-xl hover:bg-cyan-700 transition-colors text-sm font-medium"
+            >
+              <Plus className="w-4 h-4" /> Create First Plan
+            </button>
+          </Tooltip>
         </div>
       )}
 
@@ -835,16 +956,20 @@ const SubscriptionPlansView = () => {
 
                 <div>
                   <label className="text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Billing Period</label>
-                  <select
+                  <Select
                     value={createPlanDraft.period}
-                    onChange={(e) => setCreatePlanDraft((prev) => ({ ...prev, period: e.target.value }))}
-                    className={`${inputCls} cursor-pointer`}
+                    onValueChange={(value) => setCreatePlanDraft((prev) => ({ ...prev, period: value }))}
                   >
-                    <option value="/mo">/mo</option>
-                    <option value="/yr">/yr</option>
-                    <option value="/1 weekly">/1 weekly</option>
-                    <option value="/1 day">/1 day</option>
-                  </select>
+                    <SelectTrigger className={`${periodSelectTriggerCls} cursor-pointer`}>
+                      <SelectValue placeholder="Select period" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-lg border border-gray-200 bg-white shadow-lg dark:border-slate-600 dark:bg-slate-800">
+                      <SelectItem value="/mo">/mo</SelectItem>
+                      <SelectItem value="/yr">/yr</SelectItem>
+                      <SelectItem value="/1 weekly">/1 weekly</SelectItem>
+                      <SelectItem value="/1 day">/1 day</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
@@ -887,19 +1012,21 @@ const SubscriptionPlansView = () => {
               </div>
 
               <div className="flex items-center gap-4">
-                <button
-                  type="button"
-                  onClick={() =>
-                    setCreatePlanDraft((prev) => ({ ...prev, popular: !prev.popular }))
-                  }
-                  className={`inline-flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-sm transition-colors ${createPlanDraft.popular
-                    ? "border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-600 dark:bg-amber-900/20 dark:text-amber-300"
-                    : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600"
-                    }`}
-                >
-                  <Star className={`w-4 h-4 ${createPlanDraft.popular ? "fill-current" : ""}`} />
-                  Most Popular
-                </button>
+                <Tooltip title="Toggle Most Popular status" arrow>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setCreatePlanDraft((prev) => ({ ...prev, popular: !prev.popular }))
+                    }
+                    className={`inline-flex cursor-pointer items-center gap-2 rounded-lg border px-2.5 py-1.5 text-sm transition-colors ${createPlanDraft.popular
+                      ? "border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-600 dark:bg-amber-900/20 dark:text-amber-300"
+                      : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600"
+                      }`}
+                  >
+                    <Star className={`w-4 h-4 ${createPlanDraft.popular ? "fill-current" : ""}`} />
+                    Most Popular
+                  </button>
+                </Tooltip>
                 <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-slate-400">
                   <input
                     type="checkbox"
@@ -927,47 +1054,88 @@ const SubscriptionPlansView = () => {
                           onChange={(e) => updateDraftFeature(feature.id, e.target.value)}
                           className="flex-1 px-2 py-1 border border-gray-200 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500"
                         />
-                        <button onClick={() => removeDraftFeature(feature.id)} className="p-1 text-red-500" type="button">
-                          <X className="w-3.5 h-3.5" />
-                        </button>
+                        <Tooltip title="Remove feature" arrow>
+                          <button onClick={() => removeDraftFeature(feature.id)} className="cursor-pointer p-1 text-red-500" type="button">
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </Tooltip>
                       </div>
                     </li>
                   ))}
                 </ul>
 
                 <div className="mt-4 flex items-center gap-2">
-                  <input
-                    value={createFeatureText}
-                    onChange={(e) => setCreateFeatureText(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") addFeatureToDraft();
-                    }}
-                    placeholder="Add feature (e.g. Priority Support)"
-                    className="flex-1 px-3 py-2 border border-gray-200 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500"
+                  <Autocomplete
+                    freeSolo
+                    options={featureSuggestions}
+                    slotProps={autocompletePopperSlotProps}
+                    inputValue={createFeatureText}
+                    onInputChange={(_, value) => setCreateFeatureText(value)}
+                    onChange={(_, value) => setCreateFeatureText(String(value || ""))}
+                    className="flex-1"
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        placeholder="Add feature (e.g. Priority Support)"
+                        size="small"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            addFeatureToDraft();
+                          }
+                        }}
+                        sx={{
+                          "& .MuiOutlinedInput-root": {
+                            borderRadius: "0.5rem",
+                            backgroundColor: isDark ? "#334155" : "#ffffff",
+                            "& fieldset": {
+                              borderColor: isDark ? "#475569" : "#e5e7eb",
+                            },
+                            "&:hover fieldset": {
+                              borderColor: isDark ? "#64748b" : "#cbd5e1",
+                            },
+                            "&.Mui-focused fieldset": {
+                              borderColor: "#06b6d4",
+                            },
+                          },
+                          "& .MuiInputBase-input": {
+                            color: isDark ? "#f1f5f9" : "#111827",
+                            fontSize: "0.875rem",
+                            paddingY: "0.5rem",
+                          },
+                        }}
+                      />
+                    )}
                   />
-                  <button onClick={addFeatureToDraft} className="px-3 py-2 rounded-lg bg-cyan-600 text-white text-sm" type="button">
-                    <Plus className="w-4 h-4" />
-                  </button>
+                  <Tooltip title="Add feature" arrow>
+                    <button onClick={addFeatureToDraft} className="cursor-pointer px-3 py-2 rounded-lg bg-cyan-600 text-white text-sm" type="button">
+                      <Plus className="w-4 h-4" />
+                    </button>
+                  </Tooltip>
                 </div>
               </div>
             </div>
           </div>
 
           <DialogFooter className="px-6 py-4 border-t border-gray-200 dark:border-slate-700 sm:justify-start sm:gap-2">
-            <button
-              onClick={submitNewPlan}
-              disabled={isCreatingPlan}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-cyan-600 text-white hover:bg-cyan-700 transition-colors text-sm font-medium disabled:opacity-50 sm:min-w-40"
-            >
-              <Save className="w-4 h-4" /> {isCreatingPlan ? "Creating..." : "Create Plan"}
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsCreateDrawerOpen(false)}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors text-sm font-medium sm:min-w-32"
-            >
-              Cancel
-            </button>
+            <Tooltip title="Create this plan" arrow>
+              <button
+                onClick={submitNewPlan}
+                disabled={isCreatingPlan}
+                className="inline-flex cursor-pointer items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-cyan-600 text-white hover:bg-cyan-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed sm:min-w-40"
+              >
+                <Save className="w-4 h-4" /> {isCreatingPlan ? "Creating..." : "Create Plan"}
+              </button>
+            </Tooltip>
+            <Tooltip title="Close dialog" arrow>
+              <button
+                type="button"
+                onClick={() => setIsCreateDrawerOpen(false)}
+                className="inline-flex cursor-pointer items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors text-sm font-medium sm:min-w-32"
+              >
+                Cancel
+              </button>
+            </Tooltip>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1023,16 +1191,7 @@ const SubscriptionPlansView = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => {
-                if (!mostPopularPending) return;
-                toggleMostPopular(mostPopularPending.planId, mostPopularPending.nextValue);
-                toast.success(
-                  mostPopularPending.nextValue
-                    ? `"${mostPopularPending.planName}" set as Most Popular.`
-                    : `"${mostPopularPending.planName}" removed from Most Popular.`
-                );
-                setMostPopularPending(null);
-              }}
+              onClick={confirmToggleMostPopular}
             >
               Confirm
             </AlertDialogAction>
