@@ -445,12 +445,12 @@ const TenantDetailsView = () => {
 
                           <Box>
                             <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700, letterSpacing: "0.04em" }}>
-                              END DATE
+                              START DATE
                             </Typography>
                             <Stack direction="row" spacing={0.8} alignItems="center" sx={{ mt: 0.5 }}>
                               <CalendarDays size={16} color="#94a3b8" />
                               <Typography variant="subtitle2" sx={{ color: "text.primary", fontWeight: 700 }}>
-                                {formatDate(tenant?.subscription.endDate || "", { isIncludeTime: true })}
+                                {formatDate(tenant?.subscription.startDate || "", { isIncludeTime: true })}
                               </Typography>
                             </Stack>
                           </Box>

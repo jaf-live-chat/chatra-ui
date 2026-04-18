@@ -1,6 +1,7 @@
 import { AlertCircle, History, RefreshCw } from "lucide-react";
 import { Button } from "@mui/material";
 import { useNavigate } from "react-router";
+import useAuth from "../../hooks/useAuth";
 
 type InactiveSubscriptionNoticeProps = {
   title?: string;
@@ -16,6 +17,17 @@ const InactiveSubscriptionNotice = ({
   showHistoryAction = true,
 }: InactiveSubscriptionNoticeProps) => {
   const navigate = useNavigate();
+  const { tenant } = useAuth();
+  const tenantId = String(tenant?.id || "").trim();
+
+  const handleCheckSubscription = () => {
+    if (tenantId) {
+      navigate(`/portal/tenants/${tenantId}`);
+      return;
+    }
+
+    navigate("/portal");
+  };
 
   return (
     <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-5 dark:border-amber-900/50 dark:bg-amber-950/30">
@@ -45,7 +57,7 @@ const InactiveSubscriptionNotice = ({
               size="small"
               variant="outlined"
               startIcon={<RefreshCw className="h-4 w-4" />}
-              onClick={() => navigate("/portal/tenants")}
+              onClick={handleCheckSubscription}
             >
               Check subscription
             </Button>
