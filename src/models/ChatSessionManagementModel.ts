@@ -23,6 +23,7 @@ export interface ActiveChat {
   id: string;
   visitor: string;
   visitorFullName?: string;
+  visitorAvatarUrl?: string;
   sessionId?: string;
   message: string;
   status: string;
@@ -31,6 +32,7 @@ export interface ActiveChat {
   startedAt: number;
   agent: string;
   agentFullName?: string;
+  agentAvatarUrl?: string;
   location?: string;
   country?: string;
   locationConsent?: boolean;
@@ -46,8 +48,10 @@ export interface HistoryEntry {
   id: string;
   visitor: string;
   visitorFullName?: string;
+  visitorAvatarUrl?: string;
   agent: string;
   agentFullName?: string;
+  agentAvatarUrl?: string;
   duration: string;
   messages: number;
   rating?: number | null;

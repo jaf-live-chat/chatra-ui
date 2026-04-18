@@ -24,6 +24,7 @@ import { type LiveChatMessage } from "../../models/LiveChatModel";
 import liveChatServices from "../../services/liveChatServices";
 import { calculateAverageDuration } from "../../utils/chatDurationCalculator";
 import getInitials from "../../utils/getInitials";
+import Avatar from "@mui/material/Avatar";
 
 export type ChatHistoryTranscriptMap = Record<string, TranscriptMessage[]>;
 
@@ -172,12 +173,14 @@ const ChatHistorySection = ({ searchQuery, setSearchQuery, endedChats, endedTran
                 {/* Visitor */}
                 <div className="px-5 py-3.5 flex items-center">
                   <div className="flex items-center gap-2.5">
-                    <div
-                      className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0"
-                      style={{ backgroundColor: getAvatarColor(chat.visitor) }}
+                    <Avatar
+                      src={chat.visitorAvatarUrl || undefined}
+                      alt={chat.visitor}
+                      className="w-7 h-7 text-xs font-semibold shrink-0"
+                      sx={{ bgcolor: getAvatarColor(chat.visitor) }}
                     >
                       {getInitials(chat.visitorFullName, "V")}
-                    </div>
+                    </Avatar>
                     <span className="text-sm font-medium text-gray-900 dark:text-slate-100">{chat.visitor}</span>
                   </div>
                 </div>
@@ -229,12 +232,14 @@ const ChatHistorySection = ({ searchQuery, setSearchQuery, endedChats, endedTran
           <div key={chat.id} className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-4">
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-2.5 min-w-0">
-                <div
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0"
-                  style={{ backgroundColor: getAvatarColor(chat.visitor) }}
+                <Avatar
+                  src={chat.visitorAvatarUrl || undefined}
+                  alt={chat.visitor}
+                  className="w-8 h-8 text-xs font-semibold shrink-0"
+                  sx={{ bgcolor: getAvatarColor(chat.visitor) }}
                 >
                   {getInitials(chat.visitorFullName, "V")}
-                </div>
+                </Avatar>
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-gray-900 dark:text-slate-100 truncate">{chat.visitor}</p>
                   <p className="text-xs text-gray-500 dark:text-slate-400 truncate">{chat.agent}</p>
@@ -292,12 +297,14 @@ const ChatHistorySection = ({ searchQuery, setSearchQuery, endedChats, endedTran
             {/* Modal Header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-slate-700 shrink-0">
               <div className="flex items-center gap-3">
-                <div
-                  className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-semibold"
-                  style={{ backgroundColor: getAvatarColor(transcriptChat.visitor) }}
+                <Avatar
+                  src={transcriptChat.visitorAvatarUrl || undefined}
+                  alt={transcriptChat.visitor}
+                  className="w-9 h-9 text-sm font-semibold"
+                  sx={{ bgcolor: getAvatarColor(transcriptChat.visitor) }}
                 >
                   {getInitials(transcriptChat.visitorFullName, "V")}
-                </div>
+                </Avatar>
                 <div>
                   <p className="text-sm font-semibold text-gray-900 dark:text-slate-100">{transcriptChat.visitor}</p>
                   <p className="text-[11px] text-gray-400 dark:text-slate-500">
@@ -329,12 +336,14 @@ const ChatHistorySection = ({ searchQuery, setSearchQuery, endedChats, endedTran
                   <div key={i} className={`flex ${msg.sender === "agent" ? "justify-end" : "justify-start"}`}>
                     <div className={`flex ${msg.sender === "agent" ? "flex-row-reverse" : "flex-row"} items-end gap-2 max-w-[75%]`}>
                       {msg.sender === "visitor" ? (
-                        <div
-                          className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] font-semibold shrink-0"
-                          style={{ backgroundColor: getAvatarColor(transcriptChat.visitor) }}
+                        <Avatar
+                          src={transcriptChat.visitorAvatarUrl || undefined}
+                          alt={transcriptChat.visitor}
+                          className="w-6 h-6 text-[10px] font-semibold shrink-0"
+                          sx={{ bgcolor: getAvatarColor(transcriptChat.visitor) }}
                         >
                           {getInitials(transcriptChat.visitorFullName, "V")}
-                        </div>
+                        </Avatar>
                       ) : (
                         <div className="w-6 h-6 rounded-full bg-gray-800 dark:bg-slate-600 flex items-center justify-center text-white text-[9px] font-semibold shrink-0">
                           {getInitials(transcriptChat.agentFullName || transcriptChat.agent, "A")}

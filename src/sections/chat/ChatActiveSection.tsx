@@ -33,6 +33,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "../../components/sheet";
+import Avatar from "@mui/material/Avatar";
 import getInitials from "../../utils/getInitials";
 
 // Seeds for quick replies (assuming it's from constants)
@@ -98,6 +99,35 @@ function getVisitorMapEmbedUrl(city?: string | null, country?: string | null) {
   }
 
   return `https://maps.google.com/maps?q=${encodeURIComponent(query)}&z=10&output=embed`;
+}
+
+function getAvatarUrl(entity: unknown): string | undefined {
+  if (!entity || typeof entity !== "object") {
+    return undefined;
+  }
+
+  const record = entity as Record<string, unknown>;
+  const candidates = [
+    record.profilePicture,
+    record.avatar,
+    record.avatarUrl,
+    record.profileImage,
+    record.imageUrl,
+    record.image,
+    record.photoUrl,
+    record.picture,
+  ];
+
+  for (const value of candidates) {
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      if (trimmed) {
+        return trimmed;
+      }
+    }
+  }
+
+  return undefined;
 }
 
 interface ChatActiveSectionProps {
@@ -452,6 +482,8 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
     || (selectedChatResolvedId && typingVisitorsByConversation[selectedChatResolvedId])
   );
   const selectedVisitorInitials = getInitials(selectedChat?.visitorFullName, "V");
+  const selectedVisitorAvatarUrl = selectedChat?.visitorAvatarUrl;
+  const activeAgentAvatarUrl = selectedChat?.agentAvatarUrl || user?.profilePicture || undefined;
   const activeAgentInitials = getInitials(user?.fullName, "A");
   const visitorMapEmbedUrl = useMemo(() => {
     if (!selectedChat || selectedChat.locationConsent !== true) {
@@ -515,6 +547,7 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
           id: String(conversationId),
           visitor: visitor?.fullName || visitor?.name || (visitor?.visitorToken ? `Visitor ${String(visitor.visitorToken).slice(-4)}` : "Website Visitor"),
           visitorFullName: visitor?.fullName || visitor?.name || undefined,
+          visitorAvatarUrl: getAvatarUrl(visitor),
           sessionId: String(conversationId),
           message: "Active support conversation",
           status: "Active",
@@ -523,6 +556,7 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
           startedAt: Date.now(),
           agent: agent?.fullName || "Assigned Agent",
           agentFullName: agent?.fullName || undefined,
+          agentAvatarUrl: getAvatarUrl(agent),
           location: conversation?.locationCity || visitor?.locationCity || "",
           country: conversation?.locationCountry || visitor?.locationCountry || "",
           locationConsent:
@@ -905,12 +939,14 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
                     className={`w-full text-left px-4 py-3.5 border-b border-gray-50 dark:border-slate-700/50 transition-colors cursor-pointer ${isSelected ? "bg-cyan-50 dark:bg-cyan-900/20 border-l-2 border-l-cyan-600" : "hover:bg-gray-50 dark:hover:bg-slate-700/40 border-l-2 border-l-transparent"}`}
                   >
                     <div className="flex items-start gap-3">
-                      <div
-                        className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0"
-                        style={{ backgroundColor: getAvatarColor(chat.visitor) }}
+                      <Avatar
+                        src={chat.visitorAvatarUrl || undefined}
+                        alt={chat.visitor}
+                        className="w-9 h-9 text-xs font-semibold shrink-0"
+                        sx={{ bgcolor: getAvatarColor(chat.visitor) }}
                       >
                         {getInitials(chat.visitorFullName, "V")}
-                      </div>
+                      </Avatar>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-gray-900 dark:text-slate-100 truncate">{chat.visitor}</p>
                         <p className={`text-xs truncate ${isRowTyping ? "text-cyan-600 dark:text-cyan-400 font-medium" : "text-gray-500 dark:text-slate-400"}`}>
@@ -948,12 +984,14 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
               >
                 <ArrowLeft className="w-4 h-4" />
               </button>
-              <div
-                className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-semibold"
-                style={{ backgroundColor: getAvatarColor(selectedChat.visitor) }}
+              <Avatar
+                src={selectedVisitorAvatarUrl || undefined}
+                alt={selectedChat.visitor}
+                className="w-9 h-9 text-sm font-semibold"
+                sx={{ bgcolor: getAvatarColor(selectedChat.visitor) }}
               >
                 {selectedVisitorInitials}
-              </div>
+              </Avatar>
               <div>
                 <p className="text-sm font-semibold text-gray-900 dark:text-slate-100">{selectedChat.visitor}</p>
                 <div className="flex items-center gap-1.5">
@@ -1014,13 +1052,16 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
                   {selectedChat.messages.map((msg) => (
                     <div key={msg.id} className={`flex ${msg.sender === "agent" ? "justify-end" : "justify-start"}`}>
                       <div className={`flex ${msg.sender === "agent" ? "flex-row-reverse" : "flex-row"} items-end gap-2 max-w-[88%] sm:max-w-[65%]`}>
-                        <div
-                          className={`w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0 ${msg.sender === "agent" ? "bg-gray-700 dark:bg-slate-600" : ""
-                            }`}
-                          style={msg.sender === "visitor" ? { backgroundColor: getAvatarColor(selectedChat.visitor) } : undefined}
+                        <Avatar
+                          src={msg.sender === "agent" ? activeAgentAvatarUrl : selectedVisitorAvatarUrl || undefined}
+                          alt={msg.sender === "agent" ? (user?.fullName || "Agent") : selectedChat.visitor}
+                          className="w-7 h-7 text-xs font-semibold shrink-0"
+                          sx={msg.sender === "agent"
+                            ? { bgcolor: "#374151" }
+                            : { bgcolor: getAvatarColor(selectedChat.visitor) }}
                         >
                           {msg.sender === "agent" ? activeAgentInitials : selectedVisitorInitials}
-                        </div>
+                        </Avatar>
                         <div className={`flex flex-col ${msg.sender === "agent" ? "items-end" : "items-start"}`}>
                           <div className="flex items-center gap-1 whitespace-nowrap">
                             <span className="text-[11px] text-gray-400 dark:text-slate-500">{msg.timestamp}</span>
@@ -1054,12 +1095,14 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
                   {isVisitorTyping ? (
                     <div className="flex justify-start">
                       <div className="flex items-end gap-2 max-w-[88%] sm:max-w-[65%]">
-                        <div
-                          className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0"
-                          style={{ backgroundColor: getAvatarColor(selectedChat.visitor) }}
+                        <Avatar
+                          src={selectedVisitorAvatarUrl || undefined}
+                          alt={selectedChat.visitor}
+                          className="w-7 h-7 text-xs font-semibold shrink-0"
+                          sx={{ bgcolor: getAvatarColor(selectedChat.visitor) }}
                         >
                           {selectedVisitorInitials}
-                        </div>
+                        </Avatar>
                         <div className="flex flex-col items-start">
                           <div className="px-3 py-2 rounded-2xl rounded-bl-[4px] bg-[#e5e7eb] dark:bg-slate-700 text-gray-900 dark:text-slate-100 shadow-sm min-h-[38px] flex items-center gap-1.5">
                             <span className="h-1.5 w-1.5 rounded-full bg-gray-500 dark:bg-slate-300 animate-bounce [animation-delay:-0.2s]" />
@@ -1211,12 +1254,14 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
 
                 <div className="h-full overflow-y-auto">
                   <div className="p-4 border-b border-gray-100 dark:border-slate-700 text-center">
-                    <div
-                      className="w-14 h-14 rounded-full flex items-center justify-center text-white text-xl font-semibold mx-auto mb-2"
-                      style={{ backgroundColor: getAvatarColor(selectedChat.visitor) }}
+                    <Avatar
+                      src={selectedVisitorAvatarUrl || undefined}
+                      alt={selectedChat.visitor}
+                      className="w-14 h-14 text-xl font-semibold mx-auto mb-2"
+                      sx={{ bgcolor: getAvatarColor(selectedChat.visitor) }}
                     >
                       {selectedVisitorInitials}
-                    </div>
+                    </Avatar>
                     <p className="text-sm font-semibold text-gray-900 dark:text-slate-100">{selectedChat.visitor}</p>
                     <div className="flex items-center gap-1 justify-center mt-1">
                       <span className="w-2 h-2 rounded-full bg-green-500" />
