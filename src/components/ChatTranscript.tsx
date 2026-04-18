@@ -155,16 +155,16 @@ const exportTranscriptPDF = async (
     doc.setFontSize(9);
     doc.setTextColor(95, 99, 104);
     doc.setFont("helvetica", "normal");
-    
+
     doc.text(`Visitor: ${visitorName}`, margin, yPosition);
     yPosition += 4;
-    
-    doc.text(`Location: ${visitorLocation || "Unknown"}`, margin, yPosition);
+
+    doc.text(`Location: ${visitorLocation || ""}`, margin, yPosition);
     yPosition += 4;
-    
+
     doc.text(`Agent: ${agentName}`, margin, yPosition);
     yPosition += 4;
-    
+
     doc.text(`Date: ${formatDate(startDate)}`, margin, yPosition);
     yPosition += 7;
 
@@ -255,7 +255,7 @@ const ChatTranscript = ({
   chatId,
   status,
   visitorName,
-  visitorLocation = "Unknown",
+  visitorLocation = "",
   agentName,
   messages,
   startDate,
@@ -338,11 +338,11 @@ const ChatTranscript = ({
         <Stack direction="row" spacing={1} alignItems="center" sx={{ flex: 1, minWidth: 0 }}>
           <Stack spacing={0.3} sx={{ minWidth: 0 }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1, minWidth: 0 }}>
-              <Typography 
-                variant="body2" 
-                sx={{ 
-                  fontWeight: 700, 
-                  color: "#1F1F1F", 
+              <Typography
+                variant="body2"
+                sx={{
+                  fontWeight: 700,
+                  color: "#1F1F1F",
                   fontSize: "0.95rem",
                   whiteSpace: "nowrap",
                   overflow: "hidden",
@@ -365,30 +365,32 @@ const ChatTranscript = ({
                 }}
               />
             </Box>
-            <Stack direction="row" spacing={0.5} alignItems="center" sx={{ minWidth: 0 }}>
-              <MapPin size={12} color="#6B7280" />
-              <Typography
-                variant="caption"
-                sx={{
-                  color: "#6B7280",
-                  fontWeight: 500,
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                  maxWidth: { xs: "170px", sm: "260px" },
-                }}
-              >
-                {visitorLocation || "Unknown"}
-              </Typography>
-            </Stack>
+            {visitorLocation && (
+              <Stack direction="row" spacing={0.5} alignItems="center" sx={{ minWidth: 0 }}>
+                <MapPin size={12} color="#6B7280" />
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: "#6B7280",
+                    fontWeight: 500,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                    maxWidth: { xs: "170px", sm: "260px" },
+                  }}
+                >
+                  {visitorLocation}
+                </Typography>
+              </Stack>
+            )}
           </Stack>
         </Stack>
 
         <Stack direction="row" spacing={1} alignItems="center">
-          <Typography 
-            variant="caption" 
-            sx={{ 
-              color: "#5F6368", 
+          <Typography
+            variant="caption"
+            sx={{
+              color: "#5F6368",
               fontWeight: 500,
               fontSize: "0.8rem",
               whiteSpace: "nowrap"
@@ -400,7 +402,7 @@ const ChatTranscript = ({
             size="small"
             onClick={handleExport}
             title="Export transcript as PDF"
-            sx={{ 
+            sx={{
               color: "#5F6368",
               "&:hover": { bgcolor: "#F0F0F0" },
               p: "4px",
@@ -445,9 +447,9 @@ const ChatTranscript = ({
       >
         {/* Chat Started Indicator */}
         <Box sx={{ textAlign: "center", my: 1 }}>
-          <Typography 
-            variant="caption" 
-            sx={{ 
+          <Typography
+            variant="caption"
+            sx={{
               color: "#5F6368",
               fontWeight: 700,
               letterSpacing: "0.5px",
@@ -486,7 +488,7 @@ const ChatTranscript = ({
                 {visitorAvatar}
               </Avatar>
             )}
-            
+
             <Stack
               spacing={0.5}
               alignItems={message.sender === "agent" ? "flex-end" : "flex-start"}
@@ -513,7 +515,7 @@ const ChatTranscript = ({
               </Paper>
               <Typography
                 variant="caption"
-                sx={{ 
+                sx={{
                   color: "#9AA0A6",
                   fontSize: "0.75rem",
                   fontWeight: 500,

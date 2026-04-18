@@ -17,6 +17,35 @@ const subTabs: { key: SubTab; label: string; icon: React.ReactNode }[] = [
   { key: "chat-history", label: "Chat History", icon: <History className="w-4 h-4" /> },
 ];
 
+const getAvatarUrl = (entity: unknown): string | undefined => {
+  if (!entity || typeof entity !== "object") {
+    return undefined;
+  }
+
+  const record = entity as Record<string, unknown>;
+  const candidates = [
+    record.profilePicture,
+    record.avatar,
+    record.avatarUrl,
+    record.profileImage,
+    record.imageUrl,
+    record.image,
+    record.photoUrl,
+    record.picture,
+  ];
+
+  for (const value of candidates) {
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      if (trimmed) {
+        return trimmed;
+      }
+    }
+  }
+
+  return undefined;
+};
+
 const ChatSessionManagementPage = () => {
   const [searchParams] = useSearchParams();
   const initialTab: SubTab = searchParams.get("tab") === "chat-history" ? "chat-history" : "active-chats";
@@ -133,13 +162,17 @@ const ChatSessionManagementPage = () => {
     const visitorFullName = String(visitor?.fullName || visitor?.name || "").trim();
     const visitorToken = String(visitor?.visitorToken || "").trim();
     const agentFullName = String(agent?.fullName || "").trim();
+    const visitorAvatarUrl = getAvatarUrl(visitor);
+    const agentAvatarUrl = getAvatarUrl(agent);
 
     return {
       id: String(conversation._id),
       visitor: visitorFullName || (visitorToken ? `Visitor ${visitorToken.slice(-4)}` : "Website Visitor"),
       visitorFullName: visitorFullName || undefined,
+      visitorAvatarUrl,
       agent: agentFullName || "Assigned Agent",
       agentFullName: agentFullName || undefined,
+      agentAvatarUrl,
       duration: `${mins}m ${String(secs).padStart(2, "0")}s`,
       messages: 0,
       rating: typeof conversation.rating === "number" ? conversation.rating : null,
