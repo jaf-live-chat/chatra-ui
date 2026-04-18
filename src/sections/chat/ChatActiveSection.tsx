@@ -36,23 +36,76 @@ import {
 import Avatar from "@mui/material/Avatar";
 import getInitials from "../../utils/getInitials";
 
-// Seeds for quick replies (assuming it's from constants)
-const SEED_REPLIES: QuickReplyItem[] = [
+type PredefinedQuickReplyTemplate = {
+  title: string;
+  category: string;
+  message: string;
+};
+
+const PREDEFINED_QUICK_REPLY_TEMPLATES: PredefinedQuickReplyTemplate[] = [
   {
-    id: "1",
-    shortcut: "/greet",
-    title: "Greeting",
-    message: "Hi! Thanks for reaching out. How can I help you today?",
-    category: "Greetings",
+    title: "Welcome Greeting",
+    category: "Welcome",
+    message: "Hi there! Welcome to our support chat. My name is {USER_NAME}. How can I assist you today?",
   },
   {
-    id: "2",
-    shortcut: "/thanks",
-    title: "Thank You",
-    message: "Thanks for your patience. Is there anything else I can help with?",
-    category: "General",
+    title: "Need More Info",
+    category: "Assistance",
+    message: "This is {USER_NAME}. Could you please provide more details about your concern so I can assist you better?",
+  },
+  {
+    title: "Please Wait",
+    category: "Wait",
+    message: "Thanks for reaching out! This is {USER_NAME}. Please give me a moment while I check that for you.",
+  },
+  {
+    title: "Still There",
+    category: "Follow-up",
+    message: "Hi, this is {USER_NAME} again Just checking in—are you still there? I'm here to help whenever you're ready.",
+  },
+  {
+    title: "Closing Chat",
+    category: "Closing",
+    message: "This is {USER_NAME}. Thanks for contacting us! If you have any other questions, feel free to reach out anytime. Have a great day!",
   },
 ];
+
+function buildQuickReplyShortcut(title: string) {
+  return `/${String(title || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, "")
+    .replace(/\s+/g, "")
+    .slice(0, 20)}`;
+}
+
+function normalizeStoredQuickReplies(raw: unknown): QuickReplyItem[] {
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+
+  return raw
+    .map((item, index) => {
+      const record = item as Partial<QuickReplyItem>;
+      const title = String(record?.title || "").trim();
+      const message = String(record?.message || "").trim();
+
+      if (!title || !message) {
+        return null;
+      }
+
+      const category = String(record?.category || "General").trim() || "General";
+
+      return {
+        id: String(record?.id || `created-${index}-${title.toLowerCase().replace(/\s+/g, "-")}`),
+        title,
+        message,
+        category,
+        shortcut: String(record?.shortcut || "").trim() || buildQuickReplyShortcut(title),
+      } as QuickReplyItem;
+    })
+    .filter(Boolean) as QuickReplyItem[];
+}
 
 const avatarColors = ["#0891b2", "#7c3aed", "#059669", "#d97706", "#dc2626", "#2563eb"];
 
@@ -189,7 +242,7 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
 
   const [attachedFiles, setAttachedFiles] = useState<ChatAttachmentUpload[]>([]);
   const [showQuickReplies, setShowQuickReplies] = useState(false);
-  const [quickReplies, setQuickReplies] = useState<QuickReplyItem[]>([]);
+  const [createdQuickReplies, setCreatedQuickReplies] = useState<QuickReplyItem[]>([]);
   const [qrSearchQuery, setQrSearchQuery] = useState("");
   const [qrActiveCategory, setQrActiveCategory] = useState("All");
 
@@ -471,22 +524,37 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
     }
   );
 
-  // Load quick replies
+  const predefinedQuickReplies = useMemo(() => {
+    const agentName = String(user?.fullName || "").trim() || "Agent";
+
+    return PREDEFINED_QUICK_REPLY_TEMPLATES.map((template, index) => {
+      const title = template.title;
+      return {
+        id: `predefined-${index + 1}`,
+        title,
+        category: template.category,
+        message: template.message.replaceAll("{USER_NAME}", agentName),
+        shortcut: buildQuickReplyShortcut(title),
+      } as QuickReplyItem;
+    });
+  }, [user?.fullName]);
+
+  // Load created quick replies from local cache (written by settings quick replies screen)
   useEffect(() => {
     try {
       const stored = localStorage.getItem("jaf_quick_replies");
-      setQuickReplies(stored ? JSON.parse(stored) : SEED_REPLIES);
+      setCreatedQuickReplies(normalizeStoredQuickReplies(stored ? JSON.parse(stored) : []));
     } catch {
       /* ignore */
     }
   }, []);
 
-  // Reload quick replies when dropdown opens
+  // Reload created quick replies when dropdown opens
   useEffect(() => {
     if (showQuickReplies) {
       try {
         const stored = localStorage.getItem("jaf_quick_replies");
-        setQuickReplies(stored ? JSON.parse(stored) : SEED_REPLIES);
+        setCreatedQuickReplies(normalizeStoredQuickReplies(stored ? JSON.parse(stored) : []));
       } catch {
         /* ignore */
       }
@@ -689,7 +757,7 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
     }
   }, [selectedChatId]);
 
-  const filteredQuickReplies = quickReplies.filter((qr) => {
+  const matchesQuickReplyFilters = useCallback((qr: QuickReplyItem) => {
     const matchesCategory = qrActiveCategory === "All" || qr.category === qrActiveCategory;
     const matchesSearch =
       !qrSearchQuery ||
@@ -697,9 +765,22 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
       qr.shortcut.toLowerCase().includes(qrSearchQuery.toLowerCase()) ||
       qr.message.toLowerCase().includes(qrSearchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
-  });
+  }, [qrActiveCategory, qrSearchQuery]);
 
-  const qrCategories = ["All", ...Array.from(new Set(quickReplies.map((qr) => qr.category)))];
+  const filteredPredefinedQuickReplies = useMemo(
+    () => predefinedQuickReplies.filter(matchesQuickReplyFilters),
+    [matchesQuickReplyFilters, predefinedQuickReplies],
+  );
+
+  const filteredCreatedQuickReplies = useMemo(
+    () => createdQuickReplies.filter(matchesQuickReplyFilters),
+    [createdQuickReplies, matchesQuickReplyFilters],
+  );
+
+  const qrCategories = [
+    "All",
+    ...Array.from(new Set([...predefinedQuickReplies, ...createdQuickReplies].map((qr) => qr.category).filter(Boolean))),
+  ];
 
   const qrCategoryColors: Record<string, string> = {
     Greetings: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
@@ -1254,19 +1335,42 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
                       </div>
 
                       <div className="overflow-y-auto" style={{ maxHeight: "200px" }}>
-                        {filteredQuickReplies.length === 0 ? (
+                        {filteredPredefinedQuickReplies.length === 0 && filteredCreatedQuickReplies.length === 0 ? (
                           <p className="text-center py-3 text-xs text-gray-400">No replies found</p>
                         ) : (
-                          filteredQuickReplies.map((qr) => (
-                            <button
-                              key={qr.id}
-                              onClick={() => handleInsertQuickReply(qr.message)}
-                              className="w-full text-left px-3 py-2 border-b border-gray-100 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700/40 transition-colors cursor-pointer"
-                            >
-                              <p className="text-xs font-medium text-gray-900 dark:text-slate-100">{qr.title}</p>
-                              <p className="text-[11px] text-gray-500 dark:text-slate-400 line-clamp-1">{qr.message}</p>
-                            </button>
-                          ))
+                          <React.Fragment>
+                            {filteredPredefinedQuickReplies.length > 0 && (
+                              <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500 bg-gray-50 dark:bg-slate-800/60 border-b border-gray-100 dark:border-slate-700">
+                                Predefined Replies
+                              </div>
+                            )}
+                            {filteredPredefinedQuickReplies.map((qr) => (
+                              <button
+                                key={qr.id}
+                                onClick={() => handleInsertQuickReply(qr.message)}
+                                className="w-full text-left px-3 py-2 border-b border-gray-100 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700/40 transition-colors cursor-pointer"
+                              >
+                                <p className="text-xs font-medium text-gray-900 dark:text-slate-100">{qr.title}</p>
+                                <p className="text-[11px] text-gray-500 dark:text-slate-400 line-clamp-1">{qr.message}</p>
+                              </button>
+                            ))}
+
+                            {filteredCreatedQuickReplies.length > 0 && (
+                              <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500 bg-gray-50 dark:bg-slate-800/60 border-b border-gray-100 dark:border-slate-700">
+                                Created Replies
+                              </div>
+                            )}
+                            {filteredCreatedQuickReplies.map((qr) => (
+                              <button
+                                key={qr.id}
+                                onClick={() => handleInsertQuickReply(qr.message)}
+                                className="w-full text-left px-3 py-2 border-b border-gray-100 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700/40 transition-colors cursor-pointer"
+                              >
+                                <p className="text-xs font-medium text-gray-900 dark:text-slate-100">{qr.title}</p>
+                                <p className="text-[11px] text-gray-500 dark:text-slate-400 line-clamp-1">{qr.message}</p>
+                              </button>
+                            ))}
+                          </React.Fragment>
                         )}
                       </div>
                     </div>
