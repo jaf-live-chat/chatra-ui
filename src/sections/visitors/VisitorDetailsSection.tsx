@@ -186,6 +186,19 @@ const getMessageSenderLabel = (message: LiveChatMessage) => {
   return "Agent";
 };
 
+const getVisitorMapEmbedUrl = (city?: string | null, country?: string | null) => {
+  const query = [city, country]
+    .map((value) => String(value || "").trim())
+    .filter(Boolean)
+    .join(", ");
+
+  if (!query) {
+    return null;
+  }
+
+  return `https://maps.google.com/maps?q=${encodeURIComponent(query)}&z=10&output=embed`;
+};
+
 const VisitorDetailsSection = () => {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -242,6 +255,14 @@ const VisitorDetailsSection = () => {
     }
 
     return "Not granted";
+  }, [visitor?.locationCity, visitor?.locationConsent, visitor?.locationCountry]);
+
+  const visitorMapEmbedUrl = useMemo(() => {
+    if (visitor?.locationConsent !== true) {
+      return null;
+    }
+
+    return getVisitorMapEmbedUrl(visitor?.locationCity, visitor?.locationCountry);
   }, [visitor?.locationCity, visitor?.locationConsent, visitor?.locationCountry]);
 
   const stats = useMemo(() => {
@@ -521,6 +542,48 @@ const VisitorDetailsSection = () => {
             </Stack>
 
             <Box sx={{ borderTop: 1, borderColor: "divider" }} />
+
+            <Box sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1, overflow: "hidden", bgcolor: "grey.50" }}>
+              <Box sx={{ px: 2, py: 1.25, borderBottom: "1px solid", borderColor: "divider", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <MapPin size={14} />
+                  <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
+                    Visitor Map
+                  </Typography>
+                </Stack>
+                <Chip
+                  size="small"
+                  label={visitor?.locationConsent === true ? "Consent granted" : "Not granted"}
+                  color={visitor?.locationConsent === true ? "success" : "warning"}
+                  sx={{ fontWeight: 700 }}
+                />
+              </Box>
+
+              {visitorMapEmbedUrl ? (
+                <Box>
+                  <iframe
+                    title={`${visitorName} location map`}
+                    src={visitorMapEmbedUrl}
+                    loading="lazy"
+                    style={{ width: "100%", height: 280, border: 0 }}
+                    referrerPolicy="no-referrer-when-downgrade"
+                  />
+                  <Box sx={{ px: 2, py: 1, borderTop: "1px solid", borderColor: "divider", bgcolor: "background.paper" }}>
+                    <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600 }}>
+                      Showing {locationLabel}
+                    </Typography>
+                  </Box>
+                </Box>
+              ) : (
+                <Box sx={{ px: 2, py: 2.5, bgcolor: "background.paper" }}>
+                  <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                    {visitor?.locationConsent === true
+                      ? "Location was granted but no map-ready location was resolved."
+                      : "Location permission not granted."}
+                  </Typography>
+                </Box>
+              )}
+            </Box>
 
             <Stack direction={{ xs: "column", md: "row" }} spacing={3} justifyContent="space-between">
               <Stack flex={1}>

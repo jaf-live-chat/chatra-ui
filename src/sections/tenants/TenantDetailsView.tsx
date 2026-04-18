@@ -88,6 +88,7 @@ const TenantDetailsView = () => {
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
   const [isManageSubscriptionDrawerOpen, setIsManageSubscriptionDrawerOpen] = useState(false);
   const [isPlanChangeDrawerOpen, setIsPlanChangeDrawerOpen] = useState(false);
+  const [hasConsumedPlanChangeTrigger, setHasConsumedPlanChangeTrigger] = useState(false);
   const [isMutating, setIsMutating] = useState(false);
   const [isReminderSending, setIsReminderSending] = useState(false);
   const [adjustmentDays, setAdjustmentDays] = useState("7");
@@ -106,12 +107,18 @@ const TenantDetailsView = () => {
   }, [location.search, location.state]);
 
   useEffect(() => {
-    if (!shouldOpenPlanChangeDrawer || id !== tenant?.id || isPlanChangeDrawerOpen) {
+    if (!shouldOpenPlanChangeDrawer) {
+      setHasConsumedPlanChangeTrigger(false);
+      return;
+    }
+
+    if (hasConsumedPlanChangeTrigger || id !== tenant?.id || isPlanChangeDrawerOpen) {
       return;
     }
 
     setIsPlanChangeDrawerOpen(true);
-  }, [id, isPlanChangeDrawerOpen, shouldOpenPlanChangeDrawer]);
+    setHasConsumedPlanChangeTrigger(true);
+  }, [hasConsumedPlanChangeTrigger, id, isPlanChangeDrawerOpen, shouldOpenPlanChangeDrawer, tenant?.id]);
 
   const planActionLabel = tenant?.subscription.status === "EXPIRED" ? "Renew Plan" : "Change Plan";
   const handleUpgradeNavigation = () => {
@@ -641,7 +648,18 @@ const TenantDetailsView = () => {
         tenant={tenant}
         onClose={() => {
           setIsPlanChangeDrawerOpen(false);
-          navigate(location.pathname, { replace: true, state: null });
+
+          const searchParams = new URLSearchParams(location.search);
+          searchParams.delete(OPEN_PLAN_CHANGE_PARAM);
+          const nextSearch = searchParams.toString();
+
+          navigate(
+            {
+              pathname: location.pathname,
+              search: nextSearch ? `?${nextSearch}` : "",
+            },
+            { replace: true, state: null },
+          );
         }}
       />
 
