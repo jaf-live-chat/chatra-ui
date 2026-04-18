@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Monitor, RotateCcw, Save } from "lucide-react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -13,19 +13,40 @@ import AvatarUpload from "../../components/uploads/AvatarUpload";
 import TitleTag from "../../components/TitleTag";
 import { toast } from "../../components/sonner";
 import widgetSettingsServices from "../../services/widgetSettingsServices";
+import useAuth from "../../hooks/useAuth";
 
-const DEFAULT_SETTINGS = {
-  widgetTitle: "Support",
-  welcomeMessage: "Hi there. Welcome to JAF Chatra. How can I help you today?",
-  accentColor: "#0891b2",
-  widgetLogo: "",
+const DEFAULT_ACCENT_COLOR = "#0891b2";
+
+const normalizeCompanyName = (value?: string | null) => String(value || "").trim();
+
+const buildDefaultWidgetTitle = (companyName?: string | null) => {
+  const resolvedCompanyName = normalizeCompanyName(companyName);
+  return resolvedCompanyName ? `${resolvedCompanyName} Support` : "Support";
 };
 
+const buildDefaultWelcomeMessage = (companyName?: string | null) => {
+  const resolvedCompanyName = normalizeCompanyName(companyName);
+  return `Hi there. Welcome to ${resolvedCompanyName || "our support team"}. How can I help you today?`;
+};
+
+const createDefaultSettings = (companyName?: string | null) => ({
+  widgetTitle: buildDefaultWidgetTitle(companyName),
+  welcomeMessage: buildDefaultWelcomeMessage(companyName),
+  accentColor: DEFAULT_ACCENT_COLOR,
+  widgetLogo: "",
+});
+
 const WidgetSettingsView = () => {
-  const [widgetTitle, setWidgetTitle] = useState(DEFAULT_SETTINGS.widgetTitle);
-  const [welcomeMessage, setWelcomeMessage] = useState(DEFAULT_SETTINGS.welcomeMessage);
-  const [accentColor, setAccentColor] = useState(DEFAULT_SETTINGS.accentColor);
-  const [widgetLogo, setWidgetLogo] = useState(DEFAULT_SETTINGS.widgetLogo);
+  const { tenant } = useAuth();
+  const defaultSettings = useMemo(
+    () => createDefaultSettings(tenant?.companyName),
+    [tenant?.companyName],
+  );
+
+  const [widgetTitle, setWidgetTitle] = useState(defaultSettings.widgetTitle);
+  const [welcomeMessage, setWelcomeMessage] = useState(defaultSettings.welcomeMessage);
+  const [accentColor, setAccentColor] = useState(defaultSettings.accentColor);
+  const [widgetLogo, setWidgetLogo] = useState(defaultSettings.widgetLogo);
   const [widgetLogoFile, setWidgetLogoFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -36,10 +57,10 @@ const WidgetSettingsView = () => {
       const response = await widgetSettingsServices.getWidgetSettings();
       const settings = response.widgetSettings;
 
-      setWidgetTitle(settings.widgetTitle || DEFAULT_SETTINGS.widgetTitle);
-      setWelcomeMessage(settings.welcomeMessage || DEFAULT_SETTINGS.welcomeMessage);
-      setAccentColor(settings.accentColor || DEFAULT_SETTINGS.accentColor);
-      setWidgetLogo(settings.widgetLogo || DEFAULT_SETTINGS.widgetLogo);
+      setWidgetTitle(settings.widgetTitle || defaultSettings.widgetTitle);
+      setWelcomeMessage(settings.welcomeMessage || defaultSettings.welcomeMessage);
+      setAccentColor(settings.accentColor || defaultSettings.accentColor);
+      setWidgetLogo(settings.widgetLogo || defaultSettings.widgetLogo);
       setWidgetLogoFile(null);
     } catch (error) {
       toast.error("Failed to load widget settings");
@@ -47,7 +68,7 @@ const WidgetSettingsView = () => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [defaultSettings]);
 
   useEffect(() => {
     void loadWidgetSettings();
@@ -68,16 +89,16 @@ const WidgetSettingsView = () => {
       const response = await widgetSettingsServices.updateWidgetSettings(payload);
       const settings = response.widgetSettings;
 
-      setWidgetTitle(settings.widgetTitle || DEFAULT_SETTINGS.widgetTitle);
-      setWelcomeMessage(settings.welcomeMessage || DEFAULT_SETTINGS.welcomeMessage);
-      setAccentColor(settings.accentColor || DEFAULT_SETTINGS.accentColor);
-      setWidgetLogo(settings.widgetLogo || DEFAULT_SETTINGS.widgetLogo);
+      setWidgetTitle(settings.widgetTitle || defaultSettings.widgetTitle);
+      setWelcomeMessage(settings.welcomeMessage || defaultSettings.welcomeMessage);
+      setAccentColor(settings.accentColor || defaultSettings.accentColor);
+      setWidgetLogo(settings.widgetLogo || defaultSettings.widgetLogo);
       setWidgetLogoFile(null);
 
-      localStorage.setItem("jaf_widget_title", settings.widgetTitle || DEFAULT_SETTINGS.widgetTitle);
-      localStorage.setItem("jaf_welcome_message", settings.welcomeMessage || DEFAULT_SETTINGS.welcomeMessage);
-      localStorage.setItem("jaf_accent_color", settings.accentColor || DEFAULT_SETTINGS.accentColor);
-      localStorage.setItem("jaf_widget_logo", settings.widgetLogo || DEFAULT_SETTINGS.widgetLogo);
+      localStorage.setItem("jaf_widget_title", settings.widgetTitle || defaultSettings.widgetTitle);
+      localStorage.setItem("jaf_welcome_message", settings.welcomeMessage || defaultSettings.welcomeMessage);
+      localStorage.setItem("jaf_widget_accent_color", settings.accentColor || defaultSettings.accentColor);
+      localStorage.setItem("jaf_widget_logo", settings.widgetLogo || defaultSettings.widgetLogo);
 
       toast.success("Widget settings saved successfully!");
     } catch (error) {
@@ -209,8 +230,8 @@ const WidgetSettingsView = () => {
               <Tooltip title="Reset to default color">
                 <span>
                   <IconButton
-                    onClick={() => setAccentColor(DEFAULT_SETTINGS.accentColor)}
-                    disabled={isLoading || isSaving || accentColor === DEFAULT_SETTINGS.accentColor}
+                    onClick={() => setAccentColor(defaultSettings.accentColor)}
+                    disabled={isLoading || isSaving || accentColor === defaultSettings.accentColor}
                     color="primary"
                     aria-label="Reset accent color"
                   >

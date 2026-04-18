@@ -48,6 +48,7 @@ const WIDGET_TITLE_KEY = "jaf_widget_title";
 const WIDGET_WELCOME_KEY = "jaf_welcome_message";
 const WIDGET_LOGO_KEY = "jaf_widget_logo";
 const WIDGET_ACCENT_COLOR_KEY = "jaf_widget_accent_color";
+const LEGACY_WIDGET_ACCENT_COLOR_KEY = "jaf_accent_color";
 const WIDGET_DARK_MODE_KEY = "jaf_dark_mode";
 const WIDGET_TEXT_SIZE_KEY = "jaf_text_size";
 const WIDGET_MESSAGE_SOUNDS_KEY = "jaf_message_sounds";
@@ -57,7 +58,6 @@ const WIDGET_FEEDBACK_CONVERSATION_KEY = "jaf_widget_feedback_conversation_id";
 type LocationPermissionState = "unknown" | "granted" | "denied" | "unavailable";
 
 const DEFAULT_TITLE = "Support";
-const DEFAULT_WELCOME = "Hi there. Welcome to JAF Chatra. How can I help you today?";
 const DEFAULT_ACCENT = "#0891b2";
 const MESSAGE_PAGE_LIMIT = 100;
 const PANEL_CLOSE_ANIMATION_MS = 320;
@@ -66,6 +66,18 @@ const TYPING_INDICATOR_GRACE_MS = 2200;
 const SYSTEM_AUTO_REPLY_TYPING_MS = 850;
 
 const isHexColor = (value: string) => /^#([A-Fa-f0-9]{3}|[A-Fa-f0-9]{6})$/.test(value.trim());
+
+const normalizeCompanyName = (value?: string | null) => String(value || "").trim();
+
+const getDefaultWidgetTitle = (companyName?: string | null) => {
+  const resolvedCompanyName = normalizeCompanyName(companyName);
+  return resolvedCompanyName ? `${resolvedCompanyName}` : DEFAULT_TITLE;
+};
+
+const getDefaultWelcomeMessage = (companyName?: string | null) => {
+  const resolvedCompanyName = normalizeCompanyName(companyName);
+  return `Hi there. Welcome to ${resolvedCompanyName || "our support team"}. How can I help you today?`;
+};
 
 const readStoredValue = (key: string, fallback = "") => {
   if (typeof window === "undefined") {
@@ -132,13 +144,21 @@ const getWindowConfig = (): LiveChatWidgetConfig => {
 
 const getResolvedConfig = (initialConfig: LiveChatWidgetConfig = {}): LiveChatWidgetConfig => {
   const windowConfig = getWindowConfig();
+  const companyName = normalizeCompanyName(initialConfig.companyName || windowConfig.companyName || "");
+  const defaultTitle = getDefaultWidgetTitle(companyName);
+  const defaultWelcomeMessage = getDefaultWelcomeMessage(companyName);
+  const storedAccentColor = readStoredValue(
+    WIDGET_ACCENT_COLOR_KEY,
+    readStoredValue(LEGACY_WIDGET_ACCENT_COLOR_KEY, windowConfig.accentColor || DEFAULT_ACCENT),
+  );
 
   return {
     apiKey: initialConfig.apiKey || windowConfig.apiKey || "",
-    title: initialConfig.title || readStoredValue(WIDGET_TITLE_KEY, windowConfig.title || DEFAULT_TITLE),
-    welcomeMessage: initialConfig.welcomeMessage || readStoredValue(WIDGET_WELCOME_KEY, windowConfig.welcomeMessage || DEFAULT_WELCOME),
+    companyName,
+    title: initialConfig.title || readStoredValue(WIDGET_TITLE_KEY, windowConfig.title || defaultTitle),
+    welcomeMessage: initialConfig.welcomeMessage || readStoredValue(WIDGET_WELCOME_KEY, windowConfig.welcomeMessage || defaultWelcomeMessage),
     widgetLogo: initialConfig.widgetLogo || readStoredValue(WIDGET_LOGO_KEY, windowConfig.widgetLogo || ""),
-    accentColor: initialConfig.accentColor || readStoredValue(WIDGET_ACCENT_COLOR_KEY, windowConfig.accentColor || DEFAULT_ACCENT),
+    accentColor: initialConfig.accentColor || storedAccentColor,
     visitorName: initialConfig.visitorName || windowConfig.visitorName || "",
     visitorEmail: initialConfig.visitorEmail || windowConfig.visitorEmail || "",
     visitorPhoneNumber: initialConfig.visitorPhoneNumber || windowConfig.visitorPhoneNumber || "",
@@ -401,8 +421,8 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
 
   const apiKey = String(widgetConfig.apiKey || "").trim();
   const hasApiKey = Boolean(apiKey);
-  const title = widgetConfig.title || DEFAULT_TITLE;
-  const welcomeMessage = widgetConfig.welcomeMessage || DEFAULT_WELCOME;
+  const title = widgetConfig.title || getDefaultWidgetTitle(widgetConfig.companyName);
+  const welcomeMessage = widgetConfig.welcomeMessage || getDefaultWelcomeMessage(widgetConfig.companyName);
   const widgetLogo = widgetConfig.widgetLogo || "";
   const accentColor = widgetConfig.accentColor || DEFAULT_ACCENT;
   const resolvedAccent = isHexColor(accentColor) ? accentColor : DEFAULT_ACCENT;
@@ -951,6 +971,8 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
         const settings = response.widgetSettings;
 
         setWidgetConfig((currentConfig) => {
+          const fallbackTitle = getDefaultWidgetTitle(currentConfig.companyName);
+          const fallbackWelcomeMessage = getDefaultWelcomeMessage(currentConfig.companyName);
           const nextTitle = String(settings.widgetTitle || "").trim();
           const nextWelcomeMessage = String(settings.welcomeMessage || "").trim();
           const nextWidgetLogo = String(settings.widgetLogo || "").trim();
@@ -977,15 +999,17 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
           if (hasAccentColor) {
             if (nextAccentColor) {
               writeStoredValue(WIDGET_ACCENT_COLOR_KEY, nextAccentColor);
+              clearStoredValue(LEGACY_WIDGET_ACCENT_COLOR_KEY);
             } else {
               clearStoredValue(WIDGET_ACCENT_COLOR_KEY);
+              clearStoredValue(LEGACY_WIDGET_ACCENT_COLOR_KEY);
             }
           }
 
           return {
             ...currentConfig,
-            title: nextTitle || currentConfig.title,
-            welcomeMessage: nextWelcomeMessage || currentConfig.welcomeMessage,
+            title: nextTitle || currentConfig.title || fallbackTitle,
+            welcomeMessage: nextWelcomeMessage || currentConfig.welcomeMessage || fallbackWelcomeMessage,
             widgetLogo: hasWidgetLogo ? nextWidgetLogo : currentConfig.widgetLogo,
             accentColor: nextAccentColor || currentConfig.accentColor,
           };
