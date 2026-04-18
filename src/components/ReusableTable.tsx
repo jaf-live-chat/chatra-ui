@@ -130,6 +130,8 @@ const ReusableTable = <T,>({
   totalLabel = "records",
   showTotalBadge = true,
 }: ReusableTableProps<T>) => {
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const [fallbackMinHeight, setFallbackMinHeight] = useState<number>(420);
   const {
     placeholder: searchPlaceholder = "Search...",
     by: searchBy,
@@ -161,6 +163,32 @@ const ReusableTable = <T,>({
   const [internalSortDirection, setInternalSortDirection] =
     useState<SortDirection>(defaultSortDirection);
   const tableContainerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const computeFallbackMinHeight = () => {
+      const root = rootRef.current;
+      if (!root || typeof window === "undefined") {
+        return;
+      }
+
+      const rect = root.getBoundingClientRect();
+      const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+      const bottomSpacing = 16;
+      const availableHeight = Math.floor(viewportHeight - rect.top - bottomSpacing);
+
+      // Keep a practical lower bound so table content does not collapse on short viewports.
+      setFallbackMinHeight(Math.max(320, availableHeight));
+    };
+
+    computeFallbackMinHeight();
+    window.addEventListener("resize", computeFallbackMinHeight);
+    window.addEventListener("orientationchange", computeFallbackMinHeight);
+
+    return () => {
+      window.removeEventListener("resize", computeFallbackMinHeight);
+      window.removeEventListener("orientationchange", computeFallbackMinHeight);
+    };
+  }, []);
 
   const isServerFiltering =
     searchTerm !== undefined &&
@@ -334,6 +362,7 @@ const ReusableTable = <T,>({
 
   return (
     <Paper
+      ref={rootRef}
       elevation={0}
       sx={{
         border: "1px solid",
@@ -341,6 +370,9 @@ const ReusableTable = <T,>({
         borderRadius: 1,
         overflow: "hidden",
         height: "100%",
+        minHeight: `${fallbackMinHeight}px`,
+        flex: "1 1 auto",
+        alignSelf: "stretch",
         display: "flex",
         flexDirection: "column",
       }}
@@ -449,10 +481,12 @@ const ReusableTable = <T,>({
         onWheel={handleHorizontalScroll}
         sx={{
           overflowX: noHorizontalScroll ? "hidden" : "auto",
-          overflowY: "hidden",
+          overflowY: "auto",
           width: "100%",
           maxWidth: "100%",
           WebkitOverflowScrolling: "touch",
+          flex: 1,
+          minHeight: 0,
         }}
       >
         <Table
@@ -461,6 +495,7 @@ const ReusableTable = <T,>({
             tableLayout,
             // Fill available space but keep a floor for when horizontal scroll is needed.
             width: "100%",
+            height: "100%",
             borderCollapse: "separate",
             borderSpacing: 0,
           }}
