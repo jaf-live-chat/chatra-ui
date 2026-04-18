@@ -1,0 +1,20 @@
+export const VISITOR_TOKEN_KEY = "chat_visitor_token";
+export const CONVERSATION_ID_KEY = "chat_conversation_id";
+export const WIDGET_TITLE_KEY = "jaf_widget_title";
+export const WIDGET_WELCOME_KEY = "jaf_welcome_message";
+export const WIDGET_LOGO_KEY = "jaf_widget_logo";
+export const WIDGET_ACCENT_COLOR_KEY = "jaf_widget_accent_color";
+export const LEGACY_WIDGET_ACCENT_COLOR_KEY = "jaf_accent_color";
+export const WIDGET_DARK_MODE_KEY = "jaf_dark_mode";
+export const WIDGET_TEXT_SIZE_KEY = "jaf_text_size";
+export const WIDGET_MESSAGE_SOUNDS_KEY = "jaf_message_sounds";
+export const SYSTEM_AUTO_MESSAGES_KEY = "jaf_widget_system_auto_messages";
+export const WIDGET_FEEDBACK_CONVERSATION_KEY = "jaf_widget_feedback_conversation_id";
+
+export const DEFAULT_TITLE = "Support";
+export const DEFAULT_ACCENT = "#0891b2";
+export const MESSAGE_PAGE_LIMIT = 100;
+export const PANEL_CLOSE_ANIMATION_MS = 320;
+export const TYPING_IDLE_TIMEOUT_MS = 1400;
+export const TYPING_INDICATOR_GRACE_MS = 2200;
+export const SYSTEM_AUTO_REPLY_TYPING_MS = 850;
