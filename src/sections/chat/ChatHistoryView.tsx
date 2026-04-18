@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Search, History, Calendar, Clock, FileText, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { Search, History, Calendar, Clock, FileText, ChevronLeft, ChevronRight, X, Star } from "lucide-react";
 import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
@@ -57,7 +56,7 @@ const ChatHistoryView = ({ history }: { history: any[] }) => {
     <Box sx={{ p: { xs: 2, sm: 3, md: 4 }, maxWidth: 1200, mx: "auto", display: "flex", flexDirection: "column", gap: 4 }}>
       <Stack direction={{ xs: "column", md: "row" }} alignItems={{ xs: "flex-start", md: "center" }} justifyContent="space-between" spacing={2}>
         <Box>
-          <Typography variant="h5" sx={{ fontWeight: 800, color: "grey.900" }}>Chat History</Typography>
+          <Typography variant="h5" sx={{ fontWeight: 800, color: "grey.900" }}>Chat Historyss</Typography>
           <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5 }}>Review past conversations and transcripts.</Typography>
         </Box>
 

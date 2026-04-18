@@ -24,6 +24,9 @@ export interface ActiveChat {
   visitor: string;
   visitorFullName?: string;
   visitorAvatarUrl?: string;
+  visitorEmail?: string;
+  visitorPhone?: string;
+  visitorToken?: string;
   sessionId?: string;
   message: string;
   status: string;
@@ -35,8 +38,12 @@ export interface ActiveChat {
   agentAvatarUrl?: string;
   location?: string;
   country?: string;
+  locationSource?: string;
+  locationResolvedAt?: string;
   locationConsent?: boolean;
+  ipAddressConsent?: boolean;
   ipAddress?: string;
+  lastSeenAt?: string;
   currentPage?: string;
   referrer?: string;
   browser?: string;

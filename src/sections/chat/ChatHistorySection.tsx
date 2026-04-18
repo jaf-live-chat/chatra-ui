@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
-import { Clock, Eye, History, MessagesSquare, Search, Star, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Clock, Eye, History, Search, Star } from "lucide-react";
+import idLabel from '../../utils/idUtils'
 
 const renderRatingStars = (rating?: number | null) => {
   const resolvedRating = Number.isFinite(Number(rating)) ? Math.max(0, Math.min(5, Number(rating))) : 0;
@@ -25,6 +26,7 @@ import liveChatServices from "../../services/liveChatServices";
 import { calculateAverageDuration } from "../../utils/chatDurationCalculator";
 import getInitials from "../../utils/getInitials";
 import Avatar from "@mui/material/Avatar";
+import ChatTranscript from "../../components/ChatTranscript";
 
 export type ChatHistoryTranscriptMap = Record<string, TranscriptMessage[]>;
 
@@ -53,6 +55,15 @@ const ChatHistorySection = ({ searchQuery, setSearchQuery, endedChats, endedTran
 
   const transcriptChat = transcriptChatId ? allHistory.find((c) => c.id === transcriptChatId) : null;
   const transcriptMessages = transcriptChatId ? transcriptCache[transcriptChatId] ?? [] : [];
+  const transcriptDisplayMessages = useMemo(
+    () => transcriptMessages.map((message, index) => ({
+      id: `${transcriptChatId || "transcript"}-${index}`,
+      sender: message.sender,
+      text: message.text,
+      timestamp: message.time,
+    })),
+    [transcriptChatId, transcriptMessages],
+  );
 
   useEffect(() => {
     if (!transcriptChatId || transcriptCache[transcriptChatId]) {
@@ -210,7 +221,6 @@ const ChatHistorySection = ({ searchQuery, setSearchQuery, endedChats, endedTran
                     }}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-cyan-700 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-900/20 rounded-lg hover:bg-cyan-100 dark:hover:bg-cyan-900/40 transition-colors cursor-pointer"
                   >
-                    <Eye className="w-3.5 h-3.5" />
                     View Transcript
                   </button>
                 </div>
@@ -291,95 +301,28 @@ const ChatHistorySection = ({ searchQuery, setSearchQuery, endedChats, endedTran
           onClick={() => setTranscriptChatId(null)}
         >
           <div
-            className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl dark:shadow-slate-900/50 w-full max-w-lg mx-4 overflow-hidden max-h-[80vh] flex flex-col"
+            className="relative bg-white dark:bg-slate-800 rounded-2xl shadow-xl dark:shadow-slate-900/50 w-full max-w-3xl mx-4 overflow-hidden h-[80vh]"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Modal Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-slate-700 shrink-0">
-              <div className="flex items-center gap-3">
-                <Avatar
-                  src={transcriptChat.visitorAvatarUrl || undefined}
-                  alt={transcriptChat.visitor}
-                  className="w-9 h-9 text-sm font-semibold"
-                  sx={{ bgcolor: getAvatarColor(transcriptChat.visitor) }}
-                >
-                  {getInitials(transcriptChat.visitorFullName, "V")}
-                </Avatar>
-                <div>
-                  <p className="text-sm font-semibold text-gray-900 dark:text-slate-100">{transcriptChat.visitor}</p>
-                  <p className="text-[11px] text-gray-400 dark:text-slate-500">
-                    {transcriptChat.id} &middot; {transcriptChat.date} at {transcriptChat.time} &middot; {transcriptChat.duration}
-                  </p>
+            <ChatTranscript
+              chatId={transcriptChat.visitor}
+              status="ENDED"
+              visitorName={transcriptChat.visitor}
+              agentName={transcriptChat.agent}
+              messages={transcriptDisplayMessages}
+              startDate={transcriptChat.date}
+              visitorAvatar={getInitials(transcriptChat.visitorFullName, "V")}
+              agentAvatar={getInitials(transcriptChat.agentFullName || transcriptChat.agent, "A")}
+              showTypingIndicator={false}
+              onClose={() => setTranscriptChatId(null)}
+            />
+            {isTranscriptLoading ? (
+              <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+                <div className="rounded-lg bg-white dark:bg-slate-800 px-4 py-2 text-sm text-gray-600 dark:text-slate-300">
+                  Loading transcript...
                 </div>
               </div>
-              <button
-                onClick={() => setTranscriptChatId(null)}
-                className="p-1.5 text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Transcript Messages */}
-            <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3 bg-gray-50 dark:bg-slate-900/30" style={{ scrollbarWidth: "thin" }}>
-              {isTranscriptLoading ? (
-                <div className="text-center py-8">
-                  <p className="text-sm text-gray-400 dark:text-slate-500">Loading transcript...</p>
-                </div>
-              ) : transcriptMessages.length === 0 ? (
-                <div className="text-center py-8">
-                  <MessagesSquare className="w-8 h-8 text-gray-300 dark:text-slate-600 mx-auto mb-2" />
-                  <p className="text-sm text-gray-400 dark:text-slate-500">No transcript available.</p>
-                </div>
-              ) : (
-                transcriptMessages.map((msg, i) => (
-                  <div key={i} className={`flex ${msg.sender === "agent" ? "justify-end" : "justify-start"}`}>
-                    <div className={`flex ${msg.sender === "agent" ? "flex-row-reverse" : "flex-row"} items-end gap-2 max-w-[75%]`}>
-                      {msg.sender === "visitor" ? (
-                        <Avatar
-                          src={transcriptChat.visitorAvatarUrl || undefined}
-                          alt={transcriptChat.visitor}
-                          className="w-6 h-6 text-[10px] font-semibold shrink-0"
-                          sx={{ bgcolor: getAvatarColor(transcriptChat.visitor) }}
-                        >
-                          {getInitials(transcriptChat.visitorFullName, "V")}
-                        </Avatar>
-                      ) : (
-                        <div className="w-6 h-6 rounded-full bg-gray-800 dark:bg-slate-600 flex items-center justify-center text-white text-[9px] font-semibold shrink-0">
-                          {getInitials(transcriptChat.agentFullName || transcriptChat.agent, "A")}
-                        </div>
-                      )}
-                      <div className={`flex flex-col ${msg.sender === "agent" ? "items-end" : "items-start"}`}>
-                        <span className="text-[10px] text-gray-400 dark:text-slate-500 mb-0.5 px-1">
-                          {msg.sender === "visitor" ? transcriptChat.visitor : transcriptChat.agent} &middot; {msg.time}
-                        </span>
-                        <div
-                          className={`px-3 py-2 text-sm shadow-sm ${msg.sender === "visitor"
-                            ? "bg-[#e5e7eb] dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-2xl rounded-bl-[4px]"
-                            : "bg-cyan-600 text-white rounded-2xl rounded-br-[4px]"
-                            }`}
-                        >
-                          {msg.text}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-
-            {/* Modal Footer */}
-            <div className="px-5 py-3 border-t border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-700/50 shrink-0 flex items-center justify-between">
-              <span className="text-[11px] text-gray-400 dark:text-slate-500">
-                {transcriptMessages.length} message{transcriptMessages.length !== 1 ? "s" : ""} &middot; Agent: {transcriptChat.agent}
-              </span>
-              <button
-                onClick={() => setTranscriptChatId(null)}
-                className="px-4 py-1.5 text-sm font-medium text-gray-600 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-lg transition-colors cursor-pointer"
-              >
-                Close
-              </button>
-            </div>
+            ) : null}
           </div>
         </div>
       )}

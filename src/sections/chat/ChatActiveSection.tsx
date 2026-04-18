@@ -130,6 +130,43 @@ function getAvatarUrl(entity: unknown): string | undefined {
   return undefined;
 }
 
+function getStringField(record: Record<string, unknown> | null, keys: string[]): string {
+  if (!record) {
+    return "";
+  }
+
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      if (trimmed) {
+        return trimmed;
+      }
+    }
+  }
+
+  return "";
+}
+
+function formatMetadataValue(value: unknown) {
+  const text = String(value ?? "").trim();
+  return text || "-";
+}
+
+function formatMetadataDate(value?: string) {
+  const dateText = String(value || "").trim();
+  if (!dateText) {
+    return "-";
+  }
+
+  const timestamp = new Date(dateText).getTime();
+  if (Number.isNaN(timestamp)) {
+    return dateText;
+  }
+
+  return new Date(timestamp).toLocaleString();
+}
+
 interface ChatActiveSectionProps {
   queue: LiveChatQueueEntry[];
   mutateQueue: () => void;
@@ -511,6 +548,31 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
     const latestMessage = [...(selectedChat?.messages || [])].reverse().find((message) => message.sender === "agent");
     return latestMessage ? String(latestMessage.id) : null;
   }, [selectedChat?.messages]);
+  const visitorIdentityRows = useMemo(
+    () => [
+      { label: "Name", value: selectedChat?.visitorFullName || selectedChat?.visitor || "" },
+      { label: "Email", value: selectedChat?.visitorEmail || "" },
+      { label: "Phone", value: selectedChat?.visitorPhone || "" },
+      { label: "Last Seen", value: formatMetadataDate(selectedChat?.lastSeenAt) },
+    ],
+    [selectedChat],
+  );
+  const visitorMetadataRows = useMemo(
+    () => [
+      { label: "Location", value: visitorLocationLabel },
+    ],
+    [selectedChat, visitorLocationLabel],
+  );
+  const visitorSessionRows = useMemo(
+    () => [
+      { label: "Current Page", value: selectedChat?.currentPage || "" },
+      { label: "Referrer", value: selectedChat?.referrer || "" },
+      { label: "Browser", value: selectedChat?.browser || "" },
+      { label: "OS", value: selectedChat?.os || "" },
+      { label: "Device", value: selectedChat?.device || "" },
+    ],
+    [selectedChat],
+  );
 
   const syncServerMessages = useCallback(async (conversationId: string, chatId: string) => {
     setIsSyncingMessages(true);
@@ -537,6 +599,8 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
         const conversation = typeof entry.conversationId === "object" ? entry.conversationId : null;
         const visitor = typeof entry.visitorId === "object" ? entry.visitorId : null;
         const agent = typeof entry.agentId === "object" ? entry.agentId : null;
+        const visitorRecord = visitor as Record<string, unknown> | null;
+        const conversationRecord = conversation as Record<string, unknown> | null;
         const conversationId = conversation?._id || entry.conversationId || entry._id;
 
         if (!conversationId || conversation?.status !== "OPEN") {
@@ -548,6 +612,9 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
           visitor: visitor?.fullName || visitor?.name || (visitor?.visitorToken ? `Visitor ${String(visitor.visitorToken).slice(-4)}` : "Website Visitor"),
           visitorFullName: visitor?.fullName || visitor?.name || undefined,
           visitorAvatarUrl: getAvatarUrl(visitor),
+          visitorEmail: visitor?.emailAddress || "",
+          visitorPhone: visitor?.phoneNumber || "",
+          visitorToken: visitor?.visitorToken || conversation?.visitorToken || "",
           sessionId: String(conversationId),
           message: "Active support conversation",
           status: "Active",
@@ -559,18 +626,22 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
           agentAvatarUrl: getAvatarUrl(agent),
           location: conversation?.locationCity || visitor?.locationCity || "",
           country: conversation?.locationCountry || visitor?.locationCountry || "",
+          locationSource: conversation?.locationSource || visitor?.locationSource || "",
+          locationResolvedAt: conversation?.locationResolvedAt || visitor?.locationResolvedAt || "",
           locationConsent:
             typeof conversation?.locationConsent === "boolean"
               ? conversation.locationConsent
               : typeof visitor?.locationConsent === "boolean"
                 ? visitor.locationConsent
                 : undefined,
+          ipAddressConsent: typeof visitor?.ipAddressConsent === "boolean" ? visitor.ipAddressConsent : undefined,
           ipAddress: visitor?.ipAddress || conversation?.ipAddress || "—",
-          currentPage: (visitor as any)?.currentPage || "—",
-          referrer: (visitor as any)?.referrer || "—",
-          browser: (visitor as any)?.browser || "—",
-          os: (visitor as any)?.os || "—",
-          device: (visitor as any)?.device || "—",
+          lastSeenAt: visitor?.lastSeenAt || "",
+          currentPage: getStringField(visitorRecord, ["currentPage", "currentUrl", "pageUrl", "pathname"]) || getStringField(conversationRecord, ["currentPage", "currentUrl", "pageUrl", "pathname"]),
+          referrer: getStringField(visitorRecord, ["referrer", "referer"]) || getStringField(conversationRecord, ["referrer", "referer"]),
+          browser: getStringField(visitorRecord, ["browser", "browserName", "userBrowser"]) || getStringField(conversationRecord, ["browser", "browserName", "userBrowser"]),
+          os: getStringField(visitorRecord, ["os", "operatingSystem", "platform"]) || getStringField(conversationRecord, ["os", "operatingSystem", "platform"]),
+          device: getStringField(visitorRecord, ["device", "deviceType"]) || getStringField(conversationRecord, ["device", "deviceType"]),
         };
       })
       .filter(Boolean) as ActiveChat[];
@@ -1273,10 +1344,6 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
                     <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-3">Session Details</p>
                     <div className="space-y-2.5">
                       <div>
-                        <p className="text-[11px] text-gray-400 dark:text-slate-500">Session ID</p>
-                        <p className="text-xs font-semibold text-gray-700 dark:text-slate-300 font-mono">{getQueueDisplayId(selectedChat.id)}</p>
-                      </div>
-                      <div>
                         <p className="text-[11px] text-gray-400 dark:text-slate-500">Status</p>
                         <span className="inline-flex items-center gap-1 text-[11px] font-medium bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 px-2 py-0.5 rounded-full mt-0.5">
                           <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
@@ -1297,14 +1364,26 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
 
                     <div className="h-px bg-gray-100 dark:bg-slate-700 my-4" />
 
+                    <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-3">Visitor Identity</p>
+                    <div className="space-y-2.5 text-xs">
+                      {visitorIdentityRows.map((item) => (
+                        <div key={item.label}>
+                          <p className="text-[11px] text-gray-400 dark:text-slate-500">{item.label}</p>
+                          <p className="text-xs font-semibold text-gray-700 dark:text-slate-300 break-all">{formatMetadataValue(item.value)}</p>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="h-px bg-gray-100 dark:bg-slate-700 my-4" />
+
                     <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-3">Visitor Metadata</p>
                     <div className="space-y-2.5 text-xs">
-                      <div>
-                        <p className="text-[11px] text-gray-400 dark:text-slate-500">Location</p>
-                        <p className="text-xs font-semibold text-gray-700 dark:text-slate-300">
-                          {visitorLocationLabel}
-                        </p>
-                      </div>
+                      {visitorMetadataRows.map((item) => (
+                        <div key={item.label}>
+                          <p className="text-[11px] text-gray-400 dark:text-slate-500">{item.label}</p>
+                          <p className="text-xs font-semibold text-gray-700 dark:text-slate-300 break-all">{formatMetadataValue(item.value)}</p>
+                        </div>
+                      ))}
                     </div>
 
                     <div className="h-px bg-gray-100 dark:bg-slate-700 my-4" />
