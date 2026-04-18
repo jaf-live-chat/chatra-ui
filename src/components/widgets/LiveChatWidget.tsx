@@ -1362,7 +1362,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
   }, [clearQuickReplyTimer, isQuickReplyBlocked]);
 
   const appendCustomerFriendlyWelcomeMessage = useCallback(() => {
-    const automatedWelcomeMessage = `Hi ${visitorGreetingName}! Welcome to ${title}. We're happy to help. Tell us what you need, and we'll support you as quickly as possible.`;
+    const automatedWelcomeMessage = welcomeMessage;
     const targetConversationId = String(conversationId || "pre-chat");
     const replyToken = `${targetConversationId}-${Date.now()}`;
     const typingId = `welcome-typing-${replyToken}`;
@@ -1415,7 +1415,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
     }, SYSTEM_AUTO_REPLY_TYPING_MS);
 
     systemAutoReplyTimersRef.current.push(timerId);
-  }, [conversationId, title, visitorGreetingName]);
+  }, [conversationId, welcomeMessage]);
 
   const handleCompletePreChat = useCallback(() => {
     setHasCompletedPreChat(true);
