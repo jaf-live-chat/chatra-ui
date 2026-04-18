@@ -1,6 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { Clock, Eye, History, Search, Star } from "lucide-react";
-import idLabel from '../../utils/idUtils'
+import Avatar from "@mui/material/Avatar";
+import ReusableTable, { type ReusableTableColumn } from "../../components/ReusableTable";
+import ChatTranscript from "../../components/ChatTranscript";
+import { HistoryEntry, TranscriptMessage } from "../../models/ChatSessionManagementModel";
+import { type LiveChatMessage } from "../../models/LiveChatModel";
+import { useDarkMode } from "../../providers/DarkModeContext";
+import liveChatServices from "../../services/liveChatServices";
+import { calculateAverageDuration } from "../../utils/chatDurationCalculator";
+import getInitials from "../../utils/getInitials";
 
 const renderRatingStars = (rating?: number | null) => {
   const resolvedRating = Number.isFinite(Number(rating)) ? Math.max(0, Math.min(5, Number(rating))) : 0;
@@ -19,15 +27,6 @@ const renderRatingStars = (rating?: number | null) => {
   );
 };
 
-import { useDarkMode } from "../../providers/DarkModeContext";
-import { HistoryEntry, TranscriptMessage } from "../../models/ChatSessionManagementModel";
-import { type LiveChatMessage } from "../../models/LiveChatModel";
-import liveChatServices from "../../services/liveChatServices";
-import { calculateAverageDuration } from "../../utils/chatDurationCalculator";
-import getInitials from "../../utils/getInitials";
-import Avatar from "@mui/material/Avatar";
-import ChatTranscript from "../../components/ChatTranscript";
-
 export type ChatHistoryTranscriptMap = Record<string, TranscriptMessage[]>;
 
 interface ChatHistorySectionProps {
@@ -43,6 +42,16 @@ const avatarColors = ["#0891b2", "#7c3aed", "#059669", "#d97706", "#dc2626", "#2
 function getAvatarColor(name: string) {
   const code = name.charCodeAt(0) + (name.charCodeAt(1) || 0);
   return avatarColors[code % avatarColors.length];
+}
+
+function getQueueDisplayId(chat: HistoryEntry) {
+  if (chat.queueDisplayId) {
+    return chat.queueDisplayId;
+  }
+
+  const num = parseInt(chat.id.replace(/[^\d]/g, ""), 10) || 0;
+  const hash = ((num * 7919 + 1234) % 9000) + 1000;
+  return `Q-${hash}`;
 }
 
 const ChatHistorySection = ({ searchQuery, setSearchQuery, endedChats, endedTranscripts, mutateHistory }: ChatHistorySectionProps) => {
@@ -101,31 +110,83 @@ const ChatHistorySection = ({ searchQuery, setSearchQuery, endedChats, endedTran
     );
   });
 
+  const historyColumns = useMemo<ReusableTableColumn<HistoryEntry>[]>(
+    () => [
+      {
+        id: "visitor",
+        label: "Visitor",
+        sortable: true,
+        sortAccessor: (chat) => chat.visitor,
+        renderCell: (chat) => (
+          <div className="flex items-center gap-2.5">
+            <Avatar
+              src={chat.visitorAvatarUrl || undefined}
+              alt={chat.visitor}
+              className="w-7 h-7 text-xs font-semibold shrink-0"
+              sx={{ bgcolor: getAvatarColor(chat.visitor) }}
+            >
+              {getInitials(chat.visitorFullName, "V")}
+            </Avatar>
+            <span className="text-sm font-medium text-gray-900 dark:text-slate-100">{chat.visitor}</span>
+          </div>
+        ),
+      },
+      {
+        id: "datetime",
+        label: "Date & Time",
+        sortable: true,
+        sortAccessor: (chat) => `${chat.date} ${chat.time}`,
+        sx: { whiteSpace: "normal" },
+        renderCell: (chat) => (
+          <div>
+            <p className="text-sm text-gray-700 dark:text-slate-300">{chat.date}</p>
+            <p className="text-xs text-gray-400 dark:text-slate-500">{chat.time}</p>
+          </div>
+        ),
+      },
+      {
+        id: "duration",
+        label: "Duration",
+        sortable: true,
+        sortAccessor: (chat) => chat.duration,
+        renderCell: (chat) => (
+          <div className="flex items-center gap-1.5">
+            <Clock className="w-3.5 h-3.5 text-gray-400 dark:text-slate-500" />
+            <span className="text-sm text-gray-600 dark:text-slate-400">{chat.duration}</span>
+          </div>
+        ),
+      },
+      {
+        id: "rating",
+        label: "Rating",
+        sortable: true,
+        sortAccessor: (chat) => Number(chat.rating ?? 0),
+        renderCell: (chat) => renderRatingStars(chat.rating),
+      },
+      {
+        id: "action",
+        label: "Action",
+        align: "center",
+        headerAlign: "center",
+        renderCell: (chat) => (
+          <button
+            onClick={() => setTranscriptChatId(chat.id)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-cyan-700 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-900/20 rounded-lg hover:bg-cyan-100 dark:hover:bg-cyan-900/40 transition-colors cursor-pointer"
+          >
+            View Transcript
+          </button>
+        ),
+      },
+    ],
+    [],
+  );
+
   // Calculate average duration from all history or filtered?
   // Using filtered to update dynamically as you search
   const averageDuration = calculateAverageDuration(filtered.length > 0 ? filtered : allHistory);
 
   return (
     <div className={isDark ? "dark" : ""}>
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
-        <div>
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-slate-100">Chat History</h2>
-          <p className="text-sm text-gray-500 dark:text-slate-400 mt-0.5">Browse and review past chat conversations and their outcomes.</p>
-        </div>
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          <div className="relative">
-            <Search className="w-4 h-4 text-gray-400 dark:text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Search history..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 pr-4 py-2 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-100 focus:border-cyan-400 w-full sm:w-64"
-            />
-          </div>
-        </div>
-      </div>
-
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm p-4">
@@ -142,98 +203,38 @@ const ChatHistorySection = ({ searchQuery, setSearchQuery, endedChats, endedTran
         </div>
       </div>
 
-      {/* History Table */}
-      <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm overflow-hidden hidden md:block">
-        <div className="overflow-x-auto">
-          {/* Header row */}
-          <div className="min-w-[980px] grid grid-cols-[150px_1fr_140px_150px_130px_150px_130px] border-b border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-700/50">
-            <div className="px-5 py-3 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">ID</div>
-            <div className="px-5 py-3 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Visitor</div>
-            <div className="px-5 py-3 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Agent</div>
-            <div className="px-5 py-3 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Date &amp; Time</div>
-            <div className="px-5 py-3 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Duration</div>
-            <div className="px-5 py-3 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Rating</div>
-            <div className="px-5 py-3 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider text-center">Action</div>
-          </div>
-          {/* Data rows */}
-          <div className="divide-y divide-gray-100 dark:divide-slate-700">
-            {filtered.map((chat) => (
-              <div
-                key={chat.id}
-                className="min-w-[980px] grid grid-cols-[150px_1fr_140px_150px_130px_150px_130px] hover:bg-gray-50 dark:hover:bg-slate-700/40 transition-colors cursor-pointer"
-              >
-                {/* ID */}
-                <div className="px-5 py-3.5 flex items-center">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs font-mono text-[#0891b2] dark:text-cyan-400 bg-[#ecfeff] dark:bg-cyan-900/20 px-2 py-0.5 rounded font-semibold tracking-wide">
-                      {
-                        chat.queueDisplayId ?? (() => {
-                          const num = parseInt(chat.id.replace(/[^\d]/g, ""), 10) || 0;
-                          const hash = ((num * 7919 + 1234) % 9000) + 1000;
-                          return `Q-${hash}`;
-                        })()
-                      }
-                    </span>
-                    {chat.isLive && (
-                      <span className="text-[10px] font-semibold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-1.5 py-0.5 rounded-full">
-                        New
-                      </span>
-                    )}
-                  </div>
-                </div>
-                {/* Visitor */}
-                <div className="px-5 py-3.5 flex items-center">
-                  <div className="flex items-center gap-2.5">
-                    <Avatar
-                      src={chat.visitorAvatarUrl || undefined}
-                      alt={chat.visitor}
-                      className="w-7 h-7 text-xs font-semibold shrink-0"
-                      sx={{ bgcolor: getAvatarColor(chat.visitor) }}
-                    >
-                      {getInitials(chat.visitorFullName, "V")}
-                    </Avatar>
-                    <span className="text-sm font-medium text-gray-900 dark:text-slate-100">{chat.visitor}</span>
-                  </div>
-                </div>
-                {/* Agent */}
-                <div className="px-5 py-3.5 flex items-center text-sm text-gray-600 dark:text-slate-400">{chat.agent}</div>
-                {/* Date & Time */}
-                <div className="px-5 py-3.5 flex items-center">
-                  <div>
-                    <p className="text-sm text-gray-700 dark:text-slate-300">{chat.date}</p>
-                    <p className="text-xs text-gray-400 dark:text-slate-500">{chat.time}</p>
-                  </div>
-                </div>
-                {/* Duration */}
-                <div className="px-5 py-3.5 flex items-center">
-                  <div className="flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5 text-gray-400 dark:text-slate-500" />
-                    <span className="text-sm text-gray-600 dark:text-slate-400">{chat.duration}</span>
-                  </div>
-                </div>
-                <div className="px-5 py-3.5 flex items-center">{renderRatingStars(chat.rating)}</div>
-                {/* Action */}
-                <div className="px-5 py-3.5 flex items-center justify-center">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setTranscriptChatId(chat.id);
-                    }}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-cyan-700 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-900/20 rounded-lg hover:bg-cyan-100 dark:hover:bg-cyan-900/40 transition-colors cursor-pointer"
-                  >
-                    View Transcript
-                  </button>
-                </div>
-              </div>
-            ))}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <div className="relative">
+            <Search className="w-4 h-4 text-gray-400 dark:text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Search history..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 pr-4 py-2 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-100 focus:border-cyan-400 w-full sm:w-64"
+            />
           </div>
         </div>
-        {filtered.length === 0 && (
-          <div className="p-12 text-center">
-            <History className="w-10 h-10 text-gray-300 dark:text-slate-600 mx-auto mb-3" />
-            <p className="text-gray-500 dark:text-slate-400 text-sm">No matching chat history found.</p>
-          </div>
-        )}
+      </div>
+
+      {/* History Table */}
+      <div className="hidden md:block">
+        <ReusableTable
+          title="History Records"
+          subtitle="Visitor, timeline, duration, rating, and transcript access"
+          rows={filtered}
+          columns={historyColumns}
+          getRowKey={(chat) => chat.id}
+          tableMinWidth={980}
+          tableLayout="fixed"
+          search={{ show: false }}
+          pagination={{ show: false }}
+          emptyStateTitle="No matching chat history found"
+          emptyStateDescription="Try adjusting your search query."
+          totalLabel="chats"
+          headerIcon={<History className="w-4 h-4" />}
+        />
       </div>
 
       {/* Mobile View */}
@@ -256,13 +257,7 @@ const ChatHistorySection = ({ searchQuery, setSearchQuery, endedChats, endedTran
                 </div>
               </div>
               <span className="text-xs font-mono text-[#0891b2] dark:text-cyan-400 bg-[#ecfeff] dark:bg-cyan-900/20 px-2 py-0.5 rounded font-semibold tracking-wide shrink-0">
-                {
-                  chat.queueDisplayId ?? (() => {
-                    const num = parseInt(chat.id.replace(/[^\d]/g, ""), 10) || 0;
-                    const hash = ((num * 7919 + 1234) % 9000) + 1000;
-                    return `Q-${hash}`;
-                  })()
-                }
+                {getQueueDisplayId(chat)}
               </span>
             </div>
             <div className="mt-3 flex items-center justify-between text-xs text-gray-500 dark:text-slate-400">
