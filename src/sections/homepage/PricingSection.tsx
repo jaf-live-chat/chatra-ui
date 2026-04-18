@@ -1,5 +1,5 @@
-import { Box, Typography, Button, Container, Grid, Dialog, TextField, Stack, IconButton } from "@mui/material";
-import { Check, X, Info, CheckCircle2, Loader2, Users, BarChart3, CalendarDays, Sparkles } from "lucide-react";
+import { Box, Typography, Button, Container, Grid, Dialog, TextField, Stack, IconButton, Drawer } from "@mui/material";
+import { Check, X, Info, CheckCircle2, Loader2, Users, BarChart3, CalendarDays, Sparkles, ChevronDown } from "lucide-react";
 import { Link } from "react-router";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
@@ -87,6 +87,7 @@ const PricingSection = () => {
   const greenCheck = "#10B981FF";
 
   const [contactOpen, setContactOpen] = useState(false);
+  const [comparisonOpen, setComparisonOpen] = useState(false);
   const [contactForm, setContactForm] = useState({ fullName: "", email: "", company: "", phone: "", message: "" });
   const [contactSending, setContactSending] = useState(false);
   const [contactSent, setContactSent] = useState(false);
@@ -248,6 +249,20 @@ const PricingSection = () => {
           >
             Start for free, upgrade when you need more power. No hidden fees.
           </Typography>
+
+          {comparisonPlans.length > 0 && (
+            <Button
+              disableElevation
+              onClick={() => setComparisonOpen(true)}
+              variant="outlined"
+              endIcon={<ChevronDown size={16} />}
+              sx={{
+                mt: 5,
+              }}
+            >
+              Compare features across plans
+            </Button>
+          )}
         </Box>
 
         {/* Pricing Cards */}
@@ -500,216 +515,243 @@ const PricingSection = () => {
         </Grid>
 
         {comparisonPlans.length > 0 && (
-          <Box sx={{ mt: { xs: 8, md: 10 } }}>
-            <Box sx={{ textAlign: "center", mb: { xs: 4, md: 5 } }}>
-              <Typography
-                sx={{
-                  color: navyColor,
-                  fontWeight: 700,
-                  fontSize: { xs: "2rem", md: "3rem" },
-                  letterSpacing: "-0.02em",
-                  fontFamily: "inherit",
-                }}
-              >
-                Compare features across plans
-              </Typography>
-            </Box>
-
-            <Box sx={{ display: { xs: "block", md: "none" }, gap: 1.5 }}>
-              {(["features", "support"] as const).map((section) => {
-                const sectionTitle = section === "features" ? "Features and capabilities" : "Support and administration";
-                const rows = comparisonRows.filter((row) => row.section === section);
-
-                return (
-                  <Box
-                    key={`comparison-mobile-${section}`}
+          <Drawer
+            anchor="top"
+            open={comparisonOpen}
+            onClose={() => setComparisonOpen(false)}
+            PaperProps={{
+              sx: {
+                width: "100%",
+                maxHeight: "100dvh",
+                borderBottomLeftRadius: "22px",
+                borderBottomRightRadius: "22px",
+                overflow: "hidden",
+                bgcolor: "#F8FAFC",
+              },
+            }}
+          >
+            <Box sx={{ width: "100%", overflowY: "auto" }}>
+              <Container maxWidth="lg" sx={{ py: { xs: 2.5, md: 4 } }}>
+                <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2.5 }}>
+                  <Typography
                     sx={{
-                      borderRadius: "16px",
-                      border: "1px solid #E2E8F0",
-                      bgcolor: "#FFFFFF",
-                      p: 1.5,
-                      mb: 1.5,
+                      color: navyColor,
+                      fontWeight: 800,
+                      fontSize: { xs: "1.35rem", md: "1.9rem" },
+                      letterSpacing: "-0.02em",
+                      fontFamily: "inherit",
                     }}
                   >
-                    <Box
-                      sx={{
-                        px: 1.5,
-                        py: 1,
-                        borderRadius: "10px",
-                        bgcolor: "#F1F5F9",
-                        color: "#0F172A",
-                        fontWeight: 700,
-                        fontSize: "0.92rem",
-                        mb: 1,
-                      }}
-                    >
-                      {sectionTitle}
-                    </Box>
+                    Compare features across plans
+                  </Typography>
+                  <IconButton
+                    onClick={() => setComparisonOpen(false)}
+                    sx={{
+                      bgcolor: "#E2E8F0",
+                      "&:hover": { bgcolor: "#CBD5E1" },
+                    }}
+                  >
+                    <X size={18} />
+                  </IconButton>
+                </Box>
 
-                    <Stack spacing={1}>
-                      {rows.map((row) => (
-                        <Box
-                          key={`comparison-mobile-row-${section}-${row.label}`}
-                          sx={{
-                            border: "1px solid #E2E8F0",
-                            borderRadius: "10px",
-                            px: 1.25,
-                            py: 1,
-                          }}
-                        >
-                          <Typography sx={{ color: "#334155", fontWeight: 700, fontSize: "0.86rem", mb: 0.8 }}>
-                            {row.label}
-                          </Typography>
+                <Box sx={{ display: { xs: "block", md: "none" }, gap: 1.5 }}>
+                  {(["features", "support"] as const).map((section) => {
+                    const sectionTitle = section === "features" ? "Features and capabilities" : "Support and administration";
+                    const rows = comparisonRows.filter((row) => row.section === section);
 
-                          <Stack spacing={0.7}>
-                            {comparisonPlans.map((plan, valueIndex) => (
-                              <Box
-                                key={`comparison-mobile-value-${row.label}-${plan.name}`}
-                                sx={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "space-between",
-                                  gap: 1,
-                                }}
-                              >
-                                <Typography sx={{ color: "#64748B", fontWeight: 600, fontSize: "0.78rem" }}>
-                                  {plan.name}
-                                </Typography>
-
-                                <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", minWidth: 28 }}>
-                                  {row.type === "boolean" ? (
-                                    row.values[valueIndex] ? (
-                                      <Check size={18} color="#10B981" />
-                                    ) : (
-                                      <X size={18} color="#EF4444" />
-                                    )
-                                  ) : (
-                                    <Typography sx={{ color: "#334155", fontWeight: 700, fontSize: "0.82rem" }}>
-                                      {String(row.values[valueIndex])}
-                                    </Typography>
-                                  )}
-                                </Box>
-                              </Box>
-                            ))}
-                          </Stack>
-                        </Box>
-                      ))}
-                    </Stack>
-                  </Box>
-                );
-              })}
-            </Box>
-
-            <Box
-              sx={{
-                display: { xs: "none", md: "block" },
-                borderRadius: "20px",
-                border: "1px solid #E2E8F0",
-                bgcolor: "#FFFFFF",
-                overflowX: "auto",
-                overflowY: "hidden",
-              }}
-            >
-              <Box
-                sx={{
-                  display: "grid",
-                  gridTemplateColumns: "2fr repeat(3, 1fr)",
-                  alignItems: "center",
-                  px: { md: 4 },
-                  py: 2.2,
-                  borderBottom: "1px solid #E2E8F0",
-                  columnGap: 1.5,
-                  minWidth: "100%",
-                }}
-              >
-                <Typography sx={{ fontWeight: 700, fontSize: { md: "1.1rem" }, color: "#1E293B" }}>
-                  Features and capabilities
-                </Typography>
-                {comparisonPlans.map((plan) => (
-                  <Box key={`plan-pill-${plan.name}`} sx={{ display: "flex", justifyContent: "center" }}>
-                    <Box
-                      sx={{
-                        px: 1.8,
-                        py: 0.42,
-                        borderRadius: "9999px",
-                        fontSize: { md: "0.85rem" },
-                        fontWeight: 700,
-                        bgcolor: plan.popular ? "#0F172A" : "#EFF3F8",
-                        color: plan.popular ? "#FFFFFF" : "#64748B",
-                        minWidth: { md: 86 },
-                        textAlign: "center",
-                      }}
-                    >
-                      {plan.name}
-                    </Box>
-                  </Box>
-                ))}
-              </Box>
-
-              {(["features", "support"] as const).map((section) => {
-                const sectionTitle = section === "features" ? "Features and capabilities" : "Support and administration";
-                const rows = comparisonRows.filter((row) => row.section === section);
-
-                return (
-                  <Box key={`section-${section}`} sx={{ px: { md: 2.5 }, py: section === "features" ? 1.8 : 2.2 }}>
-                    <Box
-                      sx={{
-                        px: { md: 2.2 },
-                        py: 1.15,
-                        borderRadius: "10px",
-                        bgcolor: "#F1F5F9",
-                        color: "#0F172A",
-                        fontWeight: 700,
-                        fontSize: "0.95rem",
-                        mb: 0.9,
-                      }}
-                    >
-                      {sectionTitle}
-                    </Box>
-
-                    {rows.map((row) => (
+                    return (
                       <Box
-                        key={`comparison-row-${section}-${row.label}`}
+                        key={`comparison-mobile-${section}`}
                         sx={{
-                          display: "grid",
-                          gridTemplateColumns: "2fr repeat(3, 1fr)",
-                          alignItems: "center",
-                          columnGap: 1.5,
-                          px: { md: 2.2 },
-                          py: 1.55,
-                          minWidth: "100%",
-                          borderBottom: "1px solid #EEF2F7",
-                          "&:last-of-type": {
-                            borderBottom: "none",
-                          },
+                          borderRadius: "16px",
+                          border: "1px solid #E2E8F0",
+                          bgcolor: "#FFFFFF",
+                          p: 1.5,
+                          mb: 1.5,
                         }}
                       >
-                        <Typography sx={{ color: "#334155", fontWeight: 500, fontSize: { md: "1.04rem" } }}>
-                          {row.label}
-                        </Typography>
+                        <Box
+                          sx={{
+                            px: 1.5,
+                            py: 1,
+                            borderRadius: "10px",
+                            bgcolor: "#F1F5F9",
+                            color: "#0F172A",
+                            fontWeight: 700,
+                            fontSize: "0.92rem",
+                            mb: 1,
+                          }}
+                        >
+                          {sectionTitle}
+                        </Box>
 
-                        {row.values.map((value, valueIndex) => (
-                          <Box key={`comparison-value-${row.label}-${valueIndex}`} sx={{ display: "flex", justifyContent: "center" }}>
-                            {row.type === "boolean" ? (
-                              value ? (
-                                <Check size={19} color="#10B981" />
-                              ) : (
-                                <X size={19} color="#EF4444" />
-                              )
-                            ) : (
-                              <Typography sx={{ color: "#334155", fontWeight: 600, fontSize: { md: "1rem" } }}>
-                                {String(value)}
+                        <Stack spacing={1}>
+                          {rows.map((row) => (
+                            <Box
+                              key={`comparison-mobile-row-${section}-${row.label}`}
+                              sx={{
+                                border: "1px solid #E2E8F0",
+                                borderRadius: "10px",
+                                px: 1.25,
+                                py: 1,
+                              }}
+                            >
+                              <Typography sx={{ color: "#334155", fontWeight: 700, fontSize: "0.86rem", mb: 0.8 }}>
+                                {row.label}
                               </Typography>
-                            )}
-                          </Box>
-                        ))}
+
+                              <Stack spacing={0.7}>
+                                {comparisonPlans.map((plan, valueIndex) => (
+                                  <Box
+                                    key={`comparison-mobile-value-${row.label}-${plan.name}`}
+                                    sx={{
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "space-between",
+                                      gap: 1,
+                                    }}
+                                  >
+                                    <Typography sx={{ color: "#64748B", fontWeight: 600, fontSize: "0.78rem" }}>
+                                      {plan.name}
+                                    </Typography>
+
+                                    <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", minWidth: 28 }}>
+                                      {row.type === "boolean" ? (
+                                        row.values[valueIndex] ? (
+                                          <Check size={18} color="#10B981" />
+                                        ) : (
+                                          <X size={18} color="#EF4444" />
+                                        )
+                                      ) : (
+                                        <Typography sx={{ color: "#334155", fontWeight: 700, fontSize: "0.82rem" }}>
+                                          {String(row.values[valueIndex])}
+                                        </Typography>
+                                      )}
+                                    </Box>
+                                  </Box>
+                                ))}
+                              </Stack>
+                            </Box>
+                          ))}
+                        </Stack>
+                      </Box>
+                    );
+                  })}
+                </Box>
+
+                <Box
+                  sx={{
+                    display: { xs: "none", md: "block" },
+                    borderRadius: "20px",
+                    border: "1px solid #E2E8F0",
+                    bgcolor: "#FFFFFF",
+                    overflowX: "auto",
+                    overflowY: "hidden",
+                  }}
+                >
+                  <Box
+                    sx={{
+                      display: "grid",
+                      gridTemplateColumns: "2fr repeat(3, 1fr)",
+                      alignItems: "center",
+                      px: { md: 4 },
+                      py: 2.2,
+                      borderBottom: "1px solid #E2E8F0",
+                      columnGap: 1.5,
+                      minWidth: "100%",
+                    }}
+                  >
+                    <Typography sx={{ fontWeight: 700, fontSize: { md: "1.1rem" }, color: "#1E293B" }}>
+                      Features and capabilities
+                    </Typography>
+                    {comparisonPlans.map((plan) => (
+                      <Box key={`plan-pill-${plan.name}`} sx={{ display: "flex", justifyContent: "center" }}>
+                        <Box
+                          sx={{
+                            px: 1.8,
+                            py: 0.42,
+                            borderRadius: "9999px",
+                            fontSize: { md: "0.85rem" },
+                            fontWeight: 700,
+                            bgcolor: plan.popular ? "#0F172A" : "#EFF3F8",
+                            color: plan.popular ? "#FFFFFF" : "#64748B",
+                            minWidth: { md: 86 },
+                            textAlign: "center",
+                          }}
+                        >
+                          {plan.name}
+                        </Box>
                       </Box>
                     ))}
                   </Box>
-                );
-              })}
+
+                  {(["features", "support"] as const).map((section) => {
+                    const sectionTitle = section === "features" ? "Features and capabilities" : "Support and administration";
+                    const rows = comparisonRows.filter((row) => row.section === section);
+
+                    return (
+                      <Box key={`section-${section}`} sx={{ px: { md: 2.5 }, py: section === "features" ? 1.8 : 2.2 }}>
+                        <Box
+                          sx={{
+                            px: { md: 2.2 },
+                            py: 1.15,
+                            borderRadius: "10px",
+                            bgcolor: "#F1F5F9",
+                            color: "#0F172A",
+                            fontWeight: 700,
+                            fontSize: "0.95rem",
+                            mb: 0.9,
+                          }}
+                        >
+                          {sectionTitle}
+                        </Box>
+
+                        {rows.map((row) => (
+                          <Box
+                            key={`comparison-row-${section}-${row.label}`}
+                            sx={{
+                              display: "grid",
+                              gridTemplateColumns: "2fr repeat(3, 1fr)",
+                              alignItems: "center",
+                              columnGap: 1.5,
+                              px: { md: 2.2 },
+                              py: 1.55,
+                              minWidth: "100%",
+                              borderBottom: "1px solid #EEF2F7",
+                              "&:last-of-type": {
+                                borderBottom: "none",
+                              },
+                            }}
+                          >
+                            <Typography sx={{ color: "#334155", fontWeight: 500, fontSize: { md: "1.04rem" } }}>
+                              {row.label}
+                            </Typography>
+
+                            {row.values.map((value, valueIndex) => (
+                              <Box key={`comparison-value-${row.label}-${valueIndex}`} sx={{ display: "flex", justifyContent: "center" }}>
+                                {row.type === "boolean" ? (
+                                  value ? (
+                                    <Check size={19} color="#10B981" />
+                                  ) : (
+                                    <X size={19} color="#EF4444" />
+                                  )
+                                ) : (
+                                  <Typography sx={{ color: "#334155", fontWeight: 600, fontSize: { md: "1rem" } }}>
+                                    {String(value)}
+                                  </Typography>
+                                )}
+                              </Box>
+                            ))}
+                          </Box>
+                        ))}
+                      </Box>
+                    );
+                  })}
+                </Box>
+              </Container>
             </Box>
-          </Box>
+          </Drawer>
         )}
 
         {/* Contact Sales Dialog */}
