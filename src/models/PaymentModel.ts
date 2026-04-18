@@ -37,6 +37,23 @@ export type CreatePaymentCheckoutResponse = {
 
 export type PaymentStatus = "PENDING" | "COMPLETED" | "FAILED" | "CANCELLED";
 
+export type CheckoutWorkflowStage =
+  | "INITIATED"
+  | "PAYMENT_PENDING"
+  | "PROVISIONING"
+  | "COMPLETED"
+  | "FAILED"
+  | "CANCELLED";
+
+export type CheckoutFailureReason =
+  | "PAYMENT_FAILED"
+  | "PAYMENT_DECLINED"
+  | "PAYMENT_EXPIRED"
+  | "PAYMENT_CANCELLED"
+  | "PROVISIONING_TIMEOUT"
+  | "PROVISIONING_FAILED"
+  | "UNKNOWN";
+
 export interface PaymentApiItem {
   id: string;
   tenantId?: string;

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import {
   CheckCircle2,
   Loader2,
@@ -35,6 +35,64 @@ type CheckoutRenewalContext = {
   previousPlanName?: string;
 };
 
+type CheckoutWorkflowStage =
+  | "INITIATED"
+  | "PAYMENT_PENDING"
+  | "PROVISIONING"
+  | "COMPLETED"
+  | "FAILED"
+  | "CANCELLED";
+
+const WORKFLOW_STAGE_TO_STEP: Record<CheckoutWorkflowStage, number> = {
+  INITIATED: 0,
+  PAYMENT_PENDING: 0,
+  PROVISIONING: 1,
+  COMPLETED: 2,
+  FAILED: 1,
+  CANCELLED: 1,
+};
+
+const WORKFLOW_STAGE_TO_PROGRESS: Record<CheckoutWorkflowStage, number> = {
+  INITIATED: 12,
+  PAYMENT_PENDING: 34,
+  PROVISIONING: 68,
+  COMPLETED: 100,
+  FAILED: 68,
+  CANCELLED: 68,
+};
+
+const resolveWorkflowStage = (status: {
+  workflowStage?: CheckoutWorkflowStage;
+  status?: string;
+  isProvisioned?: boolean;
+}): CheckoutWorkflowStage => {
+  if (status.workflowStage) {
+    return status.workflowStage;
+  }
+
+  if (status.isProvisioned) {
+    return "COMPLETED";
+  }
+
+  if (status.status === "FAILED") {
+    return "FAILED";
+  }
+
+  if (status.status === "CANCELLED") {
+    return "CANCELLED";
+  }
+
+  if (status.status === "COMPLETED") {
+    return "PROVISIONING";
+  }
+
+  if (status.status === "PENDING") {
+    return "PAYMENT_PENDING";
+  }
+
+  return "INITIATED";
+};
+
 const DashboardRenewal = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -42,6 +100,7 @@ const DashboardRenewal = () => {
   const [isComplete, setIsComplete] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [attempts, setAttempts] = useState(0);
+  const [workflowStage, setWorkflowStage] = useState<CheckoutWorkflowStage>("INITIATED");
   const [companyName, setCompanyName] = useState("");
   const [planName, setPlanName] = useState("");
   const [planPrice, setPlanPrice] = useState("");
@@ -55,6 +114,7 @@ const DashboardRenewal = () => {
   const [removedFeatures, setRemovedFeatures] = useState<string[]>([]);
   const [unchangedFeatures, setUnchangedFeatures] = useState<string[]>([]);
   const [welcomeName, setWelcomeName] = useState("");
+  const hasTerminalRedirectRef = useRef(false);
 
   const savedRenewalContext = useMemo<CheckoutRenewalContext>(() => {
     try {
@@ -140,6 +200,26 @@ const DashboardRenewal = () => {
     redirectStatus === "expired" ||
     redirectStatus === "failed";
 
+  const progressPercentage = WORKFLOW_STAGE_TO_PROGRESS[workflowStage];
+
+  const redirectToCancelled = (terminalStatus: "cancelled" | "failed", reason?: string, message?: string) => {
+    if (hasTerminalRedirectRef.current) {
+      return;
+    }
+
+    hasTerminalRedirectRef.current = true;
+    const params = new URLSearchParams(window.location.search);
+    params.set("status", terminalStatus);
+    if (reason) {
+      params.set("reason", reason);
+    }
+    if (message) {
+      params.set("message", message);
+    }
+
+    window.location.assign(`/renewal/cancelled?${params.toString()}`);
+  };
+
   useEffect(() => {
     if (isCancelledRedirect) {
       window.location.replace(`/renewal/cancelled${window.location.search}`);
@@ -165,17 +245,25 @@ const DashboardRenewal = () => {
           return;
         }
 
-        if (status.status === "PENDING") {
-          setCurrentStep(1);
+        setErrorMessage("");
+
+        const nextWorkflowStage = resolveWorkflowStage(status);
+        setWorkflowStage(nextWorkflowStage);
+        setCurrentStep(WORKFLOW_STAGE_TO_STEP[nextWorkflowStage]);
+
+        if (status.status === "FAILED" || nextWorkflowStage === "FAILED") {
+          redirectToCancelled("failed", status.failureReason, status.failureMessage);
+          return;
         }
 
         if (status.checkoutState === "CANCELLED" || status.status === "CANCELLED") {
-          window.location.assign(`/renewal/cancelled${window.location.search}`);
+          redirectToCancelled("cancelled", status.failureReason, status.failureMessage);
           return;
         }
 
         if (status.isProvisioned) {
-          setCurrentStep(2);
+          setCurrentStep(WORKFLOW_STAGE_TO_STEP.COMPLETED);
+          setWorkflowStage("COMPLETED");
           setCompanyName(status.companyName || companyNameFromQuery || "");
           setWelcomeName(status.welcomeName || welcomeNameFromQuery || "");
           setPlanName(status.planName || planNameFromQuery || "");
@@ -201,6 +289,9 @@ const DashboardRenewal = () => {
         setAttempts((prev) => prev + 1);
       } catch (_error) {
         if (!isCancelled) {
+          setWorkflowStage("PAYMENT_PENDING");
+          setCurrentStep(WORKFLOW_STAGE_TO_STEP.PAYMENT_PENDING);
+          setErrorMessage("We are still checking your checkout status. Please wait...");
           setAttempts((prev) => prev + 1);
         }
       }
@@ -228,7 +319,6 @@ const DashboardRenewal = () => {
     welcomeNameFromQuery,
     previousPlanNameFromQuery,
     isCancelledRedirect,
-    navigate,
   ]);
 
   useEffect(() => {
@@ -261,9 +351,13 @@ const DashboardRenewal = () => {
 
   useEffect(() => {
     if (attempts >= MAX_POLL_ATTEMPTS && !isComplete) {
-      navigate(`/renewal/cancelled${window.location.search}`, { replace: true });
+      redirectToCancelled(
+        "failed",
+        "PROVISIONING_TIMEOUT",
+        "Provisioning is taking longer than expected. Please retry checkout."
+      );
     }
-  }, [attempts, isComplete, navigate]);
+  }, [attempts, isComplete]);
 
   const handleDashboardNav = () => {
     navigate("/portal/tenants");
@@ -285,7 +379,7 @@ const DashboardRenewal = () => {
                   <p className="mt-2 text-sm text-slate-500">Your payment is being processed and your new plan is being activated.</p>
                 </div>
                 <div className="text-5xl font-light text-slate-900 tracking-tighter tabular-nums flex items-baseline">
-                  {Math.round(((currentStep + 0.5) / renewalSteps.length) * 100)}
+                  {Math.round(progressPercentage)}
                   <span className="text-2xl text-slate-400 ml-1">%</span>
                 </div>
               </div>
@@ -294,7 +388,7 @@ const DashboardRenewal = () => {
                 <motion.div
                   className="h-full bg-gradient-to-r from-cyan-500 to-sky-600 rounded-full"
                   initial={{ width: "0%" }}
-                  animate={{ width: `${((currentStep + 0.5) / renewalSteps.length) * 100}%` }}
+                  animate={{ width: `${progressPercentage}%` }}
                   transition={{ duration: 1.5, ease: "easeInOut" }}
                 />
               </div>

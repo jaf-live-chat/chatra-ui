@@ -28,6 +28,7 @@ const INACTIVE_ALLOWED_API_RULES: InactiveAllowedRule[] = [
   // Subscription recovery and billing management
   { method: "GET", pattern: /^\/tenants\/[^/]+(?:\/|$)/ },
   { method: "GET", pattern: /^\/subscription-plans(?:\/[^/]+)?(?:\/|$)/ },
+  { method: "GET", pattern: /^\/payments\/status(?:\/|$)/ },
   { method: "PATCH", pattern: /^\/tenants\/[^/]+\/subscription(?:\/cancel)?(?:\/|$)/ },
   { method: "POST", pattern: /^\/payments\/checkout(?:\/|$)/ },
   { method: "POST", pattern: /^\/subscriptions\/notification-reminders\/[^/]+(?:\/|$)/ },
