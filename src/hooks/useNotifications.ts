@@ -403,25 +403,27 @@ export const useNotifications = (): UseNotificationsReturn => {
         return;
       }
 
+      const previousNotifications = notifications;
+      const previousUnreadCount = unreadCount;
+
+      setNotifications((prev) =>
+        prev.map((n) =>
+          n.status === 'UNREAD' ? { ...n, status: 'READ' } : n
+        )
+      );
+      setUnreadCount(0);
+
       try {
         const service = getNotificationService();
         await service.markAllUnreadAsRead(accessToken);
-
-        // Update local state
-        setNotifications((prev) =>
-          prev.map((n) =>
-            n.status === 'UNREAD' ? { ...n, status: 'READ' } : n
-          )
-        );
-
-        // Reset unread count
-        setUnreadCount(0);
       } catch (err) {
+        setNotifications(previousNotifications);
+        setUnreadCount(previousUnreadCount);
         console.error('[NOTIFICATIONS] Mark all unread as read error:', err);
         throw err;
       }
     },
-    [accessToken, getNotificationService]
+    [accessToken, notifications, unreadCount, getNotificationService]
   );
 
   // Get unread count for current user

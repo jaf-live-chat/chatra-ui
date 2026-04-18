@@ -50,7 +50,7 @@ function DashboardLayoutInner() {
   const inactivityTimeoutRef = useRef<number | null>(null);
   const countdownIntervalRef = useRef<number | null>(null);
 
-  const { notifications, unreadCount, deleteNotification, markAsRead } = useNotifications();
+  const { notifications, unreadCount, deleteNotification, markAsRead, markAllUnreadAsRead } = useNotifications();
 
   useEffect(() => {
     setIsSidebarOpen(!isMobile);
@@ -711,7 +711,15 @@ function DashboardLayoutInner() {
             <div className="relative">
               <NotificationIcon
                 unreadCount={unreadCount}
-                onClick={() => setIsNotificationsOpen((prev) => !prev)}
+                onClick={() => {
+                  setIsNotificationsOpen((prev) => {
+                    const nextOpen = !prev;
+                    if (nextOpen && unreadCount > 0) {
+                      void markAllUnreadAsRead();
+                    }
+                    return nextOpen;
+                  });
+                }}
                 isOpen={isNotificationsOpen}
               />
 
