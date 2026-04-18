@@ -9,6 +9,7 @@ import type {
   LoginData,
 } from "../models/AgentModel";
 import Agents from "../services/agentServices";
+import { SUBSCRIPTION_STATE_CHANGED_EVENT } from "../utils/subscriptionAccess";
 
 const AUTH_STORAGE_KEY = "jaf_auth_session";
 const TOKEN_STORAGE_KEY = "serviceToken";
@@ -151,10 +152,52 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       clearSession();
     };
 
+    const handleSubscriptionStateChanged = (event: Event) => {
+      const customEvent = event as CustomEvent<{
+        isActive?: boolean;
+        reason?: string;
+        status?: string;
+        endDate?: string | null;
+      }>;
+
+      const detail = customEvent.detail;
+      if (!detail || detail.isActive !== false) {
+        return;
+      }
+
+      setSession((prevSession) => {
+        if (!prevSession?.tenant) {
+          return prevSession;
+        }
+
+        return {
+          ...prevSession,
+          tenant: {
+            ...prevSession.tenant,
+            subscriptionData: {
+              ...(prevSession.tenant.subscriptionData || {
+                id: "",
+                tenantId: prevSession.tenant.id,
+                subscriptionPlanId: "",
+                planName: prevSession.tenant.subscription?.planName || "",
+                startDate: prevSession.tenant.subscription?.startDate || "",
+                endDate: prevSession.tenant.subscription?.endDate || "",
+                status: "EXPIRED",
+              }),
+              status: String(detail.status || "EXPIRED").toUpperCase(),
+              endDate: detail.endDate ?? prevSession.tenant.subscriptionData?.endDate ?? prevSession.tenant.subscription?.endDate ?? null,
+            },
+          },
+        };
+      });
+    };
+
     window.addEventListener(AUTH_UNAUTHORIZED_EVENT, handleUnauthorized);
+    window.addEventListener(SUBSCRIPTION_STATE_CHANGED_EVENT, handleSubscriptionStateChanged as EventListener);
 
     return () => {
       window.removeEventListener(AUTH_UNAUTHORIZED_EVENT, handleUnauthorized);
+      window.removeEventListener(SUBSCRIPTION_STATE_CHANGED_EVENT, handleSubscriptionStateChanged as EventListener);
     };
   }, [clearSession]);
 

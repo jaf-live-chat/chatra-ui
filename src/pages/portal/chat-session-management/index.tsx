@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
 import { History, MessagesSquare } from "lucide-react";
 import { HistoryEntry, SubTab } from "../../../models/ChatSessionManagementModel";
@@ -11,6 +11,8 @@ import { useGetActiveLiveChat, useGetLiveChatHistory } from "../../../hooks/useL
 import { LiveChatConversation, LiveChatQueueEntry, LiveChatMessage } from "../../../models/LiveChatModel";
 import useAuth from "../../../hooks/useAuth";
 import { useStaffLiveChat } from "../../../hooks/useStaffLiveChat";
+import useSubscriptionAccess from "../../../hooks/useSubscriptionAccess";
+import InactiveSubscriptionNotice from "../../../components/common/InactiveSubscriptionNotice";
 
 const subTabs: { key: SubTab; label: string; icon: React.ReactNode }[] = [
   { key: "active-chats", label: "Active Chats", icon: <MessagesSquare className="w-4 h-4" /> },
@@ -54,9 +56,16 @@ const ChatSessionManagementPage = () => {
 
   const { isDark } = useDarkMode();
   const { tenant, user } = useAuth();
+  const subscriptionAccess = useSubscriptionAccess();
   const { queue, mutate: mutateQueue } = useGetActiveLiveChat({ page: 1, limit: 100 });
   const { conversations: historyConversations, mutate: mutateHistory } = useGetLiveChatHistory({ page: 1, limit: 100 });
   const currentUserId = String(user?._id || "").trim();
+
+  useEffect(() => {
+    if (!subscriptionAccess.isActive) {
+      setActiveSubTab("chat-history");
+    }
+  }, [subscriptionAccess.isActive]);
 
   const assignedQueue = useMemo(() => {
     if (!currentUserId) {
@@ -213,27 +222,29 @@ const ChatSessionManagementPage = () => {
               icon={<MessagesSquare className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />}
             />
             <div className="flex gap-1 w-full sm:w-auto">
-              {subTabs.map((tab) => (
-                <button
-                  key={tab.key}
-                  onClick={() => {
-                    setActiveSubTab(tab.key);
-                    setSearchQuery("");
-                  }}
-                  className={`flex items-center justify-center gap-2 px-3 sm:px-4 py-2 text-sm font-medium rounded-lg transition-colors cursor-pointer flex-1 sm:flex-none ${activeSubTab === tab.key
-                    ? "bg-cyan-50 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-400"
-                    : "text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-700"
-                    }`}
-                >
-                  {tab.icon}
-                  <span className="hidden sm:inline">{tab.label}</span>
-                  {tab.key === "active-chats" && activeChatsBadgeCount > 0 && (
-                    <span className="ml-1 w-5 h-5 rounded-full bg-cyan-600 text-white text-[11px] flex items-center justify-center">
-                      {activeChatsBadgeCount}
-                    </span>
-                  )}
-                </button>
-              ))}
+              {subTabs
+                .filter((tab) => subscriptionAccess.isActive || tab.key === "chat-history")
+                .map((tab) => (
+                  <button
+                    key={tab.key}
+                    onClick={() => {
+                      setActiveSubTab(tab.key);
+                      setSearchQuery("");
+                    }}
+                    className={`flex items-center justify-center gap-2 px-3 sm:px-4 py-2 text-sm font-medium rounded-lg transition-colors cursor-pointer flex-1 sm:flex-none ${activeSubTab === tab.key
+                      ? "bg-cyan-50 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-400"
+                      : "text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-700"
+                      }`}
+                  >
+                    {tab.icon}
+                    <span className="hidden sm:inline">{tab.label}</span>
+                    {tab.key === "active-chats" && activeChatsBadgeCount > 0 && (
+                      <span className="ml-1 w-5 h-5 rounded-full bg-cyan-600 text-white text-[11px] flex items-center justify-center">
+                        {activeChatsBadgeCount}
+                      </span>
+                    )}
+                  </button>
+                ))}
             </div>
           </div>
         </div>
@@ -241,7 +252,17 @@ const ChatSessionManagementPage = () => {
         {/* Content */}
         <div className="flex-1 overflow-hidden">
           {activeSubTab === "active-chats" ? (
-            <ChatActiveSection queue={assignedQueue} mutateQueue={mutateQueue} searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
+            subscriptionAccess.isActive ? (
+              <ChatActiveSection queue={assignedQueue} mutateQueue={mutateQueue} searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
+            ) : (
+              <div className="max-w-7xl mx-auto px-3 sm:px-6 py-6 sm:py-8">
+                <InactiveSubscriptionNotice
+                  title="Active Chat Is Disabled"
+                  description="Your subscription is inactive. You can still browse chat history and transcripts."
+                  reason={subscriptionAccess.reason}
+                />
+              </div>
+            )
           ) : (
             <div className="max-w-7xl mx-auto px-3 sm:px-6 py-6 sm:py-8">
               {activeSubTab === "chat-history" && (
