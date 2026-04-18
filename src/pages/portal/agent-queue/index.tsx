@@ -59,8 +59,8 @@ const AgentQueuePage = () => {
       const agent = isAgentObject(entry.agentId) ? entry.agentId : null;
       const conversationId = conversation?._id || String(entry.conversationId || entry._id);
       const visitorLabel = visitor?.name || (visitor?.visitorToken ? `Visitor ${String(visitor.visitorToken).slice(-4)}` : "Website Visitor");
-      const locationCity = conversation?.locationCity || visitor?.locationCity || "Unknown";
-      const locationCountry = conversation?.locationCountry || visitor?.locationCountry || "Unknown";
+      const locationCity = conversation?.locationCity || visitor?.locationCity || "";
+      const locationCountry = conversation?.locationCountry || visitor?.locationCountry || "";
       const normalizedAgentId = agent?._id || (typeof entry.agentId === "string" ? entry.agentId : null);
       const agentName = agent?.fullName || "";
       const agentDisplayName = agent?.displayName || (agentName && normalizedAgentId ? `${agentName} (${normalizedAgentId})` : agentName);

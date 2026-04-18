@@ -237,8 +237,12 @@ const VisitorDetailsSection = () => {
       return country;
     }
 
-    return "Unknown";
-  }, [visitor?.locationCity, visitor?.locationCountry]);
+    if (visitor?.locationConsent === true) {
+      return "Location not resolved yet";
+    }
+
+    return "Not granted";
+  }, [visitor?.locationCity, visitor?.locationConsent, visitor?.locationCountry]);
 
   const stats = useMemo(() => {
     const totalConversations = conversations.length;
@@ -390,7 +394,7 @@ const VisitorDetailsSection = () => {
           variant="outlined"
           startIcon={<ArrowLeft size={16} />}
           onClick={() => navigate("/portal/visitors")}
-          sx={{ textTransform: "none", fontWeight: 700, borderRadius: 1}}
+          sx={{ textTransform: "none", fontWeight: 700, borderRadius: 1 }}
         >
           Back to Visitors
         </Button>
@@ -413,7 +417,7 @@ const VisitorDetailsSection = () => {
         {isLoading && !visitor ? (
           <Stack direction="row" spacing={1} alignItems="center">
             <CircularProgress size={18} />
-            <Typography variant="body2" sx={{ color: "text.secondary" }}>       
+            <Typography variant="body2" sx={{ color: "text.secondary" }}>
               Loading visitor profile...
             </Typography>
           </Stack>
@@ -618,8 +622,8 @@ const VisitorDetailsSection = () => {
           ) : null}
 
           {!isMessagesLoading &&
-          !messagesError &&
-          messages.length === 0 ? (
+            !messagesError &&
+            messages.length === 0 ? (
             <Box sx={{ p: 3 }}>
               <Typography
                 variant="body2"
@@ -631,8 +635,8 @@ const VisitorDetailsSection = () => {
           ) : null}
 
           {!isMessagesLoading &&
-          !messagesError &&
-          messages.length > 0 ? (
+            !messagesError &&
+            messages.length > 0 ? (
             <ChatTranscript
               chatId={messageDialog?.title || "CHAT_UNKNOWN"}
               status={resolveTranscriptStatus(selectedConversation?.status)}

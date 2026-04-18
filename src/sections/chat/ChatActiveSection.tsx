@@ -610,7 +610,7 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
       return "Location not resolved yet";
     }
 
-    return "Location unavailable";
+    return "Not granted";
   }, [selectedChat?.country, selectedChat?.location, selectedChat?.locationConsent]);
   const latestAgentMessageId = useMemo(() => {
     const latestMessage = [...(selectedChat?.messages || [])].reverse().find((message) => message.sender === "agent");
@@ -1496,13 +1496,13 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
                       <div className="flex items-center justify-between gap-3">
                         <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider">Visitor Map</p>
                         <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${selectedChat.locationConsent === true ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300" : "bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-300"}`}>
-                          {selectedChat.locationConsent === true ? "Consent granted" : selectedChat.locationConsent === false ? "Consent denied" : "Consent unavailable"}
+                          {selectedChat.locationConsent === true ? "Consent granted" : "Not granted"}
                         </span>
                       </div>
 
                       {selectedChat.locationConsent === false ? (
                         <div className="rounded-xl border border-dashed border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900/40 p-3 text-xs text-gray-500 dark:text-slate-400">
-                          Location not permitted by the visitor.
+                          Location permission not granted.
                         </div>
                       ) : selectedChat.locationConsent === true && visitorMapEmbedUrl ? (
                         <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900/40">
@@ -1519,7 +1519,7 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
                         </div>
                       ) : (
                         <div className="rounded-xl border border-dashed border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900/40 p-3 text-xs text-gray-500 dark:text-slate-400">
-                          {selectedChat.locationConsent === true ? "Location was granted but no map-ready location was resolved." : "Location permission unavailable for map plotting."}
+                          {selectedChat.locationConsent === true ? "Location was granted but no map-ready location was resolved." : "Location permission not granted."}
                         </div>
                       )}
                     </div>

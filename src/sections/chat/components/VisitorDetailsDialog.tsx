@@ -109,9 +109,15 @@ const VisitorDetailsDialog = ({
   }, [open, visitor?.conversationId]);
 
   const location = useMemo(() => {
-    const city = visitor?.location || "Unknown";
-    const country = visitor?.country || "Unknown";
-    return `${city}, ${country}`;
+    const city = String(visitor?.location || "").trim();
+    const country = String(visitor?.country || "").trim();
+    const parts = [city, country].filter(Boolean);
+
+    if (parts.length > 0) {
+      return parts.join(", ");
+    }
+
+    return "Not granted";
   }, [visitor?.country, visitor?.location]);
 
   const isWaitingVisitor = visitor?.status === "Waiting";

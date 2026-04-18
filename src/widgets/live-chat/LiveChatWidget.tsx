@@ -630,6 +630,8 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
         return null;
       }
 
+      const hasGrantedLocationConsent = locationPermissionState === "granted";
+
       const response: LiveChatStartConversationResponse = await liveChatWidgetServices.startConversation(
         widgetConfig,
         visitorToken,
@@ -637,10 +639,10 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
           fullName: preChatFullName.trim(),
           emailAddress: sanitizedEmail,
           phoneNumber: preChatPhoneNumber.trim(),
-          ipAddressConsent: locationPermissionState === "granted" && Boolean(browserLocation),
-          locationConsent: locationPermissionState === "granted" && Boolean(browserLocation),
-          browserLatitude: locationPermissionState === "granted" ? browserLocation?.latitude : undefined,
-          browserLongitude: locationPermissionState === "granted" ? browserLocation?.longitude : undefined,
+          ipAddressConsent: hasGrantedLocationConsent,
+          locationConsent: hasGrantedLocationConsent,
+          browserLatitude: hasGrantedLocationConsent ? browserLocation?.latitude : undefined,
+          browserLongitude: hasGrantedLocationConsent ? browserLocation?.longitude : undefined,
         },
       );
 

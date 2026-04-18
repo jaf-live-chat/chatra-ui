@@ -224,7 +224,7 @@ const ChatPanel = ({
                     ? "Location access enabled for this session."
                     : browserLocationStatus === "resolving"
                       ? "Requesting location permission..."
-                      : "Location access is off. Chat will continue without location data."}
+                      : "Location permission not granted."}
                 </p>
               </div>
             ) : null}

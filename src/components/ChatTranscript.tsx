@@ -95,6 +95,8 @@ const exportTranscriptPDF = async (
   companyName: string,
   companyLogoUrl?: string
 ) => {
+  const resolvedVisitorLocation = String(visitorLocation || "").trim() || "Not granted";
+
   try {
     // Dynamic import for jsPDF
     const jsPDF = (await import("jspdf")).jsPDF;
@@ -159,7 +161,7 @@ const exportTranscriptPDF = async (
     doc.text(`Visitor: ${visitorName}`, margin, yPosition);
     yPosition += 4;
 
-    doc.text(`Location: ${visitorLocation || ""}`, margin, yPosition);
+    doc.text(`Location: ${resolvedVisitorLocation}`, margin, yPosition);
     yPosition += 4;
 
     doc.text(`Agent: ${agentName}`, margin, yPosition);
@@ -228,7 +230,7 @@ const exportTranscriptPDF = async (
     content += `${companyName || "JAF Chatra"}\n`;
     content += `Chat ID: ${chatId}\n`;
     content += `Visitor: ${visitorName}\n`;
-    content += `Location: ${visitorLocation || "Unknown"}\n`;
+    content += `Location: ${resolvedVisitorLocation}\n`;
     content += `Agent: ${agentName}\n`;
     content += `Date: ${formatDate(startDate)}\n`;
     content += `${"=".repeat(60)}\n\n`;
@@ -267,6 +269,8 @@ const ChatTranscript = ({
   onExport,
   onClose,
 }: ChatTranscriptProps) => {
+  const resolvedVisitorLocation = String(visitorLocation || "").trim() || "Not granted";
+
   const handleExport = () => {
     if (onExport) {
       onExport();
@@ -274,7 +278,7 @@ const ChatTranscript = ({
       exportTranscriptPDF(
         chatId,
         visitorName,
-        visitorLocation,
+        resolvedVisitorLocation,
         agentName,
         messages,
         startDate,
@@ -365,24 +369,22 @@ const ChatTranscript = ({
                 }}
               />
             </Box>
-            {visitorLocation && (
-              <Stack direction="row" spacing={0.5} alignItems="center" sx={{ minWidth: 0 }}>
-                <MapPin size={12} color="#6B7280" />
-                <Typography
-                  variant="caption"
-                  sx={{
-                    color: "#6B7280",
-                    fontWeight: 500,
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                    maxWidth: { xs: "170px", sm: "260px" },
-                  }}
-                >
-                  {visitorLocation}
-                </Typography>
-              </Stack>
-            )}
+            <Stack direction="row" spacing={0.5} alignItems="center" sx={{ minWidth: 0 }}>
+              <MapPin size={12} color="#6B7280" />
+              <Typography
+                variant="caption"
+                sx={{
+                  color: "#6B7280",
+                  fontWeight: 500,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  maxWidth: { xs: "170px", sm: "260px" },
+                }}
+              >
+                {resolvedVisitorLocation}
+              </Typography>
+            </Stack>
           </Stack>
         </Stack>
 

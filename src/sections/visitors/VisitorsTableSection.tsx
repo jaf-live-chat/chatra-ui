@@ -63,7 +63,11 @@ const resolveLocation = (visitor: PortalVisitor) => {
     return country;
   }
 
-  return "Unknown";
+  if (visitor.locationConsent === true) {
+    return "Location not resolved yet";
+  }
+
+  return "Not granted";
 };
 
 const VisitorsTableSection = () => {
