@@ -34,6 +34,7 @@ import {
   getDefaultWelcomeMessage,
   getDefaultWidgetTitle,
   getErrorMessage,
+  isSubscriptionInactiveError,
   getNextOrderedTimestamp,
   getResolvedConfig,
   getVisitorToken,
@@ -165,6 +166,8 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
   const accentShadow = `0 16px 34px -16px ${resolvedAccent}`;
   const hasRuntimeError = Boolean(errorMessage.trim());
   const isInvalidApiKeyError = /invalid\s+api\s+key/i.test(errorMessage);
+  const isSubscriptionInactiveRuntimeError = /subscription\s+is\s+currently\s+unavailable|subscription\s+is\s+inactive|subscription\s+is\s+inactive\s+or\s+expired/i.test(errorMessage);
+  const isWidgetInteractionLocked = isSubscriptionInactiveRuntimeError;
   const isActionBlocked = !hasApiKey || hasRuntimeError || isLoading || isSending;
   const hasEndedConversation = useMemo(() => {
     if (conversationId) {
@@ -197,10 +200,16 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
     : "This widget is not configured correctly. Missing apiKey.";
   const displayErrorTitle = isInvalidApiKeyError
     ? "Invalid API key"
-    : !hasApiKey
-      ? "Configuration required"
-      : "Live chat unavailable";
+    : isSubscriptionInactiveRuntimeError
+      ? "Live chat unavailable"
+      : !hasApiKey
+        ? "Configuration required"
+        : "Live chat unavailable";
   const statusLabel = useMemo(() => {
+    if (isWidgetInteractionLocked) {
+      return "Unavailable";
+    }
+
     switch (socketStatus) {
       case "connected":
         return "Online";
@@ -215,7 +224,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
       default:
         return "Support";
     }
-  }, [socketStatus]);
+  }, [isWidgetInteractionLocked, socketStatus]);
   const welcomeTitleMessage = isReturningVisitor
     ? `Welcome back${returningVisitorName ? `, ${returningVisitorName}` : ""}.`
     : welcomeMessage;
@@ -513,6 +522,7 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
     setConversationId,
     setErrorMessage,
     getErrorMessage,
+    isSubscriptionInactiveError,
     setWidgetConfig,
     setQuickMessages,
     setHistoryConversations,
@@ -1825,6 +1835,17 @@ const LiveChatWidget = ({ initialConfig = {} }: LiveChatWidgetProps) => {
               void submitPostChatFeedback();
             }}
           />
+
+          {isWidgetInteractionLocked ? (
+            <div className="absolute inset-0 z-[80] flex items-center justify-center bg-slate-900/25 backdrop-blur-[1.5px]">
+              <div className={`mx-5 w-full max-w-[320px] rounded-2xl border px-4 py-4 text-center ${theme.settingsCard}`}>
+                <p className={`text-sm font-semibold ${theme.settingsText}`}>Live chat unavailable</p>
+                <p className={`mt-1 text-xs leading-relaxed ${theme.settingsMuted}`}>
+                  This chat is temporarily unavailable because the subscription is inactive.
+                </p>
+              </div>
+            </div>
+          ) : null}
         </div>
       ) : null}
 

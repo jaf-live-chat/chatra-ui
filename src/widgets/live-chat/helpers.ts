@@ -137,6 +137,10 @@ export const resolveConversationIdFromAssignedEvent = (payload: LiveChatStartCon
 };
 
 export const getErrorMessage = (error: unknown) => {
+  if (isSubscriptionInactiveError(error)) {
+    return "Live chat is currently unavailable because the subscription is inactive.";
+  }
+
   const responseMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
 
   if (typeof responseMessage === "string" && responseMessage.trim()) {
@@ -148,6 +152,18 @@ export const getErrorMessage = (error: unknown) => {
   }
 
   return "Unable to load live chat.";
+};
+
+export const isSubscriptionInactiveError = (error: unknown) => {
+  const statusCode = Number((error as { response?: { status?: number } })?.response?.status || 0);
+  const code = String((error as { response?: { data?: { code?: string } } })?.response?.data?.code || "").toUpperCase();
+  const message = String((error as { response?: { data?: { message?: string } } })?.response?.data?.message || "").toLowerCase();
+
+  if (code === "SUBSCRIPTION_INACTIVE") {
+    return true;
+  }
+
+  return statusCode === 403 && message.includes("subscription") && message.includes("inactive");
 };
 
 export const isConversationNotFoundError = (error: unknown) => {

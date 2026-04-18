@@ -26,6 +26,7 @@ type UseWidgetDataSyncParams = {
   setConversationId: Dispatch<SetStateAction<string>>;
   setErrorMessage: Dispatch<SetStateAction<string>>;
   getErrorMessage: (error: unknown) => string;
+  isSubscriptionInactiveError: (error: unknown) => boolean;
   setWidgetConfig: Dispatch<SetStateAction<LiveChatWidgetConfig>>;
   setQuickMessages: Dispatch<SetStateAction<QuickMessage[]>>;
   setHistoryConversations: Dispatch<SetStateAction<LiveChatConversation[]>>;
@@ -60,6 +61,7 @@ export const useWidgetDataSync = ({
   setConversationId,
   setErrorMessage,
   getErrorMessage,
+  isSubscriptionInactiveError,
   setWidgetConfig,
   setQuickMessages,
   setHistoryConversations,
@@ -176,8 +178,10 @@ export const useWidgetDataSync = ({
             accentColor: nextAccentColor || currentConfig.accentColor,
           };
         });
-      } catch {
-        // Keep chat usable even when widget settings fail to load.
+      } catch (error) {
+        if (isSubscriptionInactiveError(error)) {
+          setErrorMessage(getErrorMessage(error));
+        }
       } finally {
         hasLoadedWidgetSettingsRef.current = true;
         widgetSettingsRequestRef.current = null;
@@ -209,7 +213,11 @@ export const useWidgetDataSync = ({
         });
 
         setQuickMessages(response.quickMessages || []);
-      } catch {
+      } catch (error) {
+        if (isSubscriptionInactiveError(error)) {
+          setErrorMessage(getErrorMessage(error));
+        }
+
         setQuickMessages([]);
       } finally {
         hasLoadedQuickMessagesRef.current = true;
@@ -251,7 +259,11 @@ export const useWidgetDataSync = ({
         setHistoryCount(response.historyCount || 0);
         setIsReturningVisitor(Boolean(response.isReturningVisitor));
         setReturningVisitorName(String(response.visitor?.name || response.visitor?.fullName || "").trim());
-      } catch {
+      } catch (error) {
+        if (isSubscriptionInactiveError(error)) {
+          setErrorMessage(getErrorMessage(error));
+        }
+
         setHistoryConversations([]);
         setHistoryCount(0);
         setHistoryError("Unable to load chat history.");
@@ -286,8 +298,10 @@ export const useWidgetDataSync = ({
         setPreChatFullName(String(visitor?.name || visitor?.fullName || ""));
         setPreChatEmailAddress(String(visitor?.emailAddress || ""));
         setPreChatPhoneNumber(String(visitor?.phoneNumber || ""));
-      } catch {
-        // Keep widget usable even if profile fetch fails.
+      } catch (error) {
+        if (isSubscriptionInactiveError(error)) {
+          setErrorMessage(getErrorMessage(error));
+        }
       } finally {
         hasLoadedProfileRef.current = true;
         profileRequestRef.current = null;
@@ -323,13 +337,17 @@ export const useWidgetDataSync = ({
 
       setHistoryMessages(normalizeMessages(response.messages));
       setHistoryError("");
-    } catch {
+    } catch (error) {
+      if (isSubscriptionInactiveError(error)) {
+        setErrorMessage(getErrorMessage(error));
+      }
+
       setHistoryMessages([]);
       setHistoryError("Unable to load transcript.");
     } finally {
       setIsHistoryTranscriptLoading(false);
     }
-  }, [hasApiKey, setHistoryError, setHistoryMessages, setIsHistoryTranscriptLoading, visitorToken, widgetConfig]);
+  }, [getErrorMessage, hasApiKey, isSubscriptionInactiveError, setErrorMessage, setHistoryError, setHistoryMessages, setIsHistoryTranscriptLoading, visitorToken, widgetConfig]);
 
   return {
     syncMessages,
