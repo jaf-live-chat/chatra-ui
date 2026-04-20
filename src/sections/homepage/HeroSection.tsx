@@ -36,9 +36,9 @@ const HeroSection = () => {
 
   return (
     <section
-      className="min-h-screen flex items-center pt-16"
+      className="min-h-screen flex items-center pt-16 relative"
       style={{
-        background: "linear-gradient(90deg, #e0f2fe 0%, #ffffff 50%, #e0f2fe 100%)",
+        background: "linear-gradient(180deg, rgba(255,255,255,0) 85%, #ffffff 100%), linear-gradient(90deg, #e0f2fe 0%, #ffffff 50%, #e0f2fe 100%)",
       }}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-20 w-full">

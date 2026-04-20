@@ -219,51 +219,59 @@ const PricingSection = () => {
     <Box
       component="section"
       sx={{
-        py: { xs: 8, md: 12 },
+        pt: { xs: 16, md: 24 },
+        pb: { xs: 8, md: 12 },
         background: "linear-gradient(180deg, #F0F9FFFF 0%, #FFFFFFFF 100%)",
         fontFamily: "Inter, sans-serif",
       }}
     >
       <Container maxWidth="lg">
         {/* Header */}
-        <Box sx={{ textAlign: "center", mb: { xs: 8, md: 10 }, maxWidth: "800px", mx: "auto" }}>
-          <Typography
-            variant="h2"
-            sx={{
-              color: navyColor,
-              fontWeight: 800,
-              fontSize: { xs: "2.5rem", md: "3.5rem" },
-              letterSpacing: "-0.02em",
-              mb: 2,
-              fontFamily: "inherit",
-            }}
-          >
-            Simple, transparent pricing
-          </Typography>
-          <Typography
-            sx={{
-              color: "#6B7280FF",
-              fontSize: { xs: "1rem", md: "1.25rem" },
-              fontFamily: "inherit",
-            }}
-          >
-            Start for free, upgrade when you need more power. No hidden fees.
-          </Typography>
-
-          {comparisonPlans.length > 0 && (
-            <Button
-              disableElevation
-              onClick={() => setComparisonOpen(true)}
-              variant="outlined"
-              endIcon={<ChevronDown size={16} />}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.2 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+        >
+          <Box sx={{ textAlign: "center", mb: { xs: 8, md: 10 }, maxWidth: "800px", mx: "auto" }}>
+            <Typography
+              variant="h2"
               sx={{
-                mt: 5,
+                color: navyColor,
+                fontWeight: 800,
+                fontSize: { xs: "2.5rem", md: "3.5rem" },
+                letterSpacing: "-0.02em",
+                mb: 2,
+                fontFamily: "inherit",
               }}
             >
-              Compare features across plans
-            </Button>
-          )}
-        </Box>
+              Simple, transparent pricing
+            </Typography>
+            <Typography
+              sx={{
+                color: "#6B7280FF",
+                fontSize: { xs: "1rem", md: "1.25rem" },
+                fontFamily: "inherit",
+              }}
+            >
+              Start for free, upgrade when you need more power. No hidden fees.
+            </Typography>
+
+            {comparisonPlans.length > 0 && (
+              <Button
+                disableElevation
+                onClick={() => setComparisonOpen(true)}
+                variant="outlined"
+                endIcon={<ChevronDown size={16} />}
+                sx={{
+                  mt: 5,
+                }}
+              >
+                Compare features across plans
+              </Button>
+            )}
+          </Box>
+        </motion.div>
 
         {/* Pricing Cards */}
         {isLoading && (
@@ -273,7 +281,7 @@ const PricingSection = () => {
         )}
 
         <Grid container spacing={4} sx={{ alignItems: "stretch" }}>
-          {plans.map((plan) => {
+          {plans.map((plan, index) => {
             const isPro = plan.popular;
             const cardBg = isPro ? navyColor : "#FFFFFFFF";
             const textColor = isPro ? "#FFFFFFFF" : navyColor;
@@ -287,26 +295,33 @@ const PricingSection = () => {
 
             return (
               <Grid size={{ xs: 12, md: 4 }} key={plan.name}>
-                <Box
-                  sx={{
-                    position: "relative",
-                    bgcolor: cardBg,
-                    borderRadius: "24px",
-                    p: { xs: 4, md: 5 },
-                    pt: isPro ? { xs: 6.5, md: 7 } : { xs: 4, md: 5 },
-                    height: "100%",
-                    display: "flex",
-                    flexDirection: "column",
-                    boxShadow: isPro ? "0 28px 55px #0A192F59" : "0 14px 36px #0F172A14",
-                    border: isPro ? "1px solid transparent" : "1px solid #E2E8F0FF",
-                    overflow: "hidden",
-                    transition: "transform .25s ease, box-shadow .25s ease",
-                    "&:hover": {
-                      transform: "translateY(-6px)",
-                      boxShadow: isPro ? "0 34px 64px #0A192F75" : "0 20px 48px #0F172A1F",
-                    },
-                  }}
+                <motion.div
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, amount: 0.1 }}
+                  transition={{ duration: 0.5, delay: index * 0.15, ease: "easeOut" }}
+                  style={{ height: "100%" }}
                 >
+                  <Box
+                    sx={{
+                      position: "relative",
+                      bgcolor: cardBg,
+                      borderRadius: "24px",
+                      p: { xs: 4, md: 5 },
+                      pt: isPro ? { xs: 6.5, md: 7 } : { xs: 4, md: 5 },
+                      height: "100%",
+                      display: "flex",
+                      flexDirection: "column",
+                      boxShadow: isPro ? "0 28px 55px #0A192F59" : "0 14px 36px #0F172A14",
+                      border: isPro ? "1px solid transparent" : "1px solid #E2E8F0FF",
+                      overflow: "hidden",
+                      transition: "transform .25s ease, box-shadow .25s ease",
+                      "&:hover": {
+                        transform: "translateY(-6px)",
+                        boxShadow: isPro ? "0 34px 64px #0A192F75" : "0 20px 48px #0F172A1F",
+                      },
+                    }}
+                  >
                   <Box
                     sx={{
                       position: "absolute",
@@ -509,6 +524,7 @@ const PricingSection = () => {
                     </Box>
                   </Box>
                 </Box>
+                </motion.div>
               </Grid>
             );
           })}

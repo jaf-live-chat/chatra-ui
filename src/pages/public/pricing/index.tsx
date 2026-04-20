@@ -19,7 +19,7 @@ const PricingPage = () => {
       />
       <div className="min-h-screen" style={{ fontFamily: "Inter, sans-serif" }}>
         <Navbar />
-        <main className="pt-16">
+        <main>
           <PricingSection />
         </main>
         <Footer />

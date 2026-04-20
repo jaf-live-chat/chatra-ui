@@ -211,14 +211,6 @@ const CTASection = () => {
           </p>
         </motion.div>
       </div>
-
-      {/* Bottom wave */}
-      <svg className="absolute bottom-0 left-0 z-10 w-full h-[88px]" viewBox="0 0 1440 120" preserveAspectRatio="none" aria-hidden="true">
-        <path
-          d="M0,74 C250,118 470,16 720,30 C980,44 1170,120 1440,78 L1440,120 L0,120 Z"
-          fill="#f8fafc"
-        />
-      </svg>
     </section>
   );
 }

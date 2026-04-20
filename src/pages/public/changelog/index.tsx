@@ -47,9 +47,9 @@ const ChangelogPage = () => {
         canonical="/portal/changelog"
 
       />
-      <Navbar />
-      <Box sx={{ pt: { xs: 12, md: 16 }, pb: 12, bgcolor: "#F8FAFCFF", minHeight: "100vh" }}>
-        <Box sx={{ bgcolor: "#0A192FFF", color: "#FFFFFFFF", py: { xs: 8, md: 12 }, textAlign: "center", borderBottom: "1px solid #1E293BFF" }}>
+      <Navbar isDarkBackground />
+      <Box sx={{ pb: 12, bgcolor: "#F8FAFCFF", minHeight: "100vh" }}>
+        <Box sx={{ bgcolor: "#0A192FFF", color: "#FFFFFFFF", pt: { xs: 16, md: 20 }, pb: { xs: 8, md: 12 }, textAlign: "center", borderBottom: "1px solid #1E293BFF" }}>
           <Container maxWidth="md">
             <Typography variant="h2" sx={{ fontWeight: 800, mb: 3, fontFamily: "Inter, sans-serif" }}>
               Changelog

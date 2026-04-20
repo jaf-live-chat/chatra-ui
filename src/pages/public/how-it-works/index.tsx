@@ -27,7 +27,7 @@ const HowItWorksPage = () => {
   return (
     <div className="min-h-screen bg-white">
       <Navbar />
-      <div className="pt-16">
+      <div>
         <HowItWorksSection />
 
         {/* Benefits */}

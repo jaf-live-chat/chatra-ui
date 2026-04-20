@@ -2,56 +2,120 @@ import { motion } from "motion/react";
 
 const TrustedBySection = () => {
   const companies = [
-    { name: "TechNova", icon: "🔷" },
-    { name: "CloudBase", icon: "☁️" },
-    { name: "Streamly", icon: "⚡" },
-    { name: "Growthify", icon: "📈" },
-    { name: "Nextera", icon: "🔵" },
-    { name: "LaunchPad", icon: "🚀" },
+    {
+      name: "Google",
+      hoverClass: "hover:text-[#4285F4] hover:drop-shadow-[0_0_12px_rgba(66,133,244,0.6)]",
+      svg: (
+        <svg viewBox="0 0 90 30" width="100%" height="100%" fill="currentColor">
+          <path d="M11.6,23.3C5.1,23.3,0,18.3,0,11.7C0,5.1,5.1,0,11.6,0c6.4,0,11.5,4.9,11.5,11.7c0,0.3,0,0.6,0,0.9H2.3   c0.2,4.8,4.1,8.5,9.2,8.5c3.6,0,6.5-2,7.9-5l1.9,1C19.7,21.1,16,23.3,11.6,23.3z M11.5,2.1c-3.9,0-7.3,2.8-8.6,6.6h17.3   C19.8,4.7,16.2,2.1,11.5,2.1z" />
+          <path d="M26.2,23V1.1h2.2v21.9H26.2z" />
+          <path d="M37.9,23.3c-5.4,0-9.6-4.1-9.6-9.6c0-5.5,4.1-9.6,9.6-9.6c5.5,0,9.6,4.2,9.6,9.6C47.4,19.2,43.3,23.3,37.9,23.3z    M37.9,6.2c-4.2,0-7.4,3.2-7.4,7.4c0,4.2,3.2,7.4,7.4,7.4c4.2,0,7.4-3.2,7.4-7.4C45.3,9.4,42.1,6.2,37.9,6.2z" />
+          <path d="M54.1,23.3c-5.4,0-9.6-4.1-9.6-9.6c0-5.5,4.1-9.6,9.6-9.6c5.5,0,9.6,4.2,9.6,9.6C63.6,19.2,59.5,23.3,54.1,23.3z    M54.1,6.2c-4.2,0-7.4,3.2-7.4,7.4c0,4.2,3.2,7.4,7.4,7.4c4.2,0,7.4-3.2,7.4-7.4C61.5,9.4,58.3,6.2,54.1,6.2z" />
+          <path d="M72.2,23.3c-4.4,0-8.2-2.7-9.5-6.8l2-0.8c1,3.1,4,5.3,7.5,5.3c4.1,0,7.3-3.1,7.3-7.5v-1c-1.3,1.4-3.4,2.3-5.6,2.3   c-4.7,0-8.6-3.8-8.6-8.7C65.3,1.8,69.5,0,74.1,0c2.4,0,4.4,1,5.6,2.5v-2h2.2v14.4C81.9,19.5,77.5,23.3,72.2,23.3z M74.1,2.1   c-3.8,0-7,3.1-7,7.1c0,4.1,3.1,7.2,7,7.2c3.8,0,7-3.1,7-7.2C81.1,5.2,77.9,2.1,74.1,2.1z" />
+          <path d="M86.8,23.3c-3.8,0-7.2-2.3-8.5-5.8l2-0.8c1.1,2.5,3.6,4.3,6.5,4.3c4,0,7-3.1,7-7v-1.1c-1.3,1.6-3.3,2.5-5.6,2.5   c-4.7,0-8.6-3.8-8.6-8.7c0-4.6,3.8-8.6,8.6-8.6c2.3,0,4.4,0.9,5.6,2.5v-2.1H96V15C96,19.6,92.1,23.3,86.8,23.3z M88.1,2.1   c-3.7,0-6.9,3.1-6.9,7.1s3.1,7.2,6.9,7.2c3.7,0,6.9-3.1,6.9-7.2S91.8,2.1,88.1,2.1z" />
+        </svg>
+      )
+    },
+    {
+      name: "Spotify",
+      hoverClass: "hover:text-[#1DB954] hover:drop-shadow-[0_0_12px_rgba(29,185,84,0.6)]",
+      svg: (
+        <svg viewBox="0 0 100 30" width="100%" height="100%" fill="currentColor">
+          <path d="M15,0C6.7,0,0,6.7,0,15s6.7,15,15,15s15-6.7,15-15C30,6.7,23.3,0,15,0z M21.8,21.6c-0.3,0.4-0.8,0.5-1.2,0.3   c-3.3-2-7.5-2.5-12.4-1.3c-0.5,0.1-0.9-0.2-1-0.7c-0.1-0.5,0.2-0.9,0.7-1c5.3-1.3,9.9-0.7,13.6,1.5C21.8,20.6,22,21.1,21.8,21.6z    M23.6,17.5c-0.3,0.5-1,0.7-1.5,0.4C18.3,15.6,11.8,15,7.1,16.4c-0.6,0.2-1.2-0.1-1.4-0.7C5.5,15,5.9,14.4,6.5,14.3   c5.4-1.6,12.5-0.9,16.8,1.7C23.7,16.3,23.9,17,23.6,17.5z M23.8,13.2c-4.7-2.8-12.4-3.1-16.9-1.7C6.1,11.7,5.3,11.2,5,10.4   s0.5-1.7,1.3-1.9c5.3-1.6,13.8-1.2,19.3,2.1c0.7,0.4,1,1.4,0.5,2.1C25.7,13.4,24.6,13.6,23.8,13.2z" />
+          <path d="M43.9,20.3c3.4,0,6.1-2.2,6.1-5.3c0-3-2.1-4.8-5.3-4.8c-1.5,0-3,0.6-4,1.8v-1.6h-2.9v14.4h2.9V18c0.9,1.4,2.5,2.3,4.4,2.3   C45.1,20.3,43.9,20.3,43.9,20.3z M43.5,12.7c1.7,0,3.2,1.3,3.2,3.1c0,1.8-1.4,3.1-3.2,3.1c-1.8,0-3.3-1.3-3.3-3.1   S41.7,12.7,43.5,12.7z" />
+          <path d="M57.6,20.3c3.4,0,6.1-2.7,6.1-6c0-3.3-2.7-6-6.1-6c-3.4,0-6.1,2.7-6.1,6C51.6,17.6,54.3,20.3,57.6,20.3z M57.6,10.8   c1.8,0,3.3,1.3,3.3,3.5c0,2.1-1.5,3.5-3.3,3.5c-1.8,0-3.3-1.3-3.3-3.5C54.4,12.2,55.8,10.8,57.6,10.8z" />
+          <path d="M72.5,10.8h-2.5v-1.9h-2.9v1.9h-1.6v2.5h1.6v4.6c0,1.3,0.7,2.3,2,2.3c0.7,0,1.3-0.2,1.7-0.4v-2.3c-0.3,0.2-0.7,0.3-1,0.3    c-0.5,0-0.7-0.3-0.7-0.9v-3.7h2.5L72.5,10.8L72.5,10.8z" />
+          <path d="M80.7,8.2c1,0,1.8-0.8,1.8-1.8c0-1-0.8-1.8-1.8-1.8c-1,0-1.8,0.8-1.8,1.8S79.7,8.2,80.7,8.2z M79.3,20h2.9V10.8h-2.9V20z" />
+          <path d="M96.7,10.8h-3l-2.6,6c0,0-1.1,2.7-1.4,3.5c-0.4,1-1,1.5-1.9,1.5c-0.4,0-0.7-0.1-1-0.2v2.4c0.5,0.2,1.1,0.3,1.7,0.3   c1.6,0,2.6-0.8,3.3-2.6L100,10.8h-3.1L94.7,17L96.7,10.8z" />
+          <path d="M64.6,8.2c1,0,1.8-0.8,1.8-1.8c0-1-0.8-1.8-1.8-1.8c-1,0-1.8,0.8-1.8,1.8S63.6,8.2,64.6,8.2z M63.2,20h2.9V10.8h-2.9   L63.2,20z" />
+        </svg>
+      )
+    },
+    {
+      name: "Slack",
+      hoverClass: "hover:text-[#E01E5A] hover:drop-shadow-[0_0_12px_rgba(224,30,90,0.6)]",
+      svg: (
+        <svg viewBox="0 0 100 30" width="100%" height="100%" fill="currentColor">
+          <path d="M12.3,18.7c-2-0.5-3.3-0.5-3.3-1.6c0-0.9,0.9-1.4,2.3-1.4c1.6,0,3.3,0.5,4.7,1.4v-4.1c-1.4-0.6-3.2-0.9-5-0.9  c-4,0-6.9,2.1-6.9,5.5c0,3.7,2.8,4.7,6.3,5.5c2.1,0.5,3.6,0.6,3.6,1.9c0,1-1.1,1.6-2.6,1.6c-1.9,0-4-0.8-5.6-1.8v4.3  c1.7,0.9,3.9,1.2,5.8,1.2c4.4,0,7.3-2,7.3-5.7C18.9,20.6,16,19.6,12.3,18.7z" />
+          <path d="M22,1.4h4.7v28h-4.7V1.4z" />
+          <path d="M42.2,30.3c-2.1,0-4-0.6-5.5-1.7V24h0c1.5,1.2,3.3,1.8,5.1,1.8c2.4,0,3.6-1.2,3.6-3c0-1.8-0.8-2.6-3.8-3.4  c-3.6-1-5.5-2.7-5.5-5.9c0-3.6,2.8-5.8,6.8-5.8c2.1,0,3.8,0.5,5.2,1.4v4.2c-1.4-1.1-2.9-1.6-4.7-1.6c-2.1,0-3.1,1-3.1,2.6  c0,1.7,0.9,2.4,3.7,3.1c3.7,1,5.6,2.8,5.6,6.1C49.6,27.7,46.7,30.3,42.2,30.3z" />
+          <path d="M63.7,16.5c-0.1-5.8-3.2-9-8.4-9c-5.8,0-9.6,4-9.6,11.3c0,7.2,3.7,11.4,9.6,11.4c4.3,0,7.4-2.1,8.3-6.2h-4.4  c-0.6,1.9-2.1,2.8-3.9,2.8c-3.2,0-5.1-2.3-5.2-6H63.7z M50.4,13.7c0.4-2.8,2.1-4.1,4.7-4.1c2.6,0,4.2,1.5,4.3,4.1H50.4z" />
+          <path d="M84.7,23.4l2.9-3.7l6.6,9.6h-5.4l-4.7-7l-1.3,1.7v5.3h-4.6V1.4h4.6v17.4l4.5-6h5.3L84.7,23.4z" />
+        </svg>
+      )
+    },
+    {
+      name: "Netflix",
+      hoverClass: "hover:text-[#E50914] hover:drop-shadow-[0_0_12px_rgba(229,9,20,0.6)]",
+      svg: (
+        <svg viewBox="0 0 100 30" width="100%" height="100%" fill="currentColor">
+          <path d="M21.2,29.9l-11-20v20H3.3V0h7L21.4,20V0h6.9v30.2h-7.1v-0.3H21.2z" />
+          <path d="M49.6,6.2H39.2v5.6h9.6v6h-9.6v6h10.4v6H32.3V0h17.3V6.2z" />
+          <path d="M63.9,6.2h-6.2v23.9h-6.9V6.2H45V0h18.9V6.2z" />
+          <path d="M81.2,6.2h-9.6v5.6h8.8v6h-8.8v12h-6.9V0h16.5V6.2z" />
+          <path d="M86.1,29.9V0h6.9v23.9H103v6H86.1z" />
+        </svg>
+      )
+    },
+    {
+      name: "Airbnb",
+      hoverClass: "hover:text-[#FF5A5F] hover:drop-shadow-[0_0_12px_rgba(255,90,95,0.6)]",
+      svg: (
+        <svg viewBox="0 0 100 30" width="100%" height="100%" fill="currentColor">
+          <path d="M19.1,22.3L15,10.6l-4.1,11.7H19.1z M22.7,28.8h-4.3l-1.1-3.2H12.6l-1.1,3.2H7.2l8.8-24.6l-1.7-4.2h5.1L22.7,28.8z" />
+          <path d="M29.5,8.6c1.3,0,2.3,1,2.3,2.3c0,1.3-1,2.3-2.3,2.3c-1.3,0-2.3-1-2.3-2.3C27.2,9.6,28.2,8.6,29.5,8.6z M27.4,14.6h4.2V28.8h-4.2V14.6z" />
+          <path d="M40.2,14.6v2.3C41.2,15.2,43,14,45.4,14c3.3,0,5.8,2,5.8,6.8v8h-4.2V22c0-2-1-3.3-3-3.3c-2.3,0-3.8,1.6-3.8,3.8v6.3h-4.2V14.6H40.2z" />
+          <path d="M63.2,21.7c0,4.2-2.8,7.5-7.1,7.5c-2.3,0-4-0.9-5-2.2v8.2h-4.2V8.6h4.2v6.6c1-1.3,2.7-2.1,5-2.1c4.2,0,7.1,3.2,7.1,7.5V21.7z M58.9,21.7c0-2.3-1.6-4.2-3.8-4.2c-2.2,0-3.8,1.9-3.8,4.2c0,2.3,1.6,4.2,3.8,4.2C57.3,25.9,58.9,24,58.9,21.7z" />
+          <path d="M72.2,14.6v2.3c1-1.7,2.8-2.9,5.2-2.9c3.3,0,5.8,2,5.8,6.8v8h-4.2V22c0-2-1-3.3-3-3.3c-2.3,0-3.8,1.6-3.8,3.8v6.3h-4.2V14.6H72.2z" />
+          <path d="M96.7,21.7c0,4.2-2.8,7.5-7.1,7.5c-2.3,0-4-0.9-5-2.2v2.2h-4.2V8.6h4.2v6.6c1-1.3,2.7-2.1,5-2.1c4.2,0,7.1,3.2,7.1,7.5V21.7z M92.4,21.7c0-2.3-1.6-4.2-3.8-4.2c-2.2,0-3.8,1.9-3.8,4.2c0,2.3,1.6,4.2,3.8,4.2C90.8,25.9,92.4,24,92.4,21.7z" />
+        </svg>
+      )
+    },
+    {
+      name: "Microsoft",
+      hoverClass: "hover:text-[#00A4EF] hover:drop-shadow-[0_0_12px_rgba(0,164,239,0.6)]",
+      svg: (
+        <svg viewBox="0 0 30 30" width="30" height="30" fill="currentColor">
+          <path d="M13.7,13.7H0V0h13.7V13.7z M30,13.7H16.3V0H30V13.7z M13.7,30H0V16.3h13.7V30z M30,30H16.3V16.3H30V30z" />
+        </svg>
+      )
+    },
   ];
 
   return (
-    <section className="py-16 bg-white border-t border-b border-gray-100">
+    <section className="py-14 bg-transparent relative overflow-hidden">
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         <motion.p
-          className="text-center text-gray-400 mb-10"
-          style={{ fontFamily: "Inter, sans-serif", fontSize: "0.85rem", fontWeight: 500, letterSpacing: "0.05em", textTransform: "uppercase" }}
-          initial={{ opacity: 0, y: 14 }}
+          initial={{ opacity: 0, y: 15 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.4, ease: "easeOut" }}
+          viewport={{ once: true, margin: "-50px" }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+          className="text-center font-semibold mb-10 text-[#9CA3AF]"
+          style={{ fontFamily: "'Inter', sans-serif", fontSize: "0.8rem", letterSpacing: "0.15em", textTransform: "uppercase" }}
         >
           Trusted by growing businesses worldwide
         </motion.p>
+      </div>
 
-        <motion.div
-          className="h-[2px] w-36 mx-auto mb-9 rounded-full"
-          style={{ background: "linear-gradient(90deg, transparent 0%, #38bdf8 50%, transparent 100%)" }}
-          initial={{ opacity: 0, scaleX: 0 }}
-          whileInView={{ opacity: 1, scaleX: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.45, ease: "easeOut" }}
-        />
-
-        <div className="flex flex-wrap justify-center items-center gap-8 lg:gap-16">
+      <div className="relative w-full overflow-hidden flex items-center justify-center py-4">
+        <div className="flex items-center justify-center gap-10 sm:gap-16 lg:gap-24 w-full flex-wrap px-6">
           {companies.map((company, index) => (
             <motion.div
               key={company.name}
-              className="flex items-center gap-2.5 text-gray-400 hover:text-gray-600 transition-colors grayscale hover:grayscale-0"
-              initial={{ opacity: 0, y: 12, scale: 0.95 }}
-              whileInView={{ opacity: 1, y: 0, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.3, delay: 0.06 * index, ease: "easeOut" }}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-20px" }}
+              transition={{ duration: 0.6, delay: index * 0.1, ease: "easeOut" }}
+              className={`text-[#9CA3AF] ${company.hoverClass} cursor-pointer transition-all duration-500 transform hover:scale-110 flex-shrink-0 w-24 h-10 flex items-center justify-center`}
             >
-              <span style={{ fontSize: "1.5rem" }}>{company.icon}</span>
-              <span style={{ fontFamily: "Inter, sans-serif", fontWeight: 700, fontSize: "1rem" }}>{company.name}</span>
+              {company.svg}
             </motion.div>
           ))}
         </div>
       </div>
     </section>
   );
-}
+};
 
 export default TrustedBySection;
 
