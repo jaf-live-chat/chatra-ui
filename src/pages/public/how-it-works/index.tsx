@@ -1,4 +1,4 @@
-import Navbar from "../../../components/common/Navbar";
+﻿import Navbar from "../../../components/common/Navbar";
 import Footer from "../../../components/common/Footer";
 import HowItWorksSection from "../../../sections/homepage/HowItWorksSection";
 import { CheckCircle } from "lucide-react";
@@ -19,7 +19,7 @@ const faqs = [
   },
   {
     q: "Is there a free trial?",
-    a: "Absolutely. Start with a 14-day free trial — no credit card required. Experience all features before committing.",
+    a: "Absolutely. Start with a 14-day free trial â€” no credit card required. Experience all features before committing.",
   },
 ];
 
@@ -27,7 +27,7 @@ const HowItWorksPage = () => {
   return (
     <div className="min-h-screen bg-white">
       <Navbar />
-      <div className="pt-16">
+      <div>
         <HowItWorksSection />
 
         {/* Benefits */}

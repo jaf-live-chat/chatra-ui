@@ -1,4 +1,4 @@
-import { Box, Typography, Button, Container, Grid, Dialog, TextField, Stack, IconButton, Drawer } from "@mui/material";
+﻿import { Box, Typography, Button, Container, Grid, Dialog, TextField, Stack, IconButton, Drawer } from "@mui/material";
 import { Check, X, Info, CheckCircle2, Loader2, Users, BarChart3, CalendarDays, Sparkles, ChevronDown } from "lucide-react";
 import { Link } from "react-router";
 import { useState, useEffect, useMemo, useRef } from "react";
@@ -219,7 +219,7 @@ const PricingSection = () => {
     <Box
       component="section"
       sx={{
-        py: { xs: 8, md: 12 },
+        pt: { xs: 16, md: 20 }, pb: { xs: 8, md: 12 },
         background: "linear-gradient(180deg, #F0F9FFFF 0%, #FFFFFFFF 100%)",
         fontFamily: "Inter, sans-serif",
       }}

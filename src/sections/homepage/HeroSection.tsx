@@ -34,6 +34,39 @@ function ChatBubble({ text, isAgent, time }: { text: string; isAgent: boolean; t
 const HeroSection = () => {
   const [isDemoOpen, setIsDemoOpen] = useState(false);
 
+  const heroContainer = {
+    hidden: { opacity: 0, x: -28 },
+    visible: {
+      opacity: 1,
+      x: 0,
+      transition: {
+        duration: 0.6,
+        ease: "easeOut",
+        staggerChildren: 0.11,
+        delayChildren: 0.08,
+      },
+    },
+  };
+
+  const heroItem = {
+    hidden: { opacity: 0, y: 22, filter: "blur(6px)" },
+    visible: {
+      opacity: 1,
+      y: 0,
+      filter: "blur(0px)",
+      transition: { duration: 0.56, ease: "easeOut" },
+    },
+  };
+
+  const heroLine = {
+    hidden: { opacity: 0, scaleX: 0, transformOrigin: "left" },
+    visible: {
+      opacity: 1,
+      scaleX: 1,
+      transition: { duration: 0.48, ease: "easeOut" },
+    },
+  };
+
   return (
     <section
       className="min-h-screen flex items-center pt-16"
@@ -45,18 +78,15 @@ const HeroSection = () => {
         <div className="grid md:grid-cols-2 gap-10 lg:gap-16 items-center">
           {/* Left Content */}
           <motion.div
-            initial={{ opacity: 0, x: -36 }}
-            whileInView={{ opacity: 1, x: 0 }}
+            variants={heroContainer}
+            initial="hidden"
+            whileInView="visible"
             viewport={{ once: true, amount: 0.35 }}
-            transition={{ duration: 0.55, ease: "easeOut" }}
           >
             <motion.div
               className="inline-flex items-center gap-2 bg-blue-50 border border-blue-100 text-blue-700 px-3 py-1.5 rounded-full mb-6"
               style={{ fontSize: "0.8rem", fontFamily: "Inter, sans-serif", fontWeight: 500 }}
-              initial={{ opacity: 0, y: -12 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.35, delay: 0.08, ease: "easeOut" }}
+              variants={heroItem}
             >
               <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
               New: AI-Powered Chat Routing
@@ -71,10 +101,7 @@ const HeroSection = () => {
                 lineHeight: "1.15",
                 letterSpacing: "-0.02em",
               }}
-              initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: 0.12, ease: "easeOut" }}
+              variants={heroItem}
             >
               Real-Time Customer Support{" "}
               <span
@@ -94,10 +121,7 @@ const HeroSection = () => {
             <motion.div
               className="h-[3px] w-28 rounded-full mb-6"
               style={{ background: "linear-gradient(90deg, #2563eb, #38bdf8)" }}
-              initial={{ opacity: 0, scaleX: 0, transformOrigin: "left" }}
-              whileInView={{ opacity: 1, scaleX: 1 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.45, delay: 0.2, ease: "easeOut" }}
+              variants={heroLine}
             />
 
             <motion.p
@@ -107,54 +131,49 @@ const HeroSection = () => {
                 fontSize: "1.1rem",
                 lineHeight: "1.7",
               }}
-              initial={{ opacity: 0, y: 18 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: 0.22, ease: "easeOut" }}
+              variants={heroItem}
             >
               JAF Live Chat helps businesses communicate with website visitors instantly, improve customer experience, and increase conversions through real-time messaging.
             </motion.p>
 
             <motion.div
               className="flex flex-col sm:flex-row gap-4 mb-10"
-              initial={{ opacity: 0, y: 18 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: 0.28, ease: "easeOut" }}
+              variants={heroItem}
             >
-              <a
+              <motion.a
                 href="#products"
                 onClick={(e) => {
                   e.preventDefault();
-                  document.querySelector('#products')?.scrollIntoView({ behavior: 'smooth' });
+                  document.querySelector("#products")?.scrollIntoView({ behavior: "smooth" });
                 }}
                 className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-7 py-3.5 rounded-xl transition-all shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40"
                 style={{ fontFamily: "Inter, sans-serif", fontWeight: 600, fontSize: "0.95rem" }}
+                whileHover={{ y: -2, scale: 1.01 }}
+                whileTap={{ scale: 0.98 }}
               >
                 Get Started
                 <ArrowRight className="w-4 h-4" />
-              </a>
-              <button
+              </motion.a>
+              <motion.button
                 onClick={() => setIsDemoOpen(true)}
                 className="inline-flex items-center justify-center gap-2 bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 px-7 py-3.5 rounded-xl transition-all shadow-sm cursor-pointer"
                 style={{ fontFamily: "Inter, sans-serif", fontWeight: 600, fontSize: "0.95rem" }}
+                whileHover={{ y: -2, scale: 1.01 }}
+                whileTap={{ scale: 0.98 }}
               >
                 <div className="w-7 h-7 bg-blue-600 rounded-full flex items-center justify-center">
                   <Play className="w-3 h-3 text-white fill-white ml-0.5" />
                 </div>
                 View Demo
-              </button>
+              </motion.button>
             </motion.div>
 
             <motion.div
               className="flex flex-col sm:flex-row gap-4"
-              initial={{ opacity: 0, y: 12 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.45, delay: 0.34, ease: "easeOut" }}
+              variants={heroItem}
             >
               {["Free 3-day trial", "Cancel anytime"].map((item) => (
-                <div key={item} className="flex items-center gap-2">
+                <motion.div key={item} className="flex items-center gap-2" whileHover={{ x: 4 }} transition={{ duration: 0.2 }}>
                   <CheckCircle className="w-4 h-4 text-blue-500" />
                   <span
                     className="text-gray-500"
@@ -162,7 +181,7 @@ const HeroSection = () => {
                   >
                     {item}
                   </span>
-                </div>
+                </motion.div>
               ))}
             </motion.div>
           </motion.div>
@@ -170,16 +189,16 @@ const HeroSection = () => {
           {/* Right: Chat Dashboard Illustration */}
           <motion.div
             className="hidden lg:flex justify-center"
-            initial={{ opacity: 0, x: 30, scale: 0.96 }}
+            initial={{ opacity: 0, x: 36, scale: 0.95 }}
             whileInView={{ opacity: 1, x: 0, scale: 1 }}
             viewport={{ once: true, amount: 0.25 }}
-            transition={{ duration: 0.65, ease: "easeOut" }}
+            transition={{ duration: 0.7, ease: "easeOut" }}
           >
             <motion.div
               className="relative w-full max-w-lg"
               style={{ transform: "perspective(1000px) rotateY(-5deg) rotateX(3deg)" }}
-              animate={{ y: [0, -6, 0] }}
-              transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+              animate={{ y: [0, -7, 0], rotateZ: [0, 0.5, 0] }}
+              transition={{ duration: 5.4, repeat: Infinity, ease: "easeInOut" }}
             >
               {/* Main Dashboard Card */}
               <div className="bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-100">

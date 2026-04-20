@@ -1,4 +1,4 @@
-import Navbar from "../../../components/common/Navbar";
+﻿import Navbar from "../../../components/common/Navbar";
 import PricingSection from "../../../sections/homepage/PricingSection";
 import Footer from "../../../components/common/Footer";
 import React, { useEffect } from "react";
@@ -19,7 +19,7 @@ const PricingPage = () => {
       />
       <div className="min-h-screen" style={{ fontFamily: "Inter, sans-serif" }}>
         <Navbar />
-        <main className="pt-16">
+        <main>
           <PricingSection />
         </main>
         <Footer />

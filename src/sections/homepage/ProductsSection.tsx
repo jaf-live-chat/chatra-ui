@@ -10,8 +10,15 @@ const ProductsSection = () => {
 
   return (
     <>
-      <section id="products" className="py-24 bg-gray-50 border-y border-gray-100">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
+      <section 
+        id="products" 
+        className="py-24 relative" 
+        style={{ 
+          backgroundColor: "#0b162c",
+          backgroundImage: "radial-gradient(ellipse 65% 70% at 50% 0%, rgba(255, 255, 255, 0.15) 0%, rgba(11, 22, 44, 0) 100%)"
+        }}
+      >
+        <div className="max-w-7xl mx-auto px-6 lg:px-8 relative z-10">
           {/* Header */}
           <motion.div
             className="text-center max-w-2xl mx-auto mb-16"
@@ -21,21 +28,21 @@ const ProductsSection = () => {
             transition={{ duration: 0.5, ease: "easeOut" }}
           >
             <motion.span
-              className="inline-block bg-cyan-50 text-cyan-700 px-3 py-1 rounded-full mb-4"
-              style={{ fontFamily: "Inter, sans-serif", fontSize: "0.8rem", fontWeight: 600 }}
+              className="inline-block text-[#00a3ff] mb-4 uppercase tracking-widest text-xs font-bold"
+              style={{ fontFamily: "Inter, sans-serif" }}
               initial={{ opacity: 0, y: -8 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.35, delay: 0.08, ease: "easeOut" }}
-            >Our Products</motion.span>
+            >OUR PRODUCTS</motion.span>
             <motion.h2
-              className="text-gray-900 mb-4"
+              className="text-white mb-4"
               style={{
                 fontFamily: "Inter, sans-serif",
-                fontWeight: 800,
+                fontWeight: 700,
                 fontSize: "clamp(1.8rem, 4vw, 2.6rem)",
                 lineHeight: "1.2",
-                letterSpacing: "-0.02em",
+                letterSpacing: "-0.01em",
               }}
               initial={{ opacity: 0, y: 14 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -45,18 +52,9 @@ const ProductsSection = () => {
               Built for modern teams
             </motion.h2>
 
-            <motion.div
-              className="h-[3px] w-28 mx-auto mb-4 rounded-full"
-              style={{ background: "linear-gradient(90deg, #22d3ee, #0891b2)" }}
-              initial={{ opacity: 0, scaleX: 0 }}
-              whileInView={{ opacity: 1, scaleX: 1 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.45, delay: 0.16, ease: "easeOut" }}
-            />
-
             <motion.p
-              className="text-gray-500"
-              style={{ fontFamily: "Inter, sans-serif", fontSize: "1rem", lineHeight: "1.7" }}
+              className="text-[#8ba2c4] max-w-xl mx-auto"
+              style={{ fontFamily: "Inter, sans-serif", fontSize: "1rem", lineHeight: "1.6" }}
               initial={{ opacity: 0, y: 14 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -67,47 +65,47 @@ const ProductsSection = () => {
           </motion.div>
 
           {/* Product Showcase Card */}
-          <div className="bg-white rounded-[2rem] border border-gray-100 shadow-xl shadow-gray-200/50 overflow-hidden">
+          <div className="rounded-[1.5rem] border overflow-hidden" style={{ backgroundColor: "#111b33", borderColor: "rgba(255, 255, 255, 0.05)", boxShadow: "0 25px 50px -12px rgba(0,0,0,0.5)" }}>
             <div className="grid lg:grid-cols-2 gap-0">
               {/* Left Content */}
               <motion.div
-                className="p-8 lg:p-16 flex flex-col justify-center"
+                className="p-8 lg:p-14 flex flex-col justify-center"
                 initial={{ opacity: 0, x: -26 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true, amount: 0.35 }}
                 transition={{ duration: 0.55, ease: "easeOut" }}
               >
                 <div className="flex items-center gap-3 mb-6">
-                  <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg" style={{ backgroundColor: "#0891b2", boxShadow: "0 10px 15px -3px #0891b233" }}>
-                    <MessageCircle className="w-6 h-6 text-white" />
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center relative overflow-hidden bg-[#00a3ff]">
+                    <MessageCircle className="w-5 h-5 text-white" />
                   </div>
                   <h3
-                    className="text-gray-900"
-                    style={{ fontFamily: "Inter, sans-serif", fontWeight: 800, fontSize: "1.5rem" }}
+                    className="text-white"
+                    style={{ fontFamily: "Inter, sans-serif", fontWeight: 700, fontSize: "1.35rem" }}
                   >
                     JAF Chatra
                   </h3>
                 </div>
 
                 <p
-                  className="text-gray-600 mb-8"
-                  style={{ fontFamily: "Inter, sans-serif", fontSize: "1.1rem", lineHeight: "1.6" }}
+                  className="text-[#9ca3af] mb-8"
+                  style={{ fontFamily: "Inter, sans-serif", fontSize: "0.95rem", lineHeight: "1.6" }}
                 >
                   The ultimate live chat solution that turns your website visitors into loyal customers. Engage in real-time, track visitor behavior, and deliver exceptional support experiences with our powerful, customizable chat widget.
                 </p>
 
                 <motion.ul
-                  className="space-y-4 mb-10"
+                  className="space-y-3 mb-10"
                   initial="hidden"
                   whileInView="visible"
                   viewport={{ once: true }}
                   transition={{ staggerChildren: 0.08, delayChildren: 0.16 }}
                 >
                   {[
-                    { icon: Zap, text: "Real-time communication with less than 50ms latency" },
-                    { icon: Shield, text: "Enterprise-grade security and session tracking" },
-                    { icon: MessageCircle, text: "Fully customizable widget to match your brand" }
-                  ].map((item, i) => (
+                    "Real-time communication with less than 50ms latency",
+                    "Enterprise-grade security and session tracking",
+                    "Fully customizable widget to match your brand"
+                  ].map((text, i) => (
                     <motion.li
                       key={i}
                       className="flex items-center gap-3"
@@ -117,21 +115,21 @@ const ProductsSection = () => {
                       }}
                       transition={{ duration: 0.35, ease: "easeOut" }}
                     >
-                      <div className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center" style={{ backgroundColor: "#0891b214" }}>
-                        <item.icon className="w-3.5 h-3.5" style={{ color: "#0891b2" }} />
+                      <div className="flex-shrink-0 w-4 h-4 rounded-full flex items-center justify-center bg-[#00a3ff]">
+                        <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                       </div>
                       <span
-                        className="text-gray-700"
-                        style={{ fontFamily: "Inter, sans-serif", fontSize: "0.95rem", fontWeight: 500 }}
+                        className="text-[#cbd5e1]"
+                        style={{ fontFamily: "Inter, sans-serif", fontSize: "0.85rem", fontWeight: 500 }}
                       >
-                        {item.text}
+                        {text}
                       </span>
                     </motion.li>
                   ))}
                 </motion.ul>
 
                 <motion.div
-                  className="flex flex-wrap gap-4 mt-auto"
+                  className="flex flex-wrap gap-4 mt-auto items-center"
                   initial={{ opacity: 0, y: 14 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
@@ -139,18 +137,17 @@ const ProductsSection = () => {
                 >
                   <Link
                     to="/checkout/free"
-                    className="text-white px-6 py-3 rounded-xl transition-all flex items-center gap-2 group cursor-pointer"
-                    style={{ fontFamily: "Inter, sans-serif", fontWeight: 600, fontSize: "1rem", backgroundColor: "#0891b2", boxShadow: "0 10px 15px -3px #0891b233" }}
-                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#0e7490")}
-                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#0891b2")}
+                    className="text-white px-5 py-2.5 rounded-full transition-all flex items-center gap-2 group cursor-pointer text-sm"
+                    style={{ fontFamily: "Inter, sans-serif", fontWeight: 600, backgroundColor: "#00a3ff" }}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#008ce6")}
+                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#00a3ff")}
                   >
-                    Start Free Trial
-                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    Start Free Trial <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
                   </Link>
                   <Link
                     to="/pricing"
-                    className="bg-gray-100 hover:bg-gray-200 text-gray-900 px-6 py-3 rounded-xl transition-colors font-medium flex items-center"
-                    style={{ fontFamily: "Inter, sans-serif", fontWeight: 600, fontSize: "1rem" }}
+                    className="text-[#cbd5e1] px-5 py-2.5 rounded-full transition-colors border border-[rgba(255,255,255,0.15)] bg-[rgba(255,255,255,0.05)] hover:bg-[rgba(255,255,255,0.1)] font-medium text-sm flex items-center"
+                    style={{ fontFamily: "Inter, sans-serif", fontWeight: 600 }}
                   >
                     View Pricing
                   </Link>
@@ -159,39 +156,35 @@ const ProductsSection = () => {
 
               {/* Right Image/Visual */}
               <motion.div
-                className="bg-gray-900 lg:min-h-[500px] relative overflow-hidden flex items-center justify-center p-8"
+                className="relative overflow-hidden flex items-center justify-center p-8 bg-gradient-to-br from-[#111b33] to-[#0b1224] group"
                 initial={{ opacity: 0, x: 28, scale: 0.97 }}
                 whileInView={{ opacity: 1, x: 0, scale: 1 }}
                 viewport={{ once: true, amount: 0.3 }}
                 transition={{ duration: 0.6, ease: "easeOut" }}
+                whileHover={{ scale: 1.015 }}
               >
-                <motion.div
-                  className="absolute left-0 top-0 bottom-0 w-px bg-white/15 hidden lg:block"
-                  initial={{ scaleY: 0, transformOrigin: "top" }}
-                  whileInView={{ scaleY: 1 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.55, delay: 0.2, ease: "easeOut" }}
-                />
                 {/* Decorative elements */}
-                <div className="absolute top-0 right-0 w-64 h-64 rounded-full blur-3xl translate-x-1/2 -translate-y-1/2" style={{ backgroundColor: "#0891b233" }}></div>
-                <div className="absolute bottom-0 left-0 w-64 h-64 rounded-full blur-3xl -translate-x-1/2 translate-y-1/2" style={{ backgroundColor: "#22d3ee33" }}></div>
+                <div className="absolute top-0 right-0 w-64 h-64 rounded-full blur-3xl translate-x-1/2 -translate-y-1/2" style={{ backgroundColor: "rgba(0, 163, 255, 0.15)" }}></div>
+                <div className="absolute bottom-0 left-0 w-64 h-64 rounded-full blur-3xl -translate-x-1/2 translate-y-1/2" style={{ backgroundColor: "rgba(0, 163, 255, 0.15)" }}></div>
+                <div className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{ background: "radial-gradient(circle at 58% 42%, rgba(56, 189, 248, 0.28) 0%, rgba(56, 189, 248, 0.12) 28%, rgba(11, 18, 36, 0) 65%)" }}></div>
 
                 {/* Product Mockup */}
                 <motion.div
-                  className="relative z-10 w-full max-w-md rounded-xl overflow-hidden border border-gray-800 shadow-2xl"
-                  animate={{ y: [0, -5, 0] }}
-                  transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut" }}
+                  className="relative z-10 w-full rounded-lg overflow-hidden border border-[#2d3748] shadow-2xl max-w-lg"
+                  animate={{ y: [0, -6, 0], rotateZ: [0, -0.35, 0] }}
+                  transition={{ duration: 4.8, repeat: Infinity, ease: "easeInOut" }}
+                  whileHover={{ scale: 1.03, rotateZ: -0.65, filter: "brightness(1.16) saturate(1.08) contrast(1.04)" }}
                 >
-                  <div className="bg-gray-800 px-4 py-3 flex items-center gap-2 border-b border-gray-700">
-                    <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                    <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                    <div className="ml-4 text-xs text-gray-400 font-medium" style={{ fontFamily: "Inter, sans-serif" }}>jaf-dashboard.app</div>
+                  <div className="bg-[#1e293b] px-4 py-2 flex items-center gap-2 border-b border-[#334155]">
+                    <div className="w-2.5 h-2.5 rounded-full bg-[#ef4444]"></div>
+                    <div className="w-2.5 h-2.5 rounded-full bg-[#eab308]"></div>
+                    <div className="w-2.5 h-2.5 rounded-full bg-[#22c55e]"></div>
+                    <div className="ml-4 text-[10px] text-[#64748b] font-medium tracking-wide flex-1 text-center" style={{ fontFamily: "Inter, sans-serif" }}>jaf-dashboard.app</div>
                   </div>
                   <ImageWithFallback
                     src="https://images.unsplash.com/photo-1551434678-e076c223a692?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxsaXZlJTIwY2hhdCUyMGxhcHRvcHxlbnwxfHx8fDE3NzMyMTI1Mzd8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"
                     alt="JAF Chatra Dashboard"
-                    className="w-full h-auto object-cover opacity-90 hover:opacity-100 transition-opacity duration-500"
+                    className="w-full h-auto object-cover"
                   />
                 </motion.div>
               </motion.div>

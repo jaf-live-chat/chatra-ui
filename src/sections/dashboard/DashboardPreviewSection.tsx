@@ -1,4 +1,4 @@
-import {
+﻿import {
   LayoutDashboard,
   MessageSquare,
   Users,
@@ -37,24 +37,50 @@ const recentChats = [
 ];
 
 const DashboardPreviewSection = () => {
+  const viewport = { once: true, amount: 0.25 };
+
+  const headerContainer = {
+    hidden: { opacity: 0, y: 24 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.6,
+        ease: "easeOut",
+        staggerChildren: 0.1,
+      },
+    },
+  } as const;
+
+  const headerItem = {
+    hidden: { opacity: 0, y: 18, filter: "blur(6px)" },
+    visible: {
+      opacity: 1,
+      y: 0,
+      filter: "blur(0px)",
+      transition: { duration: 0.55, ease: "easeOut" },
+    },
+  } as const;
+
   return (
     <section className="py-16 sm:py-20 lg:py-24" style={{ background: "linear-gradient(180deg, #edf7ff 0%, #f5fbff 100%)" }}>
       <div className="pointer-events-none mx-auto max-w-7xl select-none px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <motion.div
           className="mx-auto mb-10 max-w-2xl text-center sm:mb-14"
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
+          variants={headerContainer}
+          initial="hidden"
+          whileInView="visible"
+          viewport={viewport}
         >
-          <span
+          <motion.span
             className="inline-block text-blue-500 mb-4"
             style={{ fontFamily: "Inter, sans-serif", fontSize: "0.76rem", fontWeight: 700, letterSpacing: "0.08em" }}
+            variants={headerItem}
           >
             Dashboard Preview
-          </span>
-          <h2
+          </motion.span>
+          <motion.h2
             className="text-gray-900 mb-4"
             style={{
               fontFamily: "Inter, sans-serif",
@@ -63,23 +89,28 @@ const DashboardPreviewSection = () => {
               lineHeight: "1.2",
               letterSpacing: "-0.02em",
             }}
+            variants={headerItem}
           >
             A powerful command center for your
-            <br />
             team
-          </h2>
-          <p
+          </motion.h2>
+          <motion.p
             className="text-gray-500"
             style={{ fontFamily: "Inter, sans-serif", fontSize: "1rem", lineHeight: "1.7", maxWidth: "640px", margin: "0 auto" }}
+            variants={headerItem}
           >
             Get a clear overview of all conversations, visitors, and agent performance from one sleek admin panel.
-          </p>
+          </motion.p>
         </motion.div>
 
         {/* Mobile + Tablet Mockup */}
-        <div
+        <motion.div
           className="rounded-2xl border border-gray-200 bg-slate-50 p-4 shadow-xl lg:hidden"
           style={{ background: "#f8fafc" }}
+          initial={{ opacity: 0, y: 26, scale: 0.98 }}
+          whileInView={{ opacity: 1, y: 0, scale: 1 }}
+          viewport={viewport}
+          transition={{ duration: 0.6, ease: "easeOut" }}
         >
           <div className="mb-4 flex items-center justify-between rounded-xl bg-gray-950 px-3 py-2">
             <div className="flex gap-1.5">
@@ -176,16 +207,21 @@ const DashboardPreviewSection = () => {
               </div>
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Desktop Mockup */}
         <motion.div
-          className="hidden overflow-hidden rounded-2xl border border-gray-200 shadow-2xl lg:block"
+          className="hidden lg:block relative z-10"
+          initial={{ opacity: 0, y: 26, scale: 0.985 }}
+          whileInView={{ opacity: 1, y: 0, scale: 1 }}
+          viewport={viewport}
+          transition={{ duration: 0.62, ease: "easeOut" }}
+        >
+        <motion.div
+          className="overflow-hidden rounded-2xl border border-gray-200 shadow-2xl "
           style={{ background: "#f8fafc", maxWidth: "1040px", margin: "0 auto", boxShadow: "0 20px 50px -18px rgba(15, 23, 42, 0.38)" }}
-          initial={{ opacity: 0, scale: 0.97 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          viewport={{ once: true, amount: 0.35 }}
-          transition={{ duration: 0.55, ease: "easeOut" }}
+          animate={{ y: [0, -4, 0] }}
+          transition={{ duration: 6.2, repeat: Infinity, ease: "easeInOut" }}
         >
           {/* Title Bar */}
           <div className="flex items-center gap-2 px-4 py-3 bg-gray-950">
@@ -266,7 +302,7 @@ const DashboardPreviewSection = () => {
                     Dashboard Overview
                   </h3>
                   <p className="text-gray-400" style={{ fontFamily: "Inter, sans-serif", fontSize: "0.72rem" }}>
-                    Wednesday, March 11, 2026 — 2:47 PM
+                    Wednesday, March 11, 2026 - 2:47 PM
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -374,7 +410,9 @@ const DashboardPreviewSection = () => {
           </div>
         </motion.div>
 
-        {/* Bottom gradient fade */}
+        </motion.div>
+
+{/* Bottom gradient fade */}
         <div className="-mt-1 hidden h-8 rounded-b-2xl lg:block" style={{ background: "linear-gradient(to bottom, transparent, #f5fbff)" }}></div>
       </div>
     </section>

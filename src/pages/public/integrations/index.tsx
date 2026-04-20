@@ -1,4 +1,4 @@
-import { Box, Container, Typography, Grid, Avatar, Card, CardContent, Divider, Stack } from "@mui/material";
+﻿import { Box, Container, Typography, Grid, Avatar, Card, CardContent, Divider, Stack } from "@mui/material";
 import Navbar from "../../../components/common/Navbar";
 import Footer from "../../../components/common/Footer";
 import {
@@ -58,8 +58,8 @@ const IntegrationsPage = () => {
         description="See how JAF Chatra integrates with your favorite tools and platforms."
         canonical="/portal/integrations"
       />
-      <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column", bgcolor: "background.default", pt: 10 }}>
-        <Navbar />
+      <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column", bgcolor: "background.default", pt: 0 }}>
+        <Navbar transparentBg="dark" />
 
         <Box component="main" sx={{ flexGrow: 1 }}>
           {/* Header Section */}
@@ -67,7 +67,7 @@ const IntegrationsPage = () => {
             sx={{
               bgcolor: "#0A192FFF",
               color: "#FFFFFFFF",
-              py: { xs: 8, md: 12 },
+              pt: { xs: 16, md: 20 }, pb: { xs: 8, md: 12 },
               textAlign: "center",
               borderColor: "#1E293BFF #1E293BFF #1E293BFF #1E293BFF",
               borderStyle: "solid",
@@ -85,7 +85,7 @@ const IntegrationsPage = () => {
           </Box>
 
           {/* Logo Grid Section */}
-          <Container maxWidth="lg" sx={{ py: { xs: 8, md: 12 } }}>
+          <Container maxWidth="lg" sx={{ pt: { xs: 16, md: 20 }, pb: { xs: 8, md: 12 } }}>
             <Box sx={{ textAlign: "center", mb: 8 }}>
               <Typography variant="h3" sx={{ mb: 2, fontWeight: 700 }}>
                 Meet our partners
@@ -156,7 +156,7 @@ const IntegrationsPage = () => {
           </Container>
 
           {/* Testimonials Section */}
-          <Box sx={{ bgcolor: "grey.50", py: { xs: 8, md: 12 } }}>
+          <Box sx={{ bgcolor: "grey.50", pt: { xs: 16, md: 20 }, pb: { xs: 8, md: 12 } }}>
             <Container maxWidth="lg">
               <Box sx={{ textAlign: "center", mb: 8 }}>
                 <Typography variant="h3" sx={{ mb: 2, fontWeight: 700 }}>
