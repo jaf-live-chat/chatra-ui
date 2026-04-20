@@ -282,31 +282,33 @@ const TenantsTable = () => {
               </Button>
             </span>
           </Tooltip>
-          <Tooltip
-            title={tenant.subscription.status === "ACTIVE" ? "Deactivate tenant" : "Activate tenant"}
-          >
-            <span>
-              <Button
-                size="small"
-                variant="outlined"
-                onClick={() => handleOpenStatusDialog(tenant)}
-                sx={{
-                  ...actionButtonSx,
-                  color: tenant.subscription.status === "ACTIVE" ? "error.light" : "success.light",
-                  borderColor: tenant.subscription.status === "ACTIVE" ? "error.dark" : "success.dark",
-                  backgroundColor: tenant.subscription.status === "ACTIVE" ? "#7f1d1d1f" : "#14532d1f",
-                  "&:hover": {
-                    bgcolor: tenant.subscription.status === "ACTIVE" ? "#7f1d1d2f" : "#14532d2f",
-                    borderColor: tenant.subscription.status === "ACTIVE" ? "error.main" : "success.main",
-                  },
-                }}
-                disabled={isActionProcessing(tenant.id)}
-                startIcon={<Power size={16} />}
-              >
-                {tenant.subscription.status === "ACTIVE" ? "Deactivate" : "Activate"}
-              </Button>
-            </span>
-          </Tooltip>
+          {tenant.subscription.status === "ACTIVE" && (
+            <Tooltip
+              title={tenant.subscription.status === "ACTIVE" ? "Deactivate tenant" : "Activate tenant"}
+            >
+              <span>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={() => handleOpenStatusDialog(tenant)}
+                  sx={{
+                    ...actionButtonSx,
+                    color: tenant.subscription.status === "ACTIVE" ? "error.light" : "success.light",
+                    borderColor: tenant.subscription.status === "ACTIVE" ? "error.dark" : "success.dark",
+                    backgroundColor: tenant.subscription.status === "ACTIVE" ? "#7f1d1d1f" : "#14532d1f",
+                    "&:hover": {
+                      bgcolor: tenant.subscription.status === "ACTIVE" ? "#7f1d1d2f" : "#14532d2f",
+                      borderColor: tenant.subscription.status === "ACTIVE" ? "error.main" : "success.main",
+                    },
+                  }}
+                  disabled={isActionProcessing(tenant.id)}
+                  startIcon={<Power size={16} />}
+                >
+                  Deactivate
+                </Button>
+              </span>
+            </Tooltip>
+          )}
         </Stack>
       ),
     },

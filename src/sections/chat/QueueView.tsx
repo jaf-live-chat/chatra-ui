@@ -407,8 +407,8 @@ const QueueView = ({
           </Stack>
         </Stack>
 
-        <Grid container spacing={{ xs: 1.5, md: 2 }} alignItems="stretch">
-          <Grid size={{ xs: 12, md: 6 }} sx={{ display: "flex" }}>
+        <Grid container spacing={{ xs: 1.5, md: 2 }}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Box sx={{ width: "100%" }}>
               <QueueRealtimeTable
                 title="Waiting Queue"
@@ -426,7 +426,7 @@ const QueueView = ({
             </Box>
           </Grid>
 
-          <Grid size={{ xs: 12, md: 6 }} sx={{ display: "flex" }}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Box sx={{ width: "100%" }}>
               <QueueRealtimeTable
                 title="Currently Being Served"

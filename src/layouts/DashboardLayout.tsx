@@ -29,6 +29,7 @@ import NotificationIcon from "../components/common/NotificationIcon";
 import NotificationPopup from "../components/common/NotificationPopup";
 import Logo from "../components/common/Logo";
 import useCompanyBranding from "../hooks/useCompanyBranding";
+import useSubscriptionAccess from "../hooks/useSubscriptionAccess";
 
 const INACTIVITY_LIMIT_MS = 10 * 60 * 1000;
 const AUTO_LOGOUT_WARNING_SECONDS = 30;
@@ -50,7 +51,7 @@ function DashboardLayoutInner() {
   const inactivityTimeoutRef = useRef<number | null>(null);
   const countdownIntervalRef = useRef<number | null>(null);
 
-  const { notifications, unreadCount, deleteNotification, markAsRead } = useNotifications();
+  const { notifications, unreadCount, deleteNotification, markAsRead, markAllUnreadAsRead } = useNotifications();
 
   useEffect(() => {
     setIsSidebarOpen(!isMobile);
@@ -68,6 +69,7 @@ function DashboardLayoutInner() {
 
   const { isDark, toggleDark } = useDarkMode();
   const { user, tenant, logout, updateUser } = useAuth();
+  const subscriptionAccess = useSubscriptionAccess();
   const { isAdmin } = useGetRole();
   const { companyName: companyProfileName } = useCompanyBranding();
 
@@ -223,9 +225,17 @@ function DashboardLayoutInner() {
   const userRole = user?.role || USER_ROLES.VISITOR.value;
   const subscription = tenant?.subscription ?? null;
   const planName = subscription?.planName || "No Plan";
+  const isInternalPlan = String(planName || "").toLowerCase().includes("internal");
   const subscriptionLifecycleStatus = String(tenant?.subscriptionData?.status || "").toUpperCase();
   const currentAgentStatus = user?.status || USER_STATUS.OFFLINE;
   const isBusyStatus = currentAgentStatus === USER_STATUS.BUSY;
+  const isSubscriptionInactive = !subscriptionAccess.isActive;
+  const isStatusControlDisabled = isBusyStatus || isSubscriptionInactive;
+  const statusControlTooltip = isSubscriptionInactive
+    ? "Status is unavailable while your subscription is inactive."
+    : isBusyStatus
+      ? "You can't change your status when you have an active chat."
+      : "Change your status";
 
   const statusBadge = (() => {
     switch (currentAgentStatus) {
@@ -282,6 +292,14 @@ function DashboardLayoutInner() {
     }
 
     if (!subscriptionEndDate) {
+      if (!isInternalPlan) {
+        return {
+          label: "Expired",
+          detail: "No days left",
+          tone: "danger" as const,
+        };
+      }
+
       return {
         label: "Unlimited",
         detail: "No expiration date",
@@ -376,6 +394,10 @@ function DashboardLayoutInner() {
   }, [isBusyStatus]);
 
   useEffect(() => {
+    if (!subscriptionAccess.isActive) {
+      return;
+    }
+
     const tenantScope = tenant?.apiKey || tenant?.id;
 
     if (!tenantScope || !user?._id) {
@@ -411,7 +433,7 @@ function DashboardLayoutInner() {
       socket.off("AGENT_STATUS_UPDATED", handleAgentStatusUpdated);
       socket.disconnect();
     };
-  }, [tenant?.apiKey, tenant?.id, updateUser, user?._id, user?.role]);
+  }, [subscriptionAccess.isActive, tenant?.apiKey, tenant?.id, updateUser, user?._id, user?.role]);
 
   return (
     <div className={`min-h-screen w-full overflow-x-hidden flex font-sans bg-gray-50 dark:bg-slate-900 transition-colors duration-300${isDark ? " dark" : ""}`}>
@@ -637,7 +659,11 @@ function DashboardLayoutInner() {
                           Expires
                         </Typography>
                         <Typography variant="body2" sx={{ color: isDark ? "#E2E8F0" : "#334155", fontWeight: 600, textAlign: "right" }}>
-                          {subscriptionEndDate ? formatDate(subscriptionEndDate) : "Unlimited for Internal Plan"}
+                          {subscriptionEndDate
+                            ? formatDate(subscriptionEndDate)
+                            : isInternalPlan
+                              ? "Unlimited for Internal Plan"
+                              : "Expired"}
                         </Typography>
                       </div>
                     </div>
@@ -656,20 +682,20 @@ function DashboardLayoutInner() {
           <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
             {/* Agent Status */}
             <div className="relative">
-              <Tooltip title={isBusyStatus ? "You can't change your status when you have an active chat." : "Change your status"} arrow>
+              <Tooltip title={statusControlTooltip} arrow>
                 <span>
                   <button
                     type="button"
-                    aria-disabled={isBusyStatus}
-                    disabled={isBusyStatus}
+                    aria-disabled={isStatusControlDisabled}
+                    disabled={isStatusControlDisabled}
                     onClick={() => {
-                      if (isBusyStatus) {
+                      if (isStatusControlDisabled) {
                         return;
                       }
 
                       setIsStatusOpen((prev) => !prev);
                     }}
-                    className={`flex items-center gap-2 bg-gray-50 dark:bg-slate-700/60 border border-gray-200 dark:border-slate-600 px-2 sm:px-3 py-1.5 rounded-lg transition-colors ${isBusyStatus ? "cursor-not-allowed opacity-80" : "hover:bg-gray-100 dark:hover:bg-slate-700"}`}
+                    className={`flex items-center gap-2 bg-gray-50 dark:bg-slate-700/60 border border-gray-200 dark:border-slate-600 px-2 sm:px-3 py-1.5 rounded-lg transition-colors ${isStatusControlDisabled ? "cursor-not-allowed opacity-60" : "hover:bg-gray-100 dark:hover:bg-slate-700"}`}
                   >
                     <span className={`w-2 h-2 rounded-full ${statusBadge.color}`}></span>
                     <span className="hidden sm:inline text-sm font-medium text-gray-700 dark:text-slate-300">
@@ -711,7 +737,15 @@ function DashboardLayoutInner() {
             <div className="relative">
               <NotificationIcon
                 unreadCount={unreadCount}
-                onClick={() => setIsNotificationsOpen((prev) => !prev)}
+                onClick={() => {
+                  setIsNotificationsOpen((prev) => {
+                    const nextOpen = !prev;
+                    if (nextOpen && unreadCount > 0) {
+                      void markAllUnreadAsRead();
+                    }
+                    return nextOpen;
+                  });
+                }}
                 isOpen={isNotificationsOpen}
               />
 

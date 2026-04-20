@@ -5,6 +5,12 @@ import type { AxiosRequestConfig } from 'axios';
 import type { InternalAxiosRequestConfig } from 'axios';
 import { beginMutationBlock, endMutationBlock } from '../services/apiClient';
 import { API_BASE_URL } from '../constants/constants';
+import {
+  isInactiveAllowedApiRequest,
+  isInactiveSubscriptionError,
+  readStoredSubscriptionAccess,
+  SUBSCRIPTION_STATE_CHANGED_EVENT,
+} from './subscriptionAccess';
 
 const AUTH_UNAUTHORIZED_EVENT = 'jaf_auth_unauthorized';
 
@@ -21,6 +27,7 @@ type BlockingRequestConfig = InternalAxiosRequestConfig & {
   loadingMessage?: string;
   skipGlobalBlocking?: boolean;
   skipAuthLogout?: boolean;
+  skipSubscriptionGuard?: boolean;
   _didAcquireGlobalBlock?: boolean;
 };
 
@@ -39,6 +46,25 @@ axiosServices.interceptors.request.use(
       }
 
       blockingConfig._didAcquireGlobalBlock = true;
+    }
+
+    const storedSubscriptionAccess = readStoredSubscriptionAccess();
+    const shouldBlockForInactiveSubscription = Boolean(
+      storedSubscriptionAccess
+      && !storedSubscriptionAccess.isActive
+      && !blockingConfig.skipSubscriptionGuard
+      && !isInactiveAllowedApiRequest(method, config.url),
+    );
+
+    if (shouldBlockForInactiveSubscription) {
+      if (blockingConfig._didAcquireGlobalBlock) {
+        endMutationBlock();
+        blockingConfig._didAcquireGlobalBlock = false;
+      }
+
+      return Promise.reject(
+        new axios.CanceledError('Blocked because subscription is inactive for this feature.'),
+      );
     }
 
     const accessToken = localStorage.getItem('serviceToken');
@@ -77,6 +103,18 @@ axiosServices.interceptors.response.use(
 
     if (error?.response?.status === 401 && !blockingConfig?.skipAuthLogout && typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent(AUTH_UNAUTHORIZED_EVENT));
+    }
+
+    if (typeof window !== 'undefined' && isInactiveSubscriptionError(error)) {
+      window.dispatchEvent(new CustomEvent(SUBSCRIPTION_STATE_CHANGED_EVENT, {
+        detail: {
+          isActive: false,
+          source: 'api-response',
+          reason: String(error?.response?.data?.message || 'Subscription is inactive.'),
+          status: String(error?.response?.data?.details?.status || 'EXPIRED').toUpperCase(),
+          endDate: error?.response?.data?.details?.subscriptionEnd || null,
+        },
+      }));
     }
 
     return Promise.reject(error);

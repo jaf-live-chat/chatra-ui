@@ -2,6 +2,7 @@ import { useEffect, useRef, useCallback } from "react";
 import type { Socket } from "socket.io-client";
 import { createLiveChatSocket } from "../services/liveChatRealtimeClient";
 import type { LiveChatMessage, LiveChatConversationEndedEvent } from "../models/LiveChatModel";
+import { SUBSCRIPTION_STATE_CHANGED_EVENT } from "../utils/subscriptionAccess";
 
 export interface StaffLiveChatHandlers {
   onNewMessage?: (message: LiveChatMessage) => void;
@@ -17,6 +18,7 @@ export interface StaffLiveChatHandlers {
   onDisconnect?: () => void;
   onReconnect?: () => void;
   onError?: (error: Error) => void;
+  onSubscriptionInactive?: (payload: { reason?: string; status?: string; endDate?: string | null }) => void;
 }
 
 let sharedStaffSocket: Socket | null = null;
@@ -122,6 +124,22 @@ export const useStaffLiveChat = (
         handlersRef.current.onError?.(error instanceof Error ? error : new Error(String(error)));
       };
 
+      const onSubscriptionInactive = (payload: any) => {
+        const detail = {
+          isActive: false,
+          source: "realtime",
+          reason: String(payload?.message || "Subscription is inactive."),
+          status: String(payload?.status || "EXPIRED").toUpperCase(),
+          endDate: payload?.subscriptionEnd || null,
+        };
+
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent(SUBSCRIPTION_STATE_CHANGED_EVENT, { detail }));
+        }
+
+        handlersRef.current.onSubscriptionInactive?.(detail);
+      };
+
       sharedStaffSocket.on("NEW_MESSAGE", onNewMessage);
       sharedStaffSocket.on("MESSAGE_STATUS_UPDATED", onMessageStatusUpdated);
       sharedStaffSocket.on("CONVERSATION_ASSIGNED", onConversationAssigned);
@@ -135,6 +153,7 @@ export const useStaffLiveChat = (
       sharedStaffSocket.on("disconnect", onDisconnect);
       sharedStaffSocket.on("reconnect", onReconnect);
       sharedStaffSocket.on("connect_error", onError);
+      sharedStaffSocket.on("SUBSCRIPTION_INACTIVE", onSubscriptionInactive);
 
       return () => {
         socketRefCount -= 1;
@@ -152,6 +171,7 @@ export const useStaffLiveChat = (
         sharedStaffSocket?.off("disconnect", onDisconnect);
         sharedStaffSocket?.off("reconnect", onReconnect);
         sharedStaffSocket?.off("connect_error", onError);
+        sharedStaffSocket?.off("SUBSCRIPTION_INACTIVE", onSubscriptionInactive);
 
         // Disconnect shared socket if no more subscribers
         if (socketRefCount === 0 && sharedStaffSocket) {
@@ -232,6 +252,22 @@ export const useStaffLiveChat = (
       handlersRef.current.onError?.(error instanceof Error ? error : new Error(String(error)));
     };
 
+    const onSubscriptionInactive = (payload: any) => {
+      const detail = {
+        isActive: false,
+        source: "realtime",
+        reason: String(payload?.message || "Subscription is inactive."),
+        status: String(payload?.status || "EXPIRED").toUpperCase(),
+        endDate: payload?.subscriptionEnd || null,
+      };
+
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent(SUBSCRIPTION_STATE_CHANGED_EVENT, { detail }));
+      }
+
+      handlersRef.current.onSubscriptionInactive?.(detail);
+    };
+
     socket.on("NEW_MESSAGE", onNewMessage);
     socket.on("MESSAGE_STATUS_UPDATED", onMessageStatusUpdated);
     socket.on("CONVERSATION_ASSIGNED", onConversationAssigned);
@@ -245,6 +281,7 @@ export const useStaffLiveChat = (
     socket.on("disconnect", onDisconnect);
     socket.on("reconnect", onReconnect);
     socket.on("connect_error", onError);
+    socket.on("SUBSCRIPTION_INACTIVE", onSubscriptionInactive);
 
     return () => {
       socketRefCount -= 1;
@@ -262,6 +299,7 @@ export const useStaffLiveChat = (
       socket.off("disconnect", onDisconnect);
       socket.off("reconnect", onReconnect);
       socket.off("connect_error", onError);
+      socket.off("SUBSCRIPTION_INACTIVE", onSubscriptionInactive);
 
       // Disconnect shared socket if no more subscribers
       if (socketRefCount === 0) {

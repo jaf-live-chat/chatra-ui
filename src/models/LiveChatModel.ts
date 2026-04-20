@@ -228,6 +228,7 @@ export interface LiveChatSendMessagePayload {
 
 export interface LiveChatWidgetConfig {
   apiKey?: string;
+  companyName?: string;
   title?: string;
   welcomeMessage?: string;
   widgetLogo?: string;
