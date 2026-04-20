@@ -11,6 +11,8 @@ import {
 import { useNavigate, useSearchParams } from "react-router";
 import { motion } from "motion/react";
 import Payments from "../services/paymentServices";
+import { revalidateMe } from "../services/agentServices";
+import { SUBSCRIPTION_STATE_CHANGED_EVENT } from "../utils/subscriptionAccess";
 
 const renewalSteps = [
   { id: "verify", label: "Verifying payment...", icon: CheckCircle2 },
@@ -277,6 +279,15 @@ const DashboardRenewal = () => {
           setAddedFeatures(Array.isArray(status.addedFeatures) ? status.addedFeatures : []);
           setRemovedFeatures(Array.isArray(status.removedFeatures) ? status.removedFeatures : []);
           setUnchangedFeatures(Array.isArray(status.unchangedFeatures) ? status.unchangedFeatures : []);
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(new CustomEvent(SUBSCRIPTION_STATE_CHANGED_EVENT, {
+              detail: {
+                isActive: true,
+                status: "ACTIVATED",
+              },
+            }));
+          }
+          void revalidateMe();
           sessionStorage.removeItem(CHECKOUT_RENEWAL_CONTEXT_KEY);
           setTimeout(() => {
             if (!isCancelled) {
@@ -359,7 +370,8 @@ const DashboardRenewal = () => {
     }
   }, [attempts, isComplete]);
 
-  const handleDashboardNav = () => {
+  const handleDashboardNav = async () => {
+    await revalidateMe();
     navigate("/portal/tenants");
   };
 

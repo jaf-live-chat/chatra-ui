@@ -26,6 +26,7 @@ const INACTIVE_ALLOWED_API_RULES: InactiveAllowedRule[] = [
   { method: "GET", pattern: /^\/widget\/live-chat\/visitor-profile(?:\/|$)/ },
 
   // Subscription recovery and billing management
+  { method: "GET", pattern: /^\/agents\/me(?:\/|$)/ },
   { method: "GET", pattern: /^\/tenants\/[^/]+(?:\/|$)/ },
   { method: "GET", pattern: /^\/subscription-plans(?:\/[^/]+)?(?:\/|$)/ },
   { method: "GET", pattern: /^\/payments\/status(?:\/|$)/ },

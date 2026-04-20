@@ -17,11 +17,11 @@ import useGetRole from "../hooks/useGetRole";
 import useIsMobile from "../hooks/useMobile";
 import useNotifications from "../hooks/useNotifications";
 import Agents from "../services/agentServices";
+import { useGetMe } from "../services/agentServices";
 import { createLiveChatSocket } from "../services/liveChatRealtimeClient";
 import { MODULE_GROUPS } from "../constants/modules";
 import filterModulesByRole from "../utils/filterModules";
 import { formatDate } from "../utils/dateFormatter";
-import type { AuthUser } from "../models/AgentModel";
 import toTitleCase from "../utils/toTitleCase";
 import getAvatarColor from "../utils/getAvatarColor";
 import AutoLogoutModal from "../components/common/AutoLogoutModal";
@@ -69,9 +69,40 @@ function DashboardLayoutInner() {
 
   const { isDark, toggleDark } = useDarkMode();
   const { user, tenant, logout, updateUser } = useAuth();
-  const subscriptionAccess = useSubscriptionAccess();
+  const { tenant: realtimeTenant, mutate: refetchMe } = useGetMe();
+  const refetchMeRef = useRef(refetchMe);
+  const effectiveTenant = realtimeTenant ?? tenant;
+  const subscriptionAccess = useSubscriptionAccess(effectiveTenant);
   const { isAdmin } = useGetRole();
   const { companyName: companyProfileName } = useCompanyBranding();
+
+  useEffect(() => {
+    refetchMeRef.current = refetchMe;
+  }, [refetchMe]);
+
+  useEffect(() => {
+    void refetchMeRef.current();
+  }, []);
+
+  useEffect(() => {
+    if (!location.pathname.startsWith("/portal")) {
+      return;
+    }
+
+    void refetchMeRef.current();
+  }, [location.pathname]);
+
+  useEffect(() => {
+    const handleWindowFocus = () => {
+      void refetchMeRef.current();
+    };
+
+    window.addEventListener("focus", handleWindowFocus);
+
+    return () => {
+      window.removeEventListener("focus", handleWindowFocus);
+    };
+  }, []);
 
   const clearInactivityTimeout = useCallback(() => {
     if (inactivityTimeoutRef.current) {
@@ -221,12 +252,15 @@ function DashboardLayoutInner() {
   const userEmail = user?.emailAddress || "";
   const userProfilePicture = user?.profilePicture || "";
   const [profileImageFailed, setProfileImageFailed] = useState(false);
-  const companyName = tenant?.companyName || "-";
+  const companyName = effectiveTenant?.companyName || "-";
   const userRole = user?.role || USER_ROLES.VISITOR.value;
-  const subscription = tenant?.subscription ?? null;
-  const planName = subscription?.planName || "No Plan";
+  const subscriptionData = effectiveTenant?.subscriptionData ?? null;
+  const subscription = effectiveTenant?.subscription ?? null;
+  const planName = subscriptionData?.planName || subscription?.planName || "No Plan";
   const isInternalPlan = String(planName || "").toLowerCase().includes("internal");
-  const subscriptionLifecycleStatus = String(tenant?.subscriptionData?.status || "").toUpperCase();
+  const subscriptionLifecycleStatus = String(subscriptionData?.status || subscriptionAccess.status || "").toUpperCase();
+  const subscriptionStartDate = subscriptionData?.startDate || subscription?.startDate;
+  const subscriptionEndDate = subscriptionData?.endDate || subscription?.endDate;
   const currentAgentStatus = user?.status || USER_STATUS.OFFLINE;
   const isBusyStatus = currentAgentStatus === USER_STATUS.BUSY;
   const isSubscriptionInactive = !subscriptionAccess.isActive;
@@ -251,22 +285,31 @@ function DashboardLayoutInner() {
     }
   })();
 
-  const authUser: AuthUser | null =
-    tenant?.companyName && user?.role && subscription?.planName && subscription?.startDate && subscription?.endDate
-      ? {
-        companyName: tenant.companyName,
-        role: user.role,
-        subscription: {
-          planName: subscription.planName,
-          startDate: subscription.startDate,
-          endDate: subscription.endDate,
-        },
-      }
-      : null;
-  const subscriptionStartDate = authUser?.subscription.startDate || subscription?.startDate;
-  const subscriptionEndDate = authUser?.subscription.endDate || subscription?.endDate;
-
   const subscriptionStatus = (() => {
+    if (isSubscriptionInactive) {
+      if (subscriptionLifecycleStatus === "DEACTIVATED") {
+        return {
+          label: "Deactivated",
+          detail: "No days left",
+          tone: "danger" as const,
+        };
+      }
+
+      if (subscriptionLifecycleStatus === "EXPIRED") {
+        return {
+          label: "Expired",
+          detail: "No days left",
+          tone: "danger" as const,
+        };
+      }
+
+      return {
+        label: "Inactive",
+        detail: "Not active",
+        tone: "neutral" as const,
+      };
+    }
+
     if (subscriptionLifecycleStatus === "DEACTIVATED") {
       return {
         label: "Deactivated",
@@ -283,7 +326,11 @@ function DashboardLayoutInner() {
       };
     }
 
-    if (subscriptionLifecycleStatus && subscriptionLifecycleStatus !== "ACTIVATED") {
+    if (
+      subscriptionLifecycleStatus &&
+      subscriptionLifecycleStatus !== "ACTIVATED" &&
+      subscriptionLifecycleStatus !== "ACTIVE"
+    ) {
       return {
         label: "Inactive",
         detail: "Not active",
@@ -398,15 +445,15 @@ function DashboardLayoutInner() {
       return;
     }
 
-    const tenantScope = tenant?.apiKey || tenant?.id;
+    const tenantScope = effectiveTenant?.apiKey || effectiveTenant?.id;
 
     if (!tenantScope || !user?._id) {
       return;
     }
 
     const socket = createLiveChatSocket({
-      apiKey: tenant?.apiKey || undefined,
-      tenantId: tenant?.id || undefined,
+      apiKey: effectiveTenant?.apiKey || undefined,
+      tenantId: effectiveTenant?.id || undefined,
       role: user?.role,
       agentId: user?._id,
     });
@@ -433,7 +480,7 @@ function DashboardLayoutInner() {
       socket.off("AGENT_STATUS_UPDATED", handleAgentStatusUpdated);
       socket.disconnect();
     };
-  }, [subscriptionAccess.isActive, tenant?.apiKey, tenant?.id, updateUser, user?._id, user?.role]);
+  }, [effectiveTenant?.apiKey, effectiveTenant?.id, subscriptionAccess.isActive, updateUser, user?._id, user?.role]);
 
   return (
     <div className={`min-h-screen w-full overflow-x-hidden flex font-sans bg-gray-50 dark:bg-slate-900 transition-colors duration-300${isDark ? " dark" : ""}`}>
@@ -669,7 +716,7 @@ function DashboardLayoutInner() {
                     </div>
 
                     <Stack direction="row" justifyContent="center" className="mt-4">
-                      <Button fullWidth variant="outlined" onClick={() => navigate(`/portal/tenants/${tenant?.id}`)}>
+                      <Button fullWidth variant="outlined" onClick={() => navigate(`/portal/tenants/${effectiveTenant?.id}`)}>
                         View subscription details
                       </Button>
                     </Stack>

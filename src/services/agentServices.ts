@@ -19,6 +19,7 @@ import type {
 } from "../models/AgentModel";
 import { API_BASE_URL, SWR_OPTIONS } from "../constants/constants";
 import useSWR from "swr";
+import { mutate as globalMutate } from "swr";
 import type {
   UploadSingleResponse,
   UploadMultipleResponse,
@@ -48,6 +49,10 @@ type UseGetAgentsParams = {
   page?: number;
   limit?: number;
   search?: string;
+};
+
+type UseGetMeParams = {
+  refreshInterval?: number;
 };
 
 export const useGetAgents = ({ page = 1, limit = 10, search = "" }: UseGetAgentsParams = {}) => {
@@ -104,6 +109,32 @@ export const useGetSingleAgent = (agentId?: string) => {
   );
 
   return memoizedValue;
+};
+
+export const useGetMe = ({ refreshInterval = 30000 }: UseGetMeParams = {}) => {
+  const getMe = (url: string) => fetcher<AgentMeResponse>(url, true) as Promise<AgentMeResponse>;
+
+  const { data, isLoading, error, mutate } = useSWR<AgentMeResponse>(
+    endpoints.me,
+    getMe,
+    {
+      ...SWR_OPTIONS,
+      refreshInterval,
+    }
+  );
+
+  return {
+    data,
+    tenant: data?.tenant ?? null,
+    agent: data?.agent ?? null,
+    isLoading,
+    error,
+    mutate,
+  };
+};
+
+export const revalidateMe = async () => {
+  await globalMutate(endpoints.me);
 };
 
 const Agents = {

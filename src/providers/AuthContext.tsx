@@ -161,7 +161,16 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       }>;
 
       const detail = customEvent.detail;
-      if (!detail || detail.isActive !== false) {
+      if (!detail) {
+        return;
+      }
+
+      if (detail.isActive === true) {
+        void refreshSession();
+        return;
+      }
+
+      if (detail.isActive !== false) {
         return;
       }
 
@@ -199,7 +208,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       window.removeEventListener(AUTH_UNAUTHORIZED_EVENT, handleUnauthorized);
       window.removeEventListener(SUBSCRIPTION_STATE_CHANGED_EVENT, handleSubscriptionStateChanged as EventListener);
     };
-  }, [clearSession]);
+  }, [clearSession, refreshSession]);
 
   const updateUser = useCallback((agent: AuthAgent) => {
     setSession((prevSession) => {
