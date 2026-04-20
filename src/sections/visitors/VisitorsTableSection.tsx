@@ -1,9 +1,12 @@
 import { useState } from "react";
-import { Eye, Users } from "lucide-react";
+import { Eye, MapPin, Users, X } from "lucide-react";
 import { useNavigate } from "react-router";
 import Avatar from "@mui/material/Avatar";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import Dialog from "@mui/material/Dialog";
+import DialogContent from "@mui/material/DialogContent";
+import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import ReusableTable, { type ReusableTableColumn } from "../../components/ReusableTable";
@@ -13,6 +16,19 @@ import type { PortalVisitor } from "../../models/VisitorModel";
 import idLabel from "../../utils/idUtils";
 
 const ROWS_PER_PAGE = 10;
+
+const getVisitorMapEmbedUrl = (city?: string | null, country?: string | null) => {
+  const query = [city, country]
+    .map((value) => String(value || "").trim())
+    .filter(Boolean)
+    .join(", ");
+
+  if (!query) {
+    return null;
+  }
+
+  return `https://maps.google.com/maps?q=${encodeURIComponent(query)}&z=10&output=embed`;
+};
 
 const getInitials = (name: string) => {
   const parts = String(name || "")
@@ -63,13 +79,18 @@ const resolveLocation = (visitor: PortalVisitor) => {
     return country;
   }
 
-  return "Unknown";
+  if (visitor.locationConsent === true) {
+    return "Location not resolved yet";
+  }
+
+  return "Not granted";
 };
 
 const VisitorsTableSection = () => {
   const navigate = useNavigate();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
+  const [mapPreview, setMapPreview] = useState<{ name: string; locationLabel: string; mapUrl: string } | null>(null);
 
   const { visitors, pagination, isLoading } = useGetVisitors({
     page,
@@ -113,11 +134,41 @@ const VisitorsTableSection = () => {
       label: "Location",
       sortable: true,
       sortAccessor: (visitor) => resolveLocation(visitor),
-      renderCell: (visitor) => (
-        <Typography variant="body2" sx={{ color: "text.primary", fontWeight: 500 }}>
-          {resolveLocation(visitor)}
-        </Typography>
-      ),
+      renderCell: (visitor) => {
+        const locationLabel = resolveLocation(visitor);
+        const mapUrl = getVisitorMapEmbedUrl(visitor.locationCity, visitor.locationCountry);
+
+        return (
+          <Stack spacing={0.5} alignItems="flex-start">
+            <Typography variant="body2" sx={{ color: "text.primary", fontWeight: 500 }}>
+              {locationLabel}
+            </Typography>
+            {mapUrl ? (
+              <Button
+                size="small"
+                variant="text"
+                startIcon={<MapPin size={13} />}
+                onClick={() => {
+                  setMapPreview({
+                    name: resolveDisplayName(visitor),
+                    locationLabel,
+                    mapUrl,
+                  });
+                }}
+                sx={{
+                  textTransform: "none",
+                  px: 0,
+                  minWidth: 0,
+                  fontWeight: 700,
+                  fontSize: "0.72rem",
+                }}
+              >
+                View Map
+              </Button>
+            ) : null}
+          </Stack>
+        );
+      },
     },
     {
       id: "action",
@@ -176,6 +227,46 @@ const VisitorsTableSection = () => {
         emptyStateDescription="Try changing the search keyword or wait for new visitors."
         totalLabel="visitors"
       />
+
+      <Dialog
+        open={Boolean(mapPreview)}
+        onClose={() => setMapPreview(null)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 1.5 } }}
+      >
+        <DialogContent sx={{ p: 0 }}>
+          <Box sx={{ px: 2, py: 1.5, borderBottom: "1px solid", borderColor: "divider", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <Box>
+              <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
+                {mapPreview?.name || "Visitor"} - Location Map
+              </Typography>
+              <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                {mapPreview?.locationLabel || "Not granted"}
+              </Typography>
+            </Box>
+            <IconButton size="small" onClick={() => setMapPreview(null)}>
+              <X size={16} />
+            </IconButton>
+          </Box>
+
+          {mapPreview?.mapUrl ? (
+            <iframe
+              title="visitor map preview"
+              src={mapPreview.mapUrl}
+              loading="lazy"
+              style={{ width: "100%", height: 320, border: 0 }}
+              referrerPolicy="no-referrer-when-downgrade"
+            />
+          ) : (
+            <Box sx={{ px: 2, py: 3 }}>
+              <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                Location permission not granted.
+              </Typography>
+            </Box>
+          )}
+        </DialogContent>
+      </Dialog>
     </Stack>
   );
 };

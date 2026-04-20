@@ -47,6 +47,19 @@ const getSenderLabel = (senderType: string) => {
   return "Agent";
 };
 
+const getVisitorMapEmbedUrl = (city?: string | null, country?: string | null) => {
+  const query = [city, country]
+    .map((value) => String(value || "").trim())
+    .filter(Boolean)
+    .join(", ");
+
+  if (!query) {
+    return null;
+  }
+
+  return `https://maps.google.com/maps?q=${encodeURIComponent(query)}&z=10&output=embed`;
+};
+
 const VisitorDetailsDialog = ({
   open,
   visitor,
@@ -109,9 +122,19 @@ const VisitorDetailsDialog = ({
   }, [open, visitor?.conversationId]);
 
   const location = useMemo(() => {
-    const city = visitor?.location || "Unknown";
-    const country = visitor?.country || "Unknown";
-    return `${city}, ${country}`;
+    const city = String(visitor?.location || "").trim();
+    const country = String(visitor?.country || "").trim();
+    const parts = [city, country].filter(Boolean);
+
+    if (parts.length > 0) {
+      return parts.join(", ");
+    }
+
+    return "Not granted";
+  }, [visitor?.country, visitor?.location]);
+
+  const visitorMapEmbedUrl = useMemo(() => {
+    return getVisitorMapEmbedUrl(visitor?.location, visitor?.country);
   }, [visitor?.country, visitor?.location]);
 
   const isWaitingVisitor = visitor?.status === "Waiting";
@@ -196,6 +219,45 @@ const VisitorDetailsDialog = ({
               </Typography>
             </Box>
           </Stack>
+
+          <Box sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, overflow: "hidden" }}>
+            <Box sx={{ px: 2, py: 1.25, borderBottom: "1px solid", borderColor: "divider", bgcolor: "grey.50" }}>
+              <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1}>
+                <Stack direction="row" alignItems="center" spacing={1}>
+                  <MapPin size={14} />
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                    Visitor Map
+                  </Typography>
+                </Stack>
+                <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700 }}>
+                  {visitorMapEmbedUrl ? "Map available" : "Not granted"}
+                </Typography>
+              </Stack>
+            </Box>
+
+            {visitorMapEmbedUrl ? (
+              <Box>
+                <iframe
+                  title={`${visitor?.name || "Visitor"} map`}
+                  src={visitorMapEmbedUrl}
+                  loading="lazy"
+                  style={{ width: "100%", height: 220, border: 0 }}
+                  referrerPolicy="no-referrer-when-downgrade"
+                />
+                <Box sx={{ px: 2, py: 1, borderTop: "1px solid", borderColor: "divider", bgcolor: "background.paper" }}>
+                  <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600 }}>
+                    Showing {location}
+                  </Typography>
+                </Box>
+              </Box>
+            ) : (
+              <Box sx={{ px: 2, py: 2 }}>
+                <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                  Location permission not granted.
+                </Typography>
+              </Box>
+            )}
+          </Box>
 
           {isAssignedVisitor ? (
             <Box sx={{ p: 1.5, borderRadius: 2, border: "1px solid", borderColor: "divider", bgcolor: "background.paper" }}>

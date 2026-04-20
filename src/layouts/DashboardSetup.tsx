@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import {
   CheckCircle2,
   Loader2,
@@ -49,6 +49,64 @@ const integrationChecklist = [
   "Start receiving and managing conversations in real time",
 ];
 
+type CheckoutWorkflowStage =
+  | "INITIATED"
+  | "PAYMENT_PENDING"
+  | "PROVISIONING"
+  | "COMPLETED"
+  | "FAILED"
+  | "CANCELLED";
+
+const WORKFLOW_STAGE_TO_STEP: Record<CheckoutWorkflowStage, number> = {
+  INITIATED: 0,
+  PAYMENT_PENDING: 0,
+  PROVISIONING: 1,
+  COMPLETED: 2,
+  FAILED: 1,
+  CANCELLED: 1,
+};
+
+const WORKFLOW_STAGE_TO_PROGRESS: Record<CheckoutWorkflowStage, number> = {
+  INITIATED: 12,
+  PAYMENT_PENDING: 34,
+  PROVISIONING: 68,
+  COMPLETED: 100,
+  FAILED: 68,
+  CANCELLED: 68,
+};
+
+const resolveWorkflowStage = (status: {
+  workflowStage?: CheckoutWorkflowStage;
+  status?: string;
+  isProvisioned?: boolean;
+}): CheckoutWorkflowStage => {
+  if (status.workflowStage) {
+    return status.workflowStage;
+  }
+
+  if (status.isProvisioned) {
+    return "COMPLETED";
+  }
+
+  if (status.status === "FAILED") {
+    return "FAILED";
+  }
+
+  if (status.status === "CANCELLED") {
+    return "CANCELLED";
+  }
+
+  if (status.status === "COMPLETED") {
+    return "PROVISIONING";
+  }
+
+  if (status.status === "PENDING") {
+    return "PAYMENT_PENDING";
+  }
+
+  return "INITIATED";
+};
+
 const DashboardSetup = () => {
   const [searchParams] = useSearchParams();
   const [currentStep, setCurrentStep] = useState(0);
@@ -57,6 +115,7 @@ const DashboardSetup = () => {
   const [copied, setCopied] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [attempts, setAttempts] = useState(0);
+  const [workflowStage, setWorkflowStage] = useState<CheckoutWorkflowStage>("INITIATED");
   const [tenantEmail, setTenantEmail] = useState("");
   const [companyName, setCompanyName] = useState("");
   const [planName, setPlanName] = useState("");
@@ -64,6 +123,7 @@ const DashboardSetup = () => {
   const [billingPeriod, setBillingPeriod] = useState("");
   const [integrationName, setIntegrationName] = useState("Web Chat Widget + REST API");
   const [welcomeName, setWelcomeName] = useState("");
+  const hasTerminalRedirectRef = useRef(false);
 
   const savedSetupContext = useMemo<CheckoutSetupContext>(() => {
     try {
@@ -163,6 +223,26 @@ const DashboardSetup = () => {
     redirectStatus === "expired" ||
     redirectStatus === "failed";
 
+  const progressPercentage = WORKFLOW_STAGE_TO_PROGRESS[workflowStage];
+
+  const redirectToCancelled = (terminalStatus: "cancelled" | "failed", reason?: string, message?: string) => {
+    if (hasTerminalRedirectRef.current) {
+      return;
+    }
+
+    hasTerminalRedirectRef.current = true;
+
+    const params = new URLSearchParams(window.location.search);
+    params.set("status", terminalStatus);
+    if (reason) {
+      params.set("reason", reason);
+    }
+    if (message) {
+      params.set("message", message);
+    }
+    window.location.assign(`/setup/cancelled?${params.toString()}`);
+  };
+
   useEffect(() => {
     if (isCancelledRedirect) {
       window.location.replace(`/setup/cancelled${window.location.search}`);
@@ -189,17 +269,23 @@ const DashboardSetup = () => {
           return;
         }
 
-        if (status.status === "PENDING") {
-          setCurrentStep(1);
+        const nextWorkflowStage = resolveWorkflowStage(status);
+        setWorkflowStage(nextWorkflowStage);
+        setCurrentStep(WORKFLOW_STAGE_TO_STEP[nextWorkflowStage]);
+
+        if (status.status === "FAILED" || nextWorkflowStage === "FAILED") {
+          redirectToCancelled("failed", status.failureReason, status.failureMessage);
+          return;
         }
 
         if (status.checkoutState === "CANCELLED" || status.status === "CANCELLED") {
-          window.location.assign(`/setup/cancelled${window.location.search}`);
+          redirectToCancelled("cancelled", status.failureReason, status.failureMessage);
           return;
         }
 
         if (status.isProvisioned) {
-          setCurrentStep(2);
+          setCurrentStep(WORKFLOW_STAGE_TO_STEP.COMPLETED);
+          setWorkflowStage("COMPLETED");
           setApiKey(status.apiKey || apiKeyFromQuery || "");
           setTenantEmail(status.tenantEmail || tenantEmailFromQuery || "");
           setCompanyName(status.companyName || companyNameFromQuery || "");
@@ -220,6 +306,7 @@ const DashboardSetup = () => {
         setAttempts((prev) => prev + 1);
       } catch (_error) {
         if (!isCancelled) {
+          setErrorMessage("We are still checking your checkout status. Please wait...");
           setAttempts((prev) => prev + 1);
         }
       }
@@ -290,7 +377,11 @@ const DashboardSetup = () => {
 
   useEffect(() => {
     if (attempts >= MAX_POLL_ATTEMPTS && !isComplete) {
-      setErrorMessage("Provisioning is taking longer than expected. You can retry checkout.");
+      redirectToCancelled(
+        "failed",
+        "PROVISIONING_TIMEOUT",
+        "Provisioning is taking longer than expected. Please retry checkout."
+      );
     }
   }, [attempts, isComplete]);
 
@@ -349,7 +440,7 @@ const DashboardSetup = () => {
                   <p className="mt-2 text-sm text-slate-500">Your environment is being provisioned with secure access and integration-ready credentials.</p>
                 </div>
                 <div className="text-5xl font-light text-slate-900 tracking-tighter tabular-nums flex items-baseline">
-                  {Math.round(((currentStep + 0.5) / steps.length) * 100)}
+                  {Math.round(progressPercentage)}
                   <span className="text-2xl text-slate-400 ml-1">%</span>
                 </div>
               </div>
@@ -358,7 +449,7 @@ const DashboardSetup = () => {
                 <motion.div
                   className="h-full bg-gradient-to-r from-cyan-500 to-sky-600 rounded-full"
                   initial={{ width: "0%" }}
-                  animate={{ width: `${((currentStep + 0.5) / steps.length) * 100}%` }}
+                  animate={{ width: `${progressPercentage}%` }}
                   transition={{ duration: 1.5, ease: "easeInOut" }}
                 />
               </div>

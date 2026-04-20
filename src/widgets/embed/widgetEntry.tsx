@@ -1,5 +1,5 @@
 import { createRoot } from "react-dom/client";
-import LiveChatWidget from "../../components/widgets/LiveChatWidget";
+import LiveChatWidget from "../live-chat/LiveChatWidget";
 import type {
   LiveChatEmbedBootstrapConfig,
   LiveChatEmbedScriptAttributes,

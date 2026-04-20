@@ -14,12 +14,8 @@ import { useMemo } from "react";
 import { useGetSinglePlan } from "../../services/subscriptionPlanServices";
 import formatAmount from "../../utils/amountFormatter";
 import { formatDate } from "../../utils/dateFormatter";
-import idLabel from "../../utils/idUtils";
 
 interface SubscriptionMeta {
-  id?: string;
-  planId?: string;
-  planName?: string;
   startDate?: string;
   endDate?: string;
   status?: string;
@@ -242,23 +238,9 @@ const TenantSubscriptionAccordion = ({
                     sx={{
                       display: "grid",
                       gap: 1.5,
-                      gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+                      gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr 1fr" },
                     }}
                   >
-                    <Box>
-                      <Typography
-                        variant="caption"
-                        sx={{ fontWeight: 600, color: "text.secondary", letterSpacing: "0.03em" }}
-                      >
-                        ID
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        sx={{ mt: 0.4, color: "text.primary", fontWeight: 600, wordBreak: "break-word" }}
-                      >
-                        {idLabel(subscriptionMeta.id || "", "SUBSCRIPTION")}
-                      </Typography>
-                    </Box>
                     <Box>
                       <Typography
                         variant="caption"
@@ -341,36 +323,6 @@ const TenantSubscriptionAccordion = ({
                     variant="filled"
                     sx={{ height: "auto", py: 0.8, borderRadius: 1, fontWeight: 600, "& .MuiChip-icon": { color: "inherit" } }}
                   />
-                  <Chip
-                    label={plan.isPosted ? "✓ Published" : "Hidden"}
-                    color={plan.isPosted ? "success" : "default"}
-                    variant="filled"
-                    sx={{ height: "auto", py: 0.8, borderRadius: 1, fontWeight: 600 }}
-                  />
-                  <Chip
-                    label={plan.isMostPopular ? "★ Most Popular" : "Standard"}
-                    color={plan.isMostPopular ? "warning" : "default"}
-                    variant="filled"
-                    sx={{ height: "auto", py: 0.8, borderRadius: 1, fontWeight: 600 }}
-                  />
-                </Box>
-
-                <Divider />
-
-                {/* Plan ID */}
-                <Box>
-                  <Typography
-                    variant="caption"
-                    sx={{ fontWeight: 700, color: "text.secondary", letterSpacing: "0.04em" }}
-                  >
-                    PLAN IDENTIFIER
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    sx={{ mt: 0.5, color: "text.primary", fontWeight: 600, wordBreak: "break-word" }}
-                  >
-                    {idLabel(plan._id, "PLAN") || "-"}
-                  </Typography>
                 </Box>
 
                 <Divider />

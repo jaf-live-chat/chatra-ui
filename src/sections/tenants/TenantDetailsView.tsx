@@ -1,4 +1,4 @@
-import { Activity, ArrowLeft, ArrowRight, Building2, CalendarDays, Circle, CreditCard, Hash, ReceiptText, Send, Settings2, UserRound } from "lucide-react";
+import { Activity, ArrowLeft, Building2, CalendarDays, Circle, CreditCard, ReceiptText, Send, Settings2 } from "lucide-react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -19,7 +19,6 @@ import { useGetSingleTenant } from "../../services/tenantService";
 import tenantService from "../../services/tenantService";
 import useGetRole from "../../hooks/useGetRole";
 import { formatDate } from "../../utils/dateFormatter";
-import idLabel from "../../utils/idUtils";
 import TitleTag from "../../components/TitleTag";
 import TenantSubscriptionAccordion from "./TenantSubscriptionAccordion";
 import TenantPlanChangeDrawer from "./TenantPlanChangeDrawer";
@@ -74,11 +73,6 @@ const LIGHT_SURFACE_TEXT_SECONDARY = "#64748b";
 const HEADER_TEXT_PRIMARY = "#ffffff";
 const HEADER_TEXT_SECONDARY = "#cbd5e1";
 
-const safeIdLabel = (rawId: string | undefined, prefix: Parameters<typeof idLabel>[1]): string => {
-  if (!rawId || !rawId.trim()) return EMPTY_LABEL;
-  return idLabel(rawId, prefix);
-};
-
 const TenantDetailsView = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -88,9 +82,9 @@ const TenantDetailsView = () => {
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
   const [isManageSubscriptionDrawerOpen, setIsManageSubscriptionDrawerOpen] = useState(false);
   const [isPlanChangeDrawerOpen, setIsPlanChangeDrawerOpen] = useState(false);
+  const [hasConsumedPlanChangeTrigger, setHasConsumedPlanChangeTrigger] = useState(false);
   const [isMutating, setIsMutating] = useState(false);
   const [isReminderSending, setIsReminderSending] = useState(false);
-  const [adjustmentDays, setAdjustmentDays] = useState("7");
 
   const currentStatus = useMemo(() => {
     if (!tenant) return statusMeta.INACTIVE;
@@ -106,12 +100,18 @@ const TenantDetailsView = () => {
   }, [location.search, location.state]);
 
   useEffect(() => {
-    if (!shouldOpenPlanChangeDrawer || id !== tenant?.id || isPlanChangeDrawerOpen) {
+    if (!shouldOpenPlanChangeDrawer) {
+      setHasConsumedPlanChangeTrigger(false);
+      return;
+    }
+
+    if (hasConsumedPlanChangeTrigger || id !== tenant?.id || isPlanChangeDrawerOpen) {
       return;
     }
 
     setIsPlanChangeDrawerOpen(true);
-  }, [id, isPlanChangeDrawerOpen, shouldOpenPlanChangeDrawer]);
+    setHasConsumedPlanChangeTrigger(true);
+  }, [hasConsumedPlanChangeTrigger, id, isPlanChangeDrawerOpen, shouldOpenPlanChangeDrawer, tenant?.id]);
 
   const planActionLabel = tenant?.subscription.status === "EXPIRED" ? "Renew Plan" : "Change Plan";
   const handleUpgradeNavigation = () => {
@@ -126,31 +126,6 @@ const TenantDetailsView = () => {
 
   const refreshTenant = async () => {
     await mutate();
-  };
-
-  const handleAdjustEndDate = async () => {
-    if (!tenant || !id) return;
-
-    const parsedDays = Number(adjustmentDays);
-    if (!Number.isInteger(parsedDays) || parsedDays === 0) {
-      toast.error("Please enter a non-zero whole number of days.");
-      return;
-    }
-
-    setIsMutating(true);
-    try {
-      await tenantService.manageTenantSubscription(id, {
-        action: "ADJUST_END_DATE",
-        days: parsedDays,
-      });
-      await refreshTenant();
-      toast.success("Subscription end date updated successfully.");
-    } catch (actionError) {
-      console.error("Failed to adjust tenant subscription end date", actionError);
-      toast.error("Failed to adjust subscription end date.");
-    } finally {
-      setIsMutating(false);
-    }
   };
 
   const handleCancelSubscription = async () => {
@@ -205,7 +180,7 @@ const TenantDetailsView = () => {
           <Stack spacing={0.6}>
             <TitleTag
               title="Tenant Details"
-              subtitle="Master admin subscription controls and tenant identity details."
+              subtitle="Subscription status, timeline, and renewal actions in one place."
               icon={<Building2 className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />}
             />
           </Stack>
@@ -294,9 +269,6 @@ const TenantDetailsView = () => {
                   <TenantSubscriptionAccordion
                     planId={tenant.upcomingSubscription.planId}
                     subscriptionMeta={{
-                      id: tenant.upcomingSubscription?.id,
-                      planId: tenant.upcomingSubscription?.planId,
-                      planName: tenant.upcomingSubscription?.planName,
                       startDate: tenant.upcomingSubscription?.startDate,
                       endDate: tenant.upcomingSubscription?.endDate,
                       status: tenant.upcomingSubscription?.status,
@@ -396,12 +368,6 @@ const TenantDetailsView = () => {
                         <Stack direction={{ xs: "column", md: "row" }} spacing={{ xs: 1.2, md: 1.8 }} sx={{ mt: 0.5 }}>
                           <Typography variant="caption" sx={{ color: HEADER_TEXT_SECONDARY, fontWeight: 500 }}>
                             <Stack component="span" direction="row" spacing={0.5} alignItems="center">
-                              <Hash size={12} />
-                              <span>ID: {safeIdLabel(tenant?.id, "TENANT")}</span>
-                            </Stack>
-                          </Typography>
-                          <Typography variant="caption" sx={{ color: HEADER_TEXT_SECONDARY, fontWeight: 500 }}>
-                            <Stack component="span" direction="row" spacing={0.5} alignItems="center">
                               <Building2 size={12} />
                               <span>Company Code: {tenant?.companyCode}</span>
                             </Stack>
@@ -426,7 +392,7 @@ const TenantDetailsView = () => {
                   <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
                     <CreditCard size={16} color="currentColor" />
                     <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "primary.main", letterSpacing: "0.06em" }}>
-                      SUBSCRIPTION DETAILS
+                      SUBSCRIPTION OVERVIEW
                     </Typography>
                   </Stack>
 
@@ -438,14 +404,6 @@ const TenantDetailsView = () => {
                     </Stack>
                   ) : (
                     <Box>
-                      <Box sx={{ mb: 3 }}>
-                        <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700, letterSpacing: "0.04em" }}>
-                          OWNER
-                        </Typography>
-                        <Typography variant="subtitle2" sx={{ mt: 0.45, color: "text.primary", fontWeight: 700 }}>
-                          {tenant?.owner?.name || EMPTY_LABEL} ({tenant?.owner?.email || EMPTY_LABEL})
-                        </Typography>
-                      </Box>
                       <Stack spacing={2}>
                         <Box
                           sx={{
@@ -457,7 +415,7 @@ const TenantDetailsView = () => {
                         >
                           <Box>
                             <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700, letterSpacing: "0.04em" }}>
-                              CURRENT PLAN
+                              PLAN
                             </Typography>
                             <Typography variant="subtitle2" sx={{ mt: 0.45, color: "text.primary", fontWeight: 700 }}>
                               {tenant?.subscription.planName || EMPTY_LABEL}
@@ -466,11 +424,23 @@ const TenantDetailsView = () => {
 
                           <Box>
                             <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700, letterSpacing: "0.04em" }}>
-                              SUBSCRIPTION ID
+                              OWNER
                             </Typography>
                             <Typography variant="subtitle2" sx={{ mt: 0.45, color: "text.primary", fontWeight: 700 }}>
-                              {safeIdLabel(tenant?.subscription?.id, "SUBSCRIPTION")}
+                              {tenant?.owner?.name || EMPTY_LABEL}
                             </Typography>
+                          </Box>
+
+                          <Box>
+                            <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700, letterSpacing: "0.04em" }}>
+                              CONTACT
+                            </Typography>
+                            <Stack direction="row" spacing={0.8} alignItems="center" sx={{ mt: 0.5 }}>
+                              <CalendarDays size={16} color="#94a3b8" />
+                              <Typography variant="subtitle2" sx={{ color: "text.primary", fontWeight: 700 }}>
+                                {tenant?.owner?.email || EMPTY_LABEL}
+                              </Typography>
+                            </Stack>
                           </Box>
 
                           <Box>
@@ -484,37 +454,7 @@ const TenantDetailsView = () => {
                               </Typography>
                             </Stack>
                           </Box>
-
-                          <Box>
-                            <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700, letterSpacing: "0.04em" }}>
-                              END DATE
-                            </Typography>
-                            <Stack direction="row" spacing={0.8} alignItems="center" sx={{ mt: 0.5 }}>
-                              <CalendarDays size={16} color="#94a3b8" />
-                              <Typography variant="subtitle2" sx={{ color: "text.primary", fontWeight: 700 }}>
-                                {formatDate(tenant?.subscription.endDate || "", { isIncludeTime: true })}
-                              </Typography>
-                            </Stack>
-                          </Box>
                         </Box>
-
-                        {tenant?.subscription.planId && (
-                          <Box sx={{ mt: 1.5 }}>
-                            <TenantSubscriptionAccordion
-                              planId={tenant?.subscription.planId}
-                              subscriptionMeta={{
-                                id: tenant?.subscription.id,
-                                planId: tenant?.subscription.planId,
-                                planName: tenant?.subscription.planName,
-                                startDate: tenant?.subscription.startDate,
-                                endDate: tenant?.subscription.endDate,
-                                status: tenant?.subscription.status,
-                              }}
-                              contextLabel="Current Subscription"
-                              defaultExpanded={true}
-                            />
-                          </Box>
-                        )}
 
                         {tenant?.upcomingSubscription?.planName && (
                           <Box
@@ -534,10 +474,10 @@ const TenantDetailsView = () => {
                             </Typography>
                             <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ mt: 1.2 }}>
                               <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                                Subscription ID: <Box component="span" sx={{ color: "text.primary", fontWeight: 600 }}>{safeIdLabel(tenant?.upcomingSubscription.id, "SUBSCRIPTION")}</Box>
+                                Starts: <Box component="span" sx={{ color: "text.primary", fontWeight: 600 }}>{formatDate(tenant.upcomingSubscription.startDate || "", { isIncludeTime: true })}</Box>
                               </Typography>
                               <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                                Starts: <Box component="span" sx={{ color: "text.primary", fontWeight: 600 }}>{formatDate(tenant.upcomingSubscription.startDate || "", { isIncludeTime: true })}</Box>
+                                Ends: <Box component="span" sx={{ color: "text.primary", fontWeight: 600 }}>{formatDate(tenant.upcomingSubscription.endDate || "", { isIncludeTime: true })}</Box>
                               </Typography>
                             </Stack>
                           </Box>
@@ -557,7 +497,7 @@ const TenantDetailsView = () => {
                   <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
                     <Activity size={16} color="currentColor" />
                     <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "primary.main", letterSpacing: "0.06em" }}>
-                      LIFECYCLE SNAPSHOT
+                      RENEWAL TIMELINE
                     </Typography>
                   </Stack>
 
@@ -581,7 +521,7 @@ const TenantDetailsView = () => {
 
                       <Box>
                         <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, letterSpacing: "0.04em" }}>
-                          DAYS REMAINING
+                          DAYS TO EXPIRY
                         </Typography>
                         <Stack direction="row" spacing={0.8} alignItems="center" sx={{ mt: 0.2 }}>
                           <CalendarDays size={16} color="#0ea5e9" />
@@ -593,16 +533,13 @@ const TenantDetailsView = () => {
 
                       <Box sx={{ bgcolor: "grey.50", border: "1px solid", borderColor: "divider", borderRadius: 1, p: 2 }}>
                         <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, letterSpacing: "0.04em" }}>
-                          ACTIVE WINDOW
+                          SUBSCRIPTION END
                         </Typography>
-                        <Typography variant="body2" sx={{ mt: 0.4, color: "text.primary", fontWeight: 600 }}>
-                          {formatDate(tenant?.subscription.startDate || "")}
+                        <Typography variant="h6" sx={{ mt: 0.4, color: "text.primary", fontWeight: 700 }}>
+                          {tenant?.subscription.endDate ? formatDate(tenant.subscription.endDate, { isIncludeTime: true }) : "No expiration date"}
                         </Typography>
-                        <Typography variant="body2" sx={{ color: "text.secondary", fontWeight: 600 }}>
-                          to
-                        </Typography>
-                        <Typography variant="body2" sx={{ color: "text.primary", fontWeight: 600 }}>
-                          {tenant?.subscription.endDate ? formatDate(tenant.subscription.endDate) : "No expiration date"}
+                        <Typography variant="body2" sx={{ mt: 0.6, color: "text.secondary", fontWeight: 500 }}>
+                          This is the key date for renewal and access continuity.
                         </Typography>
                       </Box>
                     </Stack>
@@ -611,6 +548,40 @@ const TenantDetailsView = () => {
               </Box>
             </Box>
           </Paper>
+
+          {!isLoading && tenant?.subscription.planId && (
+            <Paper
+              elevation={0}
+              sx={{
+                border: "1px solid",
+                borderColor: "divider",
+                borderRadius: 3,
+                overflow: "hidden",
+                bgcolor: "background.paper",
+              }}
+            >
+              <Box sx={{ px: { xs: 2, md: 3 }, py: 2, borderBottom: "1px solid", borderColor: "divider" }}>
+                <Stack direction="row" alignItems="center" spacing={1}>
+                  <CreditCard size={16} color="currentColor" />
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "primary.main", letterSpacing: "0.06em" }}>
+                    CURRENT PLAN DETAILS
+                  </Typography>
+                </Stack>
+              </Box>
+              <Box sx={{ p: { xs: 1.5, md: 2.5 } }}>
+                <TenantSubscriptionAccordion
+                  planId={tenant.subscription.planId}
+                  subscriptionMeta={{
+                    startDate: tenant.subscription.startDate,
+                    endDate: tenant.subscription.endDate,
+                    status: tenant.subscription.status,
+                  }}
+                  contextLabel="Current Subscription"
+                  defaultExpanded={false}
+                />
+              </Box>
+            </Paper>
+          )}
         </>
       )}
 
@@ -641,7 +612,18 @@ const TenantDetailsView = () => {
         tenant={tenant}
         onClose={() => {
           setIsPlanChangeDrawerOpen(false);
-          navigate(location.pathname, { replace: true, state: null });
+
+          const searchParams = new URLSearchParams(location.search);
+          searchParams.delete(OPEN_PLAN_CHANGE_PARAM);
+          const nextSearch = searchParams.toString();
+
+          navigate(
+            {
+              pathname: location.pathname,
+              search: nextSearch ? `?${nextSearch}` : "",
+            },
+            { replace: true, state: null },
+          );
         }}
       />
 

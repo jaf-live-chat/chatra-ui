@@ -2,19 +2,26 @@ import { useMemo } from "react";
 import useSWR from "swr";
 
 import {
+  type CheckoutFailureReason,
+  type CheckoutWorkflowStage,
   type CreatePaymentCheckoutPayload,
   type CreatePaymentCheckoutResponse,
   type Payment,
   type PaymentApiItem,
   type PaymentListResponse,
+  type PaymentStatus,
 } from "../models/PaymentModel";
 import { API_BASE_URL, SWR_OPTIONS } from "../constants/constants";
 import axiosServices, { fetcher } from "../utils/axios";
 
 type CheckoutStatusResponse = {
   success: boolean;
-  status: string;
-  checkoutState?: string;
+  status: PaymentStatus;
+  checkoutState?: PaymentStatus;
+  workflowStage?: CheckoutWorkflowStage;
+  failureReason?: CheckoutFailureReason;
+  failureMessage?: string;
+  recoveryEligible?: boolean;
   isProvisioned: boolean;
   paymentReference?: string;
   paymentRequestId?: string;
@@ -71,7 +78,16 @@ const Payments = {
     tenantId?: string;
     subscriptionId?: string;
   }): Promise<CheckoutStatusResponse> => {
-    const response = await axiosServices.get("/payments/status", { params });
+    const response = await axiosServices.get("/payments/status", {
+      params: {
+        ...params,
+        _poll: Date.now(),
+      },
+      headers: {
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        Pragma: "no-cache",
+      },
+    });
     return response.data;
   },
 
