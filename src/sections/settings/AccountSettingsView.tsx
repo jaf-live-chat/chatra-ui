@@ -424,6 +424,7 @@ const AccountSettingsView = () => {
 
     if (Object.values(nextFieldErrors).some(Boolean)) {
       setProfileError("Please fix the highlighted fields.");
+      toast.error("Please fix the highlighted profile fields.");
       return;
     }
 
@@ -468,8 +469,11 @@ const AccountSettingsView = () => {
 
       setProfileSaved(true);
       setTimeout(() => setProfileSaved(false), 2000);
+      toast.success("Profile updated successfully.");
     } catch (error) {
-      setProfileError(getApiErrorMessage(error, "Failed to save profile changes."));
+      const message = getApiErrorMessage(error, "Failed to save profile changes.");
+      setProfileError(message);
+      toast.error(message);
     } finally {
       setIsProfileSaving(false);
     }
@@ -505,11 +509,13 @@ const AccountSettingsView = () => {
 
     if (!currentPassword || !newPassword) {
       setSecurityError("Current and new password are required.");
+      toast.error("Current and new password are required.");
       return;
     }
 
     if (newPassword.length < 8) {
       setSecurityError("New password must be at least 8 characters.");
+      toast.error("New password must be at least 8 characters.");
       return;
     }
 
@@ -532,8 +538,11 @@ const AccountSettingsView = () => {
       }));
       setSecuritySaved(true);
       setTimeout(() => setSecuritySaved(false), 2000);
+      toast.success("Password updated successfully.");
     } catch (error) {
-      setSecurityError(getApiErrorMessage(error, "Failed to update password."));
+      const message = getApiErrorMessage(error, "Failed to update password.");
+      setSecurityError(message);
+      toast.error(message);
     } finally {
       setIsSecuritySaving(false);
     }
