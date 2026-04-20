@@ -24,7 +24,7 @@ const steps = [
 
 const HowItWorksSection = () => {
   return (
-    <section className="py-24" style={{ background: "linear-gradient(180deg, #edf7ff 0%, #eaf5ff 100%)" }}>
+    <section className="pt-32 pb-24" style={{ background: "linear-gradient(180deg, #edf7ff 0%, #eaf5ff 100%)" }}>
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         {/* Header */}
         <motion.div

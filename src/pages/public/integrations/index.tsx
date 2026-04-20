@@ -15,6 +15,7 @@ import {
   Quote
 } from "lucide-react";
 import React from "react";
+import { motion } from "framer-motion";
 import PageTitle from "../../../components/common/PageTitle";
 
 const IntegrationsPage = () => {
@@ -58,8 +59,8 @@ const IntegrationsPage = () => {
         description="See how JAF Chatra integrates with your favorite tools and platforms."
         canonical="/portal/integrations"
       />
-      <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column", bgcolor: "background.default", pt: 10 }}>
-        <Navbar />
+      <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column", bgcolor: "background.default", pt: 0 }}>
+        <Navbar isDarkBackground />
 
         <Box component="main" sx={{ flexGrow: 1 }}>
           {/* Header Section */}
@@ -67,7 +68,8 @@ const IntegrationsPage = () => {
             sx={{
               bgcolor: "#0A192FFF",
               color: "#FFFFFFFF",
-              py: { xs: 8, md: 12 },
+              pt: { xs: 16, md: 20 },
+              pb: { xs: 8, md: 12 },
               textAlign: "center",
               borderColor: "#1E293BFF #1E293BFF #1E293BFF #1E293BFF",
               borderStyle: "solid",
@@ -75,42 +77,63 @@ const IntegrationsPage = () => {
             }}
           >
             <Container maxWidth="md">
-              <Typography variant="h2" sx={{ fontWeight: 800, mb: 3, fontFamily: "Inter, sans-serif" }}>
-                Trusted by innovative companies worldwide
-              </Typography>
-              <Typography variant="h6" sx={{ color: "#94A3B8FF", fontWeight: 400, maxWidth: "600px", mx: "auto", lineHeight: 1.6 }}>
-                Join thousands of businesses that use JAF Chatra to connect with their customers, drive sales, and build lasting relationships.
-              </Typography>
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, ease: "easeOut" }}
+              >
+                <Typography variant="h2" sx={{ fontWeight: 800, mb: 3, fontFamily: "Inter, sans-serif" }}>
+                  Trusted by innovative companies worldwide
+                </Typography>
+                <Typography variant="h6" sx={{ color: "#94A3B8FF", fontWeight: 400, maxWidth: "600px", mx: "auto", lineHeight: 1.6 }}>
+                  Join thousands of businesses that use JAF Chatra to connect with their customers, drive sales, and build lasting relationships.
+                </Typography>
+              </motion.div>
             </Container>
           </Box>
 
           {/* Logo Grid Section */}
           <Container maxWidth="lg" sx={{ py: { xs: 8, md: 12 } }}>
             <Box sx={{ textAlign: "center", mb: 8 }}>
-              <Typography variant="h3" sx={{ mb: 2, fontWeight: 700 }}>
-                Meet our partners
-              </Typography>
-              <Typography variant="body1" color="text.secondary" sx={{ maxWidth: "600px", mx: "auto", fontSize: "1.1rem" }}>
-                From fast-growing startups to established enterprises, see who's powering their customer experience with us.
-              </Typography>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: 0.2, ease: "easeOut" }}
+              >
+                <Typography variant="h3" sx={{ mb: 2, fontWeight: 700 }}>
+                  Meet our partners
+                </Typography>
+                <Typography variant="body1" color="text.secondary" sx={{ maxWidth: "600px", mx: "auto", fontSize: "1.1rem" }}>
+                  From fast-growing startups to established enterprises, see who's powering their customer experience with us.
+                </Typography>
+              </motion.div>
             </Box>
 
             <Grid container spacing={4}>
               {partners.map((partner, index) => (
                 <Grid size={{ xs: 12, sm: 6, md: 4 }} key={index}>
-                  <Card
-                    elevation={0}
-                    sx={{
-                      height: "100%",
-                      display: "flex",
-                      flexDirection: "column",
-                      transition: "transform 0.2s, box-shadow 0.2s",
-                      "&:hover": {
-                        transform: "translateY(-4px)",
-                        boxShadow: "0 10px 40px -10px #0000001a"
-                      }
-                    }}
+                  <motion.div
+                    initial={{ opacity: 0, y: 30 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.5, delay: index * 0.1, ease: "easeOut" }}
+                    style={{ height: '100%' }}
                   >
+                    <Card
+                      elevation={0}
+                      sx={{
+                        height: "100%",
+                        display: "flex",
+                        flexDirection: "column",
+                        transition: "transform 0.2s, box-shadow 0.2s",
+                        "&:hover": {
+                          transform: "translateY(-4px)",
+                          boxShadow: "0 10px 40px -10px #0000001a"
+                        }
+                      }}
+                    >
                     <CardContent sx={{ flexGrow: 1, p: 4 }}>
                       <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 3 }}>
                         <Box
@@ -150,6 +173,7 @@ const IntegrationsPage = () => {
                       </Stack>
                     </CardContent>
                   </Card>
+                  </motion.div>
                 </Grid>
               ))}
             </Grid>
@@ -159,23 +183,37 @@ const IntegrationsPage = () => {
           <Box sx={{ bgcolor: "grey.50", py: { xs: 8, md: 12 } }}>
             <Container maxWidth="lg">
               <Box sx={{ textAlign: "center", mb: 8 }}>
-                <Typography variant="h3" sx={{ mb: 2, fontWeight: 700 }}>
-                  What our customers say
-                </Typography>
-                <Typography variant="body1" color="text.secondary" sx={{ maxWidth: "600px", mx: "auto", fontSize: "1.1rem" }}>
-                  Don't just take our word for it. Hear directly from the teams who use JAF Chatra every day.
-                </Typography>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5, delay: 0.2, ease: "easeOut" }}
+                >
+                  <Typography variant="h3" sx={{ mb: 2, fontWeight: 700 }}>
+                    What our customers say
+                  </Typography>
+                  <Typography variant="body1" color="text.secondary" sx={{ maxWidth: "600px", mx: "auto", fontSize: "1.1rem" }}>
+                    Don't just take our word for it. Hear directly from the teams who use JAF Chatra every day.
+                  </Typography>
+                </motion.div>
               </Box>
 
               <Grid container spacing={4}>
                 {testimonials.map((testimonial, index) => (
                   <Grid size={{ xs: 12, md: 4 }} key={index}>
-                    <Card elevation={0} sx={{ height: "100%", p: 4, position: "relative" }}>
-                      <Quote
-                        size={48}
-                        color="#0891b2"
-                        style={{ position: "absolute", top: 24, right: 24, opacity: 0.1 }}
-                      />
+                    <motion.div
+                      initial={{ opacity: 0, y: 30 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ duration: 0.5, delay: index * 0.15, ease: "easeOut" }}
+                      style={{ height: '100%' }}
+                    >
+                      <Card elevation={0} sx={{ height: "100%", p: 4, position: "relative" }}>
+                        <Quote
+                          size={48}
+                          color="#0891b2"
+                          style={{ position: "absolute", top: 24, right: 24, opacity: 0.1 }}
+                        />
                       <Box sx={{ mb: 3 }}>
                         <Stack direction="row" spacing={0.5}>
                           {[1, 2, 3, 4, 5].map((star) => (
@@ -208,6 +246,7 @@ const IntegrationsPage = () => {
                         </Box>
                       </Box>
                     </Card>
+                    </motion.div>
                   </Grid>
                 ))}
               </Grid>

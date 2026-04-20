@@ -10,32 +10,35 @@ const ProductsSection = () => {
 
   return (
     <>
-      <section id="products" className="py-24 bg-gray-50 border-y border-gray-100">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
+      <section id="products" className="py-24 bg-[#0A192FFF] relative overflow-hidden">
+        {/* Subtle background glow */}
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-full max-w-[1000px] h-[500px] bg-[#1E3A8A] rounded-full blur-[120px] opacity-20 pointer-events-none"></div>
+        
+        <div className="max-w-7xl mx-auto px-6 lg:px-8 relative z-10">
           {/* Header */}
           <motion.div
-            className="text-center max-w-2xl mx-auto mb-16"
+            className="text-center max-w-2xl mx-auto mb-14"
             initial={{ opacity: 0, y: 22 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, ease: "easeOut" }}
           >
             <motion.span
-              className="inline-block bg-cyan-50 text-cyan-700 px-3 py-1 rounded-full mb-4"
-              style={{ fontFamily: "Inter, sans-serif", fontSize: "0.8rem", fontWeight: 600 }}
+              className="inline-block text-[#0EA5E9] mb-3 uppercase tracking-wider"
+              style={{ fontFamily: "Inter, sans-serif", fontSize: "0.75rem", fontWeight: 700 }}
               initial={{ opacity: 0, y: -8 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.35, delay: 0.08, ease: "easeOut" }}
-            >Our Products</motion.span>
+              >OUR PRODUCTS</motion.span>
             <motion.h2
-              className="text-gray-900 mb-4"
+              className="text-white mb-6"
               style={{
                 fontFamily: "Inter, sans-serif",
-                fontWeight: 800,
-                fontSize: "clamp(1.8rem, 4vw, 2.6rem)",
+                fontWeight: 700,
+                fontSize: "clamp(2rem, 4vw, 2.5rem)",
                 lineHeight: "1.2",
-                letterSpacing: "-0.02em",
+                letterSpacing: "-0.01em",
               }}
               initial={{ opacity: 0, y: 14 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -45,18 +48,9 @@ const ProductsSection = () => {
               Built for modern teams
             </motion.h2>
 
-            <motion.div
-              className="h-[3px] w-28 mx-auto mb-4 rounded-full"
-              style={{ background: "linear-gradient(90deg, #22d3ee, #0891b2)" }}
-              initial={{ opacity: 0, scaleX: 0 }}
-              whileInView={{ opacity: 1, scaleX: 1 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.45, delay: 0.16, ease: "easeOut" }}
-            />
-
             <motion.p
-              className="text-gray-500"
-              style={{ fontFamily: "Inter, sans-serif", fontSize: "1rem", lineHeight: "1.7" }}
+              className="text-[#94A3B8] max-w-[600px] mx-auto"
+              style={{ fontFamily: "Inter, sans-serif", fontSize: "1.05rem", lineHeight: "1.6" }}
               initial={{ opacity: 0, y: 14 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -67,37 +61,52 @@ const ProductsSection = () => {
           </motion.div>
 
           {/* Product Showcase Card */}
-          <div className="bg-white rounded-[2rem] border border-gray-100 shadow-xl shadow-gray-200/50 overflow-hidden">
-            <div className="grid lg:grid-cols-2 gap-0">
+          <div className="bg-[#112240] rounded-3xl border border-[#1E3A8A]/50 shadow-2xl overflow-hidden relative">
+            <div className="grid lg:grid-cols-2 gap-0 relative z-10">
               {/* Left Content */}
               <motion.div
-                className="p-8 lg:p-16 flex flex-col justify-center"
+                className="p-8 lg:p-12 xl:p-14 flex flex-col justify-center"
                 initial={{ opacity: 0, x: -26 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true, amount: 0.35 }}
                 transition={{ duration: 0.55, ease: "easeOut" }}
               >
                 <div className="flex items-center gap-3 mb-6">
-                  <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg" style={{ backgroundColor: "#0891b2", boxShadow: "0 10px 15px -3px #0891b233" }}>
-                    <MessageCircle className="w-6 h-6 text-white" />
-                  </div>
-                  <h3
-                    className="text-gray-900"
-                    style={{ fontFamily: "Inter, sans-serif", fontWeight: 800, fontSize: "1.5rem" }}
+                  <motion.div
+                    className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg"
+                    style={{ backgroundColor: "#0EA5E9", boxShadow: "0 10px 15px -3px #0EA5E933" }}
+                    initial={{ scale: 0 }}
+                    whileInView={{ scale: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.2 }}
+                  >
+                    <MessageCircle className="w-5 h-5 text-white" />
+                  </motion.div>
+                  <motion.h3
+                    className="text-white"
+                    style={{ fontFamily: "Inter, sans-serif", fontWeight: 700, fontSize: "1.35rem" }}
+                    initial={{ opacity: 0, x: -10 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.4, delay: 0.3 }}
                   >
                     JAF Chatra
-                  </h3>
+                  </motion.h3>
                 </div>
 
-                <p
-                  className="text-gray-600 mb-8"
-                  style={{ fontFamily: "Inter, sans-serif", fontSize: "1.1rem", lineHeight: "1.6" }}
+                <motion.p
+                  className="text-[#94A3B8] mb-8 lg:mb-10 text-sm lg:text-[0.95rem] leading-relaxed"
+                  style={{ fontFamily: "Inter, sans-serif" }}
+                  initial={{ opacity: 0, y: 15 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5, delay: 0.4 }}
                 >
                   The ultimate live chat solution that turns your website visitors into loyal customers. Engage in real-time, track visitor behavior, and deliver exceptional support experiences with our powerful, customizable chat widget.
-                </p>
+                </motion.p>
 
                 <motion.ul
-                  className="space-y-4 mb-10"
+                  className="space-y-3.5 mb-10"
                   initial="hidden"
                   whileInView="visible"
                   viewport={{ once: true }}
@@ -117,12 +126,14 @@ const ProductsSection = () => {
                       }}
                       transition={{ duration: 0.35, ease: "easeOut" }}
                     >
-                      <div className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center" style={{ backgroundColor: "#0891b214" }}>
-                        <item.icon className="w-3.5 h-3.5" style={{ color: "#0891b2" }} />
+                      <div className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center">
+                         {/* Simple bullet diamond/star replacing icon background */}
+                        <div className="w-2.5 h-2.5 bg-[#0EA5E9] rotate-45 flex-shrink-0 opacity-80 shadow-[0_0_8px_#0EA5E9]" />
+                        {/* <item.icon className="hidden" /> */}
                       </div>
                       <span
-                        className="text-gray-700"
-                        style={{ fontFamily: "Inter, sans-serif", fontSize: "0.95rem", fontWeight: 500 }}
+                        className="text-[#CBD5E1]"
+                        style={{ fontFamily: "Inter, sans-serif", fontSize: "0.85rem", fontWeight: 500 }}
                       >
                         {item.text}
                       </span>
@@ -139,18 +150,18 @@ const ProductsSection = () => {
                 >
                   <Link
                     to="/checkout/free"
-                    className="text-white px-6 py-3 rounded-xl transition-all flex items-center gap-2 group cursor-pointer"
-                    style={{ fontFamily: "Inter, sans-serif", fontWeight: 600, fontSize: "1rem", backgroundColor: "#0891b2", boxShadow: "0 10px 15px -3px #0891b233" }}
-                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#0e7490")}
-                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#0891b2")}
+                    className="text-white px-5 py-2.5 lg:px-6 lg:py-2.5 rounded-full transition-all flex items-center justify-center gap-2 group cursor-pointer text-sm lg:text-[0.95rem]"
+                    style={{ fontFamily: "Inter, sans-serif", fontWeight: 600, backgroundColor: "#0EA5E9", boxShadow: "0 4px 14px -2px #0EA5E966" }}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#0284c7")}
+                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#0EA5E9")}
                   >
                     Start Free Trial
                     <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                   </Link>
                   <Link
                     to="/pricing"
-                    className="bg-gray-100 hover:bg-gray-200 text-gray-900 px-6 py-3 rounded-xl transition-colors font-medium flex items-center"
-                    style={{ fontFamily: "Inter, sans-serif", fontWeight: 600, fontSize: "1rem" }}
+                    className="bg-[#1E293B] hover:bg-[#334155] border border-[#334155]/50 text-[#F8FAFC] px-5 py-2.5 lg:px-6 lg:py-2.5 rounded-full transition-colors flex items-center justify-center text-sm lg:text-[0.95rem]"
+                    style={{ fontFamily: "Inter, sans-serif", fontWeight: 600 }}
                   >
                     View Pricing
                   </Link>
@@ -159,7 +170,7 @@ const ProductsSection = () => {
 
               {/* Right Image/Visual */}
               <motion.div
-                className="bg-gray-900 lg:min-h-[500px] relative overflow-hidden flex items-center justify-center p-8"
+                className="bg-[#0B172F] lg:min-h-[480px] relative overflow-hidden flex items-center justify-center p-8 border-l border-[#1E3A8A]/30"
                 initial={{ opacity: 0, x: 28, scale: 0.97 }}
                 whileInView={{ opacity: 1, x: 0, scale: 1 }}
                 viewport={{ once: true, amount: 0.3 }}

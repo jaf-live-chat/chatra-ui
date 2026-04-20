@@ -30,10 +30,10 @@ const HelpCenterPage = () => {
         canonical="/portal/help-center"
 
       />
-      <Navbar />
-      <Box sx={{ pt: { xs: 12, md: 16 }, pb: 12, bgcolor: "#F8FAFCFF", minHeight: "100vh" }}>
+      <Navbar isDarkBackground />
+      <Box sx={{ pb: 12, bgcolor: "#F8FAFCFF", minHeight: "100vh" }}>
         {/* Hero Section */}
-        <Box sx={{ bgcolor: "#0A192FFF", color: "#FFFFFFFF", py: 10, px: 2, textAlign: "center", mb: -8, borderRadius: 0 }}>
+        <Box sx={{ bgcolor: "#0A192FFF", color: "#FFFFFFFF", pt: { xs: 14, md: 18 }, pb: 10, px: 2, mb: -8, textAlign: "center", borderRadius: 0 }}>
           <Container maxWidth="md">
             <Typography variant="h2" sx={{ fontWeight: 800, mb: 3, fontFamily: "Inter, sans-serif" }}>
               How can we help?

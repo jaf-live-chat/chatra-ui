@@ -37,7 +37,11 @@ const STARTER_FEATURES = [
   "Community support",
 ];
 
-const Navbar = () => {
+interface NavbarProps {
+  isDarkBackground?: boolean;
+}
+
+const Navbar = ({ isDarkBackground = false }: NavbarProps) => {
   const { isLoggedIn } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -108,9 +112,10 @@ const Navbar = () => {
     setMobileOpen(!mobileOpen);
   };
 
-  const navColor = "#0A192FFF"; // Navy
-  const btnColor = "#00838FFF"; // Teal
-  const btnHover = "#006064FF";
+  const navColor = isScrolled ? "#0A192FFF" : (isDarkBackground ? "#FFFFFFFF" : "#0A192FFF"); // Always Navy when scrolled
+  const btnColor = isScrolled ? "#00838FFF" : (isDarkBackground ? "#38BDFBFF" : "#00838FFF"); // Always Teal when scrolled
+  const btnHover = isScrolled ? "#006064FF" : (isDarkBackground ? "#0EA5E9FF" : "#006064FF"); // Always Dark Teal when scrolled
+  const logoVariant = isScrolled ? "dark" : (isDarkBackground ? "light" : "dark"); // Always Dark when scrolled
 
   // Shared text field fix for MUI + Tailwind
   const textFieldFix = {
@@ -130,23 +135,34 @@ const Navbar = () => {
 
   return (
     <>
-      <AppBar
-        position="fixed"
-        elevation={isScrolled ? 1 : 0}
+      <Container
+        component="header"
+        disableGutters
+        maxWidth={false}
         sx={{
-          bgcolor: isScrolled ? "#FFFFFFFF" : "#FFFFFFF2",
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          width: "100%",
+          bgcolor: isScrolled ? "#FFFFFFFF" : "transparent",
+          backgroundImage: "none",
           backdropFilter: isScrolled ? "none" : "blur(8px)",
           borderBottom: isScrolled ? "1px solid #E5E7EBFF" : "1px solid transparent",
+          borderRadius: 1,
+          boxShadow: isScrolled ? "0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05)" : "none",
           transition: "all 0.3s ease",
-          color: navColor
+          zIndex: 1100, // Ensure it's above other content
+          color: navColor,
+          px: { xs: 5, sm: 7, md: 10 },
         }}
       >
-        <Container maxWidth="lg">
-            <Toolbar disableGutters sx={{ minHeight: { xs: "56px", sm: "60px", md: "64px" }, justifyContent: "space-between", px: { xs: 1, sm: 1.5, md: 0.5 } }}>
+        <Container maxWidth={false} sx={{ px: { xs: 2, sm: 4, md: 8 } }}>
+          <Toolbar disableGutters sx={{ minHeight: { xs: "56px", sm: "60px", md: "64px" }, justifyContent: "space-between" }}>
             {/* Logo */}
               <Box component={Link} to="/" sx={{ display: "flex", alignItems: "center", textDecoration: "none", flexShrink: 0 }}>
               <Logo
-                variant="dark"
+                variant={logoVariant}
                 alt="JAF Chatra Logo"
                   size="sm"
               />
@@ -390,7 +406,7 @@ const Navbar = () => {
             </IconButton>
           </Toolbar>
         </Container>
-      </AppBar>
+      </Container>
 
       {/* Mobile Drawer */}
       <Drawer

@@ -12,6 +12,7 @@ import {
   Palette,
   Bell,
 } from "lucide-react";
+import { motion } from "motion/react";
 import PageTitle from "../../../components/common/PageTitle";
 
 const extendedFeatures = [
@@ -113,14 +114,20 @@ const FeaturesPage = () => {
 
       />
       <div className="min-h-screen bg-white overflow-x-hidden">
-        <Navbar />
-        <div className="pt-16">
+        <Navbar isDarkBackground />
+        <div>
           <FeaturesSection />
 
           {/* Extended Features */}
-          <section className="py-16 md:py-24 bg-gray-50">
+          <section className="py-16 md:py-24 bg-gray-50 overflow-hidden">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="text-center max-w-2xl mx-auto mb-16">
+              <motion.div
+                className="text-center max-w-2xl mx-auto mb-16"
+                initial={{ opacity: 0, y: -20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.3 }}
+                transition={{ duration: 0.6, ease: "easeOut" }}
+              >
                 <h2
                   className="text-gray-900 mb-4"
                   style={{
@@ -144,20 +151,28 @@ const FeaturesPage = () => {
                   Explore the full set of tools that make JAF Live Chat the best
                   choice for your support team.
                 </p>
-              </div>
+              </motion.div>
 
               <div className="max-w-4xl mx-auto">
                 <div className="divide-y divide-gray-200/60">
-                  {extendedFeatures.map((feature) => (
-                    <div
+                  {extendedFeatures.map((feature, index) => (
+                    <motion.div
                       key={feature.title}
+                      initial={{ opacity: 0, x: index % 2 === 0 ? -30 : 30 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true, amount: 0.3 }}
+                      transition={{ duration: 0.5, delay: index * 0.05, ease: "easeOut" }}
                       className="py-6 sm:py-8 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-8 group hover:bg-gray-100/50 px-4 sm:px-6 -mx-4 sm:-mx-6 rounded-2xl transition-colors duration-200"
                     >
-                      <div
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        whileInView={{ scale: 1 }}
+                        viewport={{ once: true }}
+                        transition={{ type: "spring", stiffness: 200, damping: 15, delay: index * 0.05 + 0.2 }}
                         className={`flex-shrink-0 w-14 h-14 sm:w-16 sm:h-16 ${feature.color} rounded-2xl flex items-center justify-center group-hover:scale-105 transition-transform duration-300`}
                       >
                         {feature.icon}
-                      </div>
+                      </motion.div>
                       <div className="sm:w-1/3">
                         <h3
                           className="text-gray-900 mb-2 sm:mb-0"
@@ -182,7 +197,7 @@ const FeaturesPage = () => {
                           {feature.description}
                         </p>
                       </div>
-                    </div>
+                    </motion.div>
                   ))}
                 </div>
               </div>
@@ -190,7 +205,13 @@ const FeaturesPage = () => {
               {/* Feature Highlight Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 mt-16 md:mt-24 max-w-5xl mx-auto">
                 {/* Integrations Card */}
-                <div className="bg-[#f8f9fa] rounded-[2rem] overflow-hidden flex flex-col items-center pt-8 sm:pt-12 relative border border-gray-100 shadow-sm">
+                <motion.div
+                  className="bg-[#f8f9fa] rounded-[2rem] overflow-hidden flex flex-col items-center pt-8 sm:pt-12 relative border border-gray-100 shadow-sm"
+                  initial={{ opacity: 0, y: 40 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, amount: 0.2 }}
+                  transition={{ duration: 0.6, ease: "easeOut" }}
+                >
                   <div className="w-full flex justify-center mb-10 sm:mb-12 px-4 sm:px-8">
                     <div className="flex flex-wrap justify-center gap-3 w-full max-w-sm mx-auto">
                       {[
@@ -204,10 +225,14 @@ const FeaturesPage = () => {
                         { name: "Slack", icon: "S", color: "text-red-500", bg: "bg-red-50" },
                         { name: "HelpDesk", icon: "H", color: "text-green-600", bg: "bg-green-100" },
                         { name: "Instagram", icon: "I", color: "text-pink-500", bg: "bg-pink-50" },
-                      ].map((app) => (
-                        <div
+                      ].map((app, appIdx) => (
+                        <motion.div
                           key={app.name}
                           className="bg-white rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] p-2 flex flex-col items-center justify-center w-[4rem] h-[4rem] sm:w-[4.5rem] sm:h-[4.5rem] gap-1.5 border border-gray-50 hover:shadow-md transition-shadow"
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          whileInView={{ opacity: 1, scale: 1 }}
+                          viewport={{ once: true }}
+                          transition={{ duration: 0.4, delay: appIdx * 0.05 + 0.2, ease: "backOut" }}
                         >
                           <div className={`w-8 h-8 rounded-lg ${app.bg} flex items-center justify-center font-bold text-lg ${app.color}`}>
                             {app.icon}
@@ -215,11 +240,17 @@ const FeaturesPage = () => {
                           <span className="text-[9px] font-medium text-gray-400 text-center leading-tight truncate w-full">
                             {app.name}
                           </span>
-                        </div>
+                        </motion.div>
                       ))}
                     </div>
                   </div>
-                  <div className="px-6 sm:px-8 lg:px-10 pb-8 sm:pb-10 w-full text-left bg-[#f8f9fa] mt-auto">
+                  <motion.div
+                    className="px-6 sm:px-8 lg:px-10 pb-8 sm:pb-10 w-full text-left bg-[#f8f9fa] mt-auto"
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.5, delay: 0.4, ease: "easeOut" }}
+                  >
                     <h3 className="text-[1.35rem] font-bold text-gray-900 mb-3" style={{ fontFamily: "Inter, sans-serif" }}>
                       200+ Integrations
                     </h3>
@@ -229,11 +260,17 @@ const FeaturesPage = () => {
                     <button className="px-5 py-2 border border-gray-300 bg-white text-gray-900 text-sm font-semibold rounded-lg hover:bg-gray-50 transition-colors">
                       Visit Marketplace
                     </button>
-                  </div>
-                </div>
+                  </motion.div>
+                </motion.div>
 
                 {/* Quick Replies Card */}
-                <div className="bg-[#1c1d22] rounded-[2rem] overflow-hidden flex flex-col items-center pt-8 sm:pt-12 relative shadow-sm">
+                <motion.div
+                  className="bg-[#1c1d22] rounded-[2rem] overflow-hidden flex flex-col items-center pt-8 sm:pt-12 relative shadow-sm"
+                  initial={{ opacity: 0, y: 40 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, amount: 0.2 }}
+                  transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
+                >
                   <div className="absolute inset-0 bg-gradient-to-b from-[#2a2b36] to-[#1c1d22] opacity-80"></div>
                   {/* Background Icons */}
                   <div className="absolute top-6 left-12 text-white/30">
@@ -251,7 +288,13 @@ const FeaturesPage = () => {
                     {/* Quick Reply mockup */}
                     <div className="w-full max-w-sm relative">
                       {/* Autocomplete popover */}
-                      <div className="bg-white rounded-lg shadow-xl border border-gray-100 mb-2 overflow-hidden w-64 mx-auto relative z-20">
+                      <motion.div
+                        className="bg-white rounded-lg shadow-xl border border-gray-100 mb-2 overflow-hidden w-64 mx-auto relative z-20"
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.4, delay: 0.4, ease: "easeOut" }}
+                      >
                         <div className="px-3 py-2 bg-gray-50 text-[11px] font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-100">
                           Quick Replies
                         </div>
@@ -265,10 +308,16 @@ const FeaturesPage = () => {
                             <span className="text-[11px] text-gray-500 truncate">Hi there! How can I help you today?</span>
                           </div>
                         </div>
-                      </div>
+                      </motion.div>
 
                       {/* Chat input */}
-                      <div className="bg-[#e2e8f8] rounded-xl p-3 shadow-2xl relative">
+                      <motion.div
+                        className="bg-[#e2e8f8] rounded-xl p-3 shadow-2xl relative"
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.4, delay: 0.3, ease: "easeOut" }}
+                      >
                         <div className="bg-white rounded-lg px-3 py-2.5 shadow-sm flex items-center gap-2">
                           <span className="text-blue-500 font-bold">/pr</span>
                           <span className="text-gray-300 font-light animate-pulse">|</span>
@@ -283,11 +332,17 @@ const FeaturesPage = () => {
                             Send
                           </button>
                         </div>
-                      </div>
+                      </motion.div>
                     </div>
                   </div>
 
-                  <div className="px-6 sm:px-8 lg:px-10 pb-8 sm:pb-10 w-full text-left z-10 mt-auto">
+                  <motion.div
+                    className="px-6 sm:px-8 lg:px-10 pb-8 sm:pb-10 w-full text-left z-10 mt-auto"
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.5, delay: 0.5, ease: "easeOut" }}
+                  >
                     <h3 className="text-[1.35rem] font-bold text-white mb-3" style={{ fontFamily: "Inter, sans-serif" }}>
                       Lightning-fast responses.
                     </h3>
@@ -297,13 +352,13 @@ const FeaturesPage = () => {
                     <button className="px-5 py-2 border border-white/20 bg-transparent text-white text-sm font-semibold rounded-lg hover:bg-white/10 transition-colors">
                       Explore Quick Replies
                     </button>
-                  </div>
-                </div>
+                  </motion.div>
+                </motion.div>
               </div>
 
               {/* CTA Section */}
               <div className="mt-20 md:mt-32 pt-12 md:pt-16 text-center">
-                <h2
+                <motion.h2
                   className="text-gray-900 mb-6"
                   style={{
                     fontFamily: "Inter, sans-serif",
@@ -312,10 +367,20 @@ const FeaturesPage = () => {
                     lineHeight: "1.15",
                     letterSpacing: "-0.02em",
                   }}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5, ease: "easeOut" }}
                 >
                   Start using JAF Chatra<sup style={{ fontSize: "0.5em", verticalAlign: "super" }}>®</sup> now!
-                </h2>
-                <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 mb-10">
+                </motion.h2>
+                <motion.div
+                  className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 mb-10"
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5, delay: 0.1, ease: "easeOut" }}
+                >
                   {["Free 14-day trial", "No credit card required"].map((item) => (
                     <div key={item} className="flex items-center gap-2 text-gray-500" style={{ fontFamily: "Inter, sans-serif", fontSize: "0.95rem" }}>
                       <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -324,10 +389,14 @@ const FeaturesPage = () => {
                       {item}
                     </div>
                   ))}
-                </div>
-                <form
+                </motion.div>
+                <motion.form
                   onSubmit={handleSignup}
                   className="flex flex-col sm:flex-row items-center justify-center gap-3 max-w-lg mx-auto"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5, delay: 0.2, ease: "easeOut" }}
                 >
                   <input
                     type="email"
@@ -344,7 +413,7 @@ const FeaturesPage = () => {
                   >
                     Sign up free
                   </button>
-                </form>
+                </motion.form>
                 {status !== "idle" && (
                   <p
                     className={`mt-3 ${status === "success" ? "text-green-600" : "text-red-500"}`}

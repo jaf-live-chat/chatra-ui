@@ -1,4 +1,5 @@
 import { Zap, MapPin, LayoutDashboard, BellOff } from "lucide-react";
+import { motion } from "motion/react";
 
 const features = [
   {
@@ -37,14 +38,18 @@ const features = [
 
 const FeaturesSection = () => {
   return (
-    <section className="py-24 bg-white">
+    <section className="py-24 bg-white overflow-hidden">
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         {/* Header */}
-        <div
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.2 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
           className="text-center w-screen relative left-1/2 -translate-x-1/2 -mt-24 mb-16 flex flex-col items-center justify-center"
           style={{
             background: "#0A192FFF",
-            padding: "clamp(4rem, 12vw, 6rem) clamp(1.5rem, 4vw, 3rem)",
+            padding: "clamp(8rem, 12vw, 10rem) clamp(1.5rem, 4vw, 3rem) clamp(4rem, 10vw, 6rem)",
             borderColor: "#1E293BFF #1E293BFF #1E293BFF #1E293BFF",
             borderStyle: "solid",
             borderWidth: "0 0 1px 0",
@@ -75,48 +80,64 @@ const FeaturesSection = () => {
           >
             Discover the powerful features that make JAF Chatra the perfect platform to connect with your customers and streamline your workflow.
           </p>
-        </div>
+        </motion.div>
 
         {/* Cards Grid */}
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {features.map((feature) => (
-            <div
+          {features.map((feature, index) => (
+            <motion.div
               key={feature.title}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.2 }}
+              transition={{ duration: 0.5, delay: index * 0.1, ease: "easeOut" }}
               className="group relative bg-white border border-gray-100 rounded-2xl p-6 hover:-translate-y-1 transition-all duration-300"
               style={{
                 transition: "all 0.3s ease",
               }}
-              onMouseEnter={(e) => {
+              onMouseEnter={(e: any) => {
                 e.currentTarget.style.boxShadow = "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 139, 139, 0.1)";
               }}
-              onMouseLeave={(e) => {
+              onMouseLeave={(e: any) => {
                 e.currentTarget.style.boxShadow = "none";
               }}
             >
               {/* Icon */}
-              <div
+              <motion.div
+                initial={{ opacity: 0, scale: 0.5 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4, delay: index * 0.1 + 0.2, ease: "easeOut" }}
                 className={`w-12 h-12 ${feature.color} rounded-xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform`}
               >
                 {feature.icon}
-              </div>
-              <h3
+              </motion.div>
+              <motion.h3
+                initial={{ opacity: 0, y: 10 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4, delay: index * 0.1 + 0.3, ease: "easeOut" }}
                 className="text-gray-900 mb-3"
                 style={{ fontFamily: "Inter, sans-serif", fontWeight: 700, fontSize: "1rem" }}
               >
                 {feature.title}
-              </h3>
-              <p
+              </motion.h3>
+              <motion.p
+                initial={{ opacity: 0, y: 10 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4, delay: index * 0.1 + 0.4, ease: "easeOut" }}
                 className="text-gray-500"
                 style={{ fontFamily: "Inter, sans-serif", fontSize: "0.88rem", lineHeight: "1.6" }}
               >
                 {feature.description}
-              </p>
+              </motion.p>
 
               {/* Hover gradient line */}
               <div
                 className={`absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r ${feature.gradient} rounded-full opacity-0 group-hover:opacity-100 transition-opacity`}
               ></div>
-            </div>
+            </motion.div>
           ))}
         </div>
       </div>

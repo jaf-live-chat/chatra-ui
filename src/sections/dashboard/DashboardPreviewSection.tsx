@@ -38,7 +38,7 @@ const recentChats = [
 
 const DashboardPreviewSection = () => {
   return (
-    <section className="py-16 sm:py-20 lg:py-24" style={{ background: "linear-gradient(180deg, #edf7ff 0%, #f5fbff 100%)" }}>
+    <section className="py-16 sm:py-20 lg:py-24" style={{ background: "linear-gradient(180deg, #edf7ff 0%, #ffffff 100%)" }}>
       <div className="pointer-events-none mx-auto max-w-7xl select-none px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <motion.div
@@ -65,7 +65,6 @@ const DashboardPreviewSection = () => {
             }}
           >
             A powerful command center for your
-            <br />
             team
           </h2>
           <p
