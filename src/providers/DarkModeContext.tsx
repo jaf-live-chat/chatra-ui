@@ -46,6 +46,11 @@ export function DarkModeProvider({ children }: { children: ReactNode }) {
     } else {
       document.documentElement.classList.remove("dark");
     }
+
+    // Prevent portal dark mode from leaking to non-portal routes after unmount.
+    return () => {
+      document.documentElement.classList.remove("dark");
+    };
   }, [isDark]);
 
   return (
