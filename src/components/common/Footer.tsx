@@ -46,15 +46,15 @@ const Footer = () => {
 
   return (
     <footer className="bg-white text-[#64748b]">
-      <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-10 pt-20 pb-10">
+      <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-10 pt-12 pb-8">
         <motion.div
-          className="grid grid-cols-1 lg:grid-cols-[1.5fr_2fr] gap-10 lg:gap-14 mb-20"
+          className="grid grid-cols-1 lg:grid-cols-[1.5fr_2fr] gap-8 lg:gap-12 mb-12"
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, amount: 0.2 }}
           transition={{ staggerChildren: 0.14 }}
         >
-          <motion.div className="max-w-sm space-y-6" variants={blockAnimation} transition={{ duration: 0.45, ease: "easeOut" }}>
+          <motion.div className="max-w-sm space-y-4" variants={blockAnimation} transition={{ duration: 0.45, ease: "easeOut" }}>
             <motion.div variants={rowAnimation} transition={{ duration: 0.4, ease: "easeOut" }}>
               <Logo variant="dark" alt={companyName} size="sm" />
             </motion.div>
@@ -67,7 +67,7 @@ const Footer = () => {
               {companyDescription}
             </motion.p>
 
-            <div className="flex items-center gap-3 pt-2">
+            <div className="flex items-center gap-2 pt-1">
                 <motion.a
                   href="#"
                   className="w-8 h-8 rounded-full border border-[#e2e8f0] text-[#94a3b8] hover:text-[#3b82f6] hover:border-[#3b82f6] transition-colors flex items-center justify-center bg-[#f8fafc]"
@@ -98,9 +98,9 @@ const Footer = () => {
             </div>
           </motion.div>
 
-          <motion.div className="grid grid-cols-2 sm:grid-cols-3 gap-x-8 gap-y-10" variants={blockAnimation} transition={{ duration: 0.45, ease: "easeOut" }}>
+          <motion.div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-8" variants={blockAnimation} transition={{ duration: 0.45, ease: "easeOut" }}>
             {footerColumns.map((col) => (
-              <motion.div key={col.title} className="space-y-6" variants={rowAnimation} transition={{ duration: 0.35, ease: "easeOut" }}>
+              <motion.div key={col.title} className="space-y-3" variants={rowAnimation} transition={{ duration: 0.35, ease: "easeOut" }}>
                 <motion.h4
                   className="text-[#475569] font-bold tracking-wide"
                   style={{ fontFamily: "Inter, sans-serif", fontSize: "0.85rem" }}
@@ -128,7 +128,7 @@ const Footer = () => {
         </motion.div>
 
         <motion.div
-           className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between pt-8 border-t border-[#f1f5f9]"
+           className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pt-6 border-t border-[#f1f5f9]"
            initial={{ opacity: 0, y: 14 }}
            whileInView={{ opacity: 1, y: 0 }}
            viewport={{ once: true, amount: 0.4 }}

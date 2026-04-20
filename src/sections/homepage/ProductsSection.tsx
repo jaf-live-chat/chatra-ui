@@ -156,21 +156,24 @@ const ProductsSection = () => {
 
               {/* Right Image/Visual */}
               <motion.div
-                className="relative overflow-hidden flex items-center justify-center p-8 bg-gradient-to-br from-[#111b33] to-[#0b1224]"
+                className="relative overflow-hidden flex items-center justify-center p-8 bg-gradient-to-br from-[#111b33] to-[#0b1224] group"
                 initial={{ opacity: 0, x: 28, scale: 0.97 }}
                 whileInView={{ opacity: 1, x: 0, scale: 1 }}
                 viewport={{ once: true, amount: 0.3 }}
                 transition={{ duration: 0.6, ease: "easeOut" }}
+                whileHover={{ scale: 1.015 }}
               >
                 {/* Decorative elements */}
                 <div className="absolute top-0 right-0 w-64 h-64 rounded-full blur-3xl translate-x-1/2 -translate-y-1/2" style={{ backgroundColor: "rgba(0, 163, 255, 0.15)" }}></div>
                 <div className="absolute bottom-0 left-0 w-64 h-64 rounded-full blur-3xl -translate-x-1/2 translate-y-1/2" style={{ backgroundColor: "rgba(0, 163, 255, 0.15)" }}></div>
+                <div className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{ background: "radial-gradient(circle at 58% 42%, rgba(56, 189, 248, 0.28) 0%, rgba(56, 189, 248, 0.12) 28%, rgba(11, 18, 36, 0) 65%)" }}></div>
 
                 {/* Product Mockup */}
                 <motion.div
                   className="relative z-10 w-full rounded-lg overflow-hidden border border-[#2d3748] shadow-2xl max-w-lg"
-                  animate={{ y: [0, -5, 0] }}
-                  transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut" }}
+                  animate={{ y: [0, -6, 0], rotateZ: [0, -0.35, 0] }}
+                  transition={{ duration: 4.8, repeat: Infinity, ease: "easeInOut" }}
+                  whileHover={{ scale: 1.03, rotateZ: -0.65, filter: "brightness(1.16) saturate(1.08) contrast(1.04)" }}
                 >
                   <div className="bg-[#1e293b] px-4 py-2 flex items-center gap-2 border-b border-[#334155]">
                     <div className="w-2.5 h-2.5 rounded-full bg-[#ef4444]"></div>
