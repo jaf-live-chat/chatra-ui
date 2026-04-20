@@ -4,6 +4,7 @@ import type { AuthTenant } from "../models/AgentModel";
 const AUTH_STORAGE_KEY = "jaf_auth_session";
 
 const ACTIVE_SUBSCRIPTION_STATUS = "ACTIVATED";
+const ACTIVE_SUBSCRIPTION_STATUS_ALIASES = new Set(["ACTIVATED", "ACTIVE"]);
 const SUBSCRIPTION_INACTIVE_CODE = "SUBSCRIPTION_INACTIVE";
 
 const API_BASE_URL_ROOT = String(API_BASE_URL || "")
@@ -96,7 +97,7 @@ export const getSubscriptionAccessState = (tenant: AuthTenant | null | undefined
   const parsedStartDate = parseAsLocalCalendarDate(startDate);
   const parsedEndDate = parseAsLocalCalendarDate(endDate);
 
-  if (status !== ACTIVE_SUBSCRIPTION_STATUS) {
+  if (!ACTIVE_SUBSCRIPTION_STATUS_ALIASES.has(status)) {
     return {
       isActive: false,
       status,

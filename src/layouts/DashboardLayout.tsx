@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
   ChevronDown,
   LogOut,
@@ -17,7 +17,7 @@ import useGetRole from "../hooks/useGetRole";
 import useIsMobile from "../hooks/useMobile";
 import useNotifications from "../hooks/useNotifications";
 import Agents from "../services/agentServices";
-import { useGetMe } from "../services/agentServices";
+import { useGetSingleTenant } from "../services/tenantService";
 import { createLiveChatSocket } from "../services/liveChatRealtimeClient";
 import { MODULE_GROUPS } from "../constants/modules";
 import filterModulesByRole from "../utils/filterModules";
@@ -28,8 +28,8 @@ import AutoLogoutModal from "../components/common/AutoLogoutModal";
 import NotificationIcon from "../components/common/NotificationIcon";
 import NotificationPopup from "../components/common/NotificationPopup";
 import Logo from "../components/common/Logo";
-import useCompanyBranding from "../hooks/useCompanyBranding";
 import useSubscriptionAccess from "../hooks/useSubscriptionAccess";
+import type { AuthTenant } from "../models/AgentModel";
 
 const INACTIVITY_LIMIT_MS = 10 * 60 * 1000;
 const AUTO_LOGOUT_WARNING_SECONDS = 30;
@@ -68,33 +68,69 @@ function DashboardLayoutInner() {
   }, []);
 
   const { isDark, toggleDark } = useDarkMode();
-  const { user, tenant, logout, updateUser } = useAuth();
-  const { tenant: realtimeTenant, mutate: refetchMe } = useGetMe();
-  const refetchMeRef = useRef(refetchMe);
-  const effectiveTenant = realtimeTenant ?? tenant;
+  const { user, tenant: authTenant, logout, updateUser } = useAuth();
+  const tenantId = authTenant?.id;
+  const { tenant: realtimeTenant, mutate: refetchTenant } = useGetSingleTenant(tenantId);
+  const refetchTenantRef = useRef(refetchTenant);
+  const effectiveTenant = useMemo<AuthTenant | null>(() => {
+    if (!authTenant) {
+      return null;
+    }
+
+    if (!realtimeTenant?.subscription) {
+      return authTenant;
+    }
+
+    const mergedSubscription = {
+      planName: realtimeTenant.subscription.planName || authTenant.subscription?.planName || "No Plan",
+      startDate: realtimeTenant.subscription.startDate || authTenant.subscription?.startDate || "",
+      endDate: realtimeTenant.subscription.endDate || authTenant.subscription?.endDate || "",
+    };
+
+    return {
+      ...authTenant,
+      subscription: mergedSubscription,
+      subscriptionData: authTenant.subscriptionData
+        ? {
+          ...authTenant.subscriptionData,
+          planName: realtimeTenant.subscription.planName || authTenant.subscriptionData.planName,
+          startDate: realtimeTenant.subscription.startDate || authTenant.subscriptionData.startDate,
+          endDate: realtimeTenant.subscription.endDate || authTenant.subscriptionData.endDate,
+          status: realtimeTenant.subscription.status || authTenant.subscriptionData.status,
+        }
+        : authTenant.subscriptionData,
+    };
+  }, [authTenant, realtimeTenant?.subscription]);
   const subscriptionAccess = useSubscriptionAccess(effectiveTenant);
   const { isAdmin } = useGetRole();
-  const { companyName: companyProfileName } = useCompanyBranding();
 
   useEffect(() => {
-    refetchMeRef.current = refetchMe;
-  }, [refetchMe]);
+    refetchTenantRef.current = refetchTenant;
+  }, [refetchTenant]);
 
   useEffect(() => {
-    void refetchMeRef.current();
-  }, []);
-
-  useEffect(() => {
-    if (!location.pathname.startsWith("/portal")) {
+    if (!tenantId) {
       return;
     }
 
-    void refetchMeRef.current();
-  }, [location.pathname]);
+    void refetchTenantRef.current();
+  }, [tenantId]);
+
+  useEffect(() => {
+    if (!tenantId || !location.pathname.startsWith("/portal")) {
+      return;
+    }
+
+    void refetchTenantRef.current();
+  }, [location.pathname, tenantId]);
 
   useEffect(() => {
     const handleWindowFocus = () => {
-      void refetchMeRef.current();
+      if (!tenantId) {
+        return;
+      }
+
+      void refetchTenantRef.current();
     };
 
     window.addEventListener("focus", handleWindowFocus);
@@ -102,7 +138,7 @@ function DashboardLayoutInner() {
     return () => {
       window.removeEventListener("focus", handleWindowFocus);
     };
-  }, []);
+  }, [tenantId]);
 
   const clearInactivityTimeout = useCallback(() => {
     if (inactivityTimeoutRef.current) {
@@ -256,7 +292,7 @@ function DashboardLayoutInner() {
   const userRole = user?.role || USER_ROLES.VISITOR.value;
   const subscriptionData = effectiveTenant?.subscriptionData ?? null;
   const subscription = effectiveTenant?.subscription ?? null;
-  const planName = subscriptionData?.planName || subscription?.planName || "No Plan";
+  const planName = subscription?.planName || subscriptionData?.planName || "No Plan";
   const isInternalPlan = String(planName || "").toLowerCase().includes("internal");
   const subscriptionLifecycleStatus = String(subscriptionData?.status || subscriptionAccess.status || "").toUpperCase();
   const subscriptionStartDate = subscriptionData?.startDate || subscription?.startDate;
@@ -305,7 +341,7 @@ function DashboardLayoutInner() {
 
       return {
         label: "Inactive",
-        detail: "Not active",
+        detail: "No days left",
         tone: "neutral" as const,
       };
     }
@@ -333,7 +369,7 @@ function DashboardLayoutInner() {
     ) {
       return {
         label: "Inactive",
-        detail: "Not active",
+        detail: "No days left",
         tone: "neutral" as const,
       };
     }
@@ -422,6 +458,24 @@ function DashboardLayoutInner() {
       tone: "success" as const,
     };
   })();
+
+  const showNoDaysInPlanDetails =
+    subscriptionStatus.label === "Inactive" ||
+    subscriptionStatus.label === "Expired" ||
+    subscriptionStatus.label === "Deactivated";
+  const popupPlanValue = showNoDaysInPlanDetails ? "Not Subscribed to a plan" : planName;
+  const popupStartedValue = showNoDaysInPlanDetails
+    ? "No days left"
+    : subscriptionStartDate
+      ? formatDate(subscriptionStartDate)
+      : "-";
+  const popupExpiresValue = showNoDaysInPlanDetails
+    ? "No days left"
+    : subscriptionEndDate
+      ? formatDate(subscriptionEndDate)
+      : isInternalPlan
+        ? "Unlimited for Internal Plan"
+        : "Expired";
 
   const activeNavCls = "bg-cyan-50 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400";
   const inactiveNavCls =
@@ -698,7 +752,7 @@ function DashboardLayoutInner() {
                           Started
                         </Typography>
                         <Typography variant="body2" sx={{ color: isDark ? "#E2E8F0" : "#334155", fontWeight: 600 }}>
-                          {subscriptionStartDate ? formatDate(subscriptionStartDate) : "-"}
+                          {popupStartedValue}
                         </Typography>
                       </div>
                       <div className="flex items-center justify-between gap-3">
@@ -706,11 +760,7 @@ function DashboardLayoutInner() {
                           Expires
                         </Typography>
                         <Typography variant="body2" sx={{ color: isDark ? "#E2E8F0" : "#334155", fontWeight: 600, textAlign: "right" }}>
-                          {subscriptionEndDate
-                            ? formatDate(subscriptionEndDate)
-                            : isInternalPlan
-                              ? "Unlimited for Internal Plan"
-                              : "Expired"}
+                          {popupExpiresValue}
                         </Typography>
                       </div>
                     </div>
