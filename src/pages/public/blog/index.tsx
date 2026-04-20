@@ -1,4 +1,4 @@
-import { Box, Container, Typography, Card, CardMedia, CardContent, Chip, Grid } from "@mui/material";
+﻿import { Box, Container, Typography, Card, CardMedia, CardContent, Chip, Grid } from "@mui/material";
 import { Clock, ArrowRight, LayoutDashboard, BarChart3, Users, ListOrdered, MessageSquare, Settings, Building2, Crown, ChevronRight } from "lucide-react";
 import { Link } from "react-router";
 import Navbar from "../../../components/common/Navbar";
@@ -49,7 +49,7 @@ const BlogPage = () => {
       icon: <LayoutDashboard size={24} />,
       title: "Dashboard",
       subtitle: "Your command center",
-      description: "The Dashboard is your home base. At a glance, see active chats, online visitors, and queue count. Quick-action cards let you jump straight to the live queue, chat assignments, analytics, or chat history — no hunting through menus.",
+      description: "The Dashboard is your home base. At a glance, see active chats, online visitors, and queue count. Quick-action cards let you jump straight to the live queue, chat assignments, analytics, or chat history â€” no hunting through menus.",
       image: imgDashboard,
       tip: "Check in here every morning to see overnight activity and prioritize your day."
     },
@@ -67,7 +67,7 @@ const BlogPage = () => {
       icon: <Users size={24} />,
       title: "Agents",
       subtitle: "Manage your team",
-      description: "View all support agents in one table — their email, online/offline status, and total chats handled. Add new agents, edit profiles, or remove team members. The summary cards at the top give you a quick count of total agents, who's currently online, and today's handled chats.",
+      description: "View all support agents in one table â€” their email, online/offline status, and total chats handled. Add new agents, edit profiles, or remove team members. The summary cards at the top give you a quick count of total agents, who's currently online, and today's handled chats.",
       image: imgAgents,
       tip: "Keep agent profiles up to date so routing rules and reports stay accurate."
     },
@@ -94,7 +94,7 @@ const BlogPage = () => {
       icon: <Settings size={24} />,
       title: "Widget Settings",
       subtitle: "Customize your chat widget",
-      description: "Control every aspect of your live chat widget — from theme color and text size to position, dark mode, and agent photo visibility. Configure welcome messages, offline messages, and widget title under Messages. Toggle behavior options like auto-open, sounds, push notifications, quick messages, typing indicator, and file uploads.",
+      description: "Control every aspect of your live chat widget â€” from theme color and text size to position, dark mode, and agent photo visibility. Configure welcome messages, offline messages, and widget title under Messages. Toggle behavior options like auto-open, sounds, push notifications, quick messages, typing indicator, and file uploads.",
       image: imgWidgetSettings,
       tip: "Match your widget's theme color to your brand for a seamless visitor experience."
     },
@@ -126,9 +126,9 @@ const BlogPage = () => {
         canonical="/portal/blog"
 
       />
-      <Navbar />
-      <Box sx={{ pt: { xs: 12, md: 16 }, pb: 12, bgcolor: "#F8FAFCFF", minHeight: "100vh" }}>
-        <Box sx={{ bgcolor: "#0A192FFF", color: "#FFFFFFFF", py: { xs: 8, md: 12 }, textAlign: "center", borderBottom: "1px solid #1E293B" }}>
+      <Navbar transparentBg="dark" />
+      <Box sx={{ pb: 12, bgcolor: "#F8FAFCFF", minHeight: "100vh" }}>
+        <Box sx={{ bgcolor: "#0A192FFF", color: "#FFFFFFFF", pt: { xs: 16, md: 20 }, pb: { xs: 8, md: 12 }, textAlign: "center", borderBottom: "1px solid #1E293B" }}>
           <Container maxWidth="md">
             <Typography variant="h2" sx={{ fontWeight: 800, mb: 3, fontFamily: "Inter, sans-serif" }}>
               Blog & Guides

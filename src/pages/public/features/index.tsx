@@ -113,8 +113,8 @@ const FeaturesPage = () => {
 
       />
       <div className="min-h-screen bg-white overflow-x-hidden">
-        <Navbar />
-        <div className="pt-16">
+        <Navbar transparentBg="dark" />
+        <div>
           <FeaturesSection />
 
           {/* Extended Features */}

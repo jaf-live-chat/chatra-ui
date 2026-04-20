@@ -1,4 +1,4 @@
-import { Zap, MapPin, LayoutDashboard, BellOff } from "lucide-react";
+﻿import { Zap, MapPin, LayoutDashboard, BellOff } from "lucide-react";
 
 const features = [
   {
@@ -23,7 +23,7 @@ const features = [
     gradient: "from-violet-500 to-violet-600",
     title: "Agent Dashboard",
     description:
-      "Manage conversations, assign chats, and monitor support performance — all from one beautifully designed panel.",
+      "Manage conversations, assign chats, and monitor support performance â€” all from one beautifully designed panel.",
   },
   {
     icon: <BellOff className="w-6 h-6" />,
@@ -44,7 +44,7 @@ const FeaturesSection = () => {
           className="text-center w-screen relative left-1/2 -translate-x-1/2 -mt-24 mb-16 flex flex-col items-center justify-center"
           style={{
             background: "#0A192FFF",
-            padding: "clamp(4rem, 12vw, 6rem) clamp(1.5rem, 4vw, 3rem)",
+            padding: "clamp(8rem, 16vw, 10rem) clamp(1.5rem, 4vw, 3rem) clamp(4rem, 12vw, 6rem)",
             borderColor: "#1E293BFF #1E293BFF #1E293BFF #1E293BFF",
             borderStyle: "solid",
             borderWidth: "0 0 1px 0",

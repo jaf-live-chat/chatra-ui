@@ -1,4 +1,4 @@
-import { Code2, MessageCircle, Headphones } from "lucide-react";
+﻿import { Code2, MessageCircle, Headphones } from "lucide-react";
 import { motion } from "motion/react";
 
 const steps = [
@@ -6,7 +6,7 @@ const steps = [
     number: "01",
     icon: <Code2 className="w-7 h-7" />,
     title: "Install Chat Widget",
-    description: "Embed a simple one-line script into your website. No technical knowledge required — it takes under 5 minutes.",
+    description: "Embed a simple one-line script into your website. No technical knowledge required â€” it takes under 5 minutes.",
   },
   {
     number: "02",
@@ -24,7 +24,7 @@ const steps = [
 
 const HowItWorksSection = () => {
   return (
-    <section className="py-24" style={{ background: "linear-gradient(180deg, #edf7ff 0%, #eaf5ff 100%)" }}>
+    <section className="pt-32 pb-24" style={{ background: "linear-gradient(180deg, #edf7ff 0%, #eaf5ff 100%)" }}>
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         {/* Header */}
         <motion.div

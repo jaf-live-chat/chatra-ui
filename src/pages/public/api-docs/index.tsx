@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+﻿import React, { useState } from "react";
 import { Box, Container, Typography, Grid, Paper, Stack, Chip } from "@mui/material";
 import { Code, Key, Info, Sparkles, ShieldCheck, Copy, CheckCircle2 } from "lucide-react";
 import Navbar from "../../../components/common/Navbar";
@@ -53,10 +53,10 @@ const ApiDocsPage = () => {
         description="Build custom integrations, automate workflows, and extend JAF Chatra with our powerful REST API and Webhooks."
         canonical="/portal/api-docs"
       />
-      <Navbar />
+      <Navbar transparentBg="dark" />
 
-      <Box sx={{ pt: { xs: 12, md: 16 }, pb: 12, bgcolor: "#F8FAFC", minHeight: "100vh" }}>
-        <Box sx={{ bgcolor: "#0A192F", color: "#FFF", py: { xs: 8, md: 12 }, borderBottom: "1px solid #1E293B" }}>
+      <Box sx={{ pb: 12, bgcolor: "#F8FAFC", minHeight: "100vh" }}>
+        <Box sx={{ bgcolor: "#0A192F", color: "#FFF", pt: { xs: 16, md: 20 }, pb: { xs: 8, md: 12 }, borderBottom: "1px solid #1E293B" }}>
           <Container maxWidth="md">
             <Stack spacing={2} alignItems="center" textAlign="center">
               <Chip

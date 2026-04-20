@@ -37,7 +37,11 @@ const STARTER_FEATURES = [
   "Community support",
 ];
 
-const Navbar = () => {
+export interface NavbarProps {
+  transparentBg?: "dark" | "light";
+}
+
+const Navbar = ({ transparentBg = "light" }: NavbarProps) => {
   const { isLoggedIn } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -108,7 +112,7 @@ const Navbar = () => {
     setMobileOpen(!mobileOpen);
   };
 
-  const navColor = "#0A192FFF"; // Navy
+  const navColor = !isScrolled && transparentBg === "dark" ? "#FFFFFFFF" : "#0A192FFF"; // Navy or White
   const btnColor = "#00838FFF"; // Teal
   const btnHover = "#006064FF";
 
@@ -134,8 +138,8 @@ const Navbar = () => {
         position="fixed"
         elevation={isScrolled ? 1 : 0}
         sx={{
-          bgcolor: isScrolled ? "#FFFFFFFF" : "#FFFFFFF2",
-          backdropFilter: isScrolled ? "none" : "blur(8px)",
+          bgcolor: isScrolled ? "#FFFFFFFF" : "transparent",
+          backdropFilter: isScrolled ? "none" : "none",
           borderBottom: isScrolled ? "1px solid #E5E7EBFF" : "1px solid transparent",
           transition: "all 0.3s ease",
           color: navColor
@@ -146,14 +150,10 @@ const Navbar = () => {
             {/* Logo */}
               <Box component={Link} to="/" sx={{ display: "flex", alignItems: "center", textDecoration: "none", flexShrink: 0 }}>
               <Logo
-                variant="dark"
+                variant={!isScrolled && transparentBg === "dark" ? "light" : "dark"}
                 alt="JAF Chatra Logo"
-                  size="sm"
-              />
-            </Box>
-
-            {/* Desktop Nav */}
-            <Stack
+                size="sm"
+              />              </Box>            <Stack
               direction="row"
                 spacing={{ xs: 1.5, sm: 2, md: 2.5 }}
                 sx={{ display: { xs: "none", md: "flex" }, alignItems: "center", flex: 1, mx: 2, justifyContent: "center" }}

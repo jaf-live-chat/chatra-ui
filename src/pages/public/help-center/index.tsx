@@ -1,4 +1,4 @@
-import { Box, Container, Typography, Card, CardContent, Grid, Accordion, AccordionSummary, AccordionDetails } from "@mui/material";
+﻿import { Box, Container, Typography, Card, CardContent, Grid, Accordion, AccordionSummary, AccordionDetails } from "@mui/material";
 import { BookOpen, MessageCircle, Settings, Shield, ChevronRight, Mail, Phone, Headphones, ChevronDown, HelpCircle } from "lucide-react";
 import { Link } from "react-router";
 import Navbar from "../../../components/common/Navbar";
@@ -30,16 +30,16 @@ const HelpCenterPage = () => {
         canonical="/portal/help-center"
 
       />
-      <Navbar />
-      <Box sx={{ pt: { xs: 12, md: 16 }, pb: 12, bgcolor: "#F8FAFCFF", minHeight: "100vh" }}>
+      <Navbar transparentBg="dark" />
+      <Box sx={{ pb: 12, bgcolor: "#F8FAFCFF", minHeight: "100vh" }}>
         {/* Hero Section */}
-        <Box sx={{ bgcolor: "#0A192FFF", color: "#FFFFFFFF", py: 10, px: 2, textAlign: "center", mb: -8, borderRadius: 0 }}>
+        <Box sx={{ bgcolor: "#0A192FFF", color: "#FFFFFFFF", pt: { xs: 16, md: 20 }, pb: 10, px: 2, textAlign: "center", mb: -8, borderRadius: 0 }}>
           <Container maxWidth="md">
             <Typography variant="h2" sx={{ fontWeight: 800, mb: 3, fontFamily: "Inter, sans-serif" }}>
               How can we help?
             </Typography>
             <Typography sx={{ color: "#94A3B8FF", maxWidth: "560px", mx: "auto", lineHeight: 1.7 }}>
-              Browse our guides, FAQs, and resources to find answers — or reach out to our support team anytime.
+              Browse our guides, FAQs, and resources to find answers â€” or reach out to our support team anytime.
             </Typography>
 
           </Container>
