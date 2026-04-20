@@ -4,6 +4,7 @@ import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import TextField from "@mui/material/TextField";
+import Tooltip from "@mui/material/Tooltip";
 import Stepper from "@mui/material/Stepper";
 import Step from "@mui/material/Step";
 import StepLabel from "@mui/material/StepLabel";
@@ -57,6 +58,77 @@ const pesoFormatter = new Intl.NumberFormat("en-PH", {
 });
 
 const steps = ["Account Information", "Summary"];
+
+type AccountInfo = {
+  companyName: string;
+  fullName: string;
+  companyCode: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+};
+
+type AccountErrors = {
+  companyName: string;
+  fullName: string;
+  companyCode: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+};
+
+const getEmptyAccountErrors = (): AccountErrors => ({
+  companyName: "",
+  fullName: "",
+  companyCode: "",
+  email: "",
+  password: "",
+  confirmPassword: "",
+});
+
+const validateAccountInfo = (accountInfo: AccountInfo): AccountErrors => {
+  const errors = getEmptyAccountErrors();
+
+  if (!accountInfo.companyName.trim()) {
+    errors.companyName = "Company name is required";
+  }
+
+  if (!accountInfo.fullName.trim()) {
+    errors.fullName = "Full name is required";
+  }
+
+  const companyCode = accountInfo.companyCode.trim();
+  if (!companyCode) {
+    errors.companyCode = "Company code is required";
+  } else if (companyCode.length < 4) {
+    errors.companyCode = "Company code must be at least 4 characters";
+  } else if (companyCode.length > 5) {
+    errors.companyCode = "Company code must be at most 5 characters";
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!accountInfo.email.trim()) {
+    errors.email = "Email address is required";
+  } else if (!emailRegex.test(accountInfo.email.trim())) {
+    errors.email = "Please enter a valid email address";
+  }
+
+  if (!accountInfo.password) {
+    errors.password = "Password is required";
+  } else if (accountInfo.password.length < 8) {
+    errors.password = "Password must be at least 8 characters";
+  }
+
+  if (!accountInfo.confirmPassword) {
+    errors.confirmPassword = "Confirm password is required";
+  } else if (accountInfo.password !== accountInfo.confirmPassword) {
+    errors.confirmPassword = "Passwords do not match";
+  }
+
+  return errors;
+};
+
+const hasValidationErrors = (errors: AccountErrors) => Object.values(errors).some(Boolean);
 
 const slugifyPlanName = (name: string) =>
   name
@@ -139,7 +211,7 @@ const Checkout = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [checkoutError, setCheckoutError] = useState("");
 
-  const [accountInfo, setAccountInfo] = useState({
+  const [accountInfo, setAccountInfo] = useState<AccountInfo>({
     companyName: "",
     fullName: "",
     companyCode: "",
@@ -148,14 +220,7 @@ const Checkout = () => {
     confirmPassword: "",
   });
 
-  const [accountErrors, setAccountErrors] = useState({
-    companyName: "",
-    fullName: "",
-    companyCode: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-  });
+  const [accountErrors, setAccountErrors] = useState<AccountErrors>(getEmptyAccountErrors);
 
   const plans = useMemo<CheckoutPlan[]>(() => {
     return fetchedPlans.map((plan) => ({
@@ -238,42 +303,17 @@ const Checkout = () => {
     ]
   );
 
+  const isAccountFormValid = useMemo(() => {
+    const errors = validateAccountInfo(accountInfo);
+    return !hasValidationErrors(errors);
+  }, [accountInfo]);
+
   const handleAccountNext = (e: React.FormEvent) => {
     e.preventDefault();
-    const errors = { companyName: "", fullName: "", companyCode: "", email: "", password: "", confirmPassword: "" };
-    let hasError = false;
-
-    if (accountInfo.companyName.trim().length < 2) {
-      errors.companyName = "Please enter your company name";
-      hasError = true;
-    }
-    if (accountInfo.fullName.trim().length < 2) {
-      errors.fullName = "Please enter your full name";
-      hasError = true;
-    }
-    if (accountInfo.companyCode.trim().length < 2) {
-      errors.companyCode = "Please enter a valid company code";
-      hasError = true;
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(accountInfo.email)) {
-      errors.email = "Please enter a valid email address";
-      hasError = true;
-    }
-
-    if (accountInfo.password.length < 8) {
-      errors.password = "Password must be at least 8 characters";
-      hasError = true;
-    }
-
-    if (accountInfo.password !== accountInfo.confirmPassword) {
-      errors.confirmPassword = "Passwords do not match";
-      hasError = true;
-    }
+    const errors = validateAccountInfo(accountInfo);
 
     setAccountErrors(errors);
-    if (hasError) {
+    if (hasValidationErrors(errors)) {
       return;
     }
 
@@ -550,8 +590,6 @@ const Checkout = () => {
                 </Box>
               </Box>
             </Box>
-
-
 
             <Box
               sx={{
@@ -941,11 +979,12 @@ const Checkout = () => {
                                     size="small"
                                     fullWidth
                                     required
-                                    placeholder="ABC123"
+                                    placeholder="A unique code for your company (4-5 characters)"
                                     value={accountInfo.companyCode}
                                     onChange={(e) => setAccountInfo({ ...accountInfo, companyCode: e.target.value })}
                                     error={!!accountErrors.companyCode}
                                     helperText={accountErrors.companyCode}
+                                    inputProps={{ minLength: 4, maxLength: 5 }}
                                     slotProps={{
                                       input: {
                                         startAdornment: (
@@ -967,20 +1006,33 @@ const Checkout = () => {
                         </Box>
 
                         <Box sx={{ width: "100%" }}>
-                          <AppButton
-                            type="submit"
-                            disabled={isProcessing}
-                            className="h-10 w-full rounded-lg bg-[#007EA7] mt-1 text-white hover:bg-[#005F82] font-bold text-base"
+                          <Tooltip
+                            title={
+                              !isAccountFormValid && !isProcessing
+                                ? "Please complete all required fields and ensure Company Code is 4 to 5 characters."
+                                : ""
+                            }
+                            disableHoverListener={isAccountFormValid || isProcessing}
+                            placement="top"
+                            arrow
                           >
-                            {isProcessing ? (
-                              <Stack direction="row" spacing={1} alignItems="center">
-                                <Loader2 size={20} className="animate-spin" />
-                                <span>Preparing summary...</span>
-                              </Stack>
-                            ) : (
-                              "Continue to Summary"
-                            )}
-                          </AppButton>
+                            <span style={{ display: "block", width: "100%" }}>
+                              <AppButton
+                                type="submit"
+                                disabled={isProcessing || !isAccountFormValid}
+                                className="h-10 w-full rounded-lg bg-[#007EA7] mt-1 text-white hover:bg-[#005F82] font-bold text-base"
+                              >
+                                {isProcessing ? (
+                                  <Stack direction="row" spacing={1} alignItems="center">
+                                    <Loader2 size={20} className="animate-spin" />
+                                    <span>Preparing summary...</span>
+                                  </Stack>
+                                ) : (
+                                  "Continue to Summary"
+                                )}
+                              </AppButton>
+                            </span>
+                          </Tooltip>
                         </Box>
                       </form>
                     )}
