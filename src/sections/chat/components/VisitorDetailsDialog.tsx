@@ -362,10 +362,10 @@ const VisitorDetailsDialog = ({
                   return;
                 }
 
-                if (visitor && isSupportAgent && onSelfPickConversation) {
-                  void onSelfPickConversation(visitor);
-                  return;
-                }
+                // if (visitor && isSupportAgent && onSelfPickConversation) {
+                //   void onSelfPickConversation(visitor);
+                //   return;
+                // }
 
                 if (visitor && onTakeConversation) {
                   void onTakeConversation(visitor);
