@@ -35,6 +35,8 @@ import { Button as AppButton } from "../../../components/button";
 import { Alert, AlertDescription, AlertTitle } from "../../../components/alert";
 import type { CreatePaymentCheckoutResponse } from "../../../models/PaymentModel";
 import PageTitle from "../../../components/common/PageTitle";
+import PasswordStrengthChecklist from "../../../components/PasswordStrengthChecklist";
+import { evaluatePasswordStrength } from "../../../utils/passwordStrength";
 
 type CheckoutPlan = {
   id: string;
@@ -115,8 +117,15 @@ const validateAccountInfo = (accountInfo: AccountInfo): AccountErrors => {
 
   if (!accountInfo.password) {
     errors.password = "Password is required";
-  } else if (accountInfo.password.length < 8) {
-    errors.password = "Password must be at least 8 characters";
+  } else {
+    const strength = evaluatePasswordStrength(accountInfo.password);
+    const hasMissingCriteria = strength.checks.some((check) => !check.passed);
+
+    if (hasMissingCriteria) {
+      errors.password = "Password does not meet the required security criteria";
+    } else if (strength.score < 70) {
+      errors.password = "Password strength must be Strong or above";
+    }
   }
 
   if (!accountInfo.confirmPassword) {
@@ -877,6 +886,9 @@ const Checkout = () => {
                                       "& .MuiInputBase-input": { fontSize: "0.9rem", py: 1 },
                                     }}
                                   />
+                                  <Box sx={{ mt: 1 }}>
+                                    <PasswordStrengthChecklist password={accountInfo.password} />
+                                  </Box>
                                 </Box>
 
                                 <Box>

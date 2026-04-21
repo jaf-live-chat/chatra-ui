@@ -4,6 +4,7 @@ import { AxiosError } from "axios";
 import { Mail, AlertCircle, CheckCircle2 } from "lucide-react";
 import PageTitle from "../../../components/common/PageTitle";
 import AuthPageLayout, { AuthFormCard } from "../../../components/common/AuthPageLayout";
+import PasswordStrengthChecklist from "../../../components/PasswordStrengthChecklist";
 import Agents from "../../../services/agentServices";
 
 const RESET_REQUEST_COOLDOWN_SECONDS = 30;
@@ -149,6 +150,14 @@ const ForgotPasswordPage = () => {
                   onChange={(event) => setEmailAddress(event.target.value)}
                   className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-slate-900 outline-none transition-all focus:border-cyan-700 focus:ring-2 focus:ring-cyan-700/20"
                   placeholder="you@company.com"
+                />
+              </div>
+
+              <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                <PasswordStrengthChecklist
+                  password=""
+                  showMeter={false}
+                  title="Your new password (on the next step) must have:"
                 />
               </div>
 

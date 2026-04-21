@@ -3,8 +3,10 @@ import { Link, useNavigate, useSearchParams } from "react-router";
 import { AxiosError } from "axios";
 import { Mail, AlertCircle, CheckCircle2 } from "lucide-react";
 import PageTitle from "../../../components/common/PageTitle";
+import PasswordStrengthChecklist from "../../../components/PasswordStrengthChecklist";
 import Agents from "../../../services/agentServices";
 import { APP_LOGO } from "../../../constants/constants";
+import { evaluatePasswordStrength } from "../../../utils/passwordStrength";
 
 const ResetPasswordPage = () => {
   const [searchParams] = useSearchParams();
@@ -32,8 +34,17 @@ const ResetPasswordPage = () => {
     setSubmitError("");
     setSubmitMessage("");
 
-    if (newPassword.length < 8) {
-      setSubmitError("Password must be at least 8 characters long.");
+    const strength = evaluatePasswordStrength(newPassword);
+    const missingCriteria = strength.checks.filter((check) => !check.passed);
+
+    if (missingCriteria.length > 0) {
+      setSubmitError("New password does not meet the required security criteria.");
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (strength.score < 70) {
+      setSubmitError("Password strength must be Strong or above.");
       setIsSubmitting(false);
       return;
     }
@@ -186,6 +197,7 @@ const ResetPasswordPage = () => {
                     className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-slate-900 focus:border-cyan-700 focus:ring-2 focus:ring-cyan-700/20 outline-none transition-all"
                     placeholder="Minimum 8 characters"
                   />
+                  <PasswordStrengthChecklist password={newPassword} className="mt-3" />
                 </div>
 
                 <div>
