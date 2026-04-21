@@ -192,11 +192,7 @@ const PaymentsTable = () => {
 
   return (
     <Stack spacing={3} sx={{ width: "100%" }}>
-      <TitleTag
-        title="Payments"
-        subtitle="Tenant payments overview with status, transaction date, and subscription type."
-        icon={<DollarSign className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />}
-      />
+   
 
       {error && (
         <Alert severity="error" variant="outlined">
