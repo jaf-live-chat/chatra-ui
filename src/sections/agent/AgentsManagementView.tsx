@@ -159,8 +159,15 @@ const AgentsManagementView = () => {
     mutate: mutateAgents,
   } = useGetAgents({ page, limit: ITEMS_PER_PAGE, search: searchTerm });
 
+  const {
+    data: agentStatsResponse,
+    agents: statAgents,
+    mutate: mutateAgentStats,
+  } = useGetAgents({ page: 1, limit: 1 });
+
   const agents = useMemo(() => fetchedAgents.map(mapAgentForView), [fetchedAgents]);
-  const tenantSubscriptionUsage = agentsResponse?.subscriptionUsage;
+  const statAgentsView = useMemo(() => statAgents.map(mapAgentForView), [statAgents]);
+  const tenantSubscriptionUsage = agentStatsResponse?.subscriptionUsage;
   const maxAgentsLimit =
     tenantSubscriptionUsage?.maxAgents ??
     tenant?.subscriptionData?.configuration?.limits?.maxAgents ??
@@ -170,8 +177,8 @@ const AgentsManagementView = () => {
     Boolean(tenant?.subscriptionData?.configuration?.limits?.hasAdvancedAnalytics);
   const currentAgentCount =
     tenantSubscriptionUsage?.usedAgents ??
-    pagination?.totalRecords ??
-    agents.length;
+    agentStatsResponse?.pagination?.totalRecords ??
+    statAgentsView.length;
   const isUnlimitedAgentsPlan = isUnlimitedAgentLimit(maxAgentsLimit);
   const remainingAgentSlots = !isUnlimitedAgentsPlan && typeof maxAgentsLimit === "number"
     ? Math.max(maxAgentsLimit - currentAgentCount, 0)
@@ -256,7 +263,7 @@ const AgentsManagementView = () => {
       if (agents.length === 1 && page > 1) {
         setPage((prev) => Math.max(1, prev - 1));
       }
-      await mutateAgents();
+      await Promise.all([mutateAgents(), mutateAgentStats()]);
       showSnackbar("Agent deleted successfully", "delete");
       setAgentToDelete(null);
     } catch (err) {
@@ -313,7 +320,7 @@ const AgentsManagementView = () => {
       if (!response?.agent) {
         throw new Error("Agent update response is missing agent data");
       }
-      await mutateAgents();
+      await Promise.all([mutateAgents(), mutateAgentStats()]);
       setEditAgent(null);
       showSnackbar("Agent updated successfully", "edit");
     } catch (err) {
@@ -398,7 +405,7 @@ const AgentsManagementView = () => {
 
       const response = await Agents.createAgents({ agents: newAgents });
       const newAgentsList = response.agents.map(mapAgentForView);
-      await mutateAgents();
+      await Promise.all([mutateAgents(), mutateAgentStats()]);
       setAddOpen(false);
       showSnackbar(`${newAgentsList.length} agent(s) added successfully`, "add");
     } catch (err) {
