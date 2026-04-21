@@ -114,6 +114,7 @@ const lightChipSx = {
 const AgentsManagementView = () => {
   const navigate = useNavigate();
   const { user, tenant } = useAuth();
+  const [searchInput, setSearchInput] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [editAgent, setEditAgent] = useState<Agent | null>(null);
   const [agentToDelete, setAgentToDelete] = useState<Agent | null>(null);
@@ -159,14 +160,31 @@ const AgentsManagementView = () => {
     mutate: mutateAgents,
   } = useGetAgents({ page, limit: ITEMS_PER_PAGE, search: searchTerm });
 
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setSearchTerm(searchInput);
+      setPage(1);
+    }, 350);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [searchInput]);
+
   const {
     data: agentStatsResponse,
     agents: statAgents,
     mutate: mutateAgentStats,
-  } = useGetAgents({ page: 1, limit: 1 });
+  } = useGetAgents({ page: 1, limit: 100, search: "" });
 
   const agents = useMemo(() => fetchedAgents.map(mapAgentForView), [fetchedAgents]);
   const statAgentsView = useMemo(() => statAgents.map(mapAgentForView), [statAgents]);
+  const onlineAgentsCount = useMemo(
+    () => statAgentsView.filter((agent) => agent.status === "Online").length,
+    [statAgentsView]
+  );
+  const chatsHandledTodayCount = useMemo(
+    () => statAgentsView.reduce((sum, agent) => sum + agent.chatsHandled, 0),
+    [statAgentsView]
+  );
   const tenantSubscriptionUsage = agentStatsResponse?.subscriptionUsage;
   const maxAgentsLimit =
     tenantSubscriptionUsage?.maxAgents ??
@@ -795,7 +813,7 @@ const AgentsManagementView = () => {
                   Online Agents
                 </Typography>
                 <Typography variant="h4" sx={{ fontWeight: 800, color: "grey.900" }}>
-                  {agents.filter((a) => a.status === "Online").length}
+                  {onlineAgentsCount}
                 </Typography>
               </Box>
               <Avatar sx={{ bgcolor: "#dcfce7", color: "#4b5563", width: 48, height: 48 }}>
@@ -825,7 +843,7 @@ const AgentsManagementView = () => {
                   Chats Handled Today
                 </Typography>
                 <Typography variant="h4" sx={{ fontWeight: 800, color: "grey.900" }}>
-                  {agents.reduce((sum, a) => sum + a.chatsHandled, 0)}
+                  {chatsHandledTodayCount}
                 </Typography>
               </Box>
               <Avatar sx={{ bgcolor: "#dbeafe", color: "#2563eb", width: 48, height: 48 }}>
@@ -917,8 +935,8 @@ const AgentsManagementView = () => {
           emptyStateDescription="Adjust your search or add a new agent."
           search={{
             placeholder: "Search agents...",
-            value: searchTerm,
-            onChange: setSearchTerm,
+            value: searchInput,
+            onChange: setSearchInput,
           }}
           pagination={{
             rowsPerPage: ITEMS_PER_PAGE,
