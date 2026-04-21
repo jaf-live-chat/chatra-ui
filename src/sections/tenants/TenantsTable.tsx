@@ -316,11 +316,7 @@ const TenantsTable = () => {
 
   return (
     <div className="space-y-4">
-      <TitleTag
-        title="Tenants Management"
-        subtitle="View tenant subscriptions and status overview."
-        icon={<Building2 className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />}
-      />
+    
 
       <ReusableTable
         title="Tenants"

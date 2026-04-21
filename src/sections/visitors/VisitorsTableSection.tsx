@@ -195,11 +195,7 @@ const VisitorsTableSection = () => {
 
   return (
     <Stack spacing={2}>
-      <TitleTag
-        title="Visitors"
-        subtitle="Track your visitors and jump into each profile to inspect conversation history."
-        icon={<Users className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />}
-      />
+     
 
       <ReusableTable
         title="Visitors Directory"
