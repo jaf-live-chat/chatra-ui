@@ -361,12 +361,24 @@ const SubscriptionPlansView = () => {
   };
 
   const addFeature = (planId: string) => {
-    const text = (newFeatureTextByPlan[planId] || "").trim();
+    addFeatureFromValue(planId, newFeatureTextByPlan[planId] || "");
+  };
+
+  const addFeatureFromValue = (planId: string, rawText: string) => {
+    const text = rawText.trim();
     if (!text) return;
 
     setPlans((prev) =>
       prev.map((p) => {
         if (p.id !== planId) return p;
+
+        const alreadyExists = p.features.some(
+          (feature) => feature.text.trim().toLowerCase() === text.toLowerCase()
+        );
+        if (alreadyExists) {
+          return p;
+        }
+
         return {
           ...p,
           features: [...p.features, { id: `feature-${Date.now()}`, text }],
@@ -476,13 +488,27 @@ const SubscriptionPlansView = () => {
   };
 
   const addFeatureToDraft = () => {
-    const text = createFeatureText.trim();
+    addFeatureToDraftFromValue(createFeatureText);
+  };
+
+  const addFeatureToDraftFromValue = (rawText: string) => {
+    const text = rawText.trim();
     if (!text) return;
 
-    setCreatePlanDraft((prev) => ({
-      ...prev,
-      features: [...prev.features, { id: `feature-${Date.now()}`, text }],
-    }));
+    setCreatePlanDraft((prev) => {
+      const alreadyExists = prev.features.some(
+        (feature) => feature.text.trim().toLowerCase() === text.toLowerCase()
+      );
+      if (alreadyExists) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        features: [...prev.features, { id: `feature-${Date.now()}`, text }],
+      };
+    });
+
     setCreateFeatureText("");
     if (createValidationAlert) {
       setCreateValidationAlert(null);
@@ -596,8 +622,24 @@ const SubscriptionPlansView = () => {
       });
     });
 
+    plans.forEach((plan) => {
+      plan.features.forEach((feature) => {
+        const normalized = String(feature.text || "").trim();
+        if (normalized) {
+          uniqueFeatures.add(normalized);
+        }
+      });
+    });
+
+    createPlanDraft.features.forEach((feature) => {
+      const normalized = String(feature.text || "").trim();
+      if (normalized) {
+        uniqueFeatures.add(normalized);
+      }
+    });
+
     return Array.from(uniqueFeatures).sort((a, b) => a.localeCompare(b));
-  }, [fetchedPlans]);
+  }, [fetchedPlans, plans, createPlanDraft.features]);
 
   const getPlanIcon = (name: string) => {
     const lower = name.toLowerCase();
@@ -614,11 +656,14 @@ const SubscriptionPlansView = () => {
     transition-colors hover:border-cyan-300 focus:ring-2 focus:ring-cyan-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100`;
   const autocompletePopperSlotProps = {
     popper: {
-      placement: "bottom-start" as const,
+      placement: "top-start" as const,
       modifiers: [
         {
           name: "flip",
-          enabled: false,
+          enabled: true,
+          options: {
+            fallbackPlacements: ["bottom-start", "top-end", "bottom-end"],
+          },
         },
       ],
     },
@@ -890,26 +935,31 @@ const SubscriptionPlansView = () => {
                     <Autocomplete
                       freeSolo
                       options={featureSuggestions}
+                      openOnFocus
+                      selectOnFocus
+                      clearOnBlur={false}
+                      handleHomeEndKeys
+                      autoHighlight
                       slotProps={autocompletePopperSlotProps}
                       inputValue={newFeatureTextByPlan[plan.id] || ""}
                       onInputChange={(_, value) =>
                         setNewFeatureTextByPlan((prev) => ({ ...prev, [plan.id]: value }))
                       }
-                      onChange={(_, value) =>
-                        setNewFeatureTextByPlan((prev) => ({ ...prev, [plan.id]: String(value || "") }))
-                      }
+                      onChange={(_, value, reason) => {
+                        const selected = String(value || "").trim();
+                        if ((reason === "selectOption" || reason === "createOption") && selected) {
+                          addFeatureFromValue(plan.id, selected);
+                          return;
+                        }
+
+                        setNewFeatureTextByPlan((prev) => ({ ...prev, [plan.id]: selected }));
+                      }}
                       className="flex-1"
                       renderInput={(params) => (
                         <TextField
-                          {...params}
+                          {...(params as any)}
                           placeholder="Add feature (e.g. Priority Support)"
                           size="small"
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              e.preventDefault();
-                              addFeature(plan.id);
-                            }
-                          }}
                           sx={{
                             "& .MuiOutlinedInput-root": {
                               borderRadius: "0.5rem",
@@ -1117,7 +1167,13 @@ const SubscriptionPlansView = () => {
                 <div className="mt-4 flex items-center gap-2">
                   <Autocomplete
                     freeSolo
+                    disablePortal
                     options={featureSuggestions}
+                    openOnFocus
+                    selectOnFocus
+                    clearOnBlur={false}
+                    handleHomeEndKeys
+                    autoHighlight
                     slotProps={autocompletePopperSlotProps}
                     inputValue={createFeatureText}
                     onInputChange={(_, value, reason) => {
@@ -1133,15 +1189,9 @@ const SubscriptionPlansView = () => {
                     className="flex-1"
                     renderInput={(params) => (
                       <TextField
-                        {...params}
+                        {...(params as any)}
                         placeholder="Add feature (e.g. Priority Support)"
                         size="small"
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            e.preventDefault();
-                            addFeatureToDraft();
-                          }
-                        }}
                         sx={{
                           "& .MuiOutlinedInput-root": {
                             borderRadius: "0.5rem",

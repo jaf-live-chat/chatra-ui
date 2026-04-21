@@ -22,10 +22,13 @@ import { API_BASE_URL } from "../../constants/constants";
 import PageTitle from "../../components/common/PageTitle";
 import TitleTag from "../../components/TitleTag"
 import IntegrationGuideSwitcher from "../../components/IntegrationGuideSwitcher";
+import PasswordStrengthChecklist from "../../components/PasswordStrengthChecklist";
 import { Box } from "@mui/material";
 import { toast } from "../../components/sonner";
+import { evaluatePasswordStrength } from "../../utils/passwordStrength";
 
 const ACCOUNT_SETTINGS_UNLOCK_MS = 10 * 60 * 1000;
+
 
 const formatCountdown = (remainingMs: number) => {
   const totalSeconds = Math.max(0, Math.floor(remainingMs / 1000));
@@ -513,9 +516,18 @@ const AccountSettingsView = () => {
       return;
     }
 
-    if (newPassword.length < 8) {
-      setSecurityError("New password must be at least 8 characters.");
-      toast.error("New password must be at least 8 characters.");
+    const strength = evaluatePasswordStrength(newPassword);
+    const missingCriteria = strength.checks.filter((check) => !check.passed);
+
+    if (missingCriteria.length > 0) {
+      setSecurityError("New password does not meet the required security criteria.");
+      toast.error("Please meet all password must-have criteria.");
+      return;
+    }
+
+    if (strength.score < 70) {
+      setSecurityError("New password is still too weak. Please choose a stronger one.");
+      toast.error("Password strength must be Strong or above.");
       return;
     }
 
@@ -854,10 +866,8 @@ const AccountSettingsView = () => {
                             )}
                           </button>
                         </div>
-                        <p className="text-xs text-gray-400 mt-1.5">
-                          Must be at least 8 characters with a number and special
-                          character.
-                        </p>
+
+                        <PasswordStrengthChecklist password={security.newPassword} className="mt-3" />
                       </div>
                     </div>
                   </div>
