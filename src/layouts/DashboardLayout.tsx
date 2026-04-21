@@ -704,7 +704,7 @@ function DashboardLayoutInner() {
                   />
 
                   <div
-                    className={`absolute left-1/2 top-full z-30 mt-3 w-[22rem] -translate-x-1/2 rounded-2xl border border-gray-200 bg-white p-4 shadow-2xl shadow-slate-900/10 transition-all duration-200 dark:border-slate-700 dark:bg-slate-800 dark:shadow-slate-950/40 ${isPlanPopupOpen ? "visible translate-y-0 opacity-100" : "invisible translate-y-1 opacity-0"}`}
+                    className={`absolute left-0 top-full z-50 mt-3 w-[min(22rem,calc(100vw-2rem))] rounded-2xl border border-gray-200 bg-white p-4 shadow-2xl shadow-slate-900/10 transition-all duration-200 dark:border-slate-700 dark:bg-slate-800 dark:shadow-slate-950/40 ${isPlanPopupOpen ? "visible translate-y-0 opacity-100" : "invisible translate-y-1 opacity-0"}`}
                   >
                     <div className="mb-4 flex items-start gap-3">
                       <span className="mt-2 h-3 w-3 flex-shrink-0 rounded-full bg-sky-500" />
