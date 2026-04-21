@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertCircle,
   Check,
@@ -86,9 +86,16 @@ interface MostPopularPendingState {
   nextValue: boolean;
 }
 
+interface EditDiscardPendingState {
+  planId: string;
+  planName: string;
+}
+
 const toPeriod = (billingCycle: BillingCycle, interval: number) => {
   if (billingCycle === "monthly" && interval === 1) return "/mo";
   if (billingCycle === "yearly" && interval === 1) return "/yr";
+  if (billingCycle === "weekly" && interval === 1) return "/weekly";
+  if (billingCycle === "daily" && interval === 1) return "/day";
 
   const unitByCycle: Record<BillingCycle, string> = {
     daily: "day",
@@ -104,6 +111,8 @@ const toPeriod = (billingCycle: BillingCycle, interval: number) => {
 const parsePeriod = (period: string): { billingCycle: BillingCycle; interval: number } => {
   if (period === "/mo") return { billingCycle: "monthly", interval: 1 };
   if (period === "/yr") return { billingCycle: "yearly", interval: 1 };
+  if (period === "/weekly") return { billingCycle: "weekly", interval: 1 };
+  if (period === "/day") return { billingCycle: "daily", interval: 1 };
 
   const normalized = period.replace(/^\//, "").trim();
   const [rawInterval, rawCycle] = normalized.split(" ");
@@ -203,6 +212,8 @@ const SubscriptionPlansView = () => {
   const [savingPlanId, setSavingPlanId] = useState<string | null>(null);
   const [newFeatureTextByPlan, setNewFeatureTextByPlan] = useState<Record<string, string>>({});
   const [isCreateDrawerOpen, setIsCreateDrawerOpen] = useState(false);
+  const [isDiscardCreatePlanOpen, setIsDiscardCreatePlanOpen] = useState(false);
+  const [editDiscardPending, setEditDiscardPending] = useState<EditDiscardPendingState | null>(null);
   const [isCreatingPlan, setIsCreatingPlan] = useState(false);
   const [createPlanDraft, setCreatePlanDraft] = useState<SubscriptionPlan>(createDefaultPlanDraft);
   const [createFeatureText, setCreateFeatureText] = useState("");
@@ -210,6 +221,7 @@ const SubscriptionPlansView = () => {
   const [planPendingDelete, setPlanPendingDelete] = useState<SubscriptionPlan | null>(null);
   const [mostPopularPending, setMostPopularPending] = useState<MostPopularPendingState | null>(null);
   const [editSnapshots, setEditSnapshots] = useState<Record<string, SubscriptionPlan>>({});
+  const bypassCreateCloseConfirmationRef = useRef(false);
 
   useEffect(() => {
     setPlans(fetchedPlans.map(mapApiPlanToView));
@@ -221,11 +233,65 @@ const SubscriptionPlansView = () => {
     setTimeout(() => setSaved(false), 1500);
   };
 
-  const openCreateDrawer = () => {
+  const resetCreatePlanState = () => {
     setCreatePlanDraft(createDefaultPlanDraft());
     setCreateFeatureText("");
     setCreateValidationAlert(null);
+    setIsDiscardCreatePlanOpen(false);
+    bypassCreateCloseConfirmationRef.current = false;
+  };
+
+  const closeCreatePlanDrawer = () => {
+    setIsCreateDrawerOpen(false);
+    resetCreatePlanState();
+  };
+
+  const confirmDiscardCreatePlan = () => {
+    bypassCreateCloseConfirmationRef.current = true;
+    setIsCreateDrawerOpen(false);
+    toast.success("Unsaved plan discarded.");
+  };
+
+  const openCreateDrawer = () => {
+    resetCreatePlanState();
     setIsCreateDrawerOpen(true);
+  };
+
+  const handleCreateDrawerOpenChange = (open: boolean) => {
+    if (open) {
+      setIsCreateDrawerOpen(true);
+      return;
+    }
+
+    if (bypassCreateCloseConfirmationRef.current) {
+      bypassCreateCloseConfirmationRef.current = false;
+      closeCreatePlanDrawer();
+      return;
+    }
+
+    setIsDiscardCreatePlanOpen(true);
+  };
+
+  const requestCancelEditPlan = (planId: string) => {
+    const plan = plans.find((item) => item.id === planId);
+
+    if (!plan) {
+      cancelEditPlan(planId);
+      return;
+    }
+
+    setEditDiscardPending({
+      planId,
+      planName: plan.name,
+    });
+  };
+
+  const confirmDiscardEditPlan = () => {
+    if (!editDiscardPending) return;
+
+    cancelEditPlan(editDiscardPending.planId);
+    setEditDiscardPending(null);
+    toast.success(`Edits for "${editDiscardPending.planName}" discarded.`);
   };
 
   const updatePlan = (planId: string, updates: Partial<SubscriptionPlan>) => {
@@ -475,8 +541,7 @@ const SubscriptionPlansView = () => {
       setIsCreatingPlan(true);
       await createSubscriptionPlan(toApiPayload(createPlanDraft));
       await mutate();
-      setIsCreateDrawerOpen(false);
-      setCreateValidationAlert(null);
+      closeCreatePlanDrawer();
       showSaved();
       toast.success(`"${createPlanDraft.name}" created successfully.`);
     } catch (error) {
@@ -701,7 +766,7 @@ const SubscriptionPlansView = () => {
                       <Tooltip title="Cancel editing" arrow>
                         <button
                           type="button"
-                          onClick={() => cancelEditPlan(plan.id)}
+                          onClick={() => requestCancelEditPlan(plan.id)}
                           className="flex cursor-pointer items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all duration-300 text-xs font-semibold whitespace-nowrap bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600 dark:hover:bg-slate-600"
                         >
                           <X className="w-3.5 h-3.5" />
@@ -787,46 +852,42 @@ const SubscriptionPlansView = () => {
                           <SelectContent className="rounded-lg border border-gray-200 bg-white shadow-lg dark:border-slate-600 dark:bg-slate-800">
                             <SelectItem value="/mo">/mo</SelectItem>
                             <SelectItem value="/yr">/yr</SelectItem>
-                            <SelectItem value="/1 weekly">/1 weekly</SelectItem>
-                            <SelectItem value="/1 day">/1 day</SelectItem>
+                            <SelectItem value="/weekly">/weekly</SelectItem>
+                            <SelectItem value="/day">/day</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                      <div>
-                        <label className="text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Max Agents</label>
-                        <input
-                          type="number"
-                          min={1}
-                          value={plan.limits.maxAgents}
-                          onChange={(e) => updatePlan(plan.id, { limits: { ...plan.limits, maxAgents: e.target.value } })}
-                          className={inputCls}
-                          placeholder="3"
-                        />
-                      </div>
-
-                      <div className="flex items-center">
-                        <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-slate-400">
-                          <input
-                            type="checkbox"
-                            checked={plan.limits.hasAdvancedAnalytics}
-                            onChange={(e) =>
-                              updatePlan(plan.id, {
-                                limits: { ...plan.limits, hasAdvancedAnalytics: e.target.checked },
-                              })
-                            }
-                          />
-                          Advanced Analytics
-                        </label>
-                      </div>
+                    <div>
+                      <label className="text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Max Agents</label>
+                      <input
+                        type="number"
+                        min={1}
+                        value={plan.limits.maxAgents}
+                        onChange={(e) => updatePlan(plan.id, { limits: { ...plan.limits, maxAgents: e.target.value } })}
+                        className={inputCls}
+                        placeholder="3"
+                      />
                     </div>
 
-                    <div className="flex items-center gap-4">
-                      <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-slate-400">
+                    <div className="flex flex-wrap items-center gap-4">
+                      <label className="inline-flex items-center gap-2 text-sm text-gray-600 dark:text-slate-400">
                         <input type="checkbox" checked={plan.active} onChange={(e) => updatePlan(plan.id, { active: e.target.checked })} />
                         Active
+                      </label>
+
+                      <label className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-600 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-400">
+                        <input
+                          type="checkbox"
+                          checked={plan.limits.hasAdvancedAnalytics}
+                          onChange={(e) =>
+                            updatePlan(plan.id, {
+                              limits: { ...plan.limits, hasAdvancedAnalytics: e.target.checked },
+                            })
+                          }
+                        />
+                        Advanced Analytics
                       </label>
                     </div>
                   </div>
@@ -896,7 +957,7 @@ const SubscriptionPlansView = () => {
                       className="flex-1"
                       renderInput={(params) => (
                         <TextField
-                          {...params}
+                          {...(params as any)}
                           placeholder="Add feature (e.g. Priority Support)"
                           size="small"
                           sx={{
@@ -950,13 +1011,21 @@ const SubscriptionPlansView = () => {
         </div>
       )}
 
-      <Dialog open={isCreateDrawerOpen} onOpenChange={setIsCreateDrawerOpen}>
-        <DialogContent className="w-full max-w-2xl p-0 overflow-hidden">
-          <DialogHeader className="px-6 pt-6">
+      <Dialog open={isCreateDrawerOpen} onOpenChange={handleCreateDrawerOpenChange}>
+        <DialogContent className="w-full max-w-2xl p-0 overflow-hidden" hideCloseButton>
+          <DialogHeader className="relative px-6 pt-6 pr-14">
             <DialogTitle>Create Subscription Plan</DialogTitle>
             <DialogDescription>
               Fill in plan details. A plan must include at least one feature.
             </DialogDescription>
+            <button
+              type="button"
+              onClick={() => handleCreateDrawerOpenChange(false)}
+              className="absolute right-4 top-4 inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-500 opacity-70 transition hover:bg-slate-100 hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-cyan-500 dark:text-slate-400 dark:hover:bg-slate-700"
+            >
+              <X className="h-4 w-4" />
+              <span className="sr-only">Close</span>
+            </button>
           </DialogHeader>
 
           <div className="px-6 pb-4 max-h-[65vh] overflow-y-auto">
@@ -1016,67 +1085,31 @@ const SubscriptionPlansView = () => {
                     <SelectContent className="rounded-lg border border-gray-200 bg-white shadow-lg dark:border-slate-600 dark:bg-slate-800">
                       <SelectItem value="/mo">/mo</SelectItem>
                       <SelectItem value="/yr">/yr</SelectItem>
-                      <SelectItem value="/1 weekly">/1 weekly</SelectItem>
-                      <SelectItem value="/1 day">/1 day</SelectItem>
+                      <SelectItem value="/weekly">/weekly</SelectItem>
+                      <SelectItem value="/day">/day</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div>
-                  <label className="text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Max Agents</label>
-                  <input
-                    type="number"
-                    min={1}
-                    value={createPlanDraft.limits.maxAgents}
-                    onChange={(e) =>
-                      setCreatePlanDraft((prev) => ({
-                        ...prev,
-                        limits: { ...prev.limits, maxAgents: e.target.value },
-                      }))
-                    }
-                    className={inputCls}
-                    placeholder="3"
-                  />
-                </div>
-
-                <div className="flex items-center">
-                  <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-slate-400">
-                    <input
-                      type="checkbox"
-                      checked={createPlanDraft.limits.hasAdvancedAnalytics}
-                      onChange={(e) =>
-                        setCreatePlanDraft((prev) => ({
-                          ...prev,
-                          limits: {
-                            ...prev.limits,
-                            hasAdvancedAnalytics: e.target.checked,
-                          },
-                        }))
-                      }
-                    />
-                    Advanced Analytics
-                  </label>
-                </div>
+              <div>
+                <label className="text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Max Agents</label>
+                <input
+                  type="number"
+                  min={1}
+                  value={createPlanDraft.limits.maxAgents}
+                  onChange={(e) =>
+                    setCreatePlanDraft((prev) => ({
+                      ...prev,
+                      limits: { ...prev.limits, maxAgents: e.target.value },
+                    }))
+                  }
+                  className={inputCls}
+                  placeholder="3"
+                />
               </div>
 
-              <div className="flex items-center gap-4">
-                <Tooltip title="Toggle Most Popular status" arrow>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setCreatePlanDraft((prev) => ({ ...prev, popular: !prev.popular }))
-                    }
-                    className={`inline-flex cursor-pointer items-center gap-2 rounded-lg border px-2.5 py-1.5 text-sm transition-colors ${createPlanDraft.popular
-                      ? "border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-600 dark:bg-amber-900/20 dark:text-amber-300"
-                      : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600"
-                      }`}
-                  >
-                    <Star className={`w-4 h-4 ${createPlanDraft.popular ? "fill-current" : ""}`} />
-                    Most Popular
-                  </button>
-                </Tooltip>
+              <div className="flex flex-wrap items-center gap-4">
                 <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-slate-400">
                   <input
                     type="checkbox"
@@ -1086,6 +1119,23 @@ const SubscriptionPlansView = () => {
                     }
                   />
                   Active
+                </label>
+
+                <label className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-600 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-400">
+                  <input
+                    type="checkbox"
+                    checked={createPlanDraft.limits.hasAdvancedAnalytics}
+                    onChange={(e) =>
+                      setCreatePlanDraft((prev) => ({
+                        ...prev,
+                        limits: {
+                          ...prev.limits,
+                          hasAdvancedAnalytics: e.target.checked,
+                        },
+                      }))
+                    }
+                  />
+                  Advanced Analytics
                 </label>
               </div>
 
@@ -1126,20 +1176,20 @@ const SubscriptionPlansView = () => {
                     autoHighlight
                     slotProps={autocompletePopperSlotProps}
                     inputValue={createFeatureText}
-                    onInputChange={(_, value) => setCreateFeatureText(value)}
-                    onChange={(_, value, reason) => {
-                      const selected = String(value || "").trim();
-                      if ((reason === "selectOption" || reason === "createOption") && selected) {
-                        addFeatureToDraftFromValue(selected);
-                        return;
+                    onInputChange={(_, value, reason) => {
+                      if (reason === "input") {
+                        setCreateFeatureText(value);
                       }
 
-                      setCreateFeatureText(selected);
+                      if (reason === "clear") {
+                        setCreateFeatureText("");
+                      }
                     }}
+                    onChange={(_, value) => setCreateFeatureText(String(value || ""))}
                     className="flex-1"
                     renderInput={(params) => (
                       <TextField
-                        {...params}
+                        {...(params as any)}
                         placeholder="Add feature (e.g. Priority Support)"
                         size="small"
                         sx={{
@@ -1178,6 +1228,7 @@ const SubscriptionPlansView = () => {
           <DialogFooter className="px-6 py-4 border-t border-gray-200 dark:border-slate-700 sm:justify-start sm:gap-2">
             <Tooltip title="Create this plan" arrow>
               <button
+                type="button"
                 onClick={submitNewPlan}
                 disabled={isCreatingPlan}
                 className="inline-flex cursor-pointer items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-cyan-600 text-white hover:bg-cyan-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed sm:min-w-40"
@@ -1188,7 +1239,7 @@ const SubscriptionPlansView = () => {
             <Tooltip title="Close dialog" arrow>
               <button
                 type="button"
-                onClick={() => setIsCreateDrawerOpen(false)}
+                onClick={() => handleCreateDrawerOpenChange(false)}
                 className="inline-flex cursor-pointer items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors text-sm font-medium sm:min-w-32"
               >
                 Cancel
@@ -1197,6 +1248,52 @@ const SubscriptionPlansView = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog
+        open={isDiscardCreatePlanOpen}
+        onOpenChange={(open) => {
+          if (!open) setIsDiscardCreatePlanOpen(false);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-slate-900 dark:text-white">Discard unsaved plan?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have unsaved changes in this new plan. Closing now will remove everything you entered.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep Editing</AlertDialogCancel>
+            <AlertDialogAction className="bg-red-600 hover:bg-red-700 text-white" onClick={confirmDiscardCreatePlan}>
+              Discard Changes
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={Boolean(editDiscardPending)}
+        onOpenChange={(open) => {
+          if (!open) setEditDiscardPending(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-slate-900 dark:text-white">Discard edit changes?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {editDiscardPending
+                ? `You have unsaved edits in "${editDiscardPending.planName}". Closing now will restore the previous saved version.`
+                : "You have unsaved edits. Closing now will restore the previous saved version."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep Editing</AlertDialogCancel>
+            <AlertDialogAction className="bg-red-600 hover:bg-red-700 text-white" onClick={confirmDiscardEditPlan}>
+              Discard Changes
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog
         open={Boolean(planPendingDelete)}
