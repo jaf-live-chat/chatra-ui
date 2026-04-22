@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import QueueView from "../../../sections/chat/QueueView";
 import { useGetActiveLiveChat, useGetLiveChatQueue } from "../../../hooks/useLiveChat";
@@ -22,11 +22,17 @@ const isEndedQueueEntry = (entry: LiveChatQueueEntry) => {
   return Boolean(entry.endedAt) || String(conversation?.status || "").toUpperCase() === "ENDED";
 };
 
+interface QueueRealtimeMessagePatch {
+  latestVisitorMessage: string;
+  totalVisitorMessageCount: number;
+}
+
 const AgentQueuePage = () => {
   const navigate = useNavigate();
   const { tenant, user } = useAuth();
   const { queue: waitingQueue, mutate: mutateWaitingQueue } = useGetLiveChatQueue({ page: 1, limit: 100 });
   const { queue: activeQueue, mutate: mutateActiveQueue } = useGetActiveLiveChat({ page: 1, limit: 100 });
+  const [realtimePatches, setRealtimePatches] = useState<Record<string, QueueRealtimeMessagePatch>>({});
 
   const combinedQueue = useMemo<LiveChatQueueEntry[]>(() => {
     const source = [...(activeQueue || []), ...(waitingQueue || [])].filter((entry) => !isEndedQueueEntry(entry));
@@ -52,6 +58,65 @@ const AgentQueuePage = () => {
     void mutateActiveQueue();
   }, [mutateActiveQueue, mutateWaitingQueue]);
 
+  const queueMessageBaseline = useMemo(() => {
+    const baseline = new Map<string, QueueRealtimeMessagePatch & { status: string }>();
+
+    (combinedQueue || []).forEach((entry) => {
+      const conversation = isConversationObject(entry.conversationId) ? entry.conversationId : null;
+      const conversationId = String(conversation?._id || entry.conversationId || entry._id || "").trim();
+
+      if (!conversationId) {
+        return;
+      }
+
+      baseline.set(conversationId, {
+        latestVisitorMessage: String((entry as { latestVisitorMessage?: string }).latestVisitorMessage || "").trim(),
+        totalVisitorMessageCount: Math.max(0, Number((entry as { totalVisitorMessageCount?: number }).totalVisitorMessageCount || 0)),
+        status: String(entry.status || "").toUpperCase(),
+      });
+    });
+
+    return baseline;
+  }, [combinedQueue]);
+
+  const handleQueueRefresh = useCallback(() => {
+    setRealtimePatches({});
+    refreshQueue();
+  }, [refreshQueue]);
+
+  const handleQueueMessageUpdated = useCallback((payload: { conversationId?: string; latestVisitorMessage?: string; incrementBy?: number }) => {
+    const conversationId = String(payload?.conversationId || "").trim();
+
+    if (!conversationId) {
+      return;
+    }
+
+    const baseline = queueMessageBaseline.get(conversationId);
+
+    if (!baseline || baseline.status !== "WAITING") {
+      return;
+    }
+
+    const incrementBy = Math.max(1, Number(payload?.incrementBy || 1));
+    const latestVisitorMessage = String(payload?.latestVisitorMessage || "").trim() || baseline.latestVisitorMessage || "Visitor is waiting for support.";
+
+    setRealtimePatches((current) => {
+      const existing = current[conversationId];
+      const nextCount = Math.max(
+        Number(existing?.totalVisitorMessageCount || 0),
+        Number(baseline.totalVisitorMessageCount || 0),
+      ) + incrementBy;
+
+      return {
+        ...current,
+        [conversationId]: {
+          latestVisitorMessage,
+          totalVisitorMessageCount: nextCount,
+        },
+      };
+    });
+  }, [queueMessageBaseline]);
+
   const mappedQueue = useMemo<QueueVisitorRow[]>(() => {
     return (combinedQueue || []).map((entry) => {
       const conversation = isConversationObject(entry.conversationId) ? entry.conversationId : null;
@@ -64,6 +129,14 @@ const AgentQueuePage = () => {
       const normalizedAgentId = agent?._id || (typeof entry.agentId === "string" ? entry.agentId : null);
       const agentName = agent?.fullName || "";
       const agentDisplayName = agent?.displayName || (agentName && normalizedAgentId ? `${agentName} (${normalizedAgentId})` : agentName);
+      const latestVisitorMessage = String((entry as { latestVisitorMessage?: string }).latestVisitorMessage || "").trim();
+      const totalVisitorMessageCount = Math.max(0, Number((entry as { totalVisitorMessageCount?: number }).totalVisitorMessageCount || 0));
+      const realtimePatch = realtimePatches[String(conversationId)];
+      const effectiveLatestVisitorMessage = String(realtimePatch?.latestVisitorMessage || latestVisitorMessage).trim();
+      const effectiveTotalVisitorMessageCount = Math.max(
+        totalVisitorMessageCount,
+        Number(realtimePatch?.totalVisitorMessageCount || 0),
+      );
 
       return {
         id: String(conversationId),
@@ -71,7 +144,10 @@ const AgentQueuePage = () => {
         sessionId: String(conversationId),
         visitorId: visitor?._id || null,
         name: visitorLabel,
-        message: "Visitor is waiting for support.",
+        message: effectiveLatestVisitorMessage || "Visitor is waiting for support.",
+        latestVisitorMessage: effectiveLatestVisitorMessage,
+        totalVisitorMessageCount: effectiveTotalVisitorMessageCount,
+        unreadVisitorMessageCount: Number((entry as { unreadVisitorMessageCount?: number }).unreadVisitorMessageCount || 0),
         status: conversation?.status === "OPEN" ? "Assigned" : "Waiting",
         queuedAt: entry.queuedAt || conversation?.queuedAt || null,
         assignedAt: entry.assignedAt || conversation?.assignedAt || null,
@@ -83,7 +159,7 @@ const AgentQueuePage = () => {
         country: locationCountry,
       };
     });
-  }, [combinedQueue]);
+  }, [combinedQueue, realtimePatches]);
 
   // Use shared staff realtime hook for queue updates
   useStaffLiveChat(
@@ -93,10 +169,13 @@ const AgentQueuePage = () => {
     user?.role ?? undefined,
     user?._id ?? undefined,
     {
-      onConversationAssigned: refreshQueue,
-      onConversationTransferred: refreshQueue,
-      onQueueUpdated: refreshQueue,
-      onConversationEnded: refreshQueue,
+      onConnect: handleQueueRefresh,
+      onReconnect: handleQueueRefresh,
+      onConversationAssigned: handleQueueRefresh,
+      onConversationTransferred: handleQueueRefresh,
+      onQueueUpdated: handleQueueRefresh,
+      onConversationEnded: handleQueueRefresh,
+      onQueueMessageUpdated: handleQueueMessageUpdated,
     },
   );
 
@@ -110,6 +189,9 @@ const AgentQueuePage = () => {
       onSelfPickConversation={async (visitor) => {
         await liveChatServices.acceptConversation(visitor.conversationId || visitor.id);
         await Promise.all([mutateWaitingQueue(), mutateActiveQueue()]);
+      }}
+      onOpenConversation={(visitor) => {
+        navigate(`/portal/agent/chat-sessions?conversationId=${encodeURIComponent(visitor.conversationId || visitor.id)}`);
       }}
       onStartChat={(visitor) => {
         localStorage.setItem("jaf_active_chat_visitor", JSON.stringify(visitor));

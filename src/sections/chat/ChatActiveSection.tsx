@@ -225,9 +225,10 @@ interface ChatActiveSectionProps {
   mutateQueue: () => void;
   searchQuery: string;
   setSearchQuery: (q: string) => void;
+  selectedConversationId?: string;
 }
 
-const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: ChatActiveSectionProps) => {
+const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery, selectedConversationId }: ChatActiveSectionProps) => {
   const [activeChats, setActiveChats] = useState<ActiveChat[]>([]);
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   const [chatMessage, setChatMessage] = useState("");
@@ -727,12 +728,38 @@ const ChatActiveSection = ({ queue, mutateQueue, searchQuery, setSearchQuery }: 
     });
 
     setSelectedChatId((previousSelectedChatId) => {
+      const targetConversationId = String(selectedConversationId || "").trim();
+
+      if (targetConversationId) {
+        const matchedChat = liveChats.find(
+          (chat) => String(chat.id || "") === targetConversationId || String(chat.sessionId || "") === targetConversationId,
+        );
+
+        return matchedChat ? matchedChat.id : previousSelectedChatId;
+      }
+
       if (previousSelectedChatId || liveChats.length === 0) {
         return previousSelectedChatId;
       }
+
       return liveChats[0].id;
     });
-  }, [queue]);
+  }, [queue, selectedConversationId]);
+
+  useEffect(() => {
+    const targetConversationId = String(selectedConversationId || "").trim();
+    if (!targetConversationId) {
+      return;
+    }
+
+    const matchedChat = activeChats.find(
+      (chat) => String(chat.id || "") === targetConversationId || String(chat.sessionId || "") === targetConversationId,
+    );
+
+    if (matchedChat) {
+      setSelectedChatId(matchedChat.id);
+    }
+  }, [activeChats, selectedConversationId]);
 
   // Load initial messages when chat is selected
   useEffect(() => {

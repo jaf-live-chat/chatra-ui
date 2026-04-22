@@ -17,6 +17,9 @@ export interface QueueVisitorRow {
   visitorId?: string | null;
   name: string;
   message: string;
+  latestVisitorMessage?: string;
+  totalVisitorMessageCount?: number;
+  unreadVisitorMessageCount?: number;
   status: "Waiting" | "Assigned";
   queuedAt?: string | null;
   assignedAt?: string | null;

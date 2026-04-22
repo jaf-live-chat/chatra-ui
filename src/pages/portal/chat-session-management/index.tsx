@@ -50,7 +50,12 @@ const getAvatarUrl = (entity: unknown): string | undefined => {
 
 const ChatSessionManagementPage = () => {
   const [searchParams] = useSearchParams();
-  const initialTab: SubTab = searchParams.get("tab") === "chat-history" ? "chat-history" : "active-chats";
+  const selectedConversationId = String(searchParams.get("conversationId") || "").trim();
+  const initialTab: SubTab = selectedConversationId
+    ? "active-chats"
+    : searchParams.get("tab") === "chat-history"
+      ? "chat-history"
+      : "active-chats";
   const [activeSubTab, setActiveSubTab] = useState<SubTab>(initialTab);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -66,6 +71,12 @@ const ChatSessionManagementPage = () => {
       setActiveSubTab("chat-history");
     }
   }, [subscriptionAccess.isActive]);
+
+  useEffect(() => {
+    if (selectedConversationId) {
+      setActiveSubTab("active-chats");
+    }
+  }, [selectedConversationId]);
 
   const assignedQueue = useMemo(() => {
     if (!currentUserId) {
@@ -253,7 +264,13 @@ const ChatSessionManagementPage = () => {
         <div className="flex-1 overflow-hidden">
           {activeSubTab === "active-chats" ? (
             subscriptionAccess.isActive ? (
-              <ChatActiveSection queue={assignedQueue} mutateQueue={mutateQueue} searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
+              <ChatActiveSection
+                queue={assignedQueue}
+                mutateQueue={mutateQueue}
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+                selectedConversationId={selectedConversationId}
+              />
             ) : (
               <div className="max-w-7xl mx-auto px-3 sm:px-6 py-6 sm:py-8">
                 <InactiveSubscriptionNotice

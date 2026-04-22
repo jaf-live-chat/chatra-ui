@@ -220,45 +220,6 @@ const VisitorDetailsDialog = ({
             </Box>
           </Stack>
 
-          <Box sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, overflow: "hidden" }}>
-            <Box sx={{ px: 2, py: 1.25, borderBottom: "1px solid", borderColor: "divider", bgcolor: "grey.50" }}>
-              <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1}>
-                <Stack direction="row" alignItems="center" spacing={1}>
-                  <MapPin size={14} />
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                    Visitor Map
-                  </Typography>
-                </Stack>
-                <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700 }}>
-                  {visitorMapEmbedUrl ? "Map available" : "Not granted"}
-                </Typography>
-              </Stack>
-            </Box>
-
-            {visitorMapEmbedUrl ? (
-              <Box>
-                <iframe
-                  title={`${visitor?.name || "Visitor"} map`}
-                  src={visitorMapEmbedUrl}
-                  loading="lazy"
-                  style={{ width: "100%", height: 220, border: 0 }}
-                  referrerPolicy="no-referrer-when-downgrade"
-                />
-                <Box sx={{ px: 2, py: 1, borderTop: "1px solid", borderColor: "divider", bgcolor: "background.paper" }}>
-                  <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600 }}>
-                    Showing {location}
-                  </Typography>
-                </Box>
-              </Box>
-            ) : (
-              <Box sx={{ px: 2, py: 2 }}>
-                <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                  Location permission not granted.
-                </Typography>
-              </Box>
-            )}
-          </Box>
-
           {isAssignedVisitor ? (
             <Box sx={{ p: 1.5, borderRadius: 2, border: "1px solid", borderColor: "divider", bgcolor: "background.paper" }}>
               <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5, color: "text.secondary" }}>

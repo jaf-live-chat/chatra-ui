@@ -1,9 +1,8 @@
-import { useMemo, useState, type CSSProperties } from "react";
-import { Eye, Hourglass, MessageSquare, Search, Zap } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Hourglass, MessageSquare, Search, Zap } from "lucide-react";
 import Avatar from "@mui/material/Avatar";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
-import IconButton from "@mui/material/IconButton";
 import InputBase from "@mui/material/InputBase";
 import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
@@ -29,6 +28,7 @@ interface QueueViewProps {
   onTakeConversation?: (visitor: QueueVisitorRow) => Promise<void>;
   onSelfPickConversation?: (visitor: QueueVisitorRow) => Promise<void>;
   onStartChat?: (visitor: QueueVisitorRow) => void;
+  onOpenConversation?: (visitor: QueueVisitorRow) => void;
   isAgent?: boolean;
   currentAgentId?: string;
 }
@@ -48,6 +48,7 @@ const QueueView = ({
   onTakeConversation,
   onSelfPickConversation,
   onStartChat,
+  onOpenConversation,
   isAgent = false,
   currentAgentId,
 }: QueueViewProps) => {
@@ -59,17 +60,6 @@ const QueueView = ({
   const [isProcessingAction, setIsProcessingAction] = useState(false);
 
   const now = useNowTick();
-
-  const visuallyHidden: CSSProperties = {
-    border: 0,
-    clip: "rect(0 0 0 0)",
-    height: 1,
-    margin: -1,
-    overflow: "hidden",
-    padding: 0,
-    position: "absolute",
-    width: 1,
-  };
 
   const normalizedSearch = searchTerm.trim().toLowerCase();
   const matchesSearch = (item: QueueVisitorRow) => {
@@ -121,9 +111,20 @@ const QueueView = ({
     return true;
   }).length;
 
-  const actionHeaderLabel = <span style={visuallyHidden}>Actions</span>;
+  const getWaitingMessageCountLabel = (count?: number) => {
+    const normalizedCount = Math.max(0, Number(count || 0));
+    return `${normalizedCount} new message${normalizedCount === 1 ? "" : "s"}`;
+  };
 
-  const buildVisitorCell = (row: QueueVisitorRow, showAssignedAgent = false) => (
+  const isRowAssignedToCurrentAgent = (row: QueueVisitorRow) => {
+    if (!currentAgentId) {
+      return false;
+    }
+
+    return String(row.agentId || "") === String(currentAgentId);
+  };
+
+  const buildVisitorCell = (row: QueueVisitorRow, showLatestMessage = false) => (
     <Stack direction="row" alignItems="center" spacing={1.5}>
       <Avatar sx={{ width: 30, height: 30, bgcolor: getAvatarColor(row.id), fontSize: "0.78rem", fontWeight: 700 }}>
         {row.name.charAt(0).toUpperCase()}
@@ -132,9 +133,28 @@ const QueueView = ({
         <Typography variant="body2" sx={{ fontWeight: 700, color: "grey.900", lineHeight: 1.2 }} noWrap>
           {row.name}
         </Typography>
-        <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.68rem" }}>
-          {getQueueDisplayId(row.id)}
-        </Typography>
+        {showLatestMessage ? (
+          <Tooltip title={row.latestVisitorMessage || row.message || "No message yet"}>
+            <Typography
+              variant="caption"
+              sx={{
+                color: "text.secondary",
+                fontSize: "0.68rem",
+                display: "block",
+                maxWidth: { xs: 150, sm: 220, md: 260 },
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {row.latestVisitorMessage || row.message || "No message yet"}
+            </Typography>
+          </Tooltip>
+        ) : (
+          <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.68rem" }}>
+            {getQueueDisplayId(row.id)}
+          </Typography>
+        )}
       </Box>
     </Stack>
   );
@@ -165,7 +185,7 @@ const QueueView = ({
       {
         id: "visitor",
         label: "Visitor",
-        renderCell: (row) => buildVisitorCell(row),
+        renderCell: (row) => buildVisitorCell(row, true),
       },
       {
         id: "waitTime",
@@ -184,32 +204,18 @@ const QueueView = ({
         ),
       },
       {
-        id: "view",
-        label: actionHeaderLabel,
+        id: "newMessages",
+        label: "New Messages",
         align: "center",
         headerAlign: "center",
         renderCell: (row) => (
-          <Tooltip title="View Visitor Details">
-            <IconButton
-              size="small"
-              onClick={() => setSelectedVisitor(row)}
-              sx={{
-                border: "1px solid",
-                borderColor: "grey.300",
-                color: "grey.700",
-                width: 32,
-                height: 32,
-                borderRadius: 1.75,
-                "&:hover": { bgcolor: "grey.100", borderColor: "grey.400" },
-              }}
-            >
-              <Eye size={15} />
-            </IconButton>
-          </Tooltip>
+          <Typography variant="body2" sx={{ fontWeight: 600, color: "text.secondary" }}>
+            {getWaitingMessageCountLabel(row.totalVisitorMessageCount)}
+          </Typography>
         ),
       },
     ],
-    [actionHeaderLabel, now],
+    [now],
   );
 
   const activeColumns = useMemo<ReusableTableColumn<QueueVisitorRow>[]>(
@@ -240,33 +246,8 @@ const QueueView = ({
           </Typography>
         ),
       },
-      {
-        id: "view",
-        label: actionHeaderLabel,
-        align: "center",
-        headerAlign: "center",
-        renderCell: (row) => (
-          <Tooltip title="View Visitor Details">
-            <IconButton
-              size="small"
-              onClick={() => setSelectedVisitor(row)}
-              sx={{
-                border: "1px solid",
-                borderColor: "grey.300",
-                color: "grey.700",
-                width: 32,
-                height: 32,
-                borderRadius: 1.75,
-                "&:hover": { bgcolor: "grey.100", borderColor: "grey.400" },
-              }}
-            >
-              <Eye size={15} />
-            </IconButton>
-          </Tooltip>
-        ),
-      },
     ],
-    [actionHeaderLabel, now],
+    [now],
   );
 
   const handleTakeConversation = async (visitor: QueueVisitorRow) => {
@@ -418,6 +399,7 @@ const QueueView = ({
                 columns={waitingColumns}
                 page={waitingPage}
                 onPageChange={setWaitingPage}
+                onRowClick={(row) => setSelectedVisitor(row)}
                 getRowKey={(row) => row.id}
                 badgeTone="warning"
                 emptyStateTitle="No visitors waiting"
@@ -436,6 +418,14 @@ const QueueView = ({
                 columns={activeColumns}
                 page={activePage}
                 onPageChange={setActivePage}
+                onRowClick={(row) => {
+                  if (row.status === "Assigned" && isRowAssignedToCurrentAgent(row) && onOpenConversation) {
+                    onOpenConversation(row);
+                    return;
+                  }
+
+                  setSelectedVisitor(row);
+                }}
                 getRowKey={(row) => row.id}
                 badgeTone="success"
                 emptyStateTitle="No active sessions"

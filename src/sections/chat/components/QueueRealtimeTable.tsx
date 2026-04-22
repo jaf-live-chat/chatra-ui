@@ -10,6 +10,7 @@ interface QueueRealtimeTableProps<T> {
   page: number;
   onPageChange: (page: number) => void;
   getRowKey: (row: T) => string;
+  onRowClick?: (row: T) => void;
   badgeTone: "warning" | "success";
   icon: ReactNode;
   emptyStateTitle: string;
@@ -24,6 +25,7 @@ const QueueRealtimeTable = <T,>({
   page,
   onPageChange,
   getRowKey,
+  onRowClick,
   badgeTone,
   icon,
   emptyStateTitle,
@@ -46,6 +48,7 @@ const QueueRealtimeTable = <T,>({
       rows={rows}
       columns={columns}
       getRowKey={getRowKey}
+      onRowClick={onRowClick}
       compact
       tableLayout="auto"
       tableMinWidth={520}

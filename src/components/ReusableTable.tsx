@@ -41,6 +41,7 @@ interface ReusableTableProps<T> {
   rows: T[];
   columns: ReusableTableColumn<T>[];
   getRowKey: (row: T) => string;
+  onRowClick?: (row: T, rowIndex: number) => void;
   tableMinWidth?: number;
   tableLayout?: "auto" | "fixed";
   compact?: boolean;
@@ -113,6 +114,7 @@ const ReusableTable = <T,>({
   rows,
   columns,
   getRowKey,
+  onRowClick,
   tableMinWidth = 650,
   tableLayout = "auto",
   compact = false,
@@ -582,8 +584,24 @@ const ReusableTable = <T,>({
                 <TableRow
                   key={getRowKey(row)}
                   hover
+                  onClick={onRowClick ? () => onRowClick(row, (resolvedPage - 1) * rowsPerPage + rowIndex) : undefined}
+                  onKeyDown={
+                    onRowClick
+                      ? (event) => {
+                        if (event.key !== "Enter" && event.key !== " ") {
+                          return;
+                        }
+
+                        event.preventDefault();
+                        onRowClick(row, (resolvedPage - 1) * rowsPerPage + rowIndex);
+                      }
+                      : undefined
+                  }
+                  tabIndex={onRowClick ? 0 : undefined}
+                  role={onRowClick ? "button" : undefined}
                   sx={{
                     transition: "background 0.15s",
+                    cursor: onRowClick ? "pointer" : "default",
                     "&:nth-of-type(odd) td": {
                       bgcolor: (theme) => (theme.palette.mode === "dark" ? "#1f2937" : "grey.50"),
                     },

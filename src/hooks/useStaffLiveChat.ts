@@ -7,6 +7,7 @@ import { SUBSCRIPTION_STATE_CHANGED_EVENT } from "../utils/subscriptionAccess";
 export interface StaffLiveChatHandlers {
   onNewMessage?: (message: LiveChatMessage) => void;
   onMessageStatusUpdated?: (payload: { conversationId?: string; messageIds?: string[]; status?: "DELIVERED" | "SEEN"; seenByRole?: string | null }) => void;
+  onQueueMessageUpdated?: (payload: { conversationId?: string; latestVisitorMessage?: string; incrementBy?: number }) => void;
   onConversationAssigned?: (payload: any) => void;
   onConversationTransferred?: (payload: any) => void;
   onConversationEnded?: (payload: LiveChatConversationEndedEvent) => void;
@@ -89,6 +90,10 @@ export const useStaffLiveChat = (
         handlersRef.current.onConversationEnded?.(payload);
       };
 
+      const onQueueMessageUpdated = (payload: any) => {
+        handlersRef.current.onQueueMessageUpdated?.(payload);
+      };
+
       const onQueueUpdated = (payload: any) => {
         handlersRef.current.onQueueUpdated?.(payload);
       };
@@ -145,6 +150,7 @@ export const useStaffLiveChat = (
       sharedStaffSocket.on("CONVERSATION_ASSIGNED", onConversationAssigned);
       sharedStaffSocket.on("CONVERSATION_TRANSFERRED", onConversationTransferred);
       sharedStaffSocket.on("CONVERSATION_ENDED", onConversationEnded);
+      sharedStaffSocket.on("QUEUE_MESSAGE_UPDATED", onQueueMessageUpdated);
       sharedStaffSocket.on("QUEUE_UPDATED", onQueueUpdated);
       sharedStaffSocket.on("AGENT_STATUS_UPDATED", onAgentStatusUpdated);
       sharedStaffSocket.on("TYPING", onTyping);
@@ -163,6 +169,7 @@ export const useStaffLiveChat = (
         sharedStaffSocket?.off("CONVERSATION_ASSIGNED", onConversationAssigned);
         sharedStaffSocket?.off("CONVERSATION_TRANSFERRED", onConversationTransferred);
         sharedStaffSocket?.off("CONVERSATION_ENDED", onConversationEnded);
+        sharedStaffSocket?.off("QUEUE_MESSAGE_UPDATED", onQueueMessageUpdated);
         sharedStaffSocket?.off("QUEUE_UPDATED", onQueueUpdated);
         sharedStaffSocket?.off("AGENT_STATUS_UPDATED", onAgentStatusUpdated);
         sharedStaffSocket?.off("TYPING", onTyping);
@@ -215,6 +222,10 @@ export const useStaffLiveChat = (
 
     const onConversationEnded = (payload: LiveChatConversationEndedEvent) => {
       handlersRef.current.onConversationEnded?.(payload);
+    };
+
+    const onQueueMessageUpdated = (payload: any) => {
+      handlersRef.current.onQueueMessageUpdated?.(payload);
     };
 
     const onQueueUpdated = (payload: any) => {
@@ -273,6 +284,7 @@ export const useStaffLiveChat = (
     socket.on("CONVERSATION_ASSIGNED", onConversationAssigned);
     socket.on("CONVERSATION_TRANSFERRED", onConversationTransferred);
     socket.on("CONVERSATION_ENDED", onConversationEnded);
+    socket.on("QUEUE_MESSAGE_UPDATED", onQueueMessageUpdated);
     socket.on("QUEUE_UPDATED", onQueueUpdated);
     socket.on("AGENT_STATUS_UPDATED", onAgentStatusUpdated);
     socket.on("TYPING", onTyping);
@@ -291,6 +303,7 @@ export const useStaffLiveChat = (
       socket.off("CONVERSATION_ASSIGNED", onConversationAssigned);
       socket.off("CONVERSATION_TRANSFERRED", onConversationTransferred);
       socket.off("CONVERSATION_ENDED", onConversationEnded);
+      socket.off("QUEUE_MESSAGE_UPDATED", onQueueMessageUpdated);
       socket.off("QUEUE_UPDATED", onQueueUpdated);
       socket.off("AGENT_STATUS_UPDATED", onAgentStatusUpdated);
       socket.off("TYPING", onTyping);
